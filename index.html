@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Super Rhombicosidodecahedron</title>
+<link rel="shortcut icon" href="/favicon.jpg" />
+<script src="/math.js" type="text/javascript"></script>
+<style type="text/css">
+
+body {
+  /* Disables pull-to-refresh but allows overscroll glow effects. */
+  overscroll-behavior-y: contain;
+  touch-action: none;
+}
+
+body.dead {
+  background: black;
+  color: white;
+}
+body.victorious {
+  color: white;
+}
+
+#header {
+  position: fixed;
+  left: 10vw;
+  right: 10vw;
+  top: 5vh;
+  padding: 24px;
+  text-align: center;
+  font-size: 6em;
+  display: flex;
+  flex-direction: column;
+}
+#playerMarker {
+  position: fixed;
+  top: -250px;
+  right: -250px;
+  transform: rotate(45deg);
+  width: 500px;
+  height: 500px;
+}
+
+#bombPower {
+  position: fixed;
+  top: 36px;
+  right: 24px;
+  color: white;
+  font-size: 64px;
+}
+#bombPower > img {
+  filter: invert(100);
+  width: 64px;
+  height: 64px;
+}
+
+
+#banner {
+  /*text-shadow: 5px 5px 5px white, -5px 5px 5px white, 5px -5px 5px white, -5px -5px 5px white;*/
+}
+
+
+#players, #victory {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.player {
+  width: 100px;
+  height: 100px;
+  border-radius: 50px;
+  background: black;
+  margin: 40px;
+}
+#victory {
+  margin-top: 100px;
+}
+
+#minimap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 20vh;
+  height: 100vw;
+  z-index: -1;
+}
+
+#readyButton {
+  position: fixed;
+  left: 10vw;
+  right: 10vw;
+  bottom: 5vh;
+  border: 2px solid black;
+  border-radius: 24px;
+  padding: 0.5em;
+  text-align: center;
+  font-size: 6em;
+  cursor: pointer;
+  background: white;
+}
+
+.hide {
+  display: none !important;
+}
+</style>
+</head>
+<body>
+
+<div id="playerMarker"></div>
+<div id="bombPower">
+  <span>2</span>
+  <img src="explosion.png" />
+</div>
+
+<div id="header">
+  <div id="banner"></div>
+  <div id="players" class="hide">
+    <div class="player"></div>
+    <div class="player"></div>
+    <div class="player"></div>
+    <div class="player"></div>
+    <div class="player"></div>
+    <div class="player"></div>
+    <div class="player"></div>
+    <div class="player"></div>
+  </div>
+  <div id="victory" class="hide">
+    <div class="player"></div> Wins
+  </div>
+</div>
+<canvas id="minimap" width="1000" height="1000"></canvas>
+<div id="readyButton" class="hide">Ready?</div>
+
+<script>
+
+playerMarker = document.getElementById("playerMarker");
+readyButton = document.getElementById("readyButton");
+banner = document.getElementById("banner");
+players = document.getElementById("players");
+victory = document.getElementById("victory");
+minimap = document.getElementById("minimap");
+ctx = minimap.getContext("2d");
+
+pixelInfo = null;
+
+loadJSON("/pixels.json", info => {
+  pixelInfo = info;
+;});
+
+var ws;
+function startWebsocket() {
+  ws = new WebSocket("ws://raspberrypi.local:7777");
+  // var ws = new WebSocket("ws://10.3.141.1:7777");
+  ws.onmessage = event => {
+    message = JSON.parse(event.data);
+    switch(message.event) {
+    case "explosion":
+      playExplosion(message);
+    default:
+      render(message);
+    }
+  };
+
+  ws.onerror = event => {
+    console.log("WebSocket error observed");
+  };
+  ws.onclose = event => {
+    console.log("WebSocket closed");
+  };
+}
+startWebsocket();
+
+// onfocus = startWebsocket;
+// onblur = () => {
+//   ws.close();
+// };
+
+
+function playExplosion(event) {
+  audio = document.createElement('audio');
+  audio.src = "explosion.wav";
+  audio.clientWidth = 0;
+  audio.clientHeight = 0;
+  audio.addEventListener("ended",function() {
+    this.remove();
+  });
+
+  audio.appendChild(document.body);
+  auido.play();
+}
+
+function render(state) {
+  let self = state.players[state.self];
+  playerMarker.style.backgroundColor = self.color;
+  document.querySelector("#bombPower > span").innerHTML = self.bombPower;
+
+  let claimed = state.players.filter(player => player.isClaimed);
+
+  minimap.classList.add("hide");
+  readyButton.classList.add("hide");
+  players.classList.add("hide");
+  victory.classList.add("hide");
+  document.body.classList.remove("dead");
+  document.body.classList.remove("victorious");
+  document.body.style.backgroundColor = "initial";
+
+  if (state.gameState == "start") {
+    if (!self.isReady) {
+      banner.innerHTML = "Drag to Move<br><br>Tap to Bomb";
+      // analogueStick.classList.remove("hide");
+      renderPosition(self);
+      minimap.classList.remove("hide");
+      readyButton.classList.remove("hide");
+    } else if (state.timeRemaining > 0) {
+      banner.innerHTML = Math.round(state.timeRemaining);
+    } else if (claimed.length == 1) {
+      banner.innerHTML = "Waiting for another player";
+    } else {
+      banner.innerHTML = "Waiting for...";
+      players.classList.remove("hide");
+      for (let i = 0; i < state.players.length; i++) {
+        player = state.players[i];
+
+        players.children[i].style.backgroundColor = player.color;
+        if (player.isClaimed && !player.isReady) {
+          players.children[i].classList.remove("hide");
+        } else {
+          players.children[i].classList.add("hide");
+        }
+      }
+    }
+  }
+
+
+  if (state.gameState == "play" || state.gameState == "previctory") {
+    if (self.isAlive) {
+      banner.innerHTML = "Still Alive";
+      renderPosition(self);
+      minimap.classList.remove("hide");
+    } else {
+      document.body.classList.add("dead");
+      banner.innerHTML = "You Died";
+    }
+
+    players.classList.remove("hide");
+    for (let i = 0; i < state.players.length; i++) {
+      player = state.players[i];
+
+      players.children[i].style.backgroundColor = player.color;
+      if (player.isAlive && player.isPlaying) {
+        players.children[i].classList.remove("hide");
+      } else {
+        players.children[i].classList.add("hide");
+      }
+    }
+  }
+
+  if (state.gameState == "victory") {
+    if (state.victoryColor == self.color) {
+      banner.innerHTML = "Victory!";
+      document.body.classList.add("victorious");
+      document.body.style.backgroundColor = state.victoryColor;
+    } else {
+      banner.innerHTML = "You Died";
+      victory.children[0].style.backgroundColor = state.victoryColor;
+      victory.classList.remove("hide");
+    }
+
+  }
+}
+
+center = [500, 500];
+
+function renderPosition(self) {
+  if (pixelInfo == null)
+    return;
+
+  let pos = self.position;
+
+  ctx.clearRect(0, 0, 1000, 1000);
+  ctx.fillStyle = "black";
+
+  let up = pixelInfo.unique_coords[pos];
+  up = math.divide(up, math.norm(up));
+  let north = [0, 0, 1];
+  north_proj = math.multiply(up, math.dot(north, up));
+  north = math.subtract(north, north_proj);
+  north = math.divide(north, math.norm(north));
+  east = math.cross(up, north)
+
+  let completedPixels = {};
+
+  function drawPixel(pixelPos) {
+    delta = math.subtract(pixelInfo.unique_coords[pos], pixelInfo.unique_coords[pixelPos]);
+    rectified_delta = [math.dot(east, delta), math.dot(north, delta)];
+    
+    ctx.beginPath();
+    ctx.arc(center[0] - 8 + rectified_delta[0] * 250,
+      center[1] - 8 + rectified_delta[1] * 250,
+      15, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  function drawNeighbors(pixelPos, depth) {
+    if (!completedPixels[pixelPos]) {
+      drawPixel(pixelPos);
+    }
+    if (completedPixels[pixelPos] && completedPixels[pixelPos] > depth) {
+      return;
+    }
+
+    completedPixels[pixelPos] = depth;
+
+    if (depth <= 1) {
+      return;
+    }
+
+    for (let n of pixelInfo.neighbors[pixelPos]) {
+      drawNeighbors(n, depth-1);
+    }
+  }
+
+  drawNeighbors(pos, 12);
+
+  ctx.fillStyle = self.color;
+  ctx.beginPath();
+  ctx.arc(center[0] - 16, center[1] - 16, 32, 0, 2 * Math.PI);
+  ctx.fill();
+
+}
+
+
+function send(json) {
+  // console.log("Sending: " + JSON.stringify(json));
+  ws.send(JSON.stringify(json));
+}
+
+readyButton.onclick = event => {
+    send({type: "ready"});
+};
+
+minimapRect = minimap.getBoundingClientRect();
+startLocation = null;
+timestamp = 0;
+// startTimeout = null;
+
+function handleStart(location) {
+  startLocation = location;
+  center = [(location.clientX - minimapRect.x) / minimapRect.width * 1000,
+            (location.clientY - minimapRect.y) / minimapRect.height * 1000];
+  timestamp = Date.now();
+  // startTimeout = setTimeout(() => handleChange(location), 100);
+}
+onmousedown =  handleStart;
+ontouchstart = event => {
+  handleStart(event.touches[0]);
+}
+
+function handleEnd(location) {
+  // clearTimeout(startTimeout);
+  if (Date.now() - timestamp < 100 &&
+      Math.abs(startLocation.clientX - location.clientX) < 2 &&
+      Math.abs(startLocation.clientY - location.clientY) < 2) {
+    send({type: "tap"});
+  }
+
+  send({type: "move", move: [0,0]});
+  startLocation = null;
+}
+onmouseup = handleEnd;
+ontouchend = event => {
+  handleEnd(event.changedTouches[0]);
+}
+
+function handleChange(location) {
+  // clearTimeout(startTimeout);
+  if (startLocation == null) {
+    return;
+  }
+  move = [startLocation.clientX - location.clientX,
+          startLocation.clientY - location.clientY];
+
+  send({type: "move", move});
+};
+onmousemove = handleChange;
+ontouchmove = event => {
+  handleChange(event.changedTouches[0]);
+}
+
+function loadJSON(path, success, error) {
+  let xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === XMLHttpRequest.DONE) {
+      if (xhr.status === 200) {
+        if (success)
+          success(JSON.parse(xhr.responseText));
+      } else {
+        if (error)
+          error(xhr);
+      }
+    }
+  };
+  xhr.open("GET", path, true);
+  xhr.send();
+}
+</script>
+</body>
+</html>
