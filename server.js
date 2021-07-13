@@ -15,17 +15,17 @@ var server = http.createServer(function(request, response) {
   response.end();
 });
 server.listen(7777, function() {
-  console.log((new Date()) + ' Server is listening on port 7777');
+  console.log('WebSocket Server is listening on port 7777');
 });
  
-wsServer = new WebSocket.Server({ server });
+wsServer = new WebSocket.Server({ server, autoAcceptConnections: true });
 // wsServer = new WebSocket.Server({
 //   httpServer: server,
 //   autoAcceptConnections: true,
 // });
 
-wsServer.on('connect', connection => {
-  console.log((new Date()) + ' Connection accepted.');
+wsServer.on('connection', connection => {
+  console.log('Connection accepted.');
 
   let id = 0;
   while(true) {
@@ -60,7 +60,8 @@ connections = {};
 function broadcast(baseMessage) {
   for (let id in connections) {
     baseMessage.self = id;
-    connections[id].sendUTF(JSON.stringify(baseMessage));
+    connections[id].send(JSON.stringify(baseMessage));
+    // connections[id].sendUTF(JSON.stringify(baseMessage));
   }
 }
 const process = spawn('sudo', ['python3', '-u', '/home/pi/Rhomberman/main.py']);

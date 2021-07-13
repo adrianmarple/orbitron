@@ -132,6 +132,8 @@ body.victorious {
 
 <script>
 
+console.log("Welcome to Super Rhomberman. Things may be broken.")
+
 playerMarker = document.getElementById("playerMarker");
 readyButton = document.getElementById("readyButton");
 banner = document.getElementById("banner");
@@ -149,7 +151,6 @@ loadJSON("/pixels.json", info => {
 var ws;
 function startWebsocket() {
   ws = new WebSocket("ws://raspberrypi.local:7777");
-  // var ws = new WebSocket("ws://10.3.141.1:7777");
   ws.onmessage = event => {
     message = JSON.parse(event.data);
     switch(message.event) {

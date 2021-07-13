@@ -7,25 +7,29 @@
 
 - Download Raspberry Pi Imager: https://www.raspberrypi.org/software/
 
-### Change password
+### Getting connected
 
-- `passwd`
+- Connect PI to monitor/TV vio HDMI cable
+- Connect USB keyboard to PI as well
+- Login with username `pi` password `raspberry`
+- Change password with `passwd`
 
 ### Configure SSH
 
-- `sudo raspi-config`
+- Run `sudo raspi-config`
 - SSH is in Interfacing Options
-- Get ip address via arp `-a` (probably one of the last ones)
-- `ssh pi@192.168.1.[IP]`
+- ~~Get ip address via arp `-a` (probably one of the last ones)~~
+- Enusre Bonjour is running `sudo apt-get install avahi-daemon`
+- `ssh pi@raspberrypi.local`
 
 ### Editing
 
 - Download sshfs from https://osxfuse.github.io/ and install
 - `mkdir ~/Rhomberban`
-- `sshfs pi@192.168.1.[IP]:/home/pi/Rhomberman ~/Rhomberman`
+- `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
 - Make sure to do regular git commits as this is not backed up in Dropbox
 
-## RaspberryPi stuff
+## Raspberry PI stuff
 
 ### Python
 
@@ -48,7 +52,7 @@
 
 # Running the game
 
-- `ssh pi@192.168.1.[IP]`
+- `ssh pi@raspberrypi.local`
 - `sudo /usr/bin/node ~/Rhomberman/server.js`
 
 
