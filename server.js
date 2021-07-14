@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 // Websocket server
 
 var server = http.createServer(function(request, response) {
-  console.log((new Date()) + ' Received request for ' + request.url);
+  console.log(' Received request for ' + request.url);
   response.writeHead(404);
   response.end();
 });
@@ -40,15 +40,15 @@ wsServer.on('connection', connection => {
   process.stdin.write(JSON.stringify(claim) + "\n", "utf8");
 
   connection.on('message', function(message) {
-    content = JSON.parse(message.utf8Data);
-    content.self = id;
-    process.stdin.write(JSON.stringify(content) + "\n", "utf8");
+    content = JSON.parse(message)
+    content.self = id
+    process.stdin.write(JSON.stringify(content) + "\n", "utf8")
   });
   connection.on('close', function(reasonCode, description) {
-    console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-    release = { self: id, type: "release" };
-    process.stdin.write(JSON.stringify(release) + "\n", "utf8");
-    delete connections[id];
+    console.log(' Peer ' + connection.remoteAddress + ' disconnected.')
+    release = { self: id, type: "release" }
+    process.stdin.write(JSON.stringify(release) + "\n", "utf8")
+    delete connections[id]
   });
 });
 

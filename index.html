@@ -10,6 +10,9 @@ body {
   /* Disables pull-to-refresh but allows overscroll glow effects. */
   overscroll-behavior-y: contain;
   touch-action: none;
+  user-select: none;
+  display: flex;
+  justify-content: center;
 }
 
 body.dead {
@@ -27,7 +30,7 @@ body.victorious {
   top: 5vh;
   padding: 24px;
   text-align: center;
-  font-size: 6em;
+  font-size: 4em;
   display: flex;
   flex-direction: column;
 }
@@ -77,23 +80,20 @@ body.victorious {
 
 #minimap {
   position: fixed;
-  left: 0;
-  right: 0;
   bottom: 20vh;
-  height: 100vw;
+  height: 80vw;
+  max-height: 500px;
   z-index: -1;
 }
 
 #readyButton {
   position: fixed;
-  left: 10vw;
-  right: 10vw;
   bottom: 5vh;
   border: 2px solid black;
   border-radius: 24px;
-  padding: 0.5em;
+  padding: 0.25em 1em;
   text-align: center;
-  font-size: 6em;
+  font-size: 4em;
   cursor: pointer;
   background: white;
 }
@@ -155,7 +155,8 @@ function startWebsocket() {
     message = JSON.parse(event.data);
     switch(message.event) {
     case "explosion":
-      playExplosion(message);
+      // playExplosion(message);
+      break;
     default:
       render(message);
     }

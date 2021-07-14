@@ -19,7 +19,7 @@
 - Run `sudo raspi-config`
 - SSH is in Interfacing Options
 - ~~Get ip address via arp `-a` (probably one of the last ones)~~
-- Enusre Bonjour is running `sudo apt-get install avahi-daemon`
+- Ensure Bonjour is running `sudo apt-get install avahi-daemon`
 - `ssh pi@raspberrypi.local`
 
 ### Editing
@@ -48,12 +48,15 @@
 - Follow these instructions: https://www.raspberrypi.org/documentation/configuration/wireless/access-point-routed.md
 - Be sure to make hotspot open by setting `wpa=0` in `hostapd.conf`
 
+### Set up captive portal
 
+- NO FUCKING CLUE???
 
 # Running the game
 
 - `ssh pi@raspberrypi.local`
 - `sudo /usr/bin/node ~/Rhomberman/server.js`
+- Visit `http://raspberrypi.local:1337`
 
 
 ## Run only python
@@ -61,8 +64,19 @@
 - `sudo python3 main.py`
 
 
-# Other useful resources
+# Other useful things
+
+## If LED strip gets "stuck"
+
+- Eject fused `Rhomberman` folder
+- `sudo reboot`
+- Wait and then redo `ssh` and `sshfs`
+
+## Unmount sshfs so you can remount
+
+- `umount ~/Rhomberman`
 
 
 ## WIFI QR code generator
+
 - https://www.qr-code-generator.com/solutions/wifi-qr-code/
