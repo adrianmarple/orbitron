@@ -52,6 +52,11 @@
 
 - NO FUCKING CLUE???
 
+### Setup to run on startup
+
+- Edit cron `sudo crontab -e`
+- Add the line `@reboot /usr/bin/node /home/pi/Rhomberman/server.js`
+
 # Running the game
 
 - `ssh pi@raspberrypi.local`
@@ -68,13 +73,13 @@
 
 ## If LED strip gets "stuck"
 
-- Eject fused `Rhomberman` folder
 - `sudo reboot`
 - Wait and then redo `ssh` and `sshfs`
 
 ## Unmount sshfs so you can remount
 
 - `umount ~/Rhomberman`
+- And if that fails: `sudo diskutil umount force ~/Rhomberman`
 
 
 ## WIFI QR code generator

@@ -84,6 +84,7 @@ body.victorious {
   height: 80vw;
   max-height: 500px;
   z-index: -1;
+  user-select: none;
 }
 
 #readyButton {
@@ -273,6 +274,8 @@ function render(state) {
 center = [500, 500];
 
 function renderPosition(self) {
+  return;
+
   if (pixelInfo == null)
     return;
 
@@ -359,7 +362,8 @@ ontouchstart = event => {
 
 function handleEnd(location) {
   // clearTimeout(startTimeout);
-  if (Date.now() - timestamp < 100 &&
+  if (Date.now() - timestamp > 20 &&
+      Date.now() - timestamp < 200 &&
       Math.abs(startLocation.clientX - location.clientX) < 2 &&
       Math.abs(startLocation.clientY - location.clientY) < 2) {
     send({type: "tap"});
