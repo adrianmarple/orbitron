@@ -151,7 +151,8 @@ loadJSON("/pixels.json", info => {
 
 var ws;
 function startWebsocket() {
-  ws = new WebSocket("ws://raspberrypi.local:7777");
+  //ws = new WebSocket("ws://raspberrypi.local:7777");
+  ws = new WebSocket("ws://192.168.4.1:7777");
   ws.onmessage = event => {
     message = JSON.parse(event.data);
     switch(message.event) {

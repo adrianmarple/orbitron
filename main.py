@@ -6,6 +6,7 @@ import collections
 import json
 import neopixel
 import numpy as np
+import os
 import pathlib
 import socket
 import ssl
@@ -18,6 +19,13 @@ from random import randrange, random
 from threading import Thread
 from time import time, sleep
 
+from pygame import mixer
+
+mixer.init(devicename="plughw")
+waiting_music = mixer.Sound("~/Rhomberman/waiting.wav")
+waiting_music.play()
+
+# os.system("aplay -D plughw:Device ~/Rhomberman/Super Rhomberman - Waiting.wav")
 
 # IP_ADDRESS = '127.0.0.1'
 # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

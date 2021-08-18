@@ -36,6 +36,9 @@
 - `sudo apt-get -y install python3-pip`
 - `sudo apt install python3-numpy`
 - `sudo pip3 install adafruit-circuitpython-neopixel websockets`
+- `sudo apt-get update`
+- `sudo apt install libsdl2-2.0`
+- `python3 -m pip install -U pygame --user`
 
 ### Node
 
