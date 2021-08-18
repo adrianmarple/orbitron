@@ -38,7 +38,8 @@
 - `sudo pip3 install adafruit-circuitpython-neopixel websockets`
 - `sudo apt-get update`
 - `sudo apt install libsdl2-2.0`
-- `python3 -m pip install -U pygame --user`
+- `sudo apt-get install libsdl2-mixer-2.0-0`
+- `sudo pip3 install pygame`
 
 ### Node
 
