@@ -13,6 +13,7 @@ body {
   user-select: none;
   display: flex;
   justify-content: center;
+  user-select: none;
 }
 
 body.dead {
@@ -84,10 +85,9 @@ body.victorious {
   height: 80vw;
   max-height: 500px;
   z-index: -1;
-  user-select: none;
 }
 
-#readyButton {
+#readyButton, #unreadyButton {
   position: fixed;
   bottom: 5vh;
   border: 2px solid black;
@@ -130,48 +130,52 @@ body.victorious {
 </div>
 <canvas id="minimap" width="1000" height="1000"></canvas>
 <div id="readyButton" class="hide">Ready?</div>
+<div id="unreadyButton" class="hide">I'm not ready.</div>
 
 <script>
 
 console.log("Welcome to Super Rhomberman. Things may be broken.")
+console.log()
 
-playerMarker = document.getElementById("playerMarker");
-readyButton = document.getElementById("readyButton");
-banner = document.getElementById("banner");
-players = document.getElementById("players");
-victory = document.getElementById("victory");
-minimap = document.getElementById("minimap");
-ctx = minimap.getContext("2d");
+playerMarker = document.getElementById("playerMarker")
+readyButton = document.getElementById("readyButton")
+unreadyButton = document.getElementById("unreadyButton")
+banner = document.getElementById("banner")
+players = document.getElementById("players")
+victory = document.getElementById("victory")
+minimap = document.getElementById("minimap")
+ctx = minimap.getContext("2d")
 
-pixelInfo = null;
+pixelInfo = null
+state = {}
 
 loadJSON("/pixels.json", info => {
-  pixelInfo = info;
-;});
+  pixelInfo = info
+})
 
-var ws;
+var ws
 function startWebsocket() {
-  //ws = new WebSocket("ws://raspberrypi.local:7777");
-  ws = new WebSocket("ws://192.168.4.1:7777");
+  ws = new WebSocket(`ws://${window.location.hostname}:7777`)
   ws.onmessage = event => {
-    message = JSON.parse(event.data);
+    message = JSON.parse(event.data)
     switch(message.event) {
     case "explosion":
-      // playExplosion(message);
+      // playExplosion(message)
       break;
     default:
-      render(message);
+      state = message
+      render()
     }
   };
 
   ws.onerror = event => {
-    console.log("WebSocket error observed");
-  };
+    console.log("WebSocket error observed")
+  }
   ws.onclose = event => {
-    console.log("WebSocket closed");
-  };
+    console.log("WebSocket closed")
+  }
 }
-startWebsocket();
+startWebsocket()
 
 // onfocus = startWebsocket;
 // onblur = () => {
@@ -192,7 +196,7 @@ function playExplosion(event) {
   auido.play();
 }
 
-function render(state) {
+function render() {
   let self = state.players[state.self];
   playerMarker.style.backgroundColor = self.color;
   document.querySelector("#bombPower > span").innerHTML = self.bombPower;
@@ -201,6 +205,7 @@ function render(state) {
 
   minimap.classList.add("hide");
   readyButton.classList.add("hide");
+  unreadyButton.classList.add("hide");
   players.classList.add("hide");
   victory.classList.add("hide");
   document.body.classList.remove("dead");
@@ -208,12 +213,17 @@ function render(state) {
   document.body.style.backgroundColor = "initial";
 
   if (state.gameState == "start") {
+    if (self.isReady) {
+      unreadyButton.classList.remove("hide");
+    } else {
+      readyButton.classList.remove("hide");
+    }
+
     if (!self.isReady) {
       banner.innerHTML = "Drag to Move<br><br>Tap to Bomb";
       // analogueStick.classList.remove("hide");
       renderPosition(self);
       minimap.classList.remove("hide");
-      readyButton.classList.remove("hide");
     } else if (state.timeRemaining > 0) {
       banner.innerHTML = Math.round(state.timeRemaining);
     } else if (claimed.length == 1) {
@@ -272,142 +282,149 @@ function render(state) {
   }
 }
 
-center = [500, 500];
+center = [500, 500]
 
 function renderPosition(self) {
-  return;
+  return
 
   if (pixelInfo == null)
-    return;
+    return
 
-  let pos = self.position;
+  let pos = self.position
 
-  ctx.clearRect(0, 0, 1000, 1000);
-  ctx.fillStyle = "black";
+  ctx.clearRect(0, 0, 1000, 1000)
+  ctx.fillStyle = "black"
 
-  let up = pixelInfo.unique_coords[pos];
-  up = math.divide(up, math.norm(up));
-  let north = [0, 0, 1];
-  north_proj = math.multiply(up, math.dot(north, up));
-  north = math.subtract(north, north_proj);
-  north = math.divide(north, math.norm(north));
+  let up = pixelInfo.unique_coords[pos]
+  up = math.divide(up, math.norm(up))
+  let north = [0, 0, 1]
+  north_proj = math.multiply(up, math.dot(north, up))
+  north = math.subtract(north, north_proj)
+  north = math.divide(north, math.norm(north))
   east = math.cross(up, north)
 
-  let completedPixels = {};
+  let completedPixels = {}
 
   function drawPixel(pixelPos) {
-    delta = math.subtract(pixelInfo.unique_coords[pos], pixelInfo.unique_coords[pixelPos]);
-    rectified_delta = [math.dot(east, delta), math.dot(north, delta)];
+    delta = math.subtract(pixelInfo.unique_coords[pos], pixelInfo.unique_coords[pixelPos])
+    rectified_delta = [math.dot(east, delta), math.dot(north, delta)]
     
-    ctx.beginPath();
+    ctx.beginPath()
     ctx.arc(center[0] - 8 + rectified_delta[0] * 250,
       center[1] - 8 + rectified_delta[1] * 250,
-      15, 0, 2 * Math.PI);
-    ctx.fill();
+      15, 0, 2 * Math.PI)
+    ctx.fill()
   }
 
   function drawNeighbors(pixelPos, depth) {
     if (!completedPixels[pixelPos]) {
-      drawPixel(pixelPos);
+      drawPixel(pixelPos)
     }
     if (completedPixels[pixelPos] && completedPixels[pixelPos] > depth) {
-      return;
+      return
     }
 
-    completedPixels[pixelPos] = depth;
+    completedPixels[pixelPos] = depth
 
     if (depth <= 1) {
-      return;
+      return
     }
 
     for (let n of pixelInfo.neighbors[pixelPos]) {
-      drawNeighbors(n, depth-1);
+      drawNeighbors(n, depth-1)
     }
   }
 
-  drawNeighbors(pos, 12);
+  drawNeighbors(pos, 12)
 
-  ctx.fillStyle = self.color;
-  ctx.beginPath();
-  ctx.arc(center[0] - 16, center[1] - 16, 32, 0, 2 * Math.PI);
-  ctx.fill();
+  ctx.fillStyle = self.color
+  ctx.beginPath()
+  ctx.arc(center[0] - 16, center[1] - 16, 32, 0, 2 * Math.PI)
+  ctx.fill()
 
 }
 
 
 function send(json) {
-  // console.log("Sending: " + JSON.stringify(json));
-  ws.send(JSON.stringify(json));
+  // console.log("Sending: " + JSON.stringify(json))
+  ws.send(JSON.stringify(json))
 }
 
 readyButton.onclick = event => {
-    send({type: "ready"});
+  send({type: "ready"})
+};
+unreadyButton.onclick = event => {
+  send({type: "unready"})
+  console.log("unready")
+  timestamp = 0
 };
 
-minimapRect = minimap.getBoundingClientRect();
-startLocation = null;
-timestamp = 0;
-// startTimeout = null;
+var minimapRect = minimap.getBoundingClientRect()
+var startLocation = null
+var timestamp = 0
+// startTimeout = null
 
 function handleStart(location) {
-  startLocation = location;
+  if (state.gameState === "start" && state.players[state.self].isReady) {
+    return
+  }
+
+  startLocation = location
   center = [(location.clientX - minimapRect.x) / minimapRect.width * 1000,
-            (location.clientY - minimapRect.y) / minimapRect.height * 1000];
-  timestamp = Date.now();
-  // startTimeout = setTimeout(() => handleChange(location), 100);
+            (location.clientY - minimapRect.y) / minimapRect.height * 1000]
+  timestamp = Date.now()
 }
-onmousedown =  handleStart;
+onmousedown =  handleStart
 ontouchstart = event => {
-  handleStart(event.touches[0]);
+  handleStart(event.touches[0])
 }
 
 function handleEnd(location) {
-  // clearTimeout(startTimeout);
   if (Date.now() - timestamp > 20 &&
       Date.now() - timestamp < 200 &&
       Math.abs(startLocation.clientX - location.clientX) < 2 &&
       Math.abs(startLocation.clientY - location.clientY) < 2) {
-    send({type: "tap"});
+    send({type: "tap"})
   }
 
-  send({type: "move", move: [0,0]});
-  startLocation = null;
+  send({type: "move", move: [0,0]})
+  startLocation = null
 }
-onmouseup = handleEnd;
+onmouseup = handleEnd
 ontouchend = event => {
-  handleEnd(event.changedTouches[0]);
+  handleEnd(event.changedTouches[0])
 }
 
 function handleChange(location) {
-  // clearTimeout(startTimeout);
+  // clearTimeout(startTimeout)
   if (startLocation == null) {
-    return;
+    return
   }
   move = [startLocation.clientX - location.clientX,
-          startLocation.clientY - location.clientY];
+          startLocation.clientY - location.clientY]
 
-  send({type: "move", move});
+  send({type: "move", move})
 };
-onmousemove = handleChange;
+onmousemove = handleChange
 ontouchmove = event => {
-  handleChange(event.changedTouches[0]);
+  handleChange(event.changedTouches[0])
 }
 
 function loadJSON(path, success, error) {
-  let xhr = new XMLHttpRequest();
+  let xhr = new XMLHttpRequest()
   xhr.onreadystatechange = function() {
     if (xhr.readyState === XMLHttpRequest.DONE) {
       if (xhr.status === 200) {
         if (success)
-          success(JSON.parse(xhr.responseText));
+          success(JSON.parse(xhr.responseText))
       } else {
         if (error)
-          error(xhr);
+          error(xhr)
       }
     }
   };
-  xhr.open("GET", path, true);
-  xhr.send();
+  xhr.open("GET", path, true)
+  xhr.send()
 }
 </script>
 </body>

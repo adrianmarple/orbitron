@@ -368,6 +368,10 @@ class Player:
     self.is_ready = True
     broadcast_state()
 
+  def set_unready(self):
+    self.is_ready = False
+    broadcast_state()
+
   def move(self):
     if game_state == "start" and self.is_ready:
       return
@@ -642,73 +646,6 @@ def broadcast_state():
   }
   print(json.dumps(message))
 
-# def broadcast_state():
-#   async def async_broadcast():
-#     message = {
-#       "players": [player.to_json() for player in players],
-#       "gameState": game_state,
-#       "timeRemaining": state_end_time - time(),
-#       "victoryColor": victory_color_string,
-#     }
-#     for player in players:
-#       await player.transmit(message)
-
-#   def run_broadcast(loop):
-#     loop.run_until_complete(async_broadcast())
-
-#   broadcast_thread = Thread(target=run_broadcast, args=(asyncio.new_event_loop(),))
-#   broadcast_thread.start()
-
-
-# def start_websocket_server(loop):
-#   asyncio.set_event_loop(loop)
-
-#   async def handle_input(websocket, path):
-#     my_player = None
-#     for player in players:
-#       if not player.is_claimed:
-#         player.is_claimed = True
-#         player.websocket = websocket
-#         my_player = player
-#         broadcast_state()
-#         # await websocket.send('{"type":"color", "color":"%s"}' % player.color_string)
-#         break
-
-#     # TODO handle no players left error
-#     my_player.websocket = websocket
-
-
-#     try:
-#       async for message in websocket:
-#       # while True:
-#         # message = await websocket.recv()
-#         message = json.loads(message)
-
-#         if message["type"] == "move":
-#           my_player.prev_move = my_player.move_direction
-#           my_player.move_direction = np.array(message["move"])
-#         elif message["type"] == "ready":
-#           my_player.set_ready()
-#         elif message["type"] == "tap":
-#           my_player.tap = time()
-#         else:
-#           print("Unknown message type:")
-#           print(message)
-
-#     finally:
-#       if my_player is not None:
-#         my_player.is_claimed = False
-#         player.websocket = None
-
-#   # start_server = websockets.serve(handle_input, IP_ADDRESS, 5678)
-#   # start_server = websockets.serve(handle_input, "raspberrypi.local", 5678)
-#   start_server = websockets.serve(handle_input, "10.3.141.1", 5678)
-#   loop.run_until_complete(start_server)
-#   loop.run_forever()
-
-
-# thread = Thread(target=start_websocket_server, args=(asyncio.new_event_loop(),))
-# thread.start()
 
 import fileinput
 
@@ -725,6 +662,8 @@ def consume_input():
         player.move_direction = np.array(message["move"])
       elif message["type"] == "ready":
         player.set_ready()
+      elif message["type"] == "unready":
+        player.set_unready()
       elif message["type"] == "claim":
         player.is_claimed = True
         broadcast_state()
