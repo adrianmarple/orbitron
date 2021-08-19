@@ -4,9 +4,8 @@ import asyncio
 import board
 import collections
 import json
-import neopixel
 import numpy as np
-import os
+import neopixel
 import pathlib
 import socket
 import ssl
@@ -15,50 +14,17 @@ import urllib.request
 import websockets
 
 from math import exp, floor, pi, sin, sqrt
+from pygame import mixer
 from random import randrange, random
 from threading import Thread
 from time import time, sleep
 
-import pygame
-import pygame._sdl2 as sdl2
-from pygame import mixer
-
-pygame.init()
-is_capture = 0  # zero to request playback devices, non-zero to request recording devices
-num = sdl2.get_num_audio_devices(is_capture)
-names = [str(sdl2.get_audio_device_name(i, is_capture), encoding="utf-8") for i in range(num)]
-print("\n".join(names))
-pygame.quit()
-
-mixer.init(devicename="USB Audio Device, USB Audio")
-# mixer.init(devicename="bcm2835 Headphones, bcm2835 Headphones")
-waiting_music = mixer.Sound("/home/pi/Rhomberman/waiting.wav")
-waiting_music.play()
-
-# os.system("aplay -D plughw:Device ~/Rhomberman/Super Rhomberman - Waiting.wav")
-
-# IP_ADDRESS = '127.0.0.1'
-# s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# try:
-#     # doesn't even have to be reachable
-#     s.connect(('10.255.255.255', 1))
-#     IP_ADDRESS = s.getsockname()[0]
-# finally:
-#     s.close()
-
-# print(IP_ADDRESS)
-
-# SSID = subprocess.check_output("iwgetid -r", shell = True).decode("utf-8").replace("\n", "")
-
-# url = 'https://rhomberman.firebaseio.com/12345.json'
-# data = str.encode('"%s"' % SSID)
-# # data = str.encode('{"ip": "%s", "SSID": "%s"}' % (IP_ADDRESS, SSID)
-
-# req = urllib.request.Request(url=url, data=data, method='PUT')
-# urllib.request.urlopen(req)
 
 
-# TODO ensure connected to internet before moving on
+# mixer.init(devicename="USB Audio Device, USB Audio")
+# waiting_music = mixer.Sound("/home/pi/Rhomberman/waiting.wav")
+# waiting_music.play()
+
 
 
 MAX_BOMBS = 5

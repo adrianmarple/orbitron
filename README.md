@@ -64,8 +64,9 @@
 # Running the game
 
 - `ssh pi@raspberrypi.local`
+- Kill game from startup if needed `sudo killall python3 node`
 - `sudo /usr/bin/node ~/Rhomberman/server.js`
-- Visit `http://raspberrypi.local:1337`
+- Visit `http://192.168.4.1.local:1337`
 
 
 ## Run only python
@@ -84,6 +85,7 @@
 
 - `umount ~/Rhomberman`
 - And if that fails: `sudo diskutil umount force ~/Rhomberman`
+- `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
 
 
 ## WIFI QR code generator
