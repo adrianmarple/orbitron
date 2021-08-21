@@ -71,6 +71,7 @@ process.stdout.on('data', data => {
       broadcast(JSON.parse(data.toString()));
     } catch(e) {
       console.error(e);
+      console.error(data.toString());
     }
   } else {
     console.log(data.toString());
