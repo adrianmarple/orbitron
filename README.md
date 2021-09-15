@@ -83,8 +83,7 @@
 
 ## Unmount sshfs so you can remount
 
-- `umount ~/Rhomberman`
-- And if that fails: `sudo diskutil umount force ~/Rhomberman`
+- `sudo diskutil umount force ~/Rhomberman`
 - `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
 
 

@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Super Rhombicosidodecahedron</title>
+
+<meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=0"/>
+<title>Super Rhomberman</title>
 <link rel="shortcut icon" href="/favicon.jpg" />
+<script src="/vue.js" type="text/javascript"></script>
 <script src="/math.js" type="text/javascript"></script>
+
 <style type="text/css">
 
-body {
+body, #app, .main {
   /* Disables pull-to-refresh but allows overscroll glow effects. */
   overscroll-behavior-y: contain;
   touch-action: none;
@@ -14,17 +18,45 @@ body {
   display: flex;
   justify-content: center;
   user-select: none;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  font-size: 2vw;
 }
 
-body.dead {
-  background: black;
-  color: white;
+#settings-button {
+  position: fixed;
+  left:  24px;
+  top:  24px;
+  cursor: pointer;
+  z-index: 2;
 }
-body.victorious {
-  color: white;
+#settings {
+  position: absolute;
+  width: 100vw;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-top: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 2em;
+  background: white;
+  z-index: 1;
+}
+.setting {
+  display: flex;
+  align-items: center;
+}
+.setting textarea {
+  width: 100px;
+  font-size: 1em;
+  height: 32px;
+  text-align: center;
+  margin-left: 12px;
 }
 
-#header {
+.header {
   position: fixed;
   left: 10vw;
   right: 10vw;
@@ -37,33 +69,28 @@ body.victorious {
 }
 #playerMarker {
   position: fixed;
-  top: -250px;
-  right: -250px;
+  top: -25vw;
+  right: -25vw;
   transform: rotate(45deg);
-  width: 500px;
-  height: 500px;
+  width: 50vw;
+  height: 50vw;
 }
 
 #bombPower {
   position: fixed;
-  top: 36px;
-  right: 24px;
+  top: 4vw;
+  right: 4vw;
   color: white;
-  font-size: 64px;
+  font-size: 4em;
 }
 #bombPower > img {
   filter: invert(100);
-  width: 64px;
-  height: 64px;
+  width: 8vw;
+  height: 8vw;
 }
 
 
-#banner {
-  /*text-shadow: 5px 5px 5px white, -5px 5px 5px white, 5px -5px 5px white, -5px -5px 5px white;*/
-}
-
-
-#players, #victory {
+.players, #victory {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -87,12 +114,15 @@ body.victorious {
   z-index: -1;
 }
 
-#readyButton, #unreadyButton {
+.buttons {
   position: fixed;
   bottom: 5vh;
+}
+.button {
   border: 2px solid black;
   border-radius: 24px;
   padding: 0.25em 1em;
+  margin-top: 24px;
   text-align: center;
   font-size: 4em;
   cursor: pointer;
@@ -105,37 +135,303 @@ body.victorious {
 </style>
 </head>
 <body>
-
-<div id="playerMarker"></div>
-<div id="bombPower">
-  <span>2</span>
-  <img src="explosion.png" />
-</div>
-
-<div id="header">
-  <div id="banner"></div>
-  <div id="players" class="hide">
-    <div class="player"></div>
-    <div class="player"></div>
-    <div class="player"></div>
-    <div class="player"></div>
-    <div class="player"></div>
-    <div class="player"></div>
-    <div class="player"></div>
-    <div class="player"></div>
+<div id=app>
+  <div id="settings-button" @click="showSettings = !showSettings">
+    <svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 0 24 24" width="48px" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19.43 12.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.09-.16-.26-.25-.44-.25-.06 0-.12.01-.17.03l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.06-.02-.12-.03-.18-.03-.17 0-.34.09-.43.25l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.09.16.26.25.44.25.06 0 .12-.01.17-.03l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.06.02.12.03.18.03.17 0 .34-.09.43-.25l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zm-1.98-1.71c.04.31.05.52.05.73 0 .21-.02.43-.05.73l-.14 1.13.89.7 1.08.84-.7 1.21-1.27-.51-1.04-.42-.9.68c-.43.32-.84.56-1.25.73l-1.06.43-.16 1.13-.2 1.35h-1.4l-.19-1.35-.16-1.13-1.06-.43c-.43-.18-.83-.41-1.23-.71l-.91-.7-1.06.43-1.27.51-.7-1.21 1.08-.84.89-.7-.14-1.13c-.03-.31-.05-.54-.05-.74s.02-.43.05-.73l.14-1.13-.89-.7-1.08-.84.7-1.21 1.27.51 1.04.42.9-.68c.43-.32.84-.56 1.25-.73l1.06-.43.16-1.13.2-1.35h1.39l.19 1.35.16 1.13 1.06.43c.43.18.83.41 1.23.71l.91.7 1.06-.43 1.27-.51.7 1.21-1.07.85-.89.7.14 1.13zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
   </div>
-  <div id="victory" class="hide">
-    <div class="player"></div> Wins
+
+  <div v-if="showSettings" id="settings">
+    <span style="font-size: 1.5em">Settings</span>
+    <div v-for="name in settingTypes" class="setting">
+      {{prettifySettingName(name)}}
+      <textarea type="number" v-model.number="config[name]" @onchange="updateSettings" ></textarea>
+    </div>
+  </div>
+
+  <div id="playerMarker"
+    :style="{backgroundColor: self.color}"
+  ></div>
+  <div id="bombPower">
+    <span>{{self.bombPower}}</span>
+    <img src="explosion.png" />
+  </div>
+
+  <div v-if="mode=='start' && state.timeRemaining < 0" class="main">
+    <div class="header">
+      <div v-if="!self.isReady">
+        Drag to Move
+        <br><br>
+        Tap to Bomb
+      </div>
+      <div v-else-if="claimedPlayers.length <= 1">Waiting for another player.</div>
+      <div v-else>Waiting for...
+        <div class="players">
+          <div v-for="player in unreadyPlayers"
+            class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+        </div>
+      </div>
+      <div id="victory" class="hide">
+        <div class="player"></div> Wins
+      </div>
+    </div>
+
+    <div class="buttons">
+      <div v-if="self.isReady"
+        class="button"
+        @click.stop="pulse"
+      >
+        Pulse.
+      </div>
+      <div v-if="self.isReady"
+        class="button"
+        @click.stop="makeUnready"
+      >
+        I'm not ready.
+      </div>
+      <div v-else
+        class="button"
+        @click.stop="makeReady"
+      >
+        Ready?
+      </div>
+    </div>
+  </div>
+
+  <div v-if="mode=='start' && state.timeRemaining >= 0" class="main">
+    <div class="header">
+      <div class="banner">{{Math.round(state.timeRemaining)}}</div>
+    </div>
+  </div>
+
+  <div v-if="mode=='play'" class="main">
+    <div class="header">
+      <div>Live players:
+        <div class="players">
+          <div v-for="player in livePlayers"
+            class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+        </div>
+      </div>
+      <div v-if="!self.isPlaying">
+        You have to wait until next round :(
+      </div>
+      <div v-else-if="!self.isAlive">
+        You died...
+      </div>
+    </div>
+  </div>
+  <div v-if="mode=='victory'"
+    class="main"
+    :style="{ backgroundColor: state.victoryColor }">
+    <div class="header" :style="{ color: 'white' }">
+      <div v-if="self.color === state.victoryColor">
+        Victory!
+      </div>
+      <div v-else>
+        You died.
+      </div>
+    </div>
+
   </div>
 </div>
-<canvas id="minimap" width="1000" height="1000"></canvas>
-<div id="readyButton" class="hide">Ready?</div>
-<div id="unreadyButton" class="hide">I'm not ready.</div>
 
 <script>
 
-console.log("Welcome to Super Rhomberman. Things may be broken.")
-console.log()
+var app = new Vue({
+  el: '#app',
+  data: {
+    ws: null,
+    showSettings: false,
+    oldConfig: null,
+    state: {},
+
+    startLocation: null,
+    timestamp: 0,
+    settings: false,
+
+    settingTypes: [
+      "BOMB_FUSE_TIME",
+      "BOMB_EXPLOSION_TIME",
+      "STARTING_BOMB_POWER",
+      "PICKUP_CHANCE",
+      "NUM_WALLS",
+      "MAX_BOMBS",
+      "BOMB_MOVE_FREQ",
+      "MOVE_FREQ",
+    ],
+  },
+
+  created() {
+    let self = this
+    function startWebsocket() {
+      self.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
+      self.ws.onmessage = event => {
+        message = JSON.parse(event.data)
+        switch(message.event) {
+        case "explosion":
+          // playExplosion(message)
+          break
+        default:
+          self.state = message
+          self.$forceUpdate()
+        }
+      };
+
+      self.ws.onerror = event => {
+        console.log("WebSocket error observed")
+      }
+      self.ws.onclose = event => {
+        console.log("WebSocket closed")
+      }
+    }
+    startWebsocket()
+
+    // onfocus = startWebsocket
+    // onblur = () => {
+    //   this.ws.close()
+    // };
+
+
+    onmousedown = this.handleStart
+    ontouchstart = event => {
+      this.handleStart(event.touches[0])
+    }
+
+    onmouseup = this.handleEnd
+    ontouchend = event => {
+      this.handleEnd(event.changedTouches[0])
+    }
+
+    onmousemove = this.handleChange
+    ontouchmove = event => {
+      this.handleChange(event.changedTouches[0])
+    }
+  },
+
+  watch: {
+    config: {
+      handler: function (val) {
+        if (this.oldConfig == null) {
+          this.oldConfig = { ...val }
+          return
+        }
+
+        for (let key in val) {
+          if (val[key] != this.oldConfig[key]) {
+            this.send({ type: "settings", update: val })
+            break
+          }
+        }
+        this.oldConfig = { ...val }
+      },
+      deep: true
+    }
+
+  },
+
+  computed: {
+    mode() {
+      return this.state.gameState
+    },
+    config() {
+      return this.state.config || {}
+    },
+    self() {
+      if (this.state.players)
+        return this.state.players[this.state.self]
+      else
+        return {}
+    },
+    claimedPlayers() {
+      if (this.state.players) {
+        return this.state.players.filter(player => player.isClaimed)
+      } else {
+        return []
+      }
+    },
+    unreadyPlayers() {
+      return this.claimedPlayers.filter(player => !player.isReady)
+    },
+    livePlayers() {
+      return this.claimedPlayers.filter(player => player.isPlaying && player.isAlive)
+    },
+  },
+
+  methods: {
+    send(json) {
+      this.ws.send(JSON.stringify(json))
+    },
+    handleStart(location) {
+      if (this.showSettings) {
+        return
+      }
+      if (this.state.gameState === "start" && this.self.isReady) {
+        return
+      }
+
+      this.startLocation = location
+      this.timestamp = Date.now()
+    },
+    handleEnd(location) {
+      if (this.showSettings) {
+        return
+      }
+      if (Date.now() - this.timestamp > 10 &&
+          Date.now() - this.timestamp < 300 &&
+          Math.abs(this.startLocation.clientX - location.clientX) < 5 &&
+          Math.abs(this.startLocation.clientY - location.clientY) < 5) {
+        this.send({type: "tap"})
+      }
+
+      this.send({type: "move", move: [0,0]})
+      this.startLocation = null
+    },
+    handleChange(location) {
+      if (this.showSettings) {
+        return
+      }
+      if (this.startLocation == null) {
+        return
+      }
+      move = [this.startLocation.clientX - location.clientX,
+              this.startLocation.clientY - location.clientY]
+
+      this.send({type: "move", move})
+    },
+    toggleSettings() {
+      this.settings = !this.settings;
+    },
+
+    makeReady() {
+      this.send({type: "ready"})
+    },
+    makeUnready() {
+      this.send({type: "unready"})
+      this.timestamp = 0
+    },
+    async pulse() {
+      this.send({type: "pulse"})
+    },
+
+    updateSettings() {
+      console.log(this.config)
+    },
+    prettifySettingName(name) {
+      return name.toLowerCase().replaceAll("_", " ")
+    }
+  },
+});
+
+function delay(millis, v) {
+  return new Promise(function(resolve) {
+    setTimeout(resolve.bind(null, v), millis)
+  });
+}
+
+
 
 playerMarker = document.getElementById("playerMarker")
 readyButton = document.getElementById("readyButton")
@@ -144,43 +440,9 @@ banner = document.getElementById("banner")
 players = document.getElementById("players")
 victory = document.getElementById("victory")
 minimap = document.getElementById("minimap")
-ctx = minimap.getContext("2d")
 
 pixelInfo = null
 state = {}
-
-loadJSON("/pixels.json", info => {
-  pixelInfo = info
-})
-
-var ws
-function startWebsocket() {
-  ws = new WebSocket(`ws://${window.location.hostname}:7777`)
-  ws.onmessage = event => {
-    message = JSON.parse(event.data)
-    switch(message.event) {
-    case "explosion":
-      // playExplosion(message)
-      break;
-    default:
-      state = message
-      render()
-    }
-  };
-
-  ws.onerror = event => {
-    console.log("WebSocket error observed")
-  }
-  ws.onclose = event => {
-    console.log("WebSocket closed")
-  }
-}
-startWebsocket()
-
-// onfocus = startWebsocket;
-// onblur = () => {
-//   ws.close();
-// };
 
 
 function playExplosion(event) {
@@ -196,236 +458,7 @@ function playExplosion(event) {
   auido.play();
 }
 
-function render() {
-  let self = state.players[state.self];
-  playerMarker.style.backgroundColor = self.color;
-  document.querySelector("#bombPower > span").innerHTML = self.bombPower;
 
-  let claimed = state.players.filter(player => player.isClaimed);
-
-  minimap.classList.add("hide");
-  readyButton.classList.add("hide");
-  unreadyButton.classList.add("hide");
-  players.classList.add("hide");
-  victory.classList.add("hide");
-  document.body.classList.remove("dead");
-  document.body.classList.remove("victorious");
-  document.body.style.backgroundColor = "initial";
-
-  if (state.gameState == "start") {
-    if (self.isReady) {
-      unreadyButton.classList.remove("hide");
-    } else {
-      readyButton.classList.remove("hide");
-    }
-
-    if (!self.isReady) {
-      banner.innerHTML = "Drag to Move<br><br>Tap to Bomb";
-      // analogueStick.classList.remove("hide");
-      renderPosition(self);
-      minimap.classList.remove("hide");
-    } else if (state.timeRemaining > 0) {
-      banner.innerHTML = Math.round(state.timeRemaining);
-    } else if (claimed.length == 1) {
-      banner.innerHTML = "Waiting for another player";
-    } else {
-      banner.innerHTML = "Waiting for...";
-      players.classList.remove("hide");
-      for (let i = 0; i < state.players.length; i++) {
-        player = state.players[i];
-
-        players.children[i].style.backgroundColor = player.color;
-        if (player.isClaimed && !player.isReady) {
-          players.children[i].classList.remove("hide");
-        } else {
-          players.children[i].classList.add("hide");
-        }
-      }
-    }
-  }
-
-
-  if (state.gameState == "play" || state.gameState == "previctory") {
-    if (self.isAlive) {
-      banner.innerHTML = "Still Alive";
-      renderPosition(self);
-      minimap.classList.remove("hide");
-    } else {
-      document.body.classList.add("dead");
-      banner.innerHTML = "You Died";
-    }
-
-    players.classList.remove("hide");
-    for (let i = 0; i < state.players.length; i++) {
-      player = state.players[i];
-
-      players.children[i].style.backgroundColor = player.color;
-      if (player.isAlive && player.isPlaying) {
-        players.children[i].classList.remove("hide");
-      } else {
-        players.children[i].classList.add("hide");
-      }
-    }
-  }
-
-  if (state.gameState == "victory") {
-    if (state.victoryColor == self.color) {
-      banner.innerHTML = "Victory!";
-      document.body.classList.add("victorious");
-      document.body.style.backgroundColor = state.victoryColor;
-    } else {
-      banner.innerHTML = "You Died";
-      victory.children[0].style.backgroundColor = state.victoryColor;
-      victory.classList.remove("hide");
-    }
-
-  }
-}
-
-center = [500, 500]
-
-function renderPosition(self) {
-  return
-
-  if (pixelInfo == null)
-    return
-
-  let pos = self.position
-
-  ctx.clearRect(0, 0, 1000, 1000)
-  ctx.fillStyle = "black"
-
-  let up = pixelInfo.unique_coords[pos]
-  up = math.divide(up, math.norm(up))
-  let north = [0, 0, 1]
-  north_proj = math.multiply(up, math.dot(north, up))
-  north = math.subtract(north, north_proj)
-  north = math.divide(north, math.norm(north))
-  east = math.cross(up, north)
-
-  let completedPixels = {}
-
-  function drawPixel(pixelPos) {
-    delta = math.subtract(pixelInfo.unique_coords[pos], pixelInfo.unique_coords[pixelPos])
-    rectified_delta = [math.dot(east, delta), math.dot(north, delta)]
-    
-    ctx.beginPath()
-    ctx.arc(center[0] - 8 + rectified_delta[0] * 250,
-      center[1] - 8 + rectified_delta[1] * 250,
-      15, 0, 2 * Math.PI)
-    ctx.fill()
-  }
-
-  function drawNeighbors(pixelPos, depth) {
-    if (!completedPixels[pixelPos]) {
-      drawPixel(pixelPos)
-    }
-    if (completedPixels[pixelPos] && completedPixels[pixelPos] > depth) {
-      return
-    }
-
-    completedPixels[pixelPos] = depth
-
-    if (depth <= 1) {
-      return
-    }
-
-    for (let n of pixelInfo.neighbors[pixelPos]) {
-      drawNeighbors(n, depth-1)
-    }
-  }
-
-  drawNeighbors(pos, 12)
-
-  ctx.fillStyle = self.color
-  ctx.beginPath()
-  ctx.arc(center[0] - 16, center[1] - 16, 32, 0, 2 * Math.PI)
-  ctx.fill()
-
-}
-
-
-function send(json) {
-  // console.log("Sending: " + JSON.stringify(json))
-  ws.send(JSON.stringify(json))
-}
-
-readyButton.onclick = event => {
-  send({type: "ready"})
-};
-unreadyButton.onclick = event => {
-  send({type: "unready"})
-  console.log("unready")
-  timestamp = 0
-};
-
-var minimapRect = minimap.getBoundingClientRect()
-var startLocation = null
-var timestamp = 0
-// startTimeout = null
-
-function handleStart(location) {
-  if (state.gameState === "start" && state.players[state.self].isReady) {
-    return
-  }
-
-  startLocation = location
-  center = [(location.clientX - minimapRect.x) / minimapRect.width * 1000,
-            (location.clientY - minimapRect.y) / minimapRect.height * 1000]
-  timestamp = Date.now()
-}
-onmousedown =  handleStart
-ontouchstart = event => {
-  handleStart(event.touches[0])
-}
-
-function handleEnd(location) {
-  if (Date.now() - timestamp > 20 &&
-      Date.now() - timestamp < 200 &&
-      Math.abs(startLocation.clientX - location.clientX) < 2 &&
-      Math.abs(startLocation.clientY - location.clientY) < 2) {
-    send({type: "tap"})
-  }
-
-  send({type: "move", move: [0,0]})
-  startLocation = null
-}
-onmouseup = handleEnd
-ontouchend = event => {
-  handleEnd(event.changedTouches[0])
-}
-
-function handleChange(location) {
-  // clearTimeout(startTimeout)
-  if (startLocation == null) {
-    return
-  }
-  move = [startLocation.clientX - location.clientX,
-          startLocation.clientY - location.clientY]
-
-  send({type: "move", move})
-};
-onmousemove = handleChange
-ontouchmove = event => {
-  handleChange(event.changedTouches[0])
-}
-
-function loadJSON(path, success, error) {
-  let xhr = new XMLHttpRequest()
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState === XMLHttpRequest.DONE) {
-      if (xhr.status === 200) {
-        if (success)
-          success(JSON.parse(xhr.responseText))
-      } else {
-        if (error)
-          error(xhr)
-      }
-    }
-  };
-  xhr.open("GET", path, true)
-  xhr.send()
-}
 </script>
 </body>
 </html>

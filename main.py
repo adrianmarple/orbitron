@@ -20,24 +20,37 @@ from threading import Thread
 from time import time, sleep
 
 
+MUSIC_DIRECTORY = "/home/pi/Rhomberman/"
 
-# mixer.init(devicename="USB Audio Device, USB Audio")
-# waiting_music = mixer.Sound("/home/pi/Rhomberman/waiting.wav")
-# waiting_music.play()
+mixer.init(devicename="USB Audio Device, USB Audio")
+waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.wav")
+waiting_music.set_volume(0) #0.2)
+battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
+victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
+waiting_music.play(loops=-1)
 
 # Actual constants
 COORD_MAGNITUDE = 4.46590101883
 COORD_SQ_MAGNITUDE = 19.94427190999916
 
-
-MAX_BOMBS = 5
-BOMB_FUSE_TIME = 5
-BOMB_EXPLOSION_TIME = 1
-BOMB_MOVE_FREQ = 0.07
-MOVE_FREQ = 0.18
-STARTING_BOMB_POWER = 2
-PICKUP_CHANCE = 0.3
-NUM_WALLS = 100
+config = {
+  "BOMB_FUSE_TIME": 3,
+  "BOMB_EXPLOSION_TIME": 1,
+  "STARTING_BOMB_POWER": 2,
+  "PICKUP_CHANCE": 0.3,
+  "NUM_WALLS": 60,
+  "MAX_BOMBS": 5,
+  "BOMB_MOVE_FREQ": 0.07,
+  "MOVE_FREQ": 0.18,
+}
+# MAX_BOMBS = 5
+# BOMB_FUSE_TIME = 3
+# BOMB_EXPLOSION_TIME = 1
+# BOMB_MOVE_FREQ = 0.07
+# MOVE_FREQ = 0.18
+# STARTING_BOMB_POWER = 2
+# PICKUP_CHANCE = 0.3
+# NUM_WALLS = 60
 
 READY_PULSE_DURATION = 0.75
 SHOCKWAVE_DURATION = 0.5
@@ -80,8 +93,12 @@ victory_color_string = None
 
 def start():
   players.append(Player(
+    position=125,
+    color=(0, 200, 100),
+    color_string="#00bcd4")) #cyan
+  players.append(Player(
     position=54,
-    color=(120, 2, 200),
+    color=(100, 0, 250),
     color_string="#9575cd")) #deep purple
   players.append(Player(
     position=105,
@@ -95,10 +112,6 @@ def start():
     position=24,
     color=(200, 2, 20),
     color_string="#e91e63")) #pink
-  players.append(Player(
-    position=125,
-    color=(0, 200, 200),
-    color_string="#00bcd4")) #cyan
   players.append(Player(
     position=179,
     color=(180, 200, 5),
@@ -116,7 +129,7 @@ def start():
 def set_walls():
   global statuses
   statuses = ["blank"] * SIZE
-  for i in range(NUM_WALLS):
+  for i in range(config["NUM_WALLS"]):
     pos = randrange(SIZE)
     bad_spot = pos in START_POSITIONS
     for start_pos in START_POSITIONS:
@@ -167,10 +180,12 @@ def update():
       set_walls()
       state_end_time = time() + 4
       broadcast_state()
+      waiting_music.fadeout(4000)
 
   elif game_state == "play":
     # Timer death creep from sphere south
-    threshold = 5 + (time() - state_end_time)/4
+    phase = (state_end_time - time()) / 30
+    threshold = COORD_MAGNITUDE * (1 - 2 * phase)
     for i in range(SIZE):
       if unique_coords[i][2] < threshold:
         statuses[i] = "death"
@@ -194,6 +209,9 @@ def update():
       state_end_time = time() + 2
       victory_color = last_player_alive.color
       victory_color_string = last_player_alive.color_string
+
+      battle_music.fadeout(100)
+      victory_music.play()
       broadcast_state()
 
 
@@ -203,9 +221,12 @@ def update():
     if game_state == "victory":
       game_state = "start"
       state_end_time = 0
+      victory_music.fadeout(500)
+      waiting_music.play(loops=-1, fade_ms=2000)
     elif game_state == "start":
       game_state = "play"
       state_end_time = time() + 120
+      battle_music.play()
     elif game_state == "previctory":
       game_state = "victory"
       state_end_time = time() + 6
@@ -252,7 +273,7 @@ def render_snake():
   phases = np.sin(pi * phases) * 50
   raw_pixels = np.outer(phases, np.ones((1, 3)))
 
-  for i in range(SIZE):
+  for i in range(RAW_SIZE):
     neopixels[i] = raw_pixels[i]
   neopixels.show()
 
@@ -299,9 +320,9 @@ def render_game():
     elif statuses[i] == "wall":
       color_pixel(i, (10, 10, 10))
     elif statuses[i] == "power_pickup":
-      magnitude = 0.3 + 0.2 * sin(4*time() + i)
+      magnitude = 0.3 + 0.1 * sin(40*time() + i)
       magnitude = magnitude * magnitude
-      color_pixel(i, np.array((255,100,200)) * magnitude)
+      color_pixel(i, np.array((180,100,140)) * magnitude)
     elif statuses[i] < time():
       statuses[i] = "blank"
       color_pixel(i, (0, 0, 0))
@@ -312,7 +333,7 @@ def render_game():
     player.render_player()
 
 def render_explosion(index):
-  x = 1 + (time() - statuses[index]) / BOMB_EXPLOSION_TIME
+  x = 1 + (time() - statuses[index]) / config["BOMB_EXPLOSION_TIME"]
   x *= len(EXPLOSION_COLOR_SEQUENCE) - 1
   color_pixel(index, multi_lerp(x, EXPLOSION_COLOR_SEQUENCE))
 
@@ -406,7 +427,7 @@ class Player:
     self.is_playing = False
     self.move_direction = np.array((0, 0))
     self.prev_move = np.array((0, 0))
-    self.tap = False
+    self.tap = 0
     self.websocket = None
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -425,7 +446,7 @@ class Player:
     self.bomb_hit_time = 0
     self.position = self.initial_position
     self.bombs = []
-    self.bomb_power = STARTING_BOMB_POWER
+    self.bomb_power = config["STARTING_BOMB_POWER"]
 
   def set_ready(self):
     self.position = self.initial_position
@@ -436,13 +457,18 @@ class Player:
 
   def set_unready(self):
     self.is_ready = False
+    self.tap = 0
+    broadcast_state()
+
+  def pulse(self):
+    self.ready_time = time()
     broadcast_state()
 
   def move(self):
     if game_state == "start" and self.is_ready:
       return
 
-    if time() - self.last_move_time < MOVE_FREQ or not self.is_alive:
+    if time() - self.last_move_time < config["MOVE_FREQ"] or not self.is_alive:
       return
 
     pos = self.position
@@ -524,7 +550,7 @@ class Player:
     self.tap = 0
 
     # see if the player places a new bomb
-    if not self.is_alive or len(self.bombs) >= MAX_BOMBS:
+    if not self.is_alive or len(self.bombs) >= config["MAX_BOMBS"]:
       return
     for bomb in self.bombs:
       if self.position == bomb.position:
@@ -672,7 +698,7 @@ class Bomb:
         duration=SHOCKWAVE_DURATION)
       return 0
 
-    x = BOMB_FUSE_TIME - time() + self.timestamp
+    x = config["BOMB_FUSE_TIME"] - time() + self.timestamp
     x += 2
     x = (200 / x) % 6
     color = multi_lerp(x, BOMB_COLOR_SEQUENCE)
@@ -683,16 +709,16 @@ class Bomb:
     if self.has_exploded:
       return
 
-    if self.position != self.prev_pos and time() - self.last_move_time > BOMB_MOVE_FREQ:
+    if self.position != self.prev_pos and time() - self.last_move_time > config["BOMB_MOVE_FREQ"]:
       self.move(self.prev_pos)
 
     # fuse has run out or hit by an explosion
-    if time() - self.timestamp >= BOMB_FUSE_TIME or statuses[self.position] != "blank":
+    if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or statuses[self.position] != "blank":
       broadcast_event({
           "event": "explosion",
           "position": self.position})
       
-      statuses[self.position] = time() + BOMB_EXPLOSION_TIME - self.power/32
+      statuses[self.position] = time() + config["BOMB_EXPLOSION_TIME"] - self.power/32
       for neighbor in neighbors[self.position]:
         explode((self.position, neighbor), self.power - 1)
 
@@ -705,13 +731,13 @@ def explode(direction, power):
 
 
   if statuses[direction[1]] == "wall":
-    if random() < PICKUP_CHANCE:
+    if random() < config["PICKUP_CHANCE"]:
       statuses[direction[1]] = "power_pickup"
     else:
       statuses[direction[1]] = "blank"
     return
 
-  finish_time = time() + BOMB_EXPLOSION_TIME - power/32
+  finish_time = time() + config["BOMB_EXPLOSION_TIME"] - power/32
   statuses[direction[1]] = finish_time
   explode((direction[1], next_pixel[str(direction)]), power - 1)
 
@@ -728,6 +754,7 @@ def broadcast_state():
     "gameState": game_state,
     "timeRemaining": state_end_time - time(),
     "victoryColor": victory_color_string,
+    "config": config,
   }
   print(json.dumps(message))
 
@@ -749,6 +776,8 @@ def consume_input():
         player.set_ready()
       elif message["type"] == "unready":
         player.set_unready()
+      elif message["type"] == "pulse":
+        player.pulse()
       elif message["type"] == "claim":
         player.is_claimed = True
         broadcast_state()
@@ -757,6 +786,9 @@ def consume_input():
         broadcast_state()
       elif message["type"] == "tap":
         player.tap = time()
+      elif message["type"] == "settings":
+        config.update(message["update"])
+        broadcast_state()
       else:
         print("Unknown message type:")
         print(message)
