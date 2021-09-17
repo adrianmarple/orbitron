@@ -44,16 +44,32 @@ body, #app, .main {
   background: white;
   z-index: 1;
 }
+#settings-alignment-guide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
 .setting {
   display: flex;
   align-items: center;
+  height: 6vw;
+}
+.setting input[type="checkbox"] {
+  width: 3vw;
+  height: 3vw;
+  margin: 0 9vw 0 2vw;
+  box-sizing: border-box;
 }
 .setting textarea {
-  width: 100px;
+  width: 12vw;
+  height: 5vw;
+  line-height: 5vw;
   font-size: 1em;
-  height: 32px;
-  text-align: center;
-  margin-left: 12px;
+  text-align: right;
+  margin-left: 2vw;
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .header {
@@ -89,6 +105,11 @@ body, #app, .main {
   height: 8vw;
 }
 
+.ranking {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .players, #victory {
   display: flex;
@@ -96,11 +117,11 @@ body, #app, .main {
   align-items: center;
 }
 .player {
-  width: 100px;
-  height: 100px;
+  width: 10vw;
+  height: 10vw;
   border-radius: 50px;
   background: black;
-  margin: 40px;
+  margin: 3vw 5vw;
 }
 #victory {
   margin-top: 100px;
@@ -142,11 +163,25 @@ body, #app, .main {
 
   <div v-if="showSettings" id="settings">
     <span style="font-size: 1.5em">Settings</span>
-    <div v-for="name in settingTypes" class="setting">
-      {{prettifySettingName(name)}}
-      <textarea type="number" v-model.number="config[name]" @onchange="updateSettings" ></textarea>
+    <div id="settings-alignment-guide">
+      <div v-for="setting in settingTypes" class="setting">
+        {{prettifySettingName(setting.name)}}
+        <input
+          v-if="setting.boolean"
+          type="checkbox"
+          v-model.number="config[setting.name]"
+          @onchange="updateSettings"
+        >
+        <textarea
+          v-else
+          type="number"
+          v-model.number="config[setting.name]"
+          @onchange="updateSettings"
+        ></textarea>
+      </div>
     </div>
   </div>
+
 
   <div id="playerMarker"
     :style="{backgroundColor: self.color}"
@@ -182,7 +217,7 @@ body, #app, .main {
         class="button"
         @click.stop="pulse"
       >
-        Pulse.
+        Pulse
       </div>
       <div v-if="self.isReady"
         class="button"
@@ -206,7 +241,15 @@ body, #app, .main {
   </div>
 
   <div v-if="mode=='play'" class="main">
-    <div class="header">
+    <div v-if="config.DEATHMATCH" class="header">
+      <div v-for="player in playersByRanking" class="ranking">
+        <div class="player"
+          :style="{backgroundColor: player.color}"
+        ></div>
+        {{player.killCount}}
+      </div>
+    </div>
+    <div v-else class="header">
       <div>Live players:
         <div class="players">
           <div v-for="player in livePlayers"
@@ -253,14 +296,18 @@ var app = new Vue({
     settings: false,
 
     settingTypes: [
-      "BOMB_FUSE_TIME",
-      "BOMB_EXPLOSION_TIME",
-      "STARTING_BOMB_POWER",
-      "PICKUP_CHANCE",
-      "NUM_WALLS",
-      "MAX_BOMBS",
-      "BOMB_MOVE_FREQ",
-      "MOVE_FREQ",
+      {name: "USE_SHIELDS", boolean: true},
+      {name: "DEATHMATCH", boolean: true},
+      {name: "TARGET_KILL_COUNT"},
+      {name: "STARTING_BOMB_POWER"},
+      {name: "BOMB_FUSE_TIME"},
+      {name: "PICKUP_CHANCE"},
+      {name: "NUM_WALLS"},
+      {name: "INVULNERABILITY_TIME"},
+      {name: "BOMB_EXPLOSION_TIME"},
+      {name: "MAX_BOMBS"},
+      {name: "BOMB_MOVE_FREQ"},
+      {name: "MOVE_FREQ"},
     ],
   },
 
@@ -357,6 +404,11 @@ var app = new Vue({
     },
     livePlayers() {
       return this.claimedPlayers.filter(player => player.isPlaying && player.isAlive)
+    },
+    playersByRanking() {
+      return this.claimedPlayers.sort((p0, p1) => {
+        return p1.killCount - p0.killCount
+      })
     },
   },
 

@@ -36,12 +36,16 @@ COORD_SQ_MAGNITUDE = 19.94427190999916
 config = {
   "BOMB_FUSE_TIME": 3,
   "BOMB_EXPLOSION_TIME": 1,
-  "STARTING_BOMB_POWER": 2,
-  "PICKUP_CHANCE": 0.3,
+  "INVULNERABILITY_TIME": 2, # Should be greater than BOMB_EXPLOSION_TIME
+  "STARTING_BOMB_POWER": 4, # 2,
+  "PICKUP_CHANCE": 0, # 0.3,
   "NUM_WALLS": 60,
-  "MAX_BOMBS": 5,
+  "MAX_BOMBS": 8,
   "BOMB_MOVE_FREQ": 0.07,
   "MOVE_FREQ": 0.18,
+  "USE_SHIELDS": True,
+  "DEATHMATCH": False,
+  "TARGET_KILL_COUNT": 7,
 }
 # MAX_BOMBS = 5
 # BOMB_FUSE_TIME = 3
@@ -84,6 +88,8 @@ print("Running %s pixels" % pixel_info["RAW_SIZE"])
 START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
 players = []
 statuses = ["blank"] * SIZE
+explosion_providence = [None] * SIZE
+secondary_explosion_providence = [None] * SIZE
 
 game_state = "start"
 state_end_time = 0
@@ -177,20 +183,14 @@ def update():
     if is_everyone_ready and state_end_time == 0:
       for player in claimed:
         player.is_playing = True
+        player.has_shield = config["USE_SHIELDS"]
+        player.bomb_power = config["STARTING_BOMB_POWER"]
       set_walls()
       state_end_time = time() + 4
       broadcast_state()
       waiting_music.fadeout(4000)
 
   elif game_state == "play":
-    # Timer death creep from sphere south
-    phase = (state_end_time - time()) / 30
-    threshold = COORD_MAGNITUDE * (1 - 2 * phase)
-    for i in range(SIZE):
-      if unique_coords[i][2] < threshold:
-        statuses[i] = "death"
-
-    # Test for game over conditions    
     live_player_count = 0
     last_player_alive = players[0]
     for player in playing_players():
@@ -199,20 +199,42 @@ def update():
       if player.is_alive:
         live_player_count += 1
 
-      if player.is_alive or (not last_player_alive.is_alive and 
+      if player.is_alive or (not last_player_alive.is_alive and
           player.bomb_hit_time > last_player_alive.bomb_hit_time):
         last_player_alive = player
 
-    # GAME OVER
-    if live_player_count <= 1:
-      game_state = "previctory"
-      state_end_time = time() + 2
-      victory_color = last_player_alive.color
-      victory_color_string = last_player_alive.color_string
+    if config["DEATHMATCH"]:
+      # GAME OVER
+      for player in playing_players():
+        if player.kill_count >= config["TARGET_KILL_COUNT"]:
+          game_state = "previctory"
+          state_end_time = time() + 2
+          victory_color = player.color
+          victory_color_string = player.color_string
 
-      battle_music.fadeout(100)
-      victory_music.play()
-      broadcast_state()
+          battle_music.fadeout(100)
+          victory_music.play()
+          broadcast_state()
+
+    else:
+      # Timer death creep from south pole
+      phase = (state_end_time - time()) / 30
+      threshold = COORD_MAGNITUDE * (1 - 2 * phase)
+      for i in range(SIZE):
+        if unique_coords[i][2] < threshold:
+          statuses[i] = "death"
+          explosion_providence[i] = None
+
+      # GAME OVER
+      if live_player_count <= 1:
+        game_state = "previctory"
+        state_end_time = time() + 2
+        victory_color = last_player_alive.color
+        victory_color_string = last_player_alive.color_string
+
+        battle_music.fadeout(100)
+        victory_music.play()
+        broadcast_state()
 
 
 
@@ -318,7 +340,7 @@ def render_game():
     elif statuses[i] == "death":
       color_pixel(i, (10, 0, 0))
     elif statuses[i] == "wall":
-      color_pixel(i, (10, 10, 10))
+      color_pixel(i, (11, 9, 9))
     elif statuses[i] == "power_pickup":
       magnitude = 0.3 + 0.1 * sin(40*time() + i)
       magnitude = magnitude * magnitude
@@ -429,6 +451,8 @@ class Player:
     self.prev_move = np.array((0, 0))
     self.tap = 0
     self.websocket = None
+    self.kill_count = 0
+    self.death_count = 0
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
     self.ghost_timestamps = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -441,12 +465,14 @@ class Player:
   def reset(self):
     self.is_ready = False
     self.is_alive = True
-    self.has_shield = True
+    self.has_shield = config["USE_SHIELDS"]
     self.is_playing = False
     self.bomb_hit_time = 0
     self.position = self.initial_position
     self.bombs = []
     self.bomb_power = config["STARTING_BOMB_POWER"]
+    self.kill_count = 0
+    self.death_count = 0
 
   def set_ready(self):
     self.position = self.initial_position
@@ -475,13 +501,30 @@ class Player:
     # non-blank status means either explosion or death
     # invulernable for a second after being hit
     if game_state == "play" and statuses[pos] != "blank" and \
-      time() - self.bomb_hit_time > 1:
+        time() - self.bomb_hit_time > config["INVULNERABILITY_TIME"]:
       if statuses[pos] != "death" and self.has_shield:
         self.has_shield = False
       else:
-        self.is_alive = False
+        killer = explosion_providence[pos]
+        if killer and killer == self:
+          killer = secondary_explosion_providence[pos]
+        if killer:
+          killer.kill_count += 1
+        self.death_count += 1
+
+        if config["DEATHMATCH"]:
+          # TODO respawn
+          pass
+        else:
+          self.is_alive = False
+
       self.bomb_hit_time = time()
       broadcast_state()
+
+    # Player clears away explosions when walking on them
+    if statuses[pos] != "blank":
+      statuses[pos] = "blank"
+
 
     if self.move_direction[0] == 0 and self.move_direction[1] == 0:
       return
@@ -522,7 +565,12 @@ class Player:
 
       for bomb in player.bombs:
         if bomb.position == new_pos:
-          if not bomb.move(self.position):
+          if bomb.move(self.position):
+            # Transfer owenership on successful bomb kick
+            if bomb.owner != self:
+              bomb.secondary_owner = bomb.owner
+              bomb.owner = self
+          else:
             occupied = True
           break
 
@@ -557,7 +605,7 @@ class Player:
         return
 
     if time() - tap < 0.1:
-      self.bombs.append(Bomb(self.position, time(), self.bomb_power))
+      self.bombs.append(Bomb(self))
 
 
   def render_ghost_trail(self):
@@ -576,10 +624,10 @@ class Player:
       if bomb.position == self.position:
         color = color * (0.5 + 0.5*sin(pi * bomb_x / 1.5))
 
-    if not self.has_shield:
-      color = color / 6;
+    if config["USE_SHIELDS"] and not self.has_shield:
+      color = color / 12;
 
-    if time() - self.bomb_hit_time < 1.5:
+    if time() - self.bomb_hit_time < config["INVULNERABILITY_TIME"]:
       # color = self.color * exp(2 * (self.bomb_hit_time - time()))
       color = color * sin(time() * 20)
 
@@ -622,6 +670,8 @@ class Player:
       "color": self.color_string,
       "position": self.position,
       "bombPower": self.bomb_power,
+      "killCount": self.kill_count,
+      "deathCount": self.death_count,
     }
 
 
@@ -651,12 +701,14 @@ EXPLOSION_COLOR_SEQUENCE = [
 
 class Bomb:
 
-  def __init__(self, position, timestamp, power):
-    self.position = position
-    self.prev_pos = position
+  def __init__(self, player):
+    self.owner = player
+    self.secondary_owner = None
+    self.position = player.position
+    self.prev_pos = player.position
     self.last_move_time = time()
-    self.timestamp = timestamp
-    self.power = power
+    self.timestamp = time()
+    self.power = player.bomb_power
     self.has_exploded = False
     self.explosion_time = 0
 
@@ -718,28 +770,35 @@ class Bomb:
           "event": "explosion",
           "position": self.position})
       
-      statuses[self.position] = time() + config["BOMB_EXPLOSION_TIME"] - self.power/32
+      finish_time = time() + config["BOMB_EXPLOSION_TIME"] - self.power/32
+      self.set_explosion_status(self.position, finish_time)
       for neighbor in neighbors[self.position]:
-        explode((self.position, neighbor), self.power - 1)
+        self.explode((self.position, neighbor), self.power - 1)
 
       self.has_exploded = True
       self.explosion_time = time()
 
-def explode(direction, power):
-  if power < 0:
-    return
+  def explode(self, direction, power):
+    if power < 0:
+      return
 
+    next_pos = direction[1]
 
-  if statuses[direction[1]] == "wall":
-    if random() < config["PICKUP_CHANCE"]:
-      statuses[direction[1]] = "power_pickup"
-    else:
-      statuses[direction[1]] = "blank"
-    return
+    if statuses[next_pos] == "wall":
+      if random() < config["PICKUP_CHANCE"]:
+        statuses[next_pos] = "power_pickup"
+      else:
+        statuses[next_pos] = "blank"
+      return
 
-  finish_time = time() + config["BOMB_EXPLOSION_TIME"] - power/32
-  statuses[direction[1]] = finish_time
-  explode((direction[1], next_pixel[str(direction)]), power - 1)
+    finish_time = time() + config["BOMB_EXPLOSION_TIME"] - power/32
+    self.set_explosion_status(next_pos, finish_time)
+    self.explode((next_pos, next_pixel[str(direction)]), power - 1)
+
+  def set_explosion_status(self, pos, finish_time):
+    statuses[pos] = finish_time
+    explosion_providence[pos] = self.owner
+    secondary_explosion_providence[pos] = self.secondary_owner
 
 
 

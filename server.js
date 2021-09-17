@@ -19,11 +19,6 @@ server.listen(7777, function() {
 });
  
 wsServer = new WebSocket.Server({ server, autoAcceptConnections: true });
-// wsServer = new WebSocket.Server({
-//   httpServer: server,
-//   autoAcceptConnections: true,
-// });
-
 wsServer.on('connection', connection => {
   console.log('Connection accepted.');
 
@@ -31,6 +26,7 @@ wsServer.on('connection', connection => {
   while(true) {
     if (!connections[id]) {
       connections[id] = connection;
+      lastActivityTimes[id] = Date.now()
       break;
     }
     id += 1;
@@ -42,26 +38,44 @@ wsServer.on('connection', connection => {
   connection.on('message', function(message) {
     content = JSON.parse(message)
     content.self = id
+    lastActivityTimes[id] = Date.now()
     process.stdin.write(JSON.stringify(content) + "\n", "utf8")
   });
   connection.on('close', function(reasonCode, description) {
-    console.log(' Peer ' + connection.remoteAddress + ' disconnected.')
     release = { self: id, type: "release" }
     process.stdin.write(JSON.stringify(release) + "\n", "utf8")
     delete connections[id]
   });
 });
 
+// Check for stale players
+setInterval(() => {
+  if (!gameState.players) {
+    return
+  }
+  for (var id in connections) {
+    let player = gameState.players[id]
+    if (!player.isReady && !player.isPlaying &&
+        Date.now() - lastActivityTimes[id] > 30*1000) { // 30 seconds
+      console.log("Player timed out.")
+      connections[id].close()
+    }
+  }
+}, 1000)
+
+connections = {};
+lastActivityTimes = {};
 
 
 // Communications with python script
 
-connections = {};
+gameState = {};
+
 function broadcast(baseMessage) {
+  gameState = baseMessage
   for (let id in connections) {
-    baseMessage.self = id;
-    connections[id].send(JSON.stringify(baseMessage));
-    // connections[id].sendUTF(JSON.stringify(baseMessage));
+    baseMessage.self = id
+    connections[id].send(JSON.stringify(baseMessage))
   }
 }
 const process = spawn('sudo', ['python3', '-u', '/home/pi/Rhomberman/main.py']);
