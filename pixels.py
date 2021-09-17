@@ -36,12 +36,15 @@ for (i, coord) in enumerate(coordinates):
 
 
 neighbors = []
+expanded_neighbors = []
 
 for (i, coord0) in enumerate(unique_coords):
   local_neighbors = []
   for (j, coord1) in enumerate(unique_coords):
     if i != j and norm(coord0 - coord1) < 0.51:
       local_neighbors.append(j)
+
+  expanded_neighbors.append(local_neighbors)
 
   # eliminate triangle tip cross move
   if len(local_neighbors) == 3:
@@ -92,6 +95,7 @@ f.write(json.dumps({
   "unique_coords": [coord.tolist() for coord in unique_coords],
   # "latlongs": latlongs,
   "neighbors": neighbors,
+  "expanded_neighbors": expanded_neighbors,
   "next_pixel": next_pixel,
   } ))
 f.close()

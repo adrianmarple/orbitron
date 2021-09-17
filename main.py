@@ -45,7 +45,10 @@ config = {
   "MOVE_FREQ": 0.18,
   "USE_SHIELDS": True,
   "DEATHMATCH": False,
+  "ALLOW_CROSS_TIP_MOVE": True,
   "TARGET_KILL_COUNT": 7,
+  "BATTLE_ROYALE_DURATION": 120,
+  "DEATH_CREEP_DURATION": 30,
 }
 # MAX_BOMBS = 5
 # BOMB_FUSE_TIME = 3
@@ -66,6 +69,7 @@ f.close()
 SIZE = pixel_info["SIZE"]
 RAW_SIZE = pixel_info["RAW_SIZE"]
 neighbors = pixel_info["neighbors"]
+expanded_neighbors = pixel_info["expanded_neighbors"]
 next_pixel = pixel_info["next_pixel"]
 coordinates = [np.array(coord) for coord in pixel_info["coordinates"]]
 coordinate_matrix = np.matrix(coordinates).transpose()
@@ -218,7 +222,7 @@ def update():
 
     else:
       # Timer death creep from south pole
-      phase = (state_end_time - time()) / 30
+      phase = (state_end_time - time()) / config["DEATH_CREEP_DURATION"]
       threshold = COORD_MAGNITUDE * (1 - 2 * phase)
       for i in range(SIZE):
         if unique_coords[i][2] < threshold:
@@ -247,7 +251,7 @@ def update():
       waiting_music.play(loops=-1, fade_ms=2000)
     elif game_state == "start":
       game_state = "play"
-      state_end_time = time() + 120
+      state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
       battle_music.play()
     elif game_state == "previctory":
       game_state = "victory"
@@ -540,7 +544,8 @@ class Player:
 
     max_dot = 0
     new_pos = pos
-    for n in neighbors[pos]:
+    local_neighbors = (expanded_neighbors if config["ALLOW_CROSS_TIP_MOVE"] else neighbors)[pos]
+    for n in local_neighbors:
       delta = unique_coords[pos] - unique_coords[n]
       rectified_delta = -np.matmul(basis, delta)[0:2]
       new_move = self.move_direction - self.prev_move/2
