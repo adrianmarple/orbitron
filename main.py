@@ -834,7 +834,7 @@ def consume_input():
       player = players[message["self"]]
 
       if message["type"] == "move":
-        player.prev_move = player.move_direction
+        # player.prev_move = 0.5 * player.prev_move + 0.5 * player.move_direction
         player.move_direction = np.array(message["move"])
       elif message["type"] == "ready":
         player.set_ready()
