@@ -20,7 +20,7 @@ from threading import Thread
 from time import time, sleep
 
 
-MUSIC_DIRECTORY = "/home/pi/Rhomberman/"
+MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
 
 mixer.init(devicename="USB Audio Device, USB Audio")
 waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.wav")
