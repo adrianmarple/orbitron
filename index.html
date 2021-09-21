@@ -343,29 +343,29 @@ var app = new Vue({
   },
 
   created() {
-    let self = this
-    function startWebsocket() {
-      self.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
-      self.ws.onmessage = event => {
-        message = JSON.parse(event.data)
-        switch(message.event) {
-        case "explosion":
-          // playExplosion(message)
-          break
-        default:
-          self.state = message
-          self.$forceUpdate()
-        }
-      };
+    // let self = this
+    // function startWebsocket() {
+    //   self.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
+    //   self.ws.onmessage = event => {
+    //     message = JSON.parse(event.data)
+    //     switch(message.event) {
+    //     case "explosion":
+    //       // playExplosion(message)
+    //       break
+    //     default:
+    //       self.state = message
+    //       self.$forceUpdate()
+    //     }
+    //   };
 
-      self.ws.onerror = event => {
-        console.log("WebSocket error observed")
-      }
-      self.ws.onclose = event => {
-        console.log("WebSocket closed")
-      }
-    }
-    startWebsocket()
+    //   self.ws.onerror = event => {
+    //     console.log("WebSocket error observed")
+    //   }
+    //   self.ws.onclose = event => {
+    //     console.log("WebSocket closed")
+    //   }
+    // }
+    this.startWebsocket()
 
     // onfocus = startWebsocket
     // onblur = () => {
@@ -461,7 +461,33 @@ var app = new Vue({
 
   methods: {
     send(json) {
-      this.ws.send(JSON.stringify(json))
+      if (this.ws.readyState === WebSocket.CLOSED) {
+        this.startWebsocket()
+      } else {
+        this.ws.send(JSON.stringify(json))
+      }
+    },
+
+    startWebsocket() {
+      this.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
+      this.ws.onmessage = event => {
+        message = JSON.parse(event.data)
+        switch(message.event) {
+        case "explosion":
+          // playExplosion(message)
+          break
+        default:
+          this.state = message
+          this.$forceUpdate()
+        }
+      };
+
+      this.ws.onerror = event => {
+        console.log("WebSocket error observed")
+      }
+      this.ws.onclose = event => {
+        console.log("WebSocket closed")
+      }
     },
 
     handleStart(location) {
