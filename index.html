@@ -215,6 +215,14 @@ body, #app, .main {
     <img src="images/explosion.png" />
   </div>
 
+
+  <div v-if="!self.isReady || (mode=='play' && self.isPlaying && self.isAlive)"
+    class="joystick-bg"
+    :style="joystickBGStyle"
+  >
+    <div class="joystick-nub" :style="joystickNubStyle"></div>
+  </div>
+
   <div v-if="mode=='start' && state.timeRemaining < 0" class="main">
     <div class="header">
       <div v-if="!self.isReady">
@@ -231,10 +239,6 @@ body, #app, .main {
           ></div>
         </div>
       </div>
-    </div>
-
-    <div class="joystick-bg" :style="joystickBGStyle">
-      <div class="joystick-nub" :style="joystickNubStyle"></div>
     </div>
 
     <div class="buttons">

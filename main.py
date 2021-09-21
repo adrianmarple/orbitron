@@ -26,6 +26,13 @@ mixer.init(devicename="USB Audio Device, USB Audio")
 waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.wav")
 waiting_music.set_volume(0) #0.2)
 battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
+battle_vamp = mixer.Sound(MUSIC_DIRECTORY + "battle1Loop.ogg")
+battle_channel = None
+vamp = None
+
+deathmatch_music = mixer.Sound(MUSIC_DIRECTORY + "dm1.ogg")
+deathmatch_vamp = mixer.Sound(MUSIC_DIRECTORY + "dm1Loop.ogg")
+
 victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
 waiting_music.play(loops=-1)
 
@@ -164,6 +171,9 @@ def update():
   global victory_color_string
   global pixels
 
+  global vamp
+  global battle_channel
+
   # global prev_time
   # frame_time = time() - prev_time
   # print("Frame rate %f\nFrame time %dms" % (1/frame_time, int(frame_time * 1000)))
@@ -196,6 +206,10 @@ def update():
       waiting_music.fadeout(4000)
 
   elif game_state == "play":
+    if battle_channel.get_queue() is None:
+      battle_channel.queue(vamp)
+
+
     live_player_count = 0
     last_player_alive = players[0]
     for player in playing_players():
@@ -237,7 +251,10 @@ def update():
         victory_color = last_player_alive.color
         victory_color_string = last_player_alive.color_string
 
-        battle_music.fadeout(100)
+        # battle_music.fadeout(100)
+        if battle_channel:
+          # battle_channel.fadeout(100)
+          battle_channel.stop()
         victory_music.play()
         broadcast_state()
 
@@ -253,7 +270,13 @@ def update():
     elif game_state == "start":
       game_state = "play"
       state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
-      battle_music.play()
+
+      if config["DEATHMATCH"]:
+        battle_channel = deathmatch_music.play()
+        vamp = deathmatch_vamp
+      else:
+        battle_channel = battle_music.play()
+        vamp = battle_vamp
     elif game_state == "previctory":
       game_state = "victory"
       state_end_time = time() + 6
