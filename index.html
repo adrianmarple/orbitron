@@ -17,11 +17,18 @@ body, #app, .main {
   user-select: none;
   display: flex;
   justify-content: center;
-  user-select: none;
   width: 100vw;
   height: 100vh;
   margin: 0;
   font-size: 2vw;
+}
+
+.main * {
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
 }
 
 #settings-button {
@@ -133,12 +140,12 @@ body, #app, .main {
 
 .joystick-bg {
   background-image: url(JoystickBG.png);
-  width: 50vw;
-  height: 50vw;
+  width: 70vw;
+  height: 70vw;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
+  position: fixed;
   bottom:  30vh;
 }
 .joystick-nub {
@@ -331,6 +338,7 @@ var app = new Vue({
       {name: "MAX_BOMBS"},
       {name: "BOMB_MOVE_FREQ"},
       {name: "MOVE_FREQ"},
+      {name: "MOVE_BIAS"},
     ],
   },
 
@@ -436,9 +444,10 @@ var app = new Vue({
 
     joystickBGStyle() {
       if (this.startLocation) {
+        let joystickWidth = document.querySelector(".joystick-bg").getBoundingClientRect().width
         return {
-          left: `calc(${this.startLocation[0]}px - 25vw)`,
-          top:  `calc(${this.startLocation[1]}px - 25vw)`,
+          left: `calc(${this.startLocation[0] - joystickWidth/2}px)`,
+          top:  `calc(${this.startLocation[1] - joystickWidth/2}px)`,
         }
       }
     },
@@ -489,19 +498,20 @@ var app = new Vue({
       if (!this.isMoving) {
         return
       }
-      let joystickWidth = window.innerWidth * 0.5 * 0.25
+      let joystickWidth = document.querySelector(".joystick-bg").getBoundingClientRect().width
+      let maxDisplacement = joystickWidth * 0.25
 
-      this.move = [(this.startLocation[0] - location.clientX) / joystickWidth,
-                   (this.startLocation[1] - location.clientY) / joystickWidth]
+      this.move = [(this.startLocation[0] - location.clientX) / maxDisplacement,
+                   (this.startLocation[1] - location.clientY) / maxDisplacement]
       let moveMagnitude = Math.sqrt(this.move[0] * this.move[0] + this.move[1] * this.move[1])
       if (moveMagnitude > 1) {
         this.move[0] /= moveMagnitude
         this.move[1] /= moveMagnitude
 
-        // this.startLocation = [
-        //   location.clientX + this.move[0] * joystickWidth,
-        //   location.clientY + this.move[1] * joystickWidth
-        // ]
+        this.startLocation = [
+          location.clientX + this.move[0] * maxDisplacement,
+          location.clientY + this.move[1] * maxDisplacement
+        ]
       }
 
       this.send({type: "move", move: this.move})

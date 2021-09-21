@@ -49,6 +49,7 @@ config = {
   "TARGET_KILL_COUNT": 7,
   "BATTLE_ROYALE_DURATION": 120,
   "DEATH_CREEP_DURATION": 30,
+  "MOVE_BIAS": 0.5,
 }
 # MAX_BOMBS = 5
 # BOMB_FUSE_TIME = 3
@@ -452,7 +453,7 @@ class Player:
     self.is_claimed = False
     self.is_playing = False
     self.move_direction = np.array((0, 0))
-    self.prev_move = np.array((0, 0))
+    self.prev_pos = 0
     self.tap = 0
     self.websocket = None
     self.kill_count = 0
@@ -473,6 +474,7 @@ class Player:
     self.is_playing = False
     self.bomb_hit_time = 0
     self.position = self.initial_position
+    self.prev_pos = self.position
     self.bombs = []
     self.bomb_power = config["STARTING_BOMB_POWER"]
     self.kill_count = 0
@@ -537,7 +539,7 @@ class Player:
     up = up / np.linalg.norm(up)
     north = np.array((0, 0, 1))
     north = ortho_proj(north, up)
-    north = north / np.linalg.norm(north)
+    north /= np.linalg.norm(north) # normalize
     east = np.cross(up, north)
 
     basis = np.array((east, north, up))
@@ -547,9 +549,10 @@ class Player:
     local_neighbors = (expanded_neighbors if config["ALLOW_CROSS_TIP_MOVE"] else neighbors)[pos]
     for n in local_neighbors:
       delta = unique_coords[pos] - unique_coords[n]
+      delta += config["MOVE_BIAS"] * (unique_coords[self.prev_pos] - unique_coords[pos]) # Bias towards turning or moving backwards
+      delta /= np.linalg.norm(delta)  # normalize
       rectified_delta = -np.matmul(basis, delta)[0:2]
-      new_move = self.move_direction - self.prev_move/2
-      dot = np.dot(rectified_delta, new_move)
+      dot = np.dot(rectified_delta, self.move_direction)
 
       if dot > max_dot:
         max_dot = dot
@@ -585,6 +588,7 @@ class Player:
     if not occupied:
       self.ghost_positions.append(pos)
       self.ghost_timestamps.append(time())
+      self.prev_pos = self.position
       self.position = new_pos
       self.last_move_time = time()
       broadcast_state()
@@ -834,7 +838,6 @@ def consume_input():
       player = players[message["self"]]
 
       if message["type"] == "move":
-        # player.prev_move = 0.5 * player.prev_move + 0.5 * player.move_direction
         player.move_direction = np.array(message["move"])
       elif message["type"] == "ready":
         player.set_ready()
