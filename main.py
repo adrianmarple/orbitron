@@ -25,13 +25,19 @@ MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
 mixer.init(devicename="USB Audio Device, USB Audio")
 waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.wav")
 waiting_music.set_volume(0) #0.2)
+
 battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
 battle_vamp = mixer.Sound(MUSIC_DIRECTORY + "battle1Loop.ogg")
+deathmatch_music = mixer.Sound(MUSIC_DIRECTORY + "dm1.ogg")
+deathmatch_vamp = mixer.Sound(MUSIC_DIRECTORY + "dm1Loop.ogg")
 battle_channel = None
 vamp = None
 
-deathmatch_music = mixer.Sound(MUSIC_DIRECTORY + "dm1.ogg")
-deathmatch_vamp = mixer.Sound(MUSIC_DIRECTORY + "dm1Loop.ogg")
+explosion_sound = mixer.Sound(MUSIC_DIRECTORY + "explosion.wav")
+kick_sound = mixer.Sound(MUSIC_DIRECTORY + "kick.wav")
+place_bomb_sound = mixer.Sound(MUSIC_DIRECTORY + "placeBomb.wav")
+# hurt_sound = mixer.Sound(MUSIC_DIRECTORY + "hurt.wav")
+# death_sound = mixer.Sound(MUSIC_DIRECTORY + "death.wav")
 
 victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
 waiting_music.play(loops=-1)
@@ -231,7 +237,7 @@ def update():
           victory_color = player.color
           victory_color_string = player.color_string
 
-          battle_music.fadeout(100)
+          battle_channel.stop()
           victory_music.play()
           broadcast_state()
 
@@ -251,10 +257,7 @@ def update():
         victory_color = last_player_alive.color
         victory_color_string = last_player_alive.color_string
 
-        # battle_music.fadeout(100)
-        if battle_channel:
-          # battle_channel.fadeout(100)
-          battle_channel.stop()
+        battle_channel.stop()
         victory_music.play()
         broadcast_state()
 
@@ -467,7 +470,7 @@ GHOST_BUFFER_LEN = 20
 class Player:
 
   def __init__(self, position, color, color_string):
-    self.index = len(players)  # WARNING not super robust
+    self.id = len(players)  # WARNING not super robust
     self.initial_position = position
     self.color = np.array(color)
     self.color_string = color_string
@@ -531,7 +534,14 @@ class Player:
     # invulernable for a second after being hit
     if game_state == "play" and statuses[pos] != "blank" and \
         time() - self.bomb_hit_time > config["INVULNERABILITY_TIME"]:
+
+      # Hurt
       if statuses[pos] != "death" and self.has_shield:
+        broadcast_event({
+          "event": "sound",
+          "type": "hurt",
+          "playerId": self.id,
+        })
         self.has_shield = False
       else:
         killer = explosion_providence[pos]
@@ -542,9 +552,19 @@ class Player:
         self.death_count += 1
 
         if config["DEATHMATCH"]:
-          # TODO respawn
+          broadcast_event({
+            "event": "sound",
+            "type": "hurt",
+            "playerId": self.id,
+          })
+          # TODO respawn?
           pass
         else:
+          broadcast_event({
+            "event": "sound",
+            "type": "death",
+            "playerId": self.id,
+          })
           self.is_alive = False
 
       self.bomb_hit_time = time()
@@ -597,7 +617,9 @@ class Player:
       for bomb in player.bombs:
         if bomb.position == new_pos:
           if bomb.move(self.position):
+            # Successful bomb kick!
             # Transfer owenership on successful bomb kick
+            kick_sound.play()
             if bomb.owner != self:
               bomb.secondary_owner = bomb.owner
               bomb.owner = self
@@ -637,6 +659,7 @@ class Player:
         return
 
     if time() - tap < 0.1:
+      place_bomb_sound.play()
       self.bombs.append(Bomb(self))
 
 
@@ -686,12 +709,12 @@ class Player:
       for n in neighbors[self.position]:
         color_pixel(n, color / 32 * (1 + sin(time()*2)))
 
-  async def transmit(self, message):
-    if self.websocket is None:
-      return
+  # async def transmit(self, message):
+  #   if self.websocket is None:
+  #     return
 
-    message["self"] = self.index
-    await self.websocket.send(json.dumps(message))
+  #   message["self"] = self.id
+  #   await self.websocket.send(json.dumps(message))
 
   def to_json(self):
     return {
@@ -745,7 +768,9 @@ class Bomb:
     self.explosion_time = 0
 
   def move(self, prev_pos):
-    new_pos = next_pixel[str((prev_pos, self.position))]
+    new_pos = next_pixel.get(str((prev_pos, self.position)), None)
+    if new_pos is None:
+      return
 
     occupied = statuses[new_pos] == "wall"
     
@@ -798,9 +823,13 @@ class Bomb:
 
     # fuse has run out or hit by an explosion
     if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or statuses[self.position] != "blank":
-      broadcast_event({
-          "event": "explosion",
-          "position": self.position})
+      explosion_sound.play()
+      # broadcast_event({
+      #     "event": "sound",
+      #     "type": "explosion",
+      #     "playerId": -1,
+      #     "position": self.position
+      # })
       
       finish_time = time() + config["BOMB_EXPLOSION_TIME"] - self.power/32
       self.set_explosion_status(self.position, finish_time)
