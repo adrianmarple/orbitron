@@ -36,8 +36,8 @@ vamp = None
 explosion_sound = mixer.Sound(MUSIC_DIRECTORY + "explosion.wav")
 kick_sound = mixer.Sound(MUSIC_DIRECTORY + "kick.wav")
 place_bomb_sound = mixer.Sound(MUSIC_DIRECTORY + "placeBomb.wav")
-# hurt_sound = mixer.Sound(MUSIC_DIRECTORY + "hurt.wav")
-# death_sound = mixer.Sound(MUSIC_DIRECTORY + "death.wav")
+hurt_sound = mixer.Sound(MUSIC_DIRECTORY + "hurt.wav")
+death_sound = mixer.Sound(MUSIC_DIRECTORY + "death.wav")
 
 victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
 waiting_music.play(loops=-1)
@@ -238,7 +238,6 @@ def update():
           victory_color_string = player.color_string
 
           battle_channel.stop()
-          victory_music.play()
           broadcast_state()
 
     else:
@@ -258,7 +257,6 @@ def update():
         victory_color_string = last_player_alive.color_string
 
         battle_channel.stop()
-        victory_music.play()
         broadcast_state()
 
 
@@ -283,6 +281,7 @@ def update():
     elif game_state == "previctory":
       game_state = "victory"
       state_end_time = time() + 10
+      victory_music.play()
 
       clear_walls()
       for player in players:
@@ -537,11 +536,12 @@ class Player:
 
       # Hurt
       if statuses[pos] != "death" and self.has_shield:
-        broadcast_event({
-          "event": "sound",
-          "type": "hurt",
-          "playerId": self.id,
-        })
+        hurt_sound.play()
+        # broadcast_event({
+        #   "event": "sound",
+        #   "type": "hurt",
+        #   "playerId": self.id,
+        # })
         self.has_shield = False
       else:
         killer = explosion_providence[pos]
@@ -552,19 +552,20 @@ class Player:
         self.death_count += 1
 
         if config["DEATHMATCH"]:
-          broadcast_event({
-            "event": "sound",
-            "type": "hurt",
-            "playerId": self.id,
-          })
-          # TODO respawn?
+          hurt_sound.play()
+          # broadcast_event({
+          #   "event": "sound",
+          #   "type": "hurt",
+          #   "playerId": self.id,
+          # })
           pass
         else:
-          broadcast_event({
-            "event": "sound",
-            "type": "death",
-            "playerId": self.id,
-          })
+          death_sound.play()
+          # broadcast_event({
+          #   "event": "sound",
+          #   "type": "death",
+          #   "playerId": self.id,
+          # })
           self.is_alive = False
 
       self.bomb_hit_time = time()
