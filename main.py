@@ -48,7 +48,7 @@ COORD_SQ_MAGNITUDE = 19.94427190999916
 
 config = {
   "BOMB_FUSE_TIME": 3,
-  "BOMB_EXPLOSION_TIME": 1,
+  "BOMB_EXPLOSION_TIME": 0.9,
   "INVULNERABILITY_TIME": 2, # Should be greater than BOMB_EXPLOSION_TIME
   "STARTING_BOMB_POWER": 4, # 2,
   "PICKUP_CHANCE": 0, # 0.3,
@@ -268,7 +268,7 @@ def update():
     if game_state == "victory":
       game_state = "start"
       state_end_time = 0
-      victory_music.fadeout(500)
+      victory_music.fadeout(1000)
       waiting_music.play(loops=-1, fade_ms=2000)
     elif game_state == "start":
       game_state = "play"
@@ -282,7 +282,7 @@ def update():
         vamp = battle_vamp
     elif game_state == "previctory":
       game_state = "victory"
-      state_end_time = time() + 6
+      state_end_time = time() + 10
 
       clear_walls()
       for player in players:
@@ -831,30 +831,34 @@ class Bomb:
       #     "position": self.position
       # })
       
-      finish_time = time() + config["BOMB_EXPLOSION_TIME"] - self.power/32
+      finish_time = time() + config["BOMB_EXPLOSION_TIME"]
+
       self.set_explosion_status(self.position, finish_time)
       for neighbor in neighbors[self.position]:
         self.explode((self.position, neighbor), self.power - 1)
+        # asyncio.run(self.explode((self.position, neighbor), self.power - 1))
 
       self.has_exploded = True
       self.explosion_time = time()
 
+  # async def explode(self, direction, power):
   def explode(self, direction, power):
-    if power < 0:
-      return
 
-    next_pos = direction[1]
+    for i in range(power):
+      # await asyncio.sleep(1/32)
 
-    if statuses[next_pos] == "wall":
-      if random() < config["PICKUP_CHANCE"]:
-        statuses[next_pos] = "power_pickup"
-      else:
-        statuses[next_pos] = "blank"
-      return
+      next_pos = direction[1]
 
-    finish_time = time() + config["BOMB_EXPLOSION_TIME"] - power/32
-    self.set_explosion_status(next_pos, finish_time)
-    self.explode((next_pos, next_pixel[str(direction)]), power - 1)
+      if statuses[next_pos] == "wall":
+        if random() < config["PICKUP_CHANCE"]:
+          statuses[next_pos] = "power_pickup"
+        else:
+          statuses[next_pos] = "blank"
+        return
+
+      finish_time = time() + config["BOMB_EXPLOSION_TIME"] + i/32
+      self.set_explosion_status(next_pos, finish_time)
+      direction = (next_pos, next_pixel[str(direction)])
 
   def set_explosion_status(self, pos, finish_time):
     statuses[pos] = finish_time

@@ -510,7 +510,10 @@ var app = new Vue({
       if (!this.isMoving) {
         return
       }
-      let joystickWidth = document.querySelector(".joystick-bg").getBoundingClientRect().width
+      let joystickBG = document.querySelector(".joystick-bg")
+      if (!joystickBG)
+        return
+      let joystickWidth = joystickBG.getBoundingClientRect().width
       let maxDisplacement = joystickWidth * 0.25
 
       this.move = [(this.startLocation[0] - location.clientX) / maxDisplacement,
