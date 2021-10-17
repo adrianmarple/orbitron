@@ -14,7 +14,7 @@ import urllib.request
 import websockets
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
-from pygame import mixer
+from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
 from threading import Thread
 from time import time, sleep
@@ -23,8 +23,8 @@ from time import time, sleep
 MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
 
 mixer.init(devicename="USB Audio Device, USB Audio")
-waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.wav")
-waiting_music.set_volume(0) #0.2)
+waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.ogg")
+# waiting_music.set_volume(0.5)
 
 battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
 battle_vamp = mixer.Sound(MUSIC_DIRECTORY + "battle1Loop.ogg")
@@ -56,22 +56,15 @@ config = {
   "MAX_BOMBS": 8,
   "BOMB_MOVE_FREQ": 0.07,
   "MOVE_FREQ": 0.18,
-  "USE_SHIELDS": True,
-  "DEATHMATCH": False,
-  "ALLOW_CROSS_TIP_MOVE": True,
-  "TARGET_KILL_COUNT": 7,
+  "USE_SHIELDS": False,
+  "DEATHMATCH": True,
+  "ALLOW_CROSS_TIP_MOVE": False,
+  "TARGET_KILL_COUNT": 5,
   "BATTLE_ROYALE_DURATION": 120,
   "DEATH_CREEP_DURATION": 30,
   "MOVE_BIAS": 0.5,
+  "SUICIDE_PENALTY": True,
 }
-# MAX_BOMBS = 5
-# BOMB_FUSE_TIME = 3
-# BOMB_EXPLOSION_TIME = 1
-# BOMB_MOVE_FREQ = 0.07
-# MOVE_FREQ = 0.18
-# STARTING_BOMB_POWER = 2
-# PICKUP_CHANCE = 0.3
-# NUM_WALLS = 60
 
 READY_PULSE_DURATION = 0.75
 SHOCKWAVE_DURATION = 0.5
@@ -117,14 +110,6 @@ victory_color_string = None
 
 def start():
   players.append(Player(
-    position=125,
-    color=(0, 200, 100),
-    color_string="#00bcd4")) #cyan
-  players.append(Player(
-    position=54,
-    color=(100, 0, 250),
-    color_string="#9575cd")) #deep purple
-  players.append(Player(
     position=105,
     color=(0, 200, 0),
     color_string="#4caf50")) #green
@@ -137,17 +122,25 @@ def start():
     color=(200, 2, 20),
     color_string="#e91e63")) #pink
   players.append(Player(
-    position=179,
+    position=54,
+    color=(100, 0, 250),
+    color_string="#9575cd")) #deep purple
+  players.append(Player(
+    position=252,
     color=(180, 200, 5),
     color_string="#c0ca33")) #lime
   players.append(Player(
     position=168,
     color=(200, 50, 0),
     color_string="#ff9800")) #orange
-  players.append(Player(
-    position=252,
-    color=(100, 100, 255),
-    color_string="#ddddff")) #bluewhite
+  # players.append(Player(
+  #   position=179,
+  #   color=(100, 100, 255),
+  #   color_string="#ddddff")) #bluewhite
+  # players.append(Player(
+  #   position=125,
+  #   color=(0, 200, 100),
+  #   color_string="#00bcd4")) #cyan
 
 
 def set_walls():
@@ -537,11 +530,6 @@ class Player:
       # Hurt
       if statuses[pos] != "death" and self.has_shield:
         hurt_sound.play()
-        # broadcast_event({
-        #   "event": "sound",
-        #   "type": "hurt",
-        #   "playerId": self.id,
-        # })
         self.has_shield = False
       else:
         killer = explosion_providence[pos]
@@ -549,23 +537,15 @@ class Player:
           killer = secondary_explosion_providence[pos]
         if killer:
           killer.kill_count += 1
+        elif config["SUICIDE_PENALTY"]: # Suicide
+          self.kill_count -= 1
         self.death_count += 1
 
         if config["DEATHMATCH"]:
           hurt_sound.play()
-          # broadcast_event({
-          #   "event": "sound",
-          #   "type": "hurt",
-          #   "playerId": self.id,
-          # })
           pass
         else:
           death_sound.play()
-          # broadcast_event({
-          #   "event": "sound",
-          #   "type": "death",
-          #   "playerId": self.id,
-          # })
           self.is_alive = False
 
       self.bomb_hit_time = time()
@@ -619,11 +599,9 @@ class Player:
         if bomb.position == new_pos:
           if bomb.move(self.position):
             # Successful bomb kick!
-            # Transfer owenership on successful bomb kick
+            # Transfer owenership on bomb kick
             kick_sound.play()
-            if bomb.owner != self:
-              bomb.secondary_owner = bomb.owner
-              bomb.owner = self
+            bomb.bumb_owner(self)
           else:
             occupied = True
           break
@@ -777,6 +755,9 @@ class Bomb:
     
     considered_players = playing_players() if game_state == "play" else claimed_players()
     for player in considered_players:
+      if not player.is_alive:
+        continue
+
       if player.position == new_pos:
         occupied = True
         break
@@ -822,16 +803,13 @@ class Bomb:
     if self.position != self.prev_pos and time() - self.last_move_time > config["BOMB_MOVE_FREQ"]:
       self.move(self.prev_pos)
 
-    # fuse has run out or hit by an explosion
+    # Fuse has run out or hit by an explosion
     if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or statuses[self.position] != "blank":
+      # Propagate ownership if triggered by other bomb
+      if statuses[self.position] != "blank" and statuses[self.position] != "death":
+        self.bumb_owner(explosion_providence[self.position])
+
       explosion_sound.play()
-      # broadcast_event({
-      #     "event": "sound",
-      #     "type": "explosion",
-      #     "playerId": -1,
-      #     "position": self.position
-      # })
-      
       finish_time = time() + config["BOMB_EXPLOSION_TIME"]
 
       self.set_explosion_status(self.position, finish_time)
@@ -841,6 +819,11 @@ class Bomb:
 
       self.has_exploded = True
       self.explosion_time = time()
+
+  def bumb_owner(self, new_owner):
+    if new_owner and self.owner != new_owner:
+      self.secondary_owner = self.owner
+      self.owner = new_owner
 
   # async def explode(self, direction, power):
   def explode(self, direction, power):

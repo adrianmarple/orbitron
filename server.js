@@ -10,72 +10,102 @@ const { spawn } = require('child_process');
 // Websocket server
 
 var server = http.createServer(function(request, response) {
-  console.log(' Received request for ' + request.url);
-  response.writeHead(404);
-  response.end();
-});
+  console.log(' Received request for ' + request.url)
+  response.writeHead(404)
+  response.end()
+})
 server.listen(7777, function() {
-  console.log('WebSocket Server is listening on port 7777');
-});
+  console.log('WebSocket Server is listening on port 7777')
+})
  
-wsServer = new WebSocket.Server({ server, autoAcceptConnections: true });
-wsServer.on('connection', connection => {
-  console.log('Connection accepted.');
+wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
+wsServer.on('connection', socket => {
+  console.log('Connection accepted.')
+
+  let connection = { socket }
+  connectionQueue.push(connection)
+  upkeep() // Will claim player if available
+
+  socket.on('message', function(message) {
+    if (typeof connection.id !== 'number') {
+      return
+    }
+    content = JSON.parse(message)
+    content.self = connection.id
+    connection.lastActivityTime = Date.now()
+    process.stdin.write(JSON.stringify(content) + "\n", "utf8")
+  })
+  socket.on('close', function() {
+    release = { self: connection.id, type: "release" }
+    process.stdin.write(JSON.stringify(release) + "\n", "utf8")
+
+    if (typeof connection.id === 'number') {
+      delete connections[connection.id]
+    } else {
+      connectionQueue = connectionQueue.filter(elem => elem !== connection)
+    }
+  })
+})
+
+
+setInterval(upkeep, 1000)
+
+function upkeep() {
+  // Check for stale players
+  if (gameState.players) {
+    for (let connection of Object.values(connections)) {
+      let player = gameState.players[connection.id]
+      if (!player.isReady && !player.isPlaying &&
+          Date.now() - connection.lastActivityTime > 30*1000) { // 30 seconds
+        console.log("Player timed out.")
+        connection.socket.close()
+      }
+    }
+  }
 
   let id = 0;
-  while(true) {
-    if (!connections[id]) {
-      connections[id] = connection;
-      lastActivityTimes[id] = Date.now()
-      break;
+  for (let connection of [...connectionQueue]) {
+    while (id < MAX_PLAYERS) {
+      if (!connections[id]) {
+        connection.id = id
+        connection.lastActivityTime = Date.now()
+        connections[id] = connection
+        claim = { self: connection.id, type: "claim" }
+        process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
+
+        connectionQueue = connectionQueue.filter(elem => elem !== connection)
+        break;
+      }
+      id += 1
     }
-    id += 1;
-  }
-
-  claim = { self: id, type: "claim" };
-  process.stdin.write(JSON.stringify(claim) + "\n", "utf8");
-
-  connection.on('message', function(message) {
-    content = JSON.parse(message)
-    content.self = id
-    lastActivityTimes[id] = Date.now()
-    process.stdin.write(JSON.stringify(content) + "\n", "utf8")
-  });
-  connection.on('close', function(reasonCode, description) {
-    release = { self: id, type: "release" }
-    process.stdin.write(JSON.stringify(release) + "\n", "utf8")
-    delete connections[id]
-  });
-});
-
-// Check for stale players
-setInterval(() => {
-  if (!gameState.players) {
-    return
-  }
-  for (var id in connections) {
-    let player = gameState.players[id]
-    if (!player.isReady && !player.isPlaying &&
-        Date.now() - lastActivityTimes[id] > 30*1000) { // 30 seconds
-      console.log("Player timed out.")
-      connections[id].close()
+    if (id >= MAX_PLAYERS) {
+      message = {...gameState}
+      message.queuePosition = connectionQueue.indexOf(connection) + 1
+      connection.socket.send(JSON.stringify(message))
     }
   }
-}, 1000)
+}
 
-connections = {};
-lastActivityTimes = {};
+
+MAX_PLAYERS = 6
+connections = {}
+connectionQueue = []
 
 
 // Communications with python script
 
-gameState = {};
+gameState = {}
 
 function broadcast(baseMessage) {
   gameState = baseMessage
   for (let id in connections) {
     baseMessage.self = id
-    connections[id].send(JSON.stringify(baseMessage))
+    connections[id].socket.send(JSON.stringify(baseMessage))
+  }
+  delete baseMessage.self
+  for (let i = 0; i < connectionQueue.length; i++) {
+    baseMessage.queuePosition = i + 1
+    connectionQueue[i].socket.send(JSON.stringify(baseMessage))
   }
 }
 const process = spawn('sudo', ['python3', '-u', '/home/pi/Rhomberman/main.py']);

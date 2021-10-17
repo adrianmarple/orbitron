@@ -82,6 +82,7 @@ body, #app, .main {
   box-sizing: border-box;
 }
 
+
 .header {
   position: fixed;
   left: 10vw;
@@ -209,6 +210,15 @@ body, #app, .main {
   </div>
 
 
+  <div id="queue" v-if="!hasClaimed" class="header">
+    All the play slots have been claimed.
+    <br/>
+    <br/>
+    Position in queue: {{state.queuePosition}}
+  </div>
+
+  <div v-else>
+
   <div id="playerMarker"
     :style="{backgroundColor: self.color}"
   ></div>
@@ -310,6 +320,8 @@ body, #app, .main {
     </div>
 
   </div>
+
+  </div>
 </div>
 
 <script>
@@ -345,6 +357,7 @@ var app = new Vue({
       {name: "BOMB_MOVE_FREQ"},
       {name: "MOVE_FREQ"},
       {name: "MOVE_BIAS"},
+      {name: "SUICIDE_PENALTY", boolean: true},
     ],
   },
 
@@ -401,6 +414,9 @@ var app = new Vue({
     config() {
       return this.state.config || {}
     },
+    hasClaimed() {
+      return this.state.self && this.ws.readyState === WebSocket.OPEN
+    },
     self() {
       if (this.state.players)
         return this.state.players[this.state.self]
@@ -428,7 +444,13 @@ var app = new Vue({
 
     joystickBGStyle() {
       if (this.startLocation) {
-        let joystickWidth = document.querySelector(".joystick-bg").getBoundingClientRect().width
+        let joystickElem = document.querySelector(".joystick-bg")
+        let joystickWidth
+        if (joystickElem) {
+          joystickWidth = joystickElem.getBoundingClientRect().width
+        } else {
+          joystickWidth = window.innerWidth * 0.7
+        }
         return {
           left: `calc(${this.startLocation[0] - joystickWidth/2}px)`,
           top:  `calc(${this.startLocation[1] - joystickWidth/2}px)`,
@@ -447,7 +469,7 @@ var app = new Vue({
     send(json) {
       if (this.ws.readyState === WebSocket.CLOSED) {
         this.startWebsocket()
-      } else {
+      } else if (this.ws.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify(json))
       }
     },
@@ -464,10 +486,12 @@ var app = new Vue({
           break
         default:
           this.state = message
+          console.log(message)
           this.$forceUpdate()
         }
       };
 
+      let self = this
       this.ws.onerror = event => {
         console.log("WebSocket error observed")
       }
