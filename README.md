@@ -90,3 +90,4 @@
 ## WIFI QR code generator
 
 - https://www.qr-code-generator.com/solutions/wifi-qr-code/
+- https://goqr.me/

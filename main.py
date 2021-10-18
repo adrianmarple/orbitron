@@ -4,8 +4,9 @@ import asyncio
 import board
 import collections
 import json
-import numpy as np
 import neopixel
+import numpy as np
+import numbers
 import pathlib
 import socket
 import ssl
@@ -60,8 +61,8 @@ config = {
   "DEATHMATCH": True,
   "ALLOW_CROSS_TIP_MOVE": False,
   "TARGET_KILL_COUNT": 5,
-  "BATTLE_ROYALE_DURATION": 120,
-  "DEATH_CREEP_DURATION": 30,
+  "BATTLE_ROYALE_DURATION": 150,
+  "DEATH_CREEP_DURATION": 60,
   "MOVE_BIAS": 0.5,
   "SUICIDE_PENALTY": True,
 }
@@ -237,8 +238,10 @@ def update():
       # Timer death creep from south pole
       phase = (state_end_time - time()) / config["DEATH_CREEP_DURATION"]
       threshold = COORD_MAGNITUDE * (1 - 2 * phase)
+      threshold = min(threshold, COORD_MAGNITUDE * 0.8)
       for i in range(SIZE):
-        if unique_coords[i][2] < threshold:
+        z = unique_coords[i][2]
+        if z < threshold:
           statuses[i] = "death"
           explosion_providence[i] = None
 
@@ -379,8 +382,9 @@ def render_game():
 
 def render_explosion(index):
   x = 1 + (time() - statuses[index]) / config["BOMB_EXPLOSION_TIME"]
-  x *= len(EXPLOSION_COLOR_SEQUENCE) - 1
-  color_pixel(index, multi_lerp(x, EXPLOSION_COLOR_SEQUENCE))
+  if (x >= 0):
+    x *= len(EXPLOSION_COLOR_SEQUENCE) - 1
+    color_pixel(index, multi_lerp(x, EXPLOSION_COLOR_SEQUENCE))
 
 def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
     color=(200,200,200), start_time=0, duration=1):
@@ -402,11 +406,11 @@ def playing_players():
 
 def color_pixel(index, color):
   pixels[index] = color
-  # for dupe in unique_to_dupes[index]:
-  #   pixels[dupe] = (
-  #     max(0, min(255, int(color[0]))),
-  #     max(0, min(255, int(color[1]))),
-  #     max(0, min(255, int(color[2]))))
+
+def is_pixel_blank(index):
+  status = statuses[index]
+  return status == "blank" or (
+    isinstance(status, numbers.Number) and status - time() > config["BOMB_EXPLOSION_TIME"])
 
 def color_raw_pixel(index, color):
   raw_pixels[index] = color
@@ -524,7 +528,7 @@ class Player:
     pos = self.position
     # non-blank status means either explosion or death
     # invulernable for a second after being hit
-    if game_state == "play" and statuses[pos] != "blank" and \
+    if game_state == "play" and not is_pixel_blank(pos) and \
         time() - self.bomb_hit_time > config["INVULNERABILITY_TIME"]:
 
       # Hurt
@@ -601,7 +605,7 @@ class Player:
             # Successful bomb kick!
             # Transfer owenership on bomb kick
             kick_sound.play()
-            bomb.bumb_owner(self)
+            bomb.bump_owner(self)
           else:
             occupied = True
           break
@@ -804,33 +808,28 @@ class Bomb:
       self.move(self.prev_pos)
 
     # Fuse has run out or hit by an explosion
-    if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or statuses[self.position] != "blank":
+    if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or not is_pixel_blank(self.position):
       # Propagate ownership if triggered by other bomb
-      if statuses[self.position] != "blank" and statuses[self.position] != "death":
-        self.bumb_owner(explosion_providence[self.position])
+      if not is_pixel_blank(self.position) and statuses[self.position] != "death":
+        self.bump_owner(explosion_providence[self.position])
 
       explosion_sound.play()
       finish_time = time() + config["BOMB_EXPLOSION_TIME"]
 
       self.set_explosion_status(self.position, finish_time)
       for neighbor in neighbors[self.position]:
-        self.explode((self.position, neighbor), self.power - 1)
-        # asyncio.run(self.explode((self.position, neighbor), self.power - 1))
+        self.explode((self.position, neighbor), self.power)
 
       self.has_exploded = True
       self.explosion_time = time()
 
-  def bumb_owner(self, new_owner):
+  def bump_owner(self, new_owner):
     if new_owner and self.owner != new_owner:
       self.secondary_owner = self.owner
       self.owner = new_owner
 
-  # async def explode(self, direction, power):
   def explode(self, direction, power):
-
     for i in range(power):
-      # await asyncio.sleep(1/32)
-
       next_pos = direction[1]
 
       if statuses[next_pos] == "wall":
