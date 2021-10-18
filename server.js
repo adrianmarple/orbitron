@@ -110,19 +110,29 @@ function broadcast(baseMessage) {
 }
 const process = spawn('sudo', ['python3', '-u', '/home/pi/Rhomberman/main.py']);
 process.stdout.on('data', data => {
+  message = data.toString()
   if (data[0] == 123) { // check is first char is '{'
     try {
-      broadcast(JSON.parse(data.toString()));
+      broadcast(JSON.parse(message));
     } catch(e) {
       console.error(e);
-      console.error(data.toString());
+      console.error(message);
     }
   } else {
-    console.log(data.toString());
+    message = message.slice(0, -1)
+    if (message) {
+      console.log(message)
+    }
   }
 });
 process.stderr.on('data', data => {
-  console.log(data.toString());
+  message = data.toString()
+  if (!message.includes("underrun occurred")) {
+    message = message.slice(0, -1)
+    if (message) {
+      console.log(message)
+    }
+  }
 });
 
 
@@ -130,37 +140,37 @@ process.stderr.on('data', data => {
 // Simple HTTP server
 
 http.createServer(function (request, response) {
-  var filePath = request.url;
+  var filePath = request.url
 
   if (filePath == '/')
-    filePath = '/index.html';
-  filePath = '/home/pi/Rhomberman' + filePath;
+    filePath = '/index.html'
+  filePath = '/home/pi/Rhomberman' + filePath
 
-  console.log(filePath);
+  // console.log(filePath);
 
-  var extname = path.extname(filePath);
-  var contentType = 'text/html';
+  var extname = path.extname(filePath)
+  var contentType = 'text/html'
   switch (extname) {
     case '.js':
-      contentType = 'text/javascript';
+      contentType = 'text/javascript'
       break;
     case '.css':
-      contentType = 'text/css';
+      contentType = 'text/css'
       break;
     case '.json':
-      contentType = 'application/json';
+      contentType = 'application/json'
       break;
     case '.png':
-      contentType = 'image/png';
+      contentType = 'image/png'
       break;      
     case '.jpg':
-      contentType = 'image/jpg';
+      contentType = 'image/jpg'
       break;    
     case '.ico':
-      contentType = 'image/x-icon';
+      contentType = 'image/x-icon'
       break;
     case '.wav':
-      contentType = 'audio/wav';
+      contentType = 'audio/wav'
       break;
   }
 
@@ -168,20 +178,20 @@ http.createServer(function (request, response) {
     if (error) {
       if(error.code == 'ENOENT'){
         fs.readFile('./404.html', function(error, content) {
-          response.writeHead(200, { 'Content-Type': contentType });
-          response.end(content, 'utf-8');
+          response.writeHead(200, { 'Content-Type': contentType })
+          response.end(content, 'utf-8')
         });
       }
       else {
-        response.writeHead(500);
-        response.end('Sorry, check with the site admin for error: '+error.code+' ..\n');
-        response.end(); 
+        response.writeHead(500)
+        response.end('Sorry, check with the site admin for error: '+error.code+' ..\n')
+        response.end();
       }
     }
     else {
-      response.writeHead(200, { 'Content-Type': contentType });
-      response.end(content, 'utf-8');
+      response.writeHead(200, { 'Content-Type': contentType })
+      response.end(content, 'utf-8')
     }
   });
 
-}).listen(1337);
+}).listen(1337)

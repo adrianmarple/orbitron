@@ -21,27 +21,88 @@ from threading import Thread
 from time import time, sleep
 
 
-MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
 
-mixer.init(devicename="USB Audio Device, USB Audio")
-waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.ogg")
-# waiting_music.set_volume(0.5)
+class ChannelShell:
+  def stop(self):
+    pass
+  def get_queue(self):
+    pass
+  def queue(self, sound):
+    pass
 
-battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
-battle_vamp = mixer.Sound(MUSIC_DIRECTORY + "battle1Loop.ogg")
-deathmatch_music = mixer.Sound(MUSIC_DIRECTORY + "dm1.ogg")
-deathmatch_vamp = mixer.Sound(MUSIC_DIRECTORY + "dm1Loop.ogg")
+class SoundShell:
+  def play(self, loops=0, fade_ms=0):
+    return ChannelShell()
+  def stop(self):
+    pass
+  def fadeout(self, duration):
+    pass
+
+battle_music = SoundShell()
+battle_vamp = SoundShell()
+deathmatch_music = SoundShell()
+deathmatch_vamp = SoundShell()
 battle_channel = None
 vamp = None
 
-explosion_sound = mixer.Sound(MUSIC_DIRECTORY + "explosion.wav")
-kick_sound = mixer.Sound(MUSIC_DIRECTORY + "kick.wav")
-place_bomb_sound = mixer.Sound(MUSIC_DIRECTORY + "placeBomb.wav")
-hurt_sound = mixer.Sound(MUSIC_DIRECTORY + "hurt.wav")
-death_sound = mixer.Sound(MUSIC_DIRECTORY + "death.wav")
+explosion_sound = SoundShell()
+kick_sound = SoundShell()
+place_bomb_sound = SoundShell()
+hurt_sound = SoundShell()
+death_sound = SoundShell()
 
-victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
-waiting_music.play(loops=-1)
+victory_music = SoundShell()
+waiting_music = SoundShell()
+
+
+def prewarm_audio():
+  global battle_music, battle_vamp, deathmatch_music, deathmatch_vamp
+  global explosion_sound, kick_sound, place_bomb_sound, hurt_sound, death_sound
+  global victory_music, waiting_music
+
+  mixer.init(devicename="USB Audio Device, USB Audio")
+
+  MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
+
+  battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
+  battle_vamp = mixer.Sound(MUSIC_DIRECTORY + "battle1Loop.ogg")
+  deathmatch_music = mixer.Sound(MUSIC_DIRECTORY + "dm1.ogg")
+  deathmatch_vamp = mixer.Sound(MUSIC_DIRECTORY + "dm1Loop.ogg")
+
+  explosion_sound = mixer.Sound(MUSIC_DIRECTORY + "explosion.wav")
+  kick_sound = mixer.Sound(MUSIC_DIRECTORY + "kick.wav")
+  place_bomb_sound = mixer.Sound(MUSIC_DIRECTORY + "placeBomb.wav")
+  hurt_sound = mixer.Sound(MUSIC_DIRECTORY + "hurt.wav")
+  death_sound = mixer.Sound(MUSIC_DIRECTORY + "death.wav")
+
+  victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
+  waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.ogg")
+  waiting_music.play(loops=-1)
+
+  print("Finished prewarming audio.")
+
+
+prewarm_thread = Thread(target=prewarm_audio)
+prewarm_thread.start()
+
+# mixer.init(devicename="USB Audio Device, USB Audio")
+# waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.ogg")
+
+# battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
+# battle_vamp = mixer.Sound(MUSIC_DIRECTORY + "battle1Loop.ogg")
+# deathmatch_music = mixer.Sound(MUSIC_DIRECTORY + "dm1.ogg")
+# deathmatch_vamp = mixer.Sound(MUSIC_DIRECTORY + "dm1Loop.ogg")
+# battle_channel = None
+# vamp = None
+
+# explosion_sound = mixer.Sound(MUSIC_DIRECTORY + "explosion.wav")
+# kick_sound = mixer.Sound(MUSIC_DIRECTORY + "kick.wav")
+# place_bomb_sound = mixer.Sound(MUSIC_DIRECTORY + "placeBomb.wav")
+# hurt_sound = mixer.Sound(MUSIC_DIRECTORY + "hurt.wav")
+# death_sound = mixer.Sound(MUSIC_DIRECTORY + "death.wav")
+
+# victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
+# waiting_music.play(loops=-1)
 
 # Actual constants
 COORD_MAGNITUDE = 4.46590101883
