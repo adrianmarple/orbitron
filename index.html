@@ -103,6 +103,8 @@ body, #app, .main {
   transform: rotate(45deg);
   width: 50vw;
   height: 50vw;
+  border: 3vw solid black;
+  box-sizing: border-box;
 }
 
 #bombPower {
@@ -222,7 +224,7 @@ body, #app, .main {
   <div v-else>
 
   <div id="playerMarker"
-    :style="{backgroundColor: self.color}"
+    :style="{ backgroundColor: self.color, borderColor: teamColor }"
   ></div>
   <div id="bombPower">
     <span>{{self.bombPower}}</span>
@@ -285,11 +287,22 @@ body, #app, .main {
 
   <div v-if="mode=='play'" class="main">
     <div v-if="config.DEATHMATCH" class="header">
-      <div v-for="player in playersByRanking" class="ranking">
-        <div class="player"
-          :style="{backgroundColor: player.color}"
-        ></div>
-        {{player.killCount}}
+      <div v-if="config.TEAM_MODE">
+        <div v-for="team in teamsByRanking" class="ranking">
+          <div class="player"
+            :style="{backgroundColor: team.color}"
+          ></div>
+          {{team.killCount}}
+        </div>
+
+      </div>
+      <div v-else>
+        <div v-for="player in playersByRanking" class="ranking">
+          <div class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+          {{player.killCount}}
+        </div>
       </div>
     </div>
     <div v-else class="header">
@@ -346,6 +359,7 @@ var app = new Vue({
       {name: "USE_SHIELDS", boolean: true},
       {name: "ALLOW_CROSS_TIP_MOVE", boolean: true},
       {name: "DEATHMATCH", boolean: true},
+      {name: "TEAM_MODE", boolean: true},
       {name: "TARGET_KILL_COUNT"},
       {name: "STARTING_BOMB_POWER"},
       {name: "BOMB_FUSE_TIME"},
@@ -406,7 +420,6 @@ var app = new Vue({
       },
       deep: true
     }
-
   },
 
   computed: {
@@ -425,6 +438,12 @@ var app = new Vue({
       else
         return {}
     },
+    myTeam() {
+      return this.state.teams[this.self.team]
+    },
+    teamColor() {
+      return (this.config.TEAM_MODE ? this.myTeam : this.self).color
+    },
     claimedPlayers() {
       if (this.state.players) {
         return this.state.players.filter(player => player.isClaimed)
@@ -440,6 +459,12 @@ var app = new Vue({
     },
     playersByRanking() {
       return this.claimedPlayers.sort((p0, p1) => {
+        return p1.killCount - p0.killCount
+      })
+    },
+
+    teamsByRanking() {
+      return this.state.teams.sort((p0, p1) => {
         return p1.killCount - p0.killCount
       })
     },
@@ -488,7 +513,7 @@ var app = new Vue({
           break
         default:
           this.state = message
-          console.log(message)
+          // console.log(message)
           this.$forceUpdate()
         }
       };

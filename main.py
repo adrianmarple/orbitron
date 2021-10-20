@@ -85,24 +85,6 @@ def prewarm_audio():
 prewarm_thread = Thread(target=prewarm_audio)
 prewarm_thread.start()
 
-# mixer.init(devicename="USB Audio Device, USB Audio")
-# waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.ogg")
-
-# battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
-# battle_vamp = mixer.Sound(MUSIC_DIRECTORY + "battle1Loop.ogg")
-# deathmatch_music = mixer.Sound(MUSIC_DIRECTORY + "dm1.ogg")
-# deathmatch_vamp = mixer.Sound(MUSIC_DIRECTORY + "dm1Loop.ogg")
-# battle_channel = None
-# vamp = None
-
-# explosion_sound = mixer.Sound(MUSIC_DIRECTORY + "explosion.wav")
-# kick_sound = mixer.Sound(MUSIC_DIRECTORY + "kick.wav")
-# place_bomb_sound = mixer.Sound(MUSIC_DIRECTORY + "placeBomb.wav")
-# hurt_sound = mixer.Sound(MUSIC_DIRECTORY + "hurt.wav")
-# death_sound = mixer.Sound(MUSIC_DIRECTORY + "death.wav")
-
-# victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
-# waiting_music.play(loops=-1)
 
 # Actual constants
 COORD_MAGNITUDE = 4.46590101883
@@ -118,7 +100,7 @@ config = {
   "MAX_BOMBS": 8,
   "BOMB_MOVE_FREQ": 0.07,
   "MOVE_FREQ": 0.18,
-  "USE_SHIELDS": False,
+  "USE_SHIELDS": True,
   "DEATHMATCH": True,
   "ALLOW_CROSS_TIP_MOVE": False,
   "TARGET_KILL_COUNT": 5,
@@ -126,6 +108,7 @@ config = {
   "DEATH_CREEP_DURATION": 60,
   "MOVE_BIAS": 0.5,
   "SUICIDE_PENALTY": True,
+  "TEAM_MODE": True,
 }
 
 READY_PULSE_DURATION = 0.75
@@ -159,7 +142,6 @@ neopixels = neopixel.NeoPixel(board.D18, RAW_SIZE, auto_write=False)
 print("Running %s pixels" % pixel_info["RAW_SIZE"])
 
 START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
-players = []
 statuses = ["blank"] * SIZE
 explosion_providence = [None] * SIZE
 secondary_explosion_providence = [None] * SIZE
@@ -169,6 +151,9 @@ state_end_time = 0
 victory_color = None
 victory_color_string = None
 
+
+players = []
+teams = []
 
 def start():
   players.append(Player(
@@ -204,41 +189,36 @@ def start():
   #   color=(0, 200, 100),
   #   color_string="#00bcd4")) #cyan
 
+  global RED_TEAM, BLUE_TEAM
 
-def set_walls():
-  global statuses
-  statuses = ["blank"] * SIZE
-  for i in range(config["NUM_WALLS"]):
-    pos = randrange(SIZE)
-    bad_spot = pos in START_POSITIONS
-    for start_pos in START_POSITIONS:
-      bad_spot = bad_spot or pos in neighbors[start_pos]
+  RED_TEAM = Team(
+    team_id=0,
+    color=np.array((255, 0, 0)),
+    color_string="red",
+    name="Red Team",
+    players=[players[0], players[2], players[4]]
+  )
+  BLUE_TEAM = Team(
+    team_id=1,
+    color=np.array((0, 0, 255)),
+    color_string="blue",
+    name="Blue Team",
+    players=[players[1], players[3], players[5]]
+  )
+  teams.append(RED_TEAM)
+  teams.append(BLUE_TEAM)
 
-    if not bad_spot:
-      statuses[pos] = "wall"
 
-def clear_walls():
-  global statuses
-  statuses = ["blank"] * SIZE
 
 # ================================ UPDATE =========================================
 
-prev_time = 0
 
 def update():
-  global game_state
-  global state_end_time
-  global victory_color
-  global victory_color_string
+  global game_state, state_end_time
+  global victory_color, victory_color_string
   global pixels
 
-  global vamp
-  global battle_channel
-
-  # global prev_time
-  # frame_time = time() - prev_time
-  # print("Frame rate %f\nFrame time %dms" % (1/frame_time, int(frame_time * 1000)))
-  # prev_time = time()
+  global vamp, battle_channel
 
 
   if game_state == "start":
@@ -270,31 +250,21 @@ def update():
     if battle_channel.get_queue() is None:
       battle_channel.queue(vamp)
 
-
-    live_player_count = 0
-    last_player_alive = players[0]
     for player in playing_players():
       player.bomb()
       player.move()
-      if player.is_alive:
-        live_player_count += 1
-
-      if player.is_alive or (not last_player_alive.is_alive and
-          player.bomb_hit_time > last_player_alive.bomb_hit_time):
-        last_player_alive = player
 
     if config["DEATHMATCH"]:
-      # GAME OVER
-      for player in playing_players():
-        if player.kill_count >= config["TARGET_KILL_COUNT"]:
-          game_state = "previctory"
-          state_end_time = time() + 2
-          victory_color = player.color
-          victory_color_string = player.color_string
-
-          battle_channel.stop()
-          broadcast_state()
-
+      if config["TEAM_MODE"]:
+        if BLUE_TEAM.kill_count() >= config["TARGET_KILL_COUNT"]:
+          gameover(BLUE_TEAM)
+        if RED_TEAM.kill_count() >= config["TARGET_KILL_COUNT"]:
+          gameover(RED_TEAM)
+      else:
+        for player in playing_players():
+          if player.kill_count >= config["TARGET_KILL_COUNT"]:
+            gameover(player)
+            break
     else:
       # Timer death creep from south pole
       phase = (state_end_time - time()) / config["DEATH_CREEP_DURATION"]
@@ -306,15 +276,26 @@ def update():
           statuses[i] = "death"
           explosion_providence[i] = None
 
-      # GAME OVER
-      if live_player_count <= 1:
-        game_state = "previctory"
-        state_end_time = time() + 2
-        victory_color = last_player_alive.color
-        victory_color_string = last_player_alive.color_string
 
-        battle_channel.stop()
-        broadcast_state()
+      if config["TEAM_MODE"]:
+        if not BLUE_TEAM.is_alive():
+          gameover(RED_TEAM)
+        if not RED_TEAM.is_alive():
+          gameover(BLUE_TEAM)
+      else:
+        live_player_count = 0
+        last_player_alive = players[0]
+        for player in playing_players():
+          if player.is_alive:
+            live_player_count += 1
+
+          if player.is_alive or (not last_player_alive.is_alive and
+              player.bomb_hit_time > last_player_alive.bomb_hit_time):
+            last_player_alive = player
+
+        # GAME OVER
+        if live_player_count <= 1:
+          gameover(last_player_alive)
 
 
 
@@ -370,6 +351,18 @@ def update():
   for i in range(RAW_SIZE):
     neopixels[i] = pixels[dupe_to_unique[i]]
   neopixels.show()
+
+
+def gameover(winner):
+  global game_state, state_end_time, victory_color, victory_color_string, battle_channel
+
+  game_state = "previctory"
+  state_end_time = time() + 2
+  victory_color = winner.color
+  victory_color_string = winner.color_string
+  battle_channel.stop()
+  broadcast_state()
+
 
 
 indicies = np.arange(RAW_SIZE)
@@ -521,11 +514,67 @@ def projection(u, v): # assume v is normalized
 def ortho_proj(u, v):
   return u - projection(u,v)
 
+
+def set_walls():
+  global statuses
+  statuses = ["blank"] * SIZE
+  for i in range(config["NUM_WALLS"]):
+    pos = randrange(SIZE)
+    bad_spot = pos in START_POSITIONS
+    for start_pos in START_POSITIONS:
+      bad_spot = bad_spot or pos in neighbors[start_pos]
+
+    if not bad_spot:
+      statuses[pos] = "wall"
+
+def clear_walls():
+  global statuses
+  statuses = ["blank"] * SIZE
+
+# ================================ TEAM =========================================
+
+class Team:
+  def __init__(self, team_id, color, color_string, name, players):
+    self.id = team_id
+    self.color = color
+    self.color_string = color_string
+    self.name = name
+    self.players = players
+    for player in players:
+      player.team = self
+
+  def kill_count(self):
+    count = 0
+    for player in self.players:
+      count += player.kill_count
+    return count
+
+  def death_count(self):
+    count = 0
+    for player in self.players:
+      count += player.death_count
+    return count
+
+  def is_alive(self):
+    for player in self.players:
+      if player.is_playing and player.is_alive:
+        return True
+    return False
+
+
+  def to_json(self):
+    return {
+      "id": self.id,
+      "color": self.color_string,
+      "killCount": self.kill_count(),
+      "deathCount": self.death_count(),
+      "players": [player.id for player in self.players],
+    }
+
 # ================================ PLAYER =========================================
 GHOST_BUFFER_LEN = 20
 
 class Player:
-
   def __init__(self, position, color, color_string):
     self.id = len(players)  # WARNING not super robust
     self.initial_position = position
@@ -575,6 +624,9 @@ class Player:
     self.tap = 0
     broadcast_state()
 
+  def current_color(self):
+    return self.color if not config["TEAM_MODE"] or (time()/2) % 1 > 0.25 else self.team.color
+
   def pulse(self):
     self.ready_time = time()
     broadcast_state()
@@ -617,7 +669,7 @@ class Player:
       broadcast_state()
 
     # Player clears away explosions when walking on them
-    if statuses[pos] != "blank":
+    if not is_pixel_blank(pos):
       statuses[pos] = "blank"
 
 
@@ -713,11 +765,11 @@ class Player:
 
     for i in range(GHOST_BUFFER_LEN):
       delta_t = time() - self.ghost_timestamps[i]
-      color = self.color / 16 * exp(-16 * delta_t * delta_t)
+      color = self.current_color() / 16 * exp(-16 * delta_t * delta_t)
       color_pixel(self.ghost_positions[i], color)
 
   def render_player(self):
-    color = self.color
+    color = self.current_color()
     for bomb in self.bombs:
       bomb_x = bomb.render()
       if bomb.position == self.position:
@@ -735,7 +787,7 @@ class Player:
 
 
   def render_ready(self):
-    color = self.color
+    color = self.current_color()
     for bomb in self.bombs:
       bomb_x = bomb.render()
       if bomb.position == self.position:
@@ -771,6 +823,7 @@ class Player:
       "bombPower": self.bomb_power,
       "killCount": self.kill_count,
       "deathCount": self.death_count,
+      "team": self.team.id,
     }
 
 
@@ -919,6 +972,7 @@ def broadcast_event(event):
 def broadcast_state():
   message = {
     "players": [player.to_json() for player in players],
+    "teams": [team.to_json() for team in teams],
     "gameState": game_state,
     "timeRemaining": state_end_time - time(),
     "victoryColor": victory_color_string,
@@ -971,7 +1025,8 @@ start()
 last_frame_time = time()
 while True:
   update()
-  # print(time() - last_frame_time)
+  frame_time = time() - last_frame_time
+  # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)))
   last_frame_time = time()
 
 
