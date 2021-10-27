@@ -16,7 +16,7 @@ import websockets
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
-from random import randrange, random
+from random import randrange, random, choice
 from threading import Thread
 from time import time, sleep
 
@@ -89,13 +89,14 @@ COORD_MAGNITUDE = 4.46590101883
 COORD_SQ_MAGNITUDE = 19.94427190999916
 
 config = {
-  "NUM_PACMEN": 1,
+  "NUM_PACMEN": 2,
   "NUM_GHOSTS": 4,
   "PACMAN_MOVE_FREQ": 0.18,
   "GHOST_MOVE_FREQ": 0.22,
   "WINNING_PELLET_RATIO": 0.2,
   "CONSTANT_MOTION": False,
   "ALLOW_CROSS_TIP_MOVE": False,
+  "GHOST_RANDOMNESS": 0.3,
   "MOVE_BIAS": 0.5,
 }
 
@@ -189,7 +190,7 @@ def update():
       is_everyone_ready = is_everyone_ready and player.is_ready
 
     if is_everyone_ready and state_end_time == 0:
-      for player in claimed:
+      for player in players: # TODO adapt to add as many ghosts as needed
         player.is_playing = True
       set_pellets()
       state_end_time = time() + 4
@@ -491,6 +492,7 @@ class Player:
       return
 
     pos = self.position
+    new_pos = pos
 
     if self.is_pacman:
       # Pacman consumes pellets as they move
@@ -502,7 +504,28 @@ class Player:
           broadcast_state()
           return
 
-    if self.move_direction[0] == 0 and self.move_direction[1] == 0:
+    if not self.is_pacman and not self.is_claimed: # AI Ghost
+      if len(neighbors[pos]) == 4: # Make choice at intersections
+        if random() < config["GHOST_RANDOMNESS"]:
+          new_pos = choice(neighbors[pos])
+        else:
+          min_dist_sq = 1000
+          for player in playing_players():
+            if player.is_pacman:
+              for neighbor in neighbors[pos]:
+                delta = unique_coords[neighbor] - unique_coords[player.position]
+                dist_sq = np.dot(delta, delta)
+                if dist_sq < min_dist_sq:
+                  new_pos = neighbor
+                  min_dist_sq = dist_sq
+      else: # Just continue in same direction in halls
+        direction_string = str((self.prev_pos, pos))
+        if direction_string in next_pixel:
+          new_pos = next_pixel[direction_string]
+        else:
+          return
+
+    elif self.move_direction[0] == 0 and self.move_direction[1] == 0:
       direction_string = str((self.prev_pos, pos))
       if config["CONSTANT_MOTION"] and direction_string in next_pixel:
         new_pos = next_pixel[direction_string]
@@ -520,7 +543,6 @@ class Player:
       basis = np.array((east, north, up))
 
       max_dot = 0
-      new_pos = pos
       local_neighbors = (expanded_neighbors if config["ALLOW_CROSS_TIP_MOVE"] else neighbors)[pos]
       for n in local_neighbors:
         delta = unique_coords[pos] - unique_coords[n]
@@ -544,7 +566,7 @@ class Player:
     if not occupied:
       self.ghost_positions.append(pos)
       self.ghost_timestamps.append(time())
-      self.prev_pos = self.position
+      self.prev_pos = pos
       self.position = new_pos
       self.last_move_time = time()
       broadcast_state()
@@ -597,7 +619,12 @@ class Player:
 def broadcast_event(event):
   print(json.dumps(event))
 
+last_broadcast_time = 0
 def broadcast_state():
+  global last_broadcast_time
+  if time() - last_broadcast_time < 0.01:
+    return
+
   message = {
     "players": [player.to_json() for player in players],
     "gameState": game_state,
@@ -606,6 +633,7 @@ def broadcast_state():
     "config": config,
   }
   print(json.dumps(message))
+  last_broadcast_time = time()
 
 
 import fileinput

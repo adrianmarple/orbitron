@@ -969,7 +969,11 @@ class Bomb:
 def broadcast_event(event):
   print(json.dumps(event))
 
+last_broadcast_time = 0
 def broadcast_state():
+  global last_broadcast_time
+  if time() - last_broadcast_time < 0.01:
+    return
   message = {
     "players": [player.to_json() for player in players],
     "teams": [team.to_json() for team in teams],
@@ -979,6 +983,7 @@ def broadcast_state():
     "config": config,
   }
   print(json.dumps(message))
+  last_broadcast_time = time()
 
 
 import fileinput
