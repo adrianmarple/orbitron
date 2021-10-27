@@ -87,7 +87,7 @@ function upkeep() {
 }
 
 
-MAX_PLAYERS = 6
+MAX_PLAYERS = 5
 connections = {}
 connectionQueue = []
 
@@ -143,7 +143,7 @@ http.createServer(function (request, response) {
   var filePath = request.url
 
   if (filePath == '/')
-    filePath = '/index.html'
+    filePath = '/pacman/index.html'
   filePath = '/home/pi/Rhomberman' + filePath
 
   // console.log(filePath);

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=0"/>
+<meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+
+<title>Super Rhomberman</title>
+<link rel="shortcut icon" href="/images/favicon.jpg" />
+<script src="/vue.js" type="text/javascript"></script>
+<script src="/math.js" type="text/javascript"></script>
+
+<style type="text/css">
+
+body, #app, .main {
+  /* Disables pull-to-refresh but allows overscroll glow effects. */
+  overscroll-behavior-y: contain;
+  touch-action: none;
+  user-select: none;
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  font-size: 2vw;
+}
+
+.main * {
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+}
+
+#settings-button {
+  position: fixed;
+  left:  5vw;
+  top:  5vw;
+  cursor: pointer;
+  z-index: 2;
+  width: 12vw;
+  height: 12vw;
+}
+#settings {
+  position: absolute;
+  width: 100vw;
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-top: 16vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 2em;
+  background: white;
+  z-index: 1;
+}
+#settings-alignment-guide {
+  padding-top: 5vw;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.setting {
+  display: flex;
+  align-items: center;
+  height: 6vw;
+}
+.setting input[type="checkbox"] {
+  width: 4vw;
+  height: 4vw;
+  margin: 0 8vw 0 2vw;
+  box-sizing: border-box;
+}
+.setting textarea {
+  width: 12vw;
+  height: 5vw;
+  line-height: 5vw;
+  font-size: 1em;
+  text-align: right;
+  margin-left: 2vw;
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+
+.header {
+  position: fixed;
+  left: 10vw;
+  right: 10vw;
+  top: 5vh;
+  padding: 5vw;
+  text-align: center;
+  font-size: 4em;
+  display: flex;
+  flex-direction: column;
+}
+#playerMarker {
+  position: fixed;
+  top: -25vw;
+  right: -25vw;
+  transform: rotate(45deg);
+  width: 50vw;
+  height: 50vw;
+  border: 3vw solid black;
+  box-sizing: border-box;
+}
+
+#bombPower {
+  position: fixed;
+  top: 4vw;
+  right: 4vw;
+  color: white;
+  font-size: 4em;
+}
+#bombPower > img {
+  filter: invert(100);
+  width: 8vw;
+  height: 8vw;
+}
+
+.ranking {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.players, #victory {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.player {
+  width: 10vw;
+  height: 10vw;
+  border-radius: 5vw;
+  background: black;
+  margin: 3vw 5vw;
+}
+#victory {
+  margin-top: 20vw;
+}
+
+
+.joystick-bg {
+  background-image: url(images/JoystickBG.png);
+  width: 70vw;
+  height: 70vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom:  30vh;
+}
+.joystick-nub {
+  background-image: url(images/JoystickNub.png);
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.joystick-bg, .joystick-nub {
+  background-size: contain;
+  background-position: center;
+}
+
+.buttons {
+  position: fixed;
+  bottom: 5vh;
+}
+.button {
+  border: 2px solid black;
+  border-radius: 5vw;
+  padding: 0.25em 1em;
+  margin-top: 5vw;
+  text-align: center;
+  font-size: 4em;
+  cursor: pointer;
+  background: white;
+}
+
+.hide {
+  display: none !important;
+}
+</style>
+</head>
+<body>
+<div id=audio-root></div>
+
+<div id=app>
+  <svg id="settings-button" @click="showSettings = !showSettings"
+    xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 0 24 24" width="48px" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19.43 12.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.09-.16-.26-.25-.44-.25-.06 0-.12.01-.17.03l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.06-.02-.12-.03-.18-.03-.17 0-.34.09-.43.25l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.09.16.26.25.44.25.06 0 .12-.01.17-.03l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.06.02.12.03.18.03.17 0 .34-.09.43-.25l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zm-1.98-1.71c.04.31.05.52.05.73 0 .21-.02.43-.05.73l-.14 1.13.89.7 1.08.84-.7 1.21-1.27-.51-1.04-.42-.9.68c-.43.32-.84.56-1.25.73l-1.06.43-.16 1.13-.2 1.35h-1.4l-.19-1.35-.16-1.13-1.06-.43c-.43-.18-.83-.41-1.23-.71l-.91-.7-1.06.43-1.27.51-.7-1.21 1.08-.84.89-.7-.14-1.13c-.03-.31-.05-.54-.05-.74s.02-.43.05-.73l.14-1.13-.89-.7-1.08-.84.7-1.21 1.27.51 1.04.42.9-.68c.43-.32.84-.56 1.25-.73l1.06-.43.16-1.13.2-1.35h1.39l.19 1.35.16 1.13 1.06.43c.43.18.83.41 1.23.71l.91.7 1.06-.43 1.27-.51.7 1.21-1.07.85-.89.7.14 1.13zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+  </svg>
+
+  <div v-if="showSettings" id="settings">
+    <span style="font-size: 1.5em">Settings</span>
+    <div id="settings-alignment-guide">
+      <div v-for="setting in settingTypes" class="setting">
+        {{prettifySettingName(setting.name)}}
+        <input
+          v-if="setting.boolean"
+          type="checkbox"
+          v-model.number="config[setting.name]"
+          @onchange="updateSettings"
+        >
+        <textarea
+          v-else
+          type="number"
+          v-model.number="config[setting.name]"
+          @onchange="updateSettings"
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="queue" v-if="!hasClaimed" class="header">
+    All the play slots have been claimed.
+    <br/>
+    <br/>
+    Position in queue: {{state.queuePosition}}
+  </div>
+
+  <div v-else>
+
+  <div id="playerMarker"
+    :style="{ backgroundColor: self.color, borderColor: teamColor }"
+  ></div>
+  <div id="bombPower">
+    <span>{{self.bombPower}}</span>
+    <img src="images/explosion.png" />
+  </div>
+
+
+  <div v-if="!self.isReady || (mode=='play' && self.isPlaying && self.isAlive)"
+    class="joystick-bg"
+    :style="joystickBGStyle"
+  >
+    <div class="joystick-nub" :style="joystickNubStyle"></div>
+  </div>
+
+  <div v-if="mode=='start' && state.timeRemaining < 0" class="main">
+    <div class="header">
+      <div v-if="!self.isReady">
+        Drag to Move
+      </div>
+      <div v-else-if="claimedPlayers.length <= 1">Waiting for another player.</div>
+      <div v-else>Waiting for...
+        <div class="players">
+          <div v-for="player in unreadyPlayers"
+            class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <div v-if="self.isReady"
+        class="button"
+        @click.stop="pulse"
+      >
+        Pulse
+      </div>
+      <div v-if="self.isReady"
+        class="button"
+        @click.stop="makeUnready"
+      >
+        I'm not ready.
+      </div>
+      <div v-else
+        class="button"
+        @click.stop="makeReady"
+      >
+        Ready?
+      </div>
+    </div>
+  </div>
+
+  <div v-if="mode=='start' && state.timeRemaining >= 0" class="main">
+    <div class="header">
+      <div class="banner">{{Math.round(state.timeRemaining)}}</div>
+    </div>
+  </div>
+
+  <div v-if="mode=='play'" class="main">
+    <div v-if="config.DEATHMATCH" class="header">
+      <div v-if="config.TEAM_MODE">
+        <div v-for="team in teamsByRanking" class="ranking">
+          <div class="player"
+            :style="{backgroundColor: team.color}"
+          ></div>
+          {{team.killCount}}
+        </div>
+
+      </div>
+      <div v-else>
+        <div v-for="player in playersByRanking" class="ranking">
+          <div class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+          {{player.killCount}}
+        </div>
+      </div>
+    </div>
+    <div v-else class="header">
+      <div>Live players:
+        <div class="players">
+          <div v-for="player in livePlayers"
+            class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+        </div>
+      </div>
+      <div v-if="!self.isPlaying">
+        You have to wait until next round :(
+      </div>
+      <div v-else-if="!self.isAlive">
+        You died...
+      </div>
+    </div>
+  </div>
+  <div v-if="mode=='victory'"
+    class="main"
+    :style="{ backgroundColor: state.victoryColor }">
+    <div class="header" :style="{ color: 'white' }">
+      <div v-if="self.color === state.victoryColor">
+        Victory!
+      </div>
+      <div v-else>
+        You died.
+      </div>
+    </div>
+
+  </div>
+
+  </div>
+</div>
+
+<script>
+
+var app = new Vue({
+  el: '#app',
+  data: {
+    ws: null,
+    showSettings: false,
+    oldConfig: null,
+    state: {},
+
+    startLocation: null,
+    isMoving: false,
+    move: [0,0],
+    timestamp: 0,
+    settings: false,
+
+    settingTypes: [
+      {name: "NUM_PACMEN"},
+      {name: "NUM_GHOSTS"},
+      {name: "PACMAN_MOVE_FREQ"},
+      {name: "GHOST_MOVE_FREQ"},
+      {name: "WINNING_PELLET_RATIO"},
+      {name: "CONSTANT_MOTION", boolean: true},
+      {name: "ALLOW_CROSS_TIP_MOVE", boolean: true},
+      {name: "MOVE_BIAS"},
+    ],
+  },
+
+  created() {
+    this.startWebsocket()
+    this.warmUpAudio()
+    // onfocus = startWebsocket
+    // onblur = () => {
+    //   this.ws.close()
+    // };
+
+
+    onmousedown = this.handleStart
+    ontouchstart = event => {
+      this.handleStart(event.touches[0])
+    }
+
+    onmouseup = this.handleEnd
+    ontouchend = event => {
+      this.handleEnd(event.changedTouches[0])
+    }
+
+    onmousemove = this.handleChange
+    ontouchmove = event => {
+      this.handleChange(event.changedTouches[0])
+    }
+  },
+
+  watch: {
+    config: {
+      handler: function (val) {
+        if (this.oldConfig == null) {
+          this.oldConfig = { ...val }
+          return
+        }
+
+        for (let key in val) {
+          if (val[key] != this.oldConfig[key]) {
+            this.send({ type: "settings", update: val })
+            break
+          }
+        }
+        this.oldConfig = { ...val }
+      },
+      deep: true
+    }
+  },
+
+  computed: {
+    mode() {
+      return this.state.gameState
+    },
+    config() {
+      return this.state.config || {}
+    },
+    hasClaimed() {
+      return this.state.self && this.ws.readyState === WebSocket.OPEN
+    },
+    self() {
+      if (this.state.players)
+        return this.state.players[this.state.self]
+      else
+        return {}
+    },
+    myTeam() {
+      return this.state.teams[this.self.team]
+    },
+    teamColor() {
+      return (this.config.TEAM_MODE ? this.myTeam : this.self).color
+    },
+    claimedPlayers() {
+      if (this.state.players) {
+        return this.state.players.filter(player => player.isClaimed)
+      } else {
+        return []
+      }
+    },
+    unreadyPlayers() {
+      return this.claimedPlayers.filter(player => !player.isReady)
+    },
+    livePlayers() {
+      return this.claimedPlayers.filter(player => player.isPlaying && player.isAlive)
+    },
+    playersByRanking() {
+      return this.claimedPlayers.sort((p0, p1) => {
+        return p1.killCount - p0.killCount
+      })
+    },
+
+    teamsByRanking() {
+      return this.state.teams.sort((p0, p1) => {
+        return p1.killCount - p0.killCount
+      })
+    },
+
+    joystickBGStyle() {
+      if (this.startLocation) {
+        let joystickElem = document.querySelector(".joystick-bg")
+        let joystickWidth
+        if (joystickElem) {
+          joystickWidth = joystickElem.getBoundingClientRect().width
+        } else {
+          joystickWidth = window.innerWidth * 0.7
+        }
+        return {
+          left: `calc(${this.startLocation[0] - joystickWidth/2}px)`,
+          top:  `calc(${this.startLocation[1] - joystickWidth/2}px)`,
+        }
+      }
+    },
+    joystickNubStyle() {
+      return {
+        right: (25 * this.move[0]) + "%",
+        bottom: (25 * this.move[1]) + "%",
+      }
+    },
+  },
+
+  methods: {
+    send(json) {
+      if (this.ws.readyState === WebSocket.CLOSED) {
+        this.startWebsocket()
+      } else if (this.ws.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify(json))
+      }
+    },
+
+    startWebsocket() {
+      this.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
+      this.ws.onmessage = event => {
+        message = JSON.parse(event.data)
+        switch(message.event) {
+        case "sound":
+          if (message.playerId < 0 || message.playerId == message.self) {
+            this.playSound(message.type)
+          }
+          break
+        default:
+          this.state = message
+          // console.log(message)
+          this.$forceUpdate()
+        }
+      };
+
+      let self = this
+      this.ws.onerror = event => {
+        console.log("WebSocket error observed")
+      }
+      this.ws.onclose = event => {
+        console.log("WebSocket closed")
+      }
+    },
+
+    handleStart(location) {
+      if (this.showSettings) {
+        return
+      }
+      if (this.state.gameState === "start" && this.self.isReady) {
+        return
+      }
+
+      this.isMoving = true
+      this.startLocation = [location.clientX, location.clientY]
+      this.timestamp = Date.now()
+    },
+    handleEnd(location) {
+      if (this.showSettings) {
+        return
+      }
+      if (Date.now() - this.timestamp > 10 &&
+          Date.now() - this.timestamp < 300 &&
+          Math.abs(this.startLocation[0] - location.clientX) < 5 &&
+          Math.abs(this.startLocation[1] - location.clientY) < 5) {
+        this.send({type: "tap"})
+      }
+      this.move = [0,0]
+
+      this.send({type: "move", move: this.move})
+      this.isMoving = false
+    },
+    handleChange(location) {
+      if (this.showSettings) {
+        return
+      }
+      if (!this.isMoving) {
+        return
+      }
+      let joystickBG = document.querySelector(".joystick-bg")
+      if (!joystickBG)
+        return
+      let joystickWidth = joystickBG.getBoundingClientRect().width
+      let maxDisplacement = joystickWidth * 0.25
+
+      this.move = [(this.startLocation[0] - location.clientX) / maxDisplacement,
+                   (this.startLocation[1] - location.clientY) / maxDisplacement]
+      let moveMagnitude = Math.sqrt(this.move[0] * this.move[0] + this.move[1] * this.move[1])
+      if (moveMagnitude > 1) {
+        this.move[0] /= moveMagnitude
+        this.move[1] /= moveMagnitude
+
+        this.startLocation = [
+          location.clientX + this.move[0] * maxDisplacement,
+          location.clientY + this.move[1] * maxDisplacement
+        ]
+      }
+
+      this.send({type: "move", move: this.move})
+    },
+
+    toggleSettings() {
+      this.settings = !this.settings;
+    },
+
+    makeReady() {
+      this.send({type: "ready"})
+    },
+    makeUnready() {
+      this.send({type: "unready"})
+      this.timestamp = 0
+    },
+    async pulse() {
+      this.send({type: "pulse"})
+    },
+
+    updateSettings() {
+      console.log(this.config)
+    },
+    prettifySettingName(name) {
+      return name.toLowerCase().replaceAll("_", " ")
+    },
+
+    warmUpAudio() {
+      let names = ["explosion", "hurt", "death"]
+
+      for (let name of names) {
+        let audio = document.createElement('audio')
+        audio.src = "audio/" + name + ".wav"
+        audio.id = "audio-" + name
+        audio.clientWidth = 0
+        audio.clientHeight = 0
+        document.getElementById("audio-root").appendChild(audio)
+      }
+    },
+
+    playSound(name) {
+      console.log(name)
+      let audio = document.getElementById("audio-" + name)
+      audio.play()
+      // audio.addEventListener("ended",function() {
+      //   audio.remove()
+      //   audio = document.createElement('audio')
+      //   audio.src = "audio/" + name + ".wav"
+      //   audio.clientWidth = 0
+      //   audio.clientHeight = 0
+      //   document.getElementById("audio-root").appendChild(audio)
+      // });
+    },
+  },
+});
+
+function delay(millis, v) {
+  return new Promise(function(resolve) {
+    setTimeout(resolve.bind(null, v), millis)
+  });
+}
+
+
+
+playerMarker = document.getElementById("playerMarker")
+readyButton = document.getElementById("readyButton")
+unreadyButton = document.getElementById("unreadyButton")
+banner = document.getElementById("banner")
+players = document.getElementById("players")
+victory = document.getElementById("victory")
+minimap = document.getElementById("minimap")
+
+pixelInfo = null
+state = {}
+
+
+function playExplosion(event) {
+  audio = document.createElement('audio');
+  audio.src = "explosion.wav";
+  audio.clientWidth = 0;
+  audio.clientHeight = 0;
+  audio.addEventListener("ended",function() {
+    this.remove();
+  });
+
+  audio.appendChild(document.body);
+  auido.play();
+}
+
+
+</script>
+</body>
+</html>
