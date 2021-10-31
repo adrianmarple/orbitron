@@ -1,5 +1,52 @@
 
-# Getting Started
+# Getting Set Up
+
+- Download SD card image from https://www.dropbox.com/s/2hdpyheacp6xizh/Orbotron.dmg.zip?dl=0
+- Update `/dev/disk2` below with the correct drive as determined from `diskutil list`
+- `diskutil unmountDisk /dev/disk2`
+- go to Download directory or wherever the SD image download is
+- `sudo dd if=Orbotron.dmg of=/dev/disk2`
+
+## SSH
+
+- Download sshfs from https://osxfuse.github.io/ and install
+- `mkdir ~/Rhomberban`
+
+### Editing
+
+## SSH
+
+- `ssh pi@raspberrypi.local`
+- `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
+
+## Running the game
+
+- ssh into the pi
+- `sudo killall python3 node`
+- `sudo /usr/bin/node ~/Rhomberman/server.js`
+- Visit `http://192.168.4.1:1337`
+- Of if using mDNS, visit `http://raspberrypi.local:1337`
+
+## Saving
+- Just use normal git commands with within directory `~/Rhomberman`
+- If you edit outside the version controlled directory create a new SD card image
+- Update `/dev/disk2` below with the correct drive as determined from `diskutil list`
+- `sudo dd if=/dev/disk2 of=~/Orobotron.dmg`
+
+# Other useful things
+
+## Unmount sshfs so you can remount
+
+- `sudo diskutil umount force ~/Rhomberman`
+- `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
+
+## WIFI QR code generator
+
+- https://www.qr-code-generator.com/solutions/wifi-qr-code/
+- https://goqr.me/
+
+
+# OG Setup (out of date)
 
 ## Basics
 
@@ -21,13 +68,6 @@
 - ~~Get ip address via arp `-a` (probably one of the last ones)~~
 - Ensure Bonjour is running `sudo apt-get install avahi-daemon`
 - `ssh pi@raspberrypi.local`
-
-### Editing
-
-- Download sshfs from https://osxfuse.github.io/ and install
-- `mkdir ~/Rhomberban`
-- `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
-- Make sure to do regular git commits as this is not backed up in Dropbox
 
 ## Raspberry PI stuff
 
@@ -52,42 +92,7 @@
 - Follow these instructions: https://www.raspberrypi.org/documentation/configuration/wireless/access-point-routed.md
 - Be sure to make hotspot open by setting `wpa=0` in `hostapd.conf`
 
-### Set up captive portal
-
-- NO FUCKING CLUE???
-
 ### Setup to run on startup
 
 - Edit cron `sudo crontab -e`
 - Add the line `@reboot /usr/bin/node /home/pi/Rhomberman/server.js`
-
-# Running the game
-
-- `ssh pi@raspberrypi.local`
-- Kill game from startup if needed `sudo killall python3 node`
-- `sudo /usr/bin/node ~/Rhomberman/server.js`
-- Visit `http://192.168.4.1.local:1337`
-
-
-## Run only python
-
-- `sudo python3 main.py`
-
-
-# Other useful things
-
-## If LED strip gets "stuck"
-
-- `sudo reboot`
-- Wait and then redo `ssh` and `sshfs`
-
-## Unmount sshfs so you can remount
-
-- `sudo diskutil umount force ~/Rhomberman`
-- `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
-
-
-## WIFI QR code generator
-
-- https://www.qr-code-generator.com/solutions/wifi-qr-code/
-- https://goqr.me/
