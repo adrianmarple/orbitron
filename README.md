@@ -12,7 +12,7 @@
 - Download sshfs from https://osxfuse.github.io/ and install
 - `mkdir ~/Rhomberban`
 
-### Editing
+# Editing
 
 ## SSH
 
@@ -65,7 +65,6 @@
 
 - Run `sudo raspi-config`
 - SSH is in Interfacing Options
-- ~~Get ip address via arp `-a` (probably one of the last ones)~~
 - Ensure Bonjour is running `sudo apt-get install avahi-daemon`
 - `ssh pi@raspberrypi.local`
 
