@@ -31,7 +31,7 @@
 - Just use normal git commands with within directory `~/Rhomberman`
 - If you edit outside the version controlled directory create a new SD card image
 - Update `/dev/disk2` below with the correct drive as determined from `diskutil list`
-- `sudo dd if=/dev/disk2 of=~/Orobotron.dmg`
+- `sudo dd if=/dev/disk2 of=Orbotron.dmg`
 
 # Other useful things
 
