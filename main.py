@@ -159,26 +159,32 @@ def start():
   players.append(Player(
     position=105,
     color=(0, 200, 0),
+    team_color=(220, 30, 0),
     color_string="#4caf50")) #green
   players.append(Player(
     position=198,
     color=(1, 12, 200),
+    team_color=(0, 0, 250),
     color_string="#1e88e5")) #blue
   players.append(Player(
     position=24,
     color=(200, 2, 20),
+    team_color=(200, 2, 20),
     color_string="#e91e63")) #pink
   players.append(Player(
     position=54,
     color=(100, 0, 250),
+    team_color=(70, 0, 150),
     color_string="#9575cd")) #deep purple
   players.append(Player(
     position=252,
     color=(180, 200, 5),
+    team_color=(250, 2, 0),
     color_string="#c0ca33")) #lime
   players.append(Player(
     position=168,
     color=(200, 50, 0),
+    team_color=(0, 120, 120),
     color_string="#ff9800")) #orange
   # players.append(Player(
   #   position=179,
@@ -575,10 +581,11 @@ class Team:
 GHOST_BUFFER_LEN = 20
 
 class Player:
-  def __init__(self, position, color, color_string):
+  def __init__(self, position, color, team_color, color_string):
     self.id = len(players)  # WARNING not super robust
     self.initial_position = position
     self.color = np.array(color)
+    self.team_color = team_color
     self.color_string = color_string
     self.last_move_time = 0
     self.ready_time = 0
@@ -625,7 +632,7 @@ class Player:
     broadcast_state()
 
   def current_color(self):
-    return self.color if not config["TEAM_MODE"] or (time()/2) % 1 > 0.25 else self.team.color
+    return self.color if not config["TEAM_MODE"] else self.team_color
 
   def pulse(self):
     self.ready_time = time()

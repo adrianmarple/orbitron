@@ -1,11 +1,14 @@
 #!/usr/bin/env node
-const WebSocket = require('ws');
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
-const { spawn } = require('child_process');
+const WebSocket = require('ws')
+const http = require('http')
+const fs = require('fs')
+const path = require('path')
+const process = require('process')
+const { spawn } = require('child_process')
 
- 
+
+const NO_TIMEOUT = process.argv.includes('-t')
+
 
 // Websocket server
 
@@ -33,11 +36,11 @@ wsServer.on('connection', socket => {
     content = JSON.parse(message)
     content.self = connection.id
     connection.lastActivityTime = Date.now()
-    process.stdin.write(JSON.stringify(content) + "\n", "utf8")
+    python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
   })
   socket.on('close', function() {
     release = { self: connection.id, type: "release" }
-    process.stdin.write(JSON.stringify(release) + "\n", "utf8")
+    python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
 
     if (typeof connection.id === 'number') {
       delete connections[connection.id]
@@ -52,7 +55,7 @@ setInterval(upkeep, 1000)
 
 function upkeep() {
   // Check for stale players
-  if (gameState.players) {
+  if (gameState.players && !NO_TIMEOUT) {
     for (let connection of Object.values(connections)) {
       let player = gameState.players[connection.id]
       if (!player.isReady && !player.isPlaying &&
@@ -71,7 +74,7 @@ function upkeep() {
         connection.lastActivityTime = Date.now()
         connections[id] = connection
         claim = { self: connection.id, type: "claim" }
-        process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
+        python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
 
         connectionQueue = connectionQueue.filter(elem => elem !== connection)
         break;
@@ -108,8 +111,8 @@ function broadcast(baseMessage) {
     connectionQueue[i].socket.send(JSON.stringify(baseMessage))
   }
 }
-const process = spawn('sudo', ['python3', '-u', __dirname + '/main.py']);
-process.stdout.on('data', data => {
+const python_process = spawn('sudo', ['python3', '-u', __dirname + '/main.py']);
+python_process.stdout.on('data', data => {
   message = data.toString()
   if (data[0] == 123) { // check is first char is '{'
     try {
@@ -125,7 +128,7 @@ process.stdout.on('data', data => {
     }
   }
 });
-process.stderr.on('data', data => {
+python_process.stderr.on('data', data => {
   message = data.toString()
   if (!message.includes("underrun occurred")) {
     message = message.slice(0, -1)

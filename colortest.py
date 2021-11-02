@@ -25,6 +25,5 @@ pixels = neopixel.NeoPixel(board.D18, 480, auto_write=True)
 # while True:
 # 	pixels.fill((int(math.sin(time.time()) * 50 + 50),10,1))
 
-# pixels.fill((200,12,0))
+pixels.fill((200,12,0))
 
-pixels.fill((0,0,0))
