@@ -443,8 +443,9 @@ def render_game():
 def render_explosion(index):
   x = 1 + (time() - statuses[index]) / config["BOMB_EXPLOSION_TIME"]
   if (x >= 0):
-    x *= len(EXPLOSION_COLOR_SEQUENCE) - 1
-    color_pixel(index, multi_lerp(x, EXPLOSION_COLOR_SEQUENCE))
+    sequence = explosion_providence[index].current_color_sequence()
+    x *= len(sequence) - 1
+    color_pixel(index, multi_lerp(x, sequence))
 
 def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
     color=(200,200,200), start_time=0, duration=1):
@@ -585,7 +586,7 @@ class Player:
     self.id = len(players)  # WARNING not super robust
     self.initial_position = position
     self.color = np.array(color)
-    self.team_color = team_color
+    self.team_color = np.array(team_color)
     self.color_string = color_string
     self.last_move_time = 0
     self.ready_time = 0
@@ -597,6 +598,19 @@ class Player:
     self.websocket = None
     self.kill_count = 0
     self.death_count = 0
+    self.explosion_color_sequence = [
+      (0, self.color),
+      (1, self.color/3),
+      (1, np.array((40,0,0))),
+      (1, np.array((10,0,0))),
+    ]
+    self.explosion_color_sequence_team = [
+      (0, self.team_color),
+      (1, self.team_color/3),
+      (1, np.array((40,0,0))),
+      (1, np.array((10,0,0))),
+    ]
+
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
     self.ghost_timestamps = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -632,7 +646,10 @@ class Player:
     broadcast_state()
 
   def current_color(self):
-    return self.color if not config["TEAM_MODE"] else self.team_color
+    return self.team_color if config["TEAM_MODE"] else self.color
+
+  def current_color_sequence(self):
+    return self.explosion_color_sequence_team if config["TEAM_MODE"] else self.explosion_color_sequence
 
   def pulse(self):
     self.ready_time = time()
@@ -657,10 +674,11 @@ class Player:
         self.has_shield = False
       else:
         killer = explosion_providence[pos]
-        if killer and killer == self:
-          killer = secondary_explosion_providence[pos]
-        if killer:
-          killer.kill_count += 1
+        #if killer and killer == self:
+        #  killer = secondary_explosion_providence[pos]
+        if killer != self:
+          if killer.team != self.team or not config["TEAM_MODE"]:
+            killer.kill_count += 1
         elif config["SUICIDE_PENALTY"]: # Suicide
           self.kill_count -= 1
         self.death_count += 1
@@ -914,10 +932,12 @@ class Bomb:
         duration=SHOCKWAVE_DURATION)
       return 0
 
-    x = config["BOMB_FUSE_TIME"] - time() + self.timestamp
-    x += 2
-    x = (200 / x) % 6
-    color = multi_lerp(x, BOMB_COLOR_SEQUENCE)
+    x = config["BOMB_FUSE_TIME"] + self.timestamp - time()
+    x += 4
+    x = (300 / x)# % 6
+    #color = multi_lerp(x, BOMB_COLOR_SEQUENCE)
+    factor = (sin(x)+1.05) * 0.3
+    color = self.owner.current_color() * factor * factor
     color_pixel(self.position, color)
     return x
 
@@ -931,8 +951,8 @@ class Bomb:
     # Fuse has run out or hit by an explosion
     if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or not is_pixel_blank(self.position):
       # Propagate ownership if triggered by other bomb
-      if not is_pixel_blank(self.position) and statuses[self.position] != "death":
-        self.bump_owner(explosion_providence[self.position])
+      #if not is_pixel_blank(self.position) and statuses[self.position] != "death":
+      #  self.bump_owner(explosion_providence[self.position])
 
       explosion_sound.play()
       finish_time = time() + config["BOMB_EXPLOSION_TIME"]
