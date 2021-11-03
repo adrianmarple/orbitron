@@ -1,200 +1,79 @@
 #!/usr/bin/env python
 
-import asyncio
-import board
 import collections
 import json
-import neopixel
 import numpy as np
 import numbers
-import pathlib
-import socket
-import ssl
-import subprocess
-import urllib.request
-import websockets
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
-from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
-from threading import Thread
 from time import time, sleep
 
+from audio import sounds, prewarm_audio
+import engine
+from engine import *
 
 
-class ChannelShell:
-  def stop(self):
-    pass
-  def get_queue(self):
-    pass
-  def queue(self, sound):
-    pass
-
-class SoundShell:
-  def play(self, loops=0, fade_ms=0):
-    return ChannelShell()
-  def stop(self):
-    pass
-  def fadeout(self, duration):
-    pass
-
-battle_music = SoundShell()
-battle_vamp = SoundShell()
-deathmatch_music = SoundShell()
-deathmatch_vamp = SoundShell()
-battle_channel = None
-vamp = None
-
-explosion_sound = SoundShell()
-kick_sound = SoundShell()
-place_bomb_sound = SoundShell()
-hurt_sound = SoundShell()
-death_sound = SoundShell()
-
-victory_music = SoundShell()
-waiting_music = SoundShell()
+config["BOMB_FUSE_TIME"] = 3
+config["BOMB_EXPLOSION_TIME"] = 0.9 # Should be less than INVUNERABILITY_TIME
+config["STARTING_BOMB_POWER"] = 4 # 2
+config["PICKUP_CHANCE"] = 0 # 0.3
+config["NUM_WALLS"] = 60
+config["MAX_BOMBS"] = 8
+config["BOMB_MOVE_FREQ"] = 0.07
+config["USE_SHIELDS"] = True
+config["DEATHMATCH"] = False
+config["TARGET_KILL_COUNT"] = 5
+config["BATTLE_ROYALE_DURATION"] = 150
+config["DEATH_CREEP_DURATION"] = 60
+config["SUICIDE_PENALTY"] = True
 
 
-def prewarm_audio():
-  global battle_music, battle_vamp, deathmatch_music, deathmatch_vamp
-  global explosion_sound, kick_sound, place_bomb_sound, hurt_sound, death_sound
-  global victory_music, waiting_music
 
-  mixer.init(devicename="USB Audio Device, USB Audio")
-
-  MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
-
-  battle_music = mixer.Sound(MUSIC_DIRECTORY + "battle1.ogg")
-  battle_vamp = mixer.Sound(MUSIC_DIRECTORY + "battle1Loop.ogg")
-  deathmatch_music = mixer.Sound(MUSIC_DIRECTORY + "dm1.ogg")
-  deathmatch_vamp = mixer.Sound(MUSIC_DIRECTORY + "dm1Loop.ogg")
-
-  explosion_sound = mixer.Sound(MUSIC_DIRECTORY + "explosion.wav")
-  kick_sound = mixer.Sound(MUSIC_DIRECTORY + "kick.wav")
-  place_bomb_sound = mixer.Sound(MUSIC_DIRECTORY + "placeBomb.wav")
-  hurt_sound = mixer.Sound(MUSIC_DIRECTORY + "hurt.wav")
-  death_sound = mixer.Sound(MUSIC_DIRECTORY + "death.wav")
-
-  victory_music = mixer.Sound(MUSIC_DIRECTORY + "ff7-victory-fanfare.mp3")
-  waiting_music = mixer.Sound(MUSIC_DIRECTORY + "waiting.ogg")
-  waiting_music.play(loops=-1)
-
-  print("Finished prewarming audio.")
-
-
-prewarm_thread = Thread(target=prewarm_audio)
-prewarm_thread.start()
-
-
-# Actual constants
-COORD_MAGNITUDE = 4.46590101883
-COORD_SQ_MAGNITUDE = 19.94427190999916
-
-config = {
-  "BOMB_FUSE_TIME": 3,
-  "BOMB_EXPLOSION_TIME": 0.9,
-  "INVULNERABILITY_TIME": 2, # Should be greater than BOMB_EXPLOSION_TIME
-  "STARTING_BOMB_POWER": 4, # 2,
-  "PICKUP_CHANCE": 0, # 0.3,
-  "NUM_WALLS": 60,
-  "MAX_BOMBS": 8,
-  "BOMB_MOVE_FREQ": 0.07,
-  "MOVE_FREQ": 0.18,
-  "USE_SHIELDS": True,
-  "DEATHMATCH": True,
-  "ALLOW_CROSS_TIP_MOVE": False,
-  "TARGET_KILL_COUNT": 5,
-  "BATTLE_ROYALE_DURATION": 150,
-  "DEATH_CREEP_DURATION": 60,
-  "MOVE_BIAS": 0.5,
-  "SUICIDE_PENALTY": True,
-  "TEAM_MODE": True,
-  "STUN_TIME": 5,
-}
-
-READY_PULSE_DURATION = 0.75
-SHOCKWAVE_DURATION = 0.5
-
-
-f = open("/home/pi/Rhomberman/pixels.json", "r")
-pixel_info = json.loads(f.read())
-f.close()
-SIZE = pixel_info["SIZE"]
-RAW_SIZE = pixel_info["RAW_SIZE"]
-neighbors = pixel_info["neighbors"]
-expanded_neighbors = pixel_info["expanded_neighbors"]
-next_pixel = pixel_info["next_pixel"]
-coordinates = [np.array(coord) for coord in pixel_info["coordinates"]]
-coordinate_matrix = np.matrix(coordinates).transpose()
-unique_coords = [np.array(coord) for coord in pixel_info["unique_coords"]]
-unique_coord_matrix = np.matrix(unique_coords).transpose()
-unique_to_dupes = pixel_info["unique_to_dupes"]
-dupe_to_unique = [0] * RAW_SIZE
-
-pixels = np.zeros((SIZE, 3))
-raw_pixels = np.zeros((RAW_SIZE, 3))
-dupe_matrix = np.zeros((RAW_SIZE, SIZE))
-for (i, dupes) in enumerate(unique_to_dupes):
-  for dupe in dupes:
-    dupe_to_unique[dupe] = i
-    dupe_matrix[dupe, i] = 1
-
-neopixels = neopixel.NeoPixel(board.D18, RAW_SIZE, auto_write=False)
-print("Running %s pixels" % pixel_info["RAW_SIZE"])
-
-START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
-statuses = ["blank"] * SIZE
 explosion_providence = [None] * SIZE
 secondary_explosion_providence = [None] * SIZE
 
-game_state = "start"
-state_end_time = 0
-victory_color = None
-victory_color_string = None
+battle_channel = None
+vamp = None
+
+prewarm_audio(sound_file_names=[
+    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg", "explosion.wav",
+    "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "victory.mp3", "waiting.ogg",
+  ], start_loop="waiting")
 
 
-players = []
-teams = []
 
-def start():
-  players.append(Player(
+def bomberman_start():
+  Bomberman(
     position=105,
     color=(0, 200, 0),
     team_color=(220, 30, 0),
-    color_string="#4caf50")) #green
-  players.append(Player(
+    color_string="#4caf50") #green
+  Bomberman(
     position=198,
     color=(1, 12, 200),
     team_color=(0, 0, 250),
-    color_string="#1e88e5")) #blue
-  players.append(Player(
+    color_string="#1e88e5") #blue
+  Bomberman(
     position=24,
     color=(200, 2, 20),
     team_color=(200, 2, 20),
-    color_string="#e91e63")) #pink
-  players.append(Player(
+    color_string="#e91e63") #pink
+  Bomberman(
     position=54,
     color=(100, 0, 250),
     team_color=(70, 0, 150),
-    color_string="#9575cd")) #deep purple
-  players.append(Player(
+    color_string="#9575cd") #deep purple
+  Bomberman(
     position=252,
     color=(180, 200, 5),
     team_color=(250, 2, 0),
-    color_string="#c0ca33")) #lime
-  players.append(Player(
+    color_string="#c0ca33") #lime
+  Bomberman(
     position=168,
     color=(200, 50, 0),
     team_color=(0, 120, 120),
-    color_string="#ff9800")) #orange
-  # players.append(Player(
-  #   position=179,
-  #   color=(100, 100, 255),
-  #   color_string="#ddddff")) #bluewhite
-  # players.append(Player(
-  #   position=125,
-  #   color=(0, 200, 100),
-  #   color_string="#00bcd4")) #cyan
+    color_string="#ff9800") #orange
 
   global RED_TEAM, BLUE_TEAM
 
@@ -216,186 +95,120 @@ def start():
   teams.append(BLUE_TEAM)
 
 
-
-# ================================ UPDATE =========================================
-
-
-def update():
-  global game_state, state_end_time
-  global victory_color, victory_color_string
-  global pixels
-
-  global vamp, battle_channel
-
-
-  if game_state == "start":
-    claimed = claimed_players()
-    for player in claimed:
-      if not player.is_ready:
-        # sandbox mode
-        player.bomb()
-        player.move()
-
-    is_everyone_ready = True
-    if len(claimed) <= 1:
-      is_everyone_ready = False
-
-    for player in claimed:
-      is_everyone_ready = is_everyone_ready and player.is_ready
-
-    if is_everyone_ready and state_end_time == 0:
-      for player in claimed:
-        player.is_playing = True
-        player.has_shield = config["USE_SHIELDS"]
-        player.bomb_power = config["STARTING_BOMB_POWER"]
-      set_walls()
-      state_end_time = time() + 4
-      broadcast_state()
-      waiting_music.fadeout(4000)
-
-  elif game_state == "play":
-    if battle_channel.get_queue() is None:
-      battle_channel.queue(vamp)
-
-    for player in playing_players():
-      player.bomb()
+def start_update():
+  claimed = claimed_players()
+  for player in claimed:
+    if not player.is_ready:
+      # sandbox mode
       player.move()
 
-    if config["DEATHMATCH"]:
-      if config["TEAM_MODE"]:
-        if BLUE_TEAM.kill_count() >= config["TARGET_KILL_COUNT"]:
-          gameover(BLUE_TEAM)
-        if RED_TEAM.kill_count() >= config["TARGET_KILL_COUNT"]:
-          gameover(RED_TEAM)
-      else:
-        for player in playing_players():
-          if player.kill_count >= config["TARGET_KILL_COUNT"]:
-            gameover(player)
-            break
+  is_everyone_ready = True
+  if len(claimed) <= 1:
+    is_everyone_ready = False
+
+  for player in claimed:
+    is_everyone_ready = is_everyone_ready and player.is_ready
+
+  if is_everyone_ready and engine.state_end_time == 0:
+    for player in claimed:
+      player.is_playing = True
+      player.has_shield = config["USE_SHIELDS"]
+      player.bomb_power = config["STARTING_BOMB_POWER"]
+    set_walls()
+    engine.state_end_time = time() + 4
+    broadcast_state()
+    sounds["waiting"].fadeout(4000)
+
+
+def play_update():
+  if battle_channel.get_queue() is None:
+    battle_channel.queue(vamp)
+
+  for player in playing_players():
+    player.move()
+
+  if config["DEATHMATCH"]:
+    if config["TEAM_MODE"]:
+      if BLUE_TEAM.kill_count() >= config["TARGET_KILL_COUNT"]:
+        gameover(BLUE_TEAM)
+      if RED_TEAM.kill_count() >= config["TARGET_KILL_COUNT"]:
+        gameover(RED_TEAM)
     else:
-      # Timer death creep from south pole
-      phase = (state_end_time - time()) / config["DEATH_CREEP_DURATION"]
-      threshold = COORD_MAGNITUDE * (1 - 2 * phase)
-      threshold = min(threshold, COORD_MAGNITUDE * 0.8)
-      for i in range(SIZE):
-        z = unique_coords[i][2]
-        if z < threshold:
-          statuses[i] = "death"
-          explosion_providence[i] = None
-
-
-      if config["TEAM_MODE"]:
-        if not BLUE_TEAM.is_alive():
-          gameover(RED_TEAM)
-        if not RED_TEAM.is_alive():
-          gameover(BLUE_TEAM)
-      else:
-        live_player_count = 0
-        last_player_alive = players[0]
-        for player in playing_players():
-          if player.is_alive:
-            live_player_count += 1
-
-          if player.is_alive or (not last_player_alive.is_alive and
-              player.bomb_hit_time > last_player_alive.bomb_hit_time):
-            last_player_alive = player
-
-        # GAME OVER
-        if live_player_count <= 1:
-          gameover(last_player_alive)
-
-
-
-
-  if state_end_time <= time() and state_end_time > 0:
-    if game_state == "victory":
-      game_state = "start"
-      state_end_time = 0
-      victory_music.fadeout(1000)
-      waiting_music.play(loops=-1, fade_ms=2000)
-    elif game_state == "start":
-      game_state = "play"
-      state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
-
-      if config["DEATHMATCH"]:
-        battle_channel = deathmatch_music.play()
-        vamp = deathmatch_vamp
-      else:
-        battle_channel = battle_music.play()
-        vamp = battle_vamp
-    elif game_state == "previctory":
-      game_state = "victory"
-      state_end_time = time() + 10
-      victory_music.play()
-
-      clear_walls()
-      for player in players:
-        player.reset()
-
-    
-    broadcast_state()
-
-  # For countdown on phone
-  remaining_time = state_end_time - time()
-  if game_state == "start" and remaining_time > 0 and remaining_time % 1 < 0.05:
-    broadcast_state()
-
-  # Render
-  if game_state == "start" and len(claimed_players()) == 0:
-    render_snake()
-    return
-
-  pixels *= 0
-  if game_state == "start":
-    render_sandbox()
-  elif game_state == "victory":
-    render_victory()
+      for player in playing_players():
+        if player.kill_count >= config["TARGET_KILL_COUNT"]:
+          gameover(player)
+          break
   else:
-    render_game()
-
-  pixels = np.minimum(pixels, 255)
-  pixels = np.maximum(pixels, 0)
-  for i in range(RAW_SIZE):
-    neopixels[i] = pixels[dupe_to_unique[i]]
-  neopixels.show()
-
-
-def gameover(winner):
-  global game_state, state_end_time, victory_color, victory_color_string, battle_channel
-
-  game_state = "previctory"
-  state_end_time = time() + 2
-  victory_color = winner.color
-  victory_color_string = winner.color_string
-  battle_channel.stop()
-  broadcast_state()
+    # Timer death creep from south pole
+    phase = (engine.state_end_time - time()) / config["DEATH_CREEP_DURATION"]
+    threshold = COORD_MAGNITUDE * (1 - 2 * phase)
+    threshold = min(threshold, COORD_MAGNITUDE * 0.8)
+    for i in range(SIZE):
+      z = unique_coords[i][2]
+      if z < threshold:
+        statuses[i] = "death"
+        explosion_providence[i] = None
 
 
+    if config["TEAM_MODE"]:
+      if not BLUE_TEAM.is_alive():
+        gameover(RED_TEAM)
+      if not RED_TEAM.is_alive():
+        gameover(BLUE_TEAM)
+    else:
+      live_player_count = 0
+      last_player_alive = players[0]
+      for player in playing_players():
+        if player.is_alive:
+          live_player_count += 1
 
-indicies = np.arange(RAW_SIZE)
+        if player.is_alive or (not last_player_alive.is_alive and
+            player.hit_time > last_player_alive.hit_time):
+          last_player_alive = player
 
-def render_snake():
-  global raw_pixels
+      # GAME OVER
+      if live_player_count <= 1:
+        gameover(last_player_alive)
 
-  phases = indicies / 40 + time()/2
-  phases = np.minimum(1, np.mod(phases, 6))
-  phases = np.sin(pi * phases) * 50
-  raw_pixels = np.outer(phases, np.ones((1, 3)))
 
-  for i in range(RAW_SIZE):
-    neopixels[i] = raw_pixels[i]
-  neopixels.show()
+
+def start_ontimeout():
+  global battle_channel, vamp
+  engine.game_state = play_state
+  engine.state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
+
+  if config["DEATHMATCH"]:
+    battle_channel = sounds["dm1"].play()
+    vamp = sounds["dm1Loop"]
+  else:
+    battle_channel = sounds["battle1"].play()
+    vamp = sounds["battle1Loop"]
+
+def previctory_ontimeout():
+  engine.game_state = victory_state
+  engine.state_end_time = time() + 10
+  sounds["victory"].play()
+
+  clear_walls()
+  for player in players:
+    player.reset()
+
+def victory_ontimeout():
+  engine.game_state = start_state
+  engine.state_end_time = 0
+  sounds["victory"].fadeout(1000)
+  sounds["waiting"].play(loops=-1, fade_ms=2000)
+
+
 
 def render_sandbox():
-  # TODO add timer pulses
-
-  if state_end_time > 0:
-    countdown = ceil(state_end_time - time())
+  if engine.state_end_time > 0:
+    countdown = ceil(engine.state_end_time - time())
     countup = 5 - countdown
     render_pulse(
       direction=(0,0,COORD_MAGNITUDE),
       color=np.array((20,20,20)) * countup*countup,
-      start_time=state_end_time - countdown,
+      start_time=engine.state_end_time - countdown,
       duration=READY_PULSE_DURATION)
 
 
@@ -407,14 +220,10 @@ def render_sandbox():
         render_explosion(i)
 
   for player in claimed_players():
-    player.render_ready()
-
-
-
-def render_victory():
-  for (i, coord) in enumerate(unique_coords):
-    color_pixel(i, victory_color * sin(coord[2] - 4*time()))
-
+    if player.is_ready:
+      player.render_ready()
+    else:
+      player.render()
 
 def render_game():
   for player in playing_players():
@@ -439,7 +248,17 @@ def render_game():
       render_explosion(i)
 
   for player in playing_players():
-    player.render_player()
+    player.render()
+
+
+
+start_state = State("start", start_update, start_ontimeout, render_sandbox)
+play_state = State("play", play_update, None, render_game)
+previctory_state = State("previctory", None, previctory_ontimeout, render_game)
+victory_state = State("victory", start_update, victory_ontimeout, render_victory)
+
+
+
 
 def render_explosion(index):
   x = 1 + (time() - statuses[index]) / config["BOMB_EXPLOSION_TIME"]
@@ -448,84 +267,9 @@ def render_explosion(index):
     x *= len(sequence) - 1
     color_pixel(index, multi_lerp(x, sequence))
 
-def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
-    color=(200,200,200), start_time=0, duration=1):
-
-  global pixels
-  t = (time() - start_time) / duration
-  if (t < 1):
-    ds = direction * unique_coord_matrix / COORD_SQ_MAGNITUDE / 2 + 0.5
-    ds = ds * 6 - (t * 8 - 1)
-    ds = np.maximum(0, np.multiply(ds, (ds - 1)) / -3)
-    pixels += np.outer(ds, color)
-
-# ================================ MISC =========================================
-
-def claimed_players():
-  return [player for player in players if player.is_claimed]
-def playing_players():
-  return [player for player in players if player.is_playing]
-
-def color_pixel(index, color):
-  pixels[index] = color
-
-def is_pixel_blank(index):
-  status = statuses[index]
-  return status == "blank" or (
-    isinstance(status, numbers.Number) and status - time() > config["BOMB_EXPLOSION_TIME"])
-
-def color_raw_pixel(index, color):
-  raw_pixels[index] = color
-
-def add_color_to_pixel(index, color):
-  for dupe in unique_to_dupes[index]:
-    pixels[dupe] = (
-      max(0, min(255, pixels[dupe][0] + int(color[0]))),
-      max(0, min(255, pixels[dupe][1] + int(color[1]))),
-      max(0, min(255, pixels[dupe][2] + int(color[2]))))
-
-def multi_lerp(x, control_points):
-  if x < 0:
-    return control_points[0][1]
-
-  index = 1
-  prev_v = control_points[0][1]
-  while index < len(control_points):
-    max_x = control_points[index][0]
-    next_v = control_points[index][1]
-    if x > max_x:
-      x -= max_x
-      prev_v = next_v
-      index += 1
-      continue
-
-    alpha = x / max_x
-    return alpha * next_v + (1-alpha) * prev_v
-
-  return control_points[index - 1][1]
-
-def latlong_delta(ll0, ll1):
-  delta = [ll0[0] - ll1[0], ll0[1] - ll1[1]]
-  if delta[0] > pi:
-    delta[0] -= 2*pi
-  if delta[1] > pi:
-    delta[1] -= 2*pi
-  if delta[0] < -pi:
-    delta[0] += 2*pi
-  if delta[1] < -pi:
-    delta[1] += 2*pi
-  return delta
-
-def projection(u, v): # assume v is normalized
-  return v * np.dot(u,v)
-
-def ortho_proj(u, v):
-  return u - projection(u,v)
-
 
 def set_walls():
-  global statuses
-  statuses = ["blank"] * SIZE
+  clear_walls()
   for i in range(config["NUM_WALLS"]):
     pos = randrange(SIZE)
     bad_spot = pos in START_POSITIONS
@@ -537,7 +281,23 @@ def set_walls():
 
 def clear_walls():
   global statuses
-  statuses = ["blank"] * SIZE
+  for i in range(len(statuses)):
+    statuses[i] = "blank"
+
+def is_pixel_blank(index):
+  status = statuses[index]
+  return status == "blank" or (
+      isinstance(status, numbers.Number) and status - time() > config["BOMB_EXPLOSION_TIME"])
+
+
+def gameover(winner):
+  engine.game_state = previctory_state
+  engine.state_end_time = time() + 2
+  engine.victory_color = winner.color
+  engine.victory_color_string = winner.color_string
+  battle_channel.stop()
+  broadcast_state()
+
 
 # ================================ TEAM =========================================
 
@@ -580,26 +340,11 @@ class Team:
     }
 
 # ================================ PLAYER =========================================
-GHOST_BUFFER_LEN = 20
 
-class Player:
-  def __init__(self, position, color, team_color, color_string):
-    self.id = len(players)  # WARNING not super robust
-    self.initial_position = position
-    self.color = np.array(color)
-    self.team_color = np.array(team_color)
-    self.color_string = color_string
-    self.last_move_time = 0
-    self.ready_time = 0
-    self.is_claimed = False
-    self.is_playing = False
-    self.move_direction = np.array((0, 0))
-    self.prev_pos = 0
-    self.tap = 0
-    self.websocket = None
-    self.kill_count = 0
-    self.death_count = 0
-    self.stunned = False
+class Bomberman(Player):
+  def __init__(self, *args, **kwargs):
+    Player.__init__(self, *args, **kwargs)
+
     self.explosion_color_sequence = [
       (0, self.color),
       (1, self.color/3),
@@ -614,142 +359,36 @@ class Player:
     ]
 
 
-    self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
-    self.ghost_timestamps = collections.deque(maxlen=GHOST_BUFFER_LEN)
-    for i in range(GHOST_BUFFER_LEN):
-      self.ghost_positions.append(0)
-      self.ghost_timestamps.append(0)
-
-    self.reset()
-
   def reset(self):
-    self.is_ready = False
-    self.is_alive = True
-    self.has_shield = config["USE_SHIELDS"]
-    self.is_playing = False
-    self.bomb_hit_time = 0
-    self.position = self.initial_position
-    self.prev_pos = self.position
     self.bombs = []
     self.bomb_power = config["STARTING_BOMB_POWER"]
     self.kill_count = 0
     self.death_count = 0
+    Player.reset(self)
 
   def set_ready(self):
-    self.position = self.initial_position
     self.bombs = []
-    self.is_ready = True
-    self.ready_time = time()
-    broadcast_state()
-
-  def set_unready(self):
-    self.is_ready = False
-    self.tap = 0
-    broadcast_state()
-
-  def current_color(self):
-    return self.team_color if config["TEAM_MODE"] else self.color
+    Player.set_ready(self)
 
   def current_color_sequence(self):
     return self.explosion_color_sequence_team if config["TEAM_MODE"] else self.explosion_color_sequence
 
-  def pulse(self):
-    self.ready_time = time()
-    broadcast_state()
+  def is_occupied(self, position):
+    occupied = statuses[position] == "wall"
 
-  def move(self):
-    if game_state == "start" and self.is_ready:
-      return
-
-    if self.stunned and time() - self.bomb_hit_time < config["STUN_TIME"]:
-        return
-    self.stunned = False
-
-    if time() - self.last_move_time < config["MOVE_FREQ"] or not self.is_alive:
-      return
-
-    pos = self.position
-    # non-blank status means either explosion or death
-    # invulernable for a second after being hit
-    if game_state == "play" and not is_pixel_blank(pos) and \
-        time() - self.bomb_hit_time > config["INVULNERABILITY_TIME"]:
-
-      # Hurt
-      if statuses[pos] != "death" and self.has_shield:
-        hurt_sound.play()
-        self.has_shield = False
-      else:
-        killer = explosion_providence[pos]
-        #if killer and killer == self:
-        #  killer = secondary_explosion_providence[pos]
-        if killer != self:
-          if killer.team != self.team or not config["TEAM_MODE"]:
-            killer.kill_count += 1
-        elif config["SUICIDE_PENALTY"]: # Suicide
-          #self.kill_count -= 1
-          self.stunned = True
-        self.death_count += 1
-
-        if config["DEATHMATCH"]:
-          hurt_sound.play()
-          pass
-        else:
-          death_sound.play()
-          self.is_alive = False
-
-      self.bomb_hit_time = time()
-      broadcast_state()
-
-    # Player clears away explosions when walking on them
-    if not is_pixel_blank(pos):
-      statuses[pos] = "blank"
-
-
-    if self.move_direction[0] == 0 and self.move_direction[1] == 0:
-      return
-
-    up = unique_coords[pos]
-    up = up / np.linalg.norm(up)
-    north = np.array((0, 0, 1))
-    north = ortho_proj(north, up)
-    north /= np.linalg.norm(north) # normalize
-    east = np.cross(up, north)
-
-    basis = np.array((east, north, up))
-
-    max_dot = 0
-    new_pos = pos
-    local_neighbors = (expanded_neighbors if config["ALLOW_CROSS_TIP_MOVE"] else neighbors)[pos]
-    for n in local_neighbors:
-      delta = unique_coords[pos] - unique_coords[n]
-      delta += config["MOVE_BIAS"] * (unique_coords[self.prev_pos] - unique_coords[pos]) # Bias towards turning or moving backwards
-      delta /= np.linalg.norm(delta)  # normalize
-      rectified_delta = -np.matmul(basis, delta)[0:2]
-      dot = np.dot(rectified_delta, self.move_direction)
-
-      if dot > max_dot:
-        max_dot = dot
-        new_pos = n
-
-    if statuses[new_pos] == "power_pickup":
-      self.bomb_power += 1
-      statuses[new_pos] = "blank"
-
-    occupied = statuses[new_pos] == "wall"
-
-    considered_players = playing_players() if game_state == "play" else claimed_players()
+    considered_players = claimed_players() if engine.game_state == start_state else playing_players()
 
     for player in considered_players:
-      if player.is_alive and player.position == new_pos:
+      if player.is_alive and player.position == position:
         occupied = True
         break
 
       for bomb in player.bombs:
-        if bomb.position == new_pos:
+        if bomb.position == position:
           if bomb.move(self.position):
             # Successful bomb kick!
+            sounds["kick"].play()
             # Transfer owenership on bomb kick
-            kick_sound.play()
             bomb.bump_owner(self)
           else:
             occupied = True
@@ -758,15 +397,11 @@ class Player:
       if occupied:
         break
 
-    if not occupied:
-      self.ghost_positions.append(pos)
-      self.ghost_timestamps.append(time())
-      self.prev_pos = self.position
-      self.position = new_pos
-      self.last_move_time = time()
-      broadcast_state()
+    return occupied
 
-  def bomb(self):
+  def move(self):
+    pos = self.position
+
     # resolve existing bombs
     for bomb in self.bombs.copy():
       bomb.resolve()
@@ -779,28 +414,56 @@ class Player:
     tap = self.tap
     self.tap = 0
 
-    # see if the player places a new bomb
-    if not self.is_alive or len(self.bombs) >= config["MAX_BOMBS"]:
-      return
+    can_place_bomb = self.is_alive and len(self.bombs) < config["MAX_BOMBS"]
     for bomb in self.bombs:
-      if self.position == bomb.position:
-        return
+      if pos == bomb.position:
+        can_place_bomb = False
 
-    if time() - tap < 0.1:
-      place_bomb_sound.play()
+    if can_place_bomb and time() - tap < 0.1:
+      sounds["placeBomb"].play()
       self.bombs.append(Bomb(self))
 
 
-  def render_ghost_trail(self):
-    if not self.has_shield:
-      return
+    # non-blank status means either explosion or death
+    if engine.game_state == play_state and not is_pixel_blank(pos) and \
+        time() - self.hit_time > config["INVULNERABILITY_TIME"]:
 
-    for i in range(GHOST_BUFFER_LEN):
-      delta_t = time() - self.ghost_timestamps[i]
-      color = self.current_color() / 16 * exp(-16 * delta_t * delta_t)
-      color_pixel(self.ghost_positions[i], color)
+      # Hurt
+      if statuses[pos] != "death" and self.has_shield:
+        sounds["hurt"].play()
+        self.has_shield = False
+      else:
+        killer = explosion_providence[pos]
+        if killer != self:
+          if killer.team != self.team or not config["TEAM_MODE"]:
+            killer.kill_count += 1
+        else: # Suicide
+          self.stunned = True
+        self.death_count += 1
 
-  def render_player(self):
+        if config["DEATHMATCH"]:
+          sounds["hurt"].play()
+          pass
+        else:
+          sounds["death"].play()
+          self.is_alive = False
+
+      self.hit_time = time()
+      broadcast_state()
+
+
+    Player.move(self)
+    # self.position is likely to have updated
+
+    # Player clears away explosions when walking on them
+    if not is_pixel_blank(self.position):
+      statuses[pos] = "blank"
+    if statuses[self.position] == "power_pickup":
+      self.bomb_power += 1
+      statuses[self.position] = "blank"
+
+
+  def render(self):
     color = self.current_color()
     for bomb in self.bombs:
       bomb_x = bomb.render()
@@ -811,41 +474,15 @@ class Player:
       color = color / 12;
 
     flash_time = config["STUN_TIME"] if self.stunned else config["INVULNERABILITY_TIME"]
-    if time() - self.bomb_hit_time < flash_time:
-      # color = self.color * exp(2 * (self.bomb_hit_time - time()))
+    if time() - self.hit_time < flash_time:
       color = color * sin(time() * 20)
 
     if self.is_alive:
       color_pixel(self.position, color)
 
 
-  def render_ready(self):
-    color = self.current_color()
-    for bomb in self.bombs:
-      bomb_x = bomb.render()
-      if bomb.position == self.position:
-        color = color * (0.5 + 0.5*cos(pi * bomb_x / 1.5))
-
-    color_pixel(self.position, color)
-
-    if self.is_ready:
-      render_pulse(
-        direction=unique_coords[self.position],
-        color=self.color,
-        start_time=self.ready_time,
-        duration=READY_PULSE_DURATION)
-
-      for n in neighbors[self.position]:
-        color_pixel(n, color / 32 * (1 + sin(time()*2)))
-
-  # async def transmit(self, message):
-  #   if self.websocket is None:
-  #     return
-
-  #   message["self"] = self.id
-  #   await self.websocket.send(json.dumps(message))
-
   def to_json(self):
+    # TODO use base class to_json
     return {
       "isClaimed": self.is_claimed,
       "isReady": self.is_ready,
@@ -858,7 +495,6 @@ class Player:
       "deathCount": self.death_count,
       "team": self.team.id,
     }
-
 
 
 
@@ -904,7 +540,7 @@ class Bomb:
 
     occupied = statuses[new_pos] == "wall"
     
-    considered_players = playing_players() if game_state == "play" else claimed_players()
+    considered_players = playing_players() if engine.game_state == play_state else claimed_players()
     for player in considered_players:
       if not player.is_alive:
         continue
@@ -920,8 +556,6 @@ class Bomb:
 
       if occupied:
         break
-
-    # TODO special case: newton's cradle for kicked bombs?
 
     self.prev_pos = self.position
     if not occupied:
@@ -942,8 +576,7 @@ class Bomb:
 
     x = config["BOMB_FUSE_TIME"] + self.timestamp - time()
     x += 4
-    x = (300 / x)# % 6
-    #color = multi_lerp(x, BOMB_COLOR_SEQUENCE)
+    x = (300 / x)
     factor = (sin(x)+1.05) * 0.3
     color = self.owner.current_color() * factor * factor
     color_pixel(self.position, color)
@@ -962,7 +595,7 @@ class Bomb:
       #if not is_pixel_blank(self.position) and statuses[self.position] != "death":
       #  self.bump_owner(explosion_providence[self.position])
 
-      explosion_sound.play()
+      sounds["explosion"].play()
       finish_time = time() + config["BOMB_EXPLOSION_TIME"]
 
       self.set_explosion_status(self.position, finish_time)
@@ -999,74 +632,6 @@ class Bomb:
 
 
 
-# ================================ WebSocket stuff =========================================
+# ================================ Actual Start =========================================
 
-def broadcast_event(event):
-  print(json.dumps(event))
-
-last_broadcast_time = 0
-def broadcast_state():
-  global last_broadcast_time
-  if time() - last_broadcast_time < 0.01:
-    return
-  message = {
-    "players": [player.to_json() for player in players],
-    "teams": [team.to_json() for team in teams],
-    "gameState": game_state,
-    "timeRemaining": state_end_time - time(),
-    "victoryColor": victory_color_string,
-    "config": config,
-  }
-  print(json.dumps(message))
-  last_broadcast_time = time()
-
-
-import fileinput
-
-
-def consume_input():
-  for line in fileinput.input():
-    try:
-      message = json.loads(line)
-
-      player = players[message["self"]]
-
-      if message["type"] == "move":
-        player.move_direction = np.array(message["move"])
-      elif message["type"] == "ready":
-        player.set_ready()
-      elif message["type"] == "unready":
-        player.set_unready()
-      elif message["type"] == "pulse":
-        player.pulse()
-      elif message["type"] == "claim":
-        player.is_claimed = True
-        broadcast_state()
-      elif message["type"] == "release":
-        player.is_claimed = False
-        broadcast_state()
-      elif message["type"] == "tap":
-        player.tap = time()
-      elif message["type"] == "settings":
-        config.update(message["update"])
-        broadcast_state()
-      else:
-        print("Unknown message type:")
-        print(message)
-    except json.decoder.JSONDecodeError:
-      print("Bad input:\n%s" % line)
-
-
-thread = Thread(target=consume_input)
-thread.start()
-
-start()
-
-last_frame_time = time()
-while True:
-  update()
-  frame_time = time() - last_frame_time
-  # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)))
-  last_frame_time = time()
-
-
+start(bomberman_start, start_state)
