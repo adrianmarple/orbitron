@@ -109,6 +109,7 @@ config = {
   "MOVE_BIAS": 0.5,
   "SUICIDE_PENALTY": True,
   "TEAM_MODE": True,
+  "STUN_TIME": 5,
 }
 
 READY_PULSE_DURATION = 0.75
@@ -598,6 +599,7 @@ class Player:
     self.websocket = None
     self.kill_count = 0
     self.death_count = 0
+    self.stunned = False
     self.explosion_color_sequence = [
       (0, self.color),
       (1, self.color/3),
@@ -659,6 +661,10 @@ class Player:
     if game_state == "start" and self.is_ready:
       return
 
+    if self.stunned and time() - self.bomb_hit_time < config["STUN_TIME"]:
+        return
+    self.stunned = False
+
     if time() - self.last_move_time < config["MOVE_FREQ"] or not self.is_alive:
       return
 
@@ -680,7 +686,8 @@ class Player:
           if killer.team != self.team or not config["TEAM_MODE"]:
             killer.kill_count += 1
         elif config["SUICIDE_PENALTY"]: # Suicide
-          self.kill_count -= 1
+          #self.kill_count -= 1
+          self.stunned = True
         self.death_count += 1
 
         if config["DEATHMATCH"]:
@@ -803,7 +810,8 @@ class Player:
     if config["USE_SHIELDS"] and not self.has_shield:
       color = color / 12;
 
-    if time() - self.bomb_hit_time < config["INVULNERABILITY_TIME"]:
+    flash_time = config["STUN_TIME"] if self.stunned else config["INVULNERABILITY_TIME"]
+    if time() - self.bomb_hit_time < flash_time:
       # color = self.color * exp(2 * (self.bomb_hit_time - time()))
       color = color * sin(time() * 20)
 
