@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-import collections
-import json
 import numpy as np
 import numbers
 
@@ -96,25 +94,25 @@ def bomberman_start():
 
 
 def start_update():
-  claimed = claimed_players()
-  for player in claimed:
+  for player in claimed_players():
     if not player.is_ready:
-      # sandbox mode
       player.move()
 
-  is_everyone_ready = True
-  if len(claimed) <= 1:
-    is_everyone_ready = False
-
-  for player in claimed:
-    is_everyone_ready = is_everyone_ready and player.is_ready
-
-  if is_everyone_ready and engine.state_end_time == 0:
-    for player in claimed:
+  if engine.state_end_time == 0 and is_everyone_ready(minimum=2):
+    for player in claimed_players():
       player.is_playing = True
       player.has_shield = config["USE_SHIELDS"]
       player.bomb_power = config["STARTING_BOMB_POWER"]
-    set_walls()
+
+    clear()
+    for i in range(config["NUM_WALLS"]):
+      pos = randrange(SIZE)
+      bad_spot = pos in START_POSITIONS
+      for start_pos in START_POSITIONS:
+        bad_spot = bad_spot or pos in neighbors[start_pos]
+
+      if not bad_spot:
+        statuses[pos] = "wall"
     engine.state_end_time = time() + 4
     broadcast_state()
     sounds["waiting"].fadeout(4000)
@@ -189,7 +187,7 @@ def previctory_ontimeout():
   engine.state_end_time = time() + 10
   sounds["victory"].play()
 
-  clear_walls()
+  clear()
   for player in players:
     player.reset()
 
@@ -207,10 +205,9 @@ def render_sandbox():
     countup = 5 - countdown
     render_pulse(
       direction=(0,0,COORD_MAGNITUDE),
-      color=np.array((20,20,20)) * countup*countup,
+      color=np.array((60,60,60)) * countup,
       start_time=engine.state_end_time - countdown,
       duration=READY_PULSE_DURATION)
-
 
   for i in range(SIZE):
     if isinstance(statuses[i], float):
@@ -268,22 +265,6 @@ def render_explosion(index):
     color_pixel(index, multi_lerp(x, sequence))
 
 
-def set_walls():
-  clear_walls()
-  for i in range(config["NUM_WALLS"]):
-    pos = randrange(SIZE)
-    bad_spot = pos in START_POSITIONS
-    for start_pos in START_POSITIONS:
-      bad_spot = bad_spot or pos in neighbors[start_pos]
-
-    if not bad_spot:
-      statuses[pos] = "wall"
-
-def clear_walls():
-  global statuses
-  for i in range(len(statuses)):
-    statuses[i] = "blank"
-
 def is_pixel_blank(index):
   status = statuses[index]
   return status == "blank" or (
@@ -301,6 +282,7 @@ def gameover(winner):
 
 # ================================ TEAM =========================================
 
+# TODO inherit from engine.Team
 class Team:
   def __init__(self, team_id, color, color_string, name, players):
     self.id = team_id
@@ -364,6 +346,7 @@ class Bomberman(Player):
     self.bomb_power = config["STARTING_BOMB_POWER"]
     self.kill_count = 0
     self.death_count = 0
+    self.has_shield = config["USE_SHIELDS"]
     Player.reset(self)
 
   def set_ready(self):
@@ -374,15 +357,11 @@ class Bomberman(Player):
     return self.explosion_color_sequence_team if config["TEAM_MODE"] else self.explosion_color_sequence
 
   def is_occupied(self, position):
-    occupied = statuses[position] == "wall"
+    if Player.is_occupied(self, position):
+      return True
 
     considered_players = claimed_players() if engine.game_state == start_state else playing_players()
-
     for player in considered_players:
-      if player.is_alive and player.position == position:
-        occupied = True
-        break
-
       for bomb in player.bombs:
         if bomb.position == position:
           if bomb.move(self.position):
@@ -391,13 +370,9 @@ class Bomberman(Player):
             # Transfer owenership on bomb kick
             bomb.bump_owner(self)
           else:
-            occupied = True
-          break
+            return True
 
-      if occupied:
-        break
-
-    return occupied
+    return False
 
   def move(self):
     pos = self.position

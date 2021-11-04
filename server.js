@@ -8,6 +8,14 @@ const { spawn } = require('child_process')
 
 
 const NO_TIMEOUT = process.argv.includes('-t')
+
+let GAME = "bomberman"
+for (let arg of process.argv.slice(2)) {
+  if (arg[0] !== '-') {
+    GAME = arg
+    break
+  }
+}
  
 
 // Websocket server
@@ -111,7 +119,7 @@ function broadcast(baseMessage) {
     connectionQueue[i].socket.send(JSON.stringify(baseMessage))
   }
 }
-const python_process = spawn('sudo', ['python3', '-u', __dirname + '/main.py']);
+const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/${GAME}.py`]);
 python_process.stdout.on('data', data => {
   message = data.toString()
   if (data[0] == 123) { // check is first char is '{'
@@ -146,7 +154,7 @@ http.createServer(function (request, response) {
   var filePath = request.url
 
   if (filePath == '/')
-    filePath = '/index.html'
+    filePath = `/${GAME}.html`
   filePath = '/home/pi/Rhomberman' + filePath
 
   // console.log(filePath);

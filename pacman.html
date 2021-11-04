@@ -224,7 +224,7 @@ body, #app, .main {
   <div v-else>
 
   <div id="playerMarker"
-    :style="{ backgroundColor: self.color, borderColor: teamColor }"
+    :style="{ backgroundColor: self.color }"
   ></div>
   <div id="bombPower">
     <span>{{self.bombPower}}</span>
@@ -284,26 +284,7 @@ body, #app, .main {
   </div>
 
   <div v-if="mode=='play'" class="main">
-    <div v-if="config.DEATHMATCH" class="header">
-      <div v-if="config.TEAM_MODE">
-        <div v-for="team in teamsByRanking" class="ranking">
-          <div class="player"
-            :style="{backgroundColor: team.color}"
-          ></div>
-          {{team.killCount}}
-        </div>
-
-      </div>
-      <div v-else>
-        <div v-for="player in playersByRanking" class="ranking">
-          <div class="player"
-            :style="{backgroundColor: player.color}"
-          ></div>
-          {{player.killCount}}
-        </div>
-      </div>
-    </div>
-    <div v-else class="header">
+    <div class="header">
       <div>Live players:
         <div class="players">
           <div v-for="player in livePlayers"
@@ -426,12 +407,6 @@ var app = new Vue({
       else
         return {}
     },
-    myTeam() {
-      return this.state.teams[this.self.team]
-    },
-    teamColor() {
-      return (this.config.TEAM_MODE ? this.myTeam : this.self).color
-    },
     claimedPlayers() {
       if (this.state.players) {
         return this.state.players.filter(player => player.isClaimed)
@@ -447,12 +422,6 @@ var app = new Vue({
     },
     playersByRanking() {
       return this.claimedPlayers.sort((p0, p1) => {
-        return p1.killCount - p0.killCount
-      })
-    },
-
-    teamsByRanking() {
-      return this.state.teams.sort((p0, p1) => {
         return p1.killCount - p0.killCount
       })
     },

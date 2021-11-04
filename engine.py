@@ -37,7 +37,7 @@ config = {
 
 READY_PULSE_DURATION = 0.75
 SHOCKWAVE_DURATION = 0.5
-
+ZERO_2D = np.array((0, 0))
 
 f = open("/home/pi/Rhomberman/pixels.json", "r")
 pixel_info = json.loads(f.read())
@@ -152,43 +152,22 @@ def update():
 
 # ================================ TEAM =========================================
 
-# class Team:
-#   def __init__(self, team_id, color, color_string, name, players):
-#     self.id = team_id
-#     self.color = color
-#     self.color_string = color_string
-#     self.name = name
-#     self.players = players
-#     for player in players:
-#       player.team = self
+class Team:
+  def __init__(self, team_id, color, color_string, name, players):
+    self.id = team_id
+    self.color = color
+    self.color_string = color_string
+    self.name = name
+    self.players = players
+    for player in players:
+      player.team = self
 
-#   def kill_count(self):
-#     count = 0
-#     for player in self.players:
-#       count += player.kill_count
-#     return count
-
-#   def death_count(self):
-#     count = 0
-#     for player in self.players:
-#       count += player.death_count
-#     return count
-
-#   def is_alive(self):
-#     for player in self.players:
-#       if player.is_playing and player.is_alive:
-#         return True
-#     return False
-
-
-#   def to_json(self):
-#     return {
-#       "id": self.id,
-#       "color": self.color_string,
-#       "killCount": self.kill_count(),
-#       "deathCount": self.death_count(),
-#       "players": [player.id for player in self.players],
-#     }
+  def to_json(self):
+    return {
+      "id": self.id,
+      "color": self.color_string,
+      "players": [player.id for player in self.players],
+    }
 
 # ================================ PLAYER =========================================
 GHOST_BUFFER_LEN = 20
@@ -224,7 +203,6 @@ class Player:
   def reset(self):
     self.is_ready = False
     self.is_alive = True
-    self.has_shield = config["USE_SHIELDS"]
     self.is_playing = False
     self.position = self.initial_position
     self.prev_pos = self.position
@@ -250,9 +228,11 @@ class Player:
     broadcast_state()
 
   def cant_move(self):
-    return ((game_state == start_state and self.is_ready) or # Don't move when marked ready
-      (self.stunned and time() - self.hit_time < config["STUN_TIME"]) or # stunned
-      (time() - self.last_move_time < config["MOVE_FREQ"] or not self.is_alive) # just moved
+    return (not self.is_alive or
+      self.stunned or
+      (game_state == start_state and self.is_ready) or # Don't move when marked ready
+      time() - self.last_move_time < config["MOVE_FREQ"] or # just moved
+      (self.move_direction == ZERO_2D).all()
     )
 
   def get_next_position(self):
@@ -285,38 +265,22 @@ class Player:
 
 
   def is_occupied(self, position):
-    occupied = statuses[position] == "wall"
+    if statuses[position] == "wall":
+      return True
 
     considered_players = claimed_players() if game_state == start_state else playing_players()
-
     for player in considered_players:
       if player.is_alive and player.position == position:
         return True
-        break
 
-      for bomb in player.bombs:
-        if bomb.position == position:
-          if bomb.move(self.position):
-            # Successful bomb kick!
-            # Transfer owenership on bomb kick
-            kick_sound.play()
-            bomb.bump_owner(self)
-          else:
-            occupied = True
-          break
-
-      if occupied:
-        break
-
-    return occupied
+    return False
 
 
   def move(self):
-    if self.cant_move():
-      return
+    if self.stunned and time() - self.hit_time < config["STUN_TIME"]:
+      self.stunned = False
 
-    self.stunned = False
-    if self.move_direction[0] == 0 and self.move_direction[1] == 0:
+    if self.cant_move():
       return
 
     new_pos = self.get_next_position()
@@ -331,9 +295,6 @@ class Player:
 
 
   def render_ghost_trail(self):
-    if not self.has_shield:
-      return
-
     for i in range(GHOST_BUFFER_LEN):
       delta_t = time() - self.ghost_timestamps[i]
       color = self.current_color() / 16 * exp(-16 * delta_t * delta_t)
@@ -364,15 +325,18 @@ class Player:
 
 
   def to_json(self):
-    return {
+    dictionary = {
       "isClaimed": self.is_claimed,
       "isReady": self.is_ready,
       "isPlaying": self.is_playing,
       "isAlive": self.is_alive,
       "color": self.color_string,
       "position": self.position,
-      "team": self.team.id,
     }
+    if hasattr(self, "team"):
+      dictionary["team"] = self.team.id
+
+    return dictionary
 
 
 # ================================ MISC =========================================
@@ -433,6 +397,20 @@ def projection(u, v): # assume v is normalized
 def ortho_proj(u, v):
   return u - projection(u,v)
 
+
+def is_everyone_ready(minimum):
+  claimed = claimed_players()
+  if len(claimed) < minimum:
+    return False
+  for player in claimed:
+    if not player.is_ready:
+      return False
+  return True
+
+
+def clear():
+  for i in range(len(statuses)):
+    statuses[i] = "blank"
 
 
 indicies = np.arange(RAW_SIZE)
