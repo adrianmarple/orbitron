@@ -18,12 +18,15 @@ config["STARTING_BOMB_POWER"] = 4 # 2
 config["PICKUP_CHANCE"] = 0 # 0.3
 config["NUM_WALLS"] = 60
 config["BOMB_MOVE_FREQ"] = 0.07
-config["USE_SHIELDS"] = False
-config["DEATHMATCH"] = True
+config["USE_SHIELDS"] = True
+config["DEATHMATCH"] = False
 config["TARGET_KILL_COUNT"] = 5
 config["BATTLE_ROYALE_DURATION"] = 150
 config["DEATH_CREEP_DURATION"] = 60
 config["SUICIDE_STUN"] = True
+config["FRAG_SUICIDE"] = True
+config["EXPLODE_ON_IMPACT"] = False
+config["FIXED_OWNERSHIP"] = False
 
 
 
@@ -366,8 +369,9 @@ class Bomberman(Player):
           if bomb.move(self.position):
             # Successful bomb kick!
             sounds["kick"].play()
-            # Transfer owenership on bomb kick
-            bomb.bump_owner(self)
+            if not config["FIXED_OWNERSHIP"]:
+              # Transfer owenership on bomb kick
+              bomb.bump_owner(self)
           else:
             return True
 
@@ -390,28 +394,31 @@ class Bomberman(Player):
         time() - self.hit_time > config["INVULNERABILITY_TIME"]:
 
       # Hurt
-      if statuses[pos] != "death" and self.has_shield:
-        sounds["hurt"].play()
-        self.has_shield = False
+      killer = explosion_providence[pos]
+      suicide = killer == self
+      frag = killer.team == self.team and config["TEAM_MODE"]
+      if frag and config["FRAG_SUICIDE"]:
+        suicide = True
+      if suicide and config["SUICIDE_STUN"]:
+        self.stunned = True
       else:
-        killer = explosion_providence[pos]
-        if killer != self:
-          if killer.team != self.team or not config["TEAM_MODE"]:
-            killer.kill_count += 1
-        else: # Suicide
-          if config["SUICIDE_STUN"]:
-            self.stunned = True
-          else:
-            self.kill_count -= 1
-
+        self.stunned = False
         self.death_count += 1
 
-        if config["DEATHMATCH"]:
-          sounds["hurt"].play()
-          pass
+        if self.has_shield:
+          self.has_shield = False
         else:
-          sounds["death"].play()
-          self.is_alive = False
+          if not config["DEATHMATCH"]:
+            self.is_alive = False
+          if suicide:
+            self.kill_count -= 1
+          elif not frag:
+            killer.kill_count += 1
+
+      if self.is_alive:
+        sounds["hurt"].play()
+      else:
+        sounds["death"].play()
 
       self.hit_time = time()
       broadcast_state()
@@ -519,7 +526,7 @@ class Bomb:
   def move(self, prev_pos):
     new_pos = next_pixel.get(str((prev_pos, self.position)), None)
     if new_pos is None:
-      return
+      return True
 
     occupied = statuses[new_pos] == "wall"
     
@@ -560,7 +567,7 @@ class Bomb:
     x = config["BOMB_FUSE_TIME"] + self.timestamp - time()
     x += 4
     x = (300 / x)
-    factor = (sin(x)+1.05) * 0.3
+    factor = (sin(x)+1.4) * 0.3
     factor *= factor
     color = self.owner.current_color() * factor
     color_pixel(self.position, color)
@@ -570,11 +577,14 @@ class Bomb:
     if self.has_exploded:
       return
 
+    impacted = False
     if self.position != self.prev_pos and time() - self.last_move_time > config["BOMB_MOVE_FREQ"]:
-      self.move(self.prev_pos)
+      impacted = not self.move(self.prev_pos)
 
     # Fuse has run out or hit by an explosion
-    if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or not is_pixel_blank(self.position):
+    if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or \
+        not is_pixel_blank(self.position) or \
+        (impacted and config["EXPLODE_ON_IMPACT"]):
       # Propagate ownership if triggered by other bomb
       #if not is_pixel_blank(self.position) and statuses[self.position] != "death":
       #  self.bump_owner(explosion_providence[self.position])
