@@ -17,14 +17,13 @@ config["BOMB_EXPLOSION_TIME"] = 0.9 # Should be less than INVUNERABILITY_TIME
 config["STARTING_BOMB_POWER"] = 4 # 2
 config["PICKUP_CHANCE"] = 0 # 0.3
 config["NUM_WALLS"] = 60
-config["MAX_BOMBS"] = 8
 config["BOMB_MOVE_FREQ"] = 0.07
-config["USE_SHIELDS"] = True
-config["DEATHMATCH"] = False
+config["USE_SHIELDS"] = False
+config["DEATHMATCH"] = True
 config["TARGET_KILL_COUNT"] = 5
 config["BATTLE_ROYALE_DURATION"] = 150
 config["DEATH_CREEP_DURATION"] = 60
-config["SUICIDE_PENALTY"] = True
+config["SUICIDE_STUN"] = True
 
 
 
@@ -55,17 +54,17 @@ def bomberman_start():
   Bomberman(
     position=24,
     color=(200, 2, 20),
-    team_color=(200, 2, 20),
+    team_color=(250, 20, 10),
     color_string="#e91e63") #pink
   Bomberman(
     position=54,
     color=(100, 0, 250),
-    team_color=(70, 0, 150),
+    team_color=(50, 0, 150),
     color_string="#9575cd") #deep purple
   Bomberman(
     position=252,
     color=(180, 200, 5),
-    team_color=(250, 2, 0),
+    team_color=(200, 70, 0),
     color_string="#c0ca33") #lime
   Bomberman(
     position=168,
@@ -77,9 +76,9 @@ def bomberman_start():
 
   RED_TEAM = Team(
     team_id=0,
-    color=np.array((255, 0, 0)),
-    color_string="red",
-    name="Red Team",
+    color=np.array((220, 30, 0)),
+    color_string="orange",
+    name="Orange Team",
     players=[players[0], players[2], players[4]]
   )
   BLUE_TEAM = Team(
@@ -385,19 +384,6 @@ class Bomberman(Player):
         self.bombs.remove(bomb)
 
 
-    # consume tap signal
-    tap = self.tap
-    self.tap = 0
-
-    can_place_bomb = self.is_alive and len(self.bombs) < config["MAX_BOMBS"]
-    for bomb in self.bombs:
-      if pos == bomb.position:
-        can_place_bomb = False
-
-    if can_place_bomb and time() - tap < 0.1:
-      sounds["placeBomb"].play()
-      self.bombs.append(Bomb(self))
-
 
     # non-blank status means either explosion or death
     if engine.game_state == play_state and not is_pixel_blank(pos) and \
@@ -413,7 +399,11 @@ class Bomberman(Player):
           if killer.team != self.team or not config["TEAM_MODE"]:
             killer.kill_count += 1
         else: # Suicide
-          self.stunned = True
+          if config["SUICIDE_STUN"]:
+            self.stunned = True
+          else:
+            self.kill_count -= 1
+
         self.death_count += 1
 
         if config["DEATHMATCH"]:
@@ -425,6 +415,18 @@ class Bomberman(Player):
 
       self.hit_time = time()
       broadcast_state()
+
+
+    # Try to place bomb if tapped
+    tap = self.tap
+    self.tap = 0 # consume tap signal
+    can_place_bomb = self.is_alive and not self.stunned
+    for bomb in self.bombs:
+      if pos == bomb.position:
+        can_place_bomb = False
+    if can_place_bomb and time() - tap < 0.1:
+      sounds["placeBomb"].play()
+      self.bombs.append(Bomb(self))
 
 
     Player.move(self)
@@ -441,16 +443,22 @@ class Bomberman(Player):
   def render(self):
     color = self.current_color()
     for bomb in self.bombs:
-      bomb_x = bomb.render()
+      bomb_factor = bomb.render()
       if bomb.position == self.position:
-        color = color * (0.5 + 0.5*sin(pi * bomb_x / 1.5))
+        color = color * (0.1 + bomb_factor * 1.2)
 
     if config["USE_SHIELDS"] and not self.has_shield:
       color = color / 12;
 
     flash_time = config["STUN_TIME"] if self.stunned else config["INVULNERABILITY_TIME"]
     if time() - self.hit_time < flash_time:
-      color = color * sin(time() * 20)
+      factor = (time() * 2) % 1
+      if self.stunned:
+        factor = 1 - factor
+        factor *= 0.7
+      else:
+        factor *= 1.3
+      color = color * factor * factor
 
     if self.is_alive:
       color_pixel(self.position, color)
@@ -553,9 +561,10 @@ class Bomb:
     x += 4
     x = (300 / x)
     factor = (sin(x)+1.05) * 0.3
-    color = self.owner.current_color() * factor * factor
+    factor *= factor
+    color = self.owner.current_color() * factor
     color_pixel(self.position, color)
-    return x
+    return factor
 
   def resolve(self):
     if self.has_exploded:

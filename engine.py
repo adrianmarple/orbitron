@@ -277,7 +277,7 @@ class Player:
 
 
   def move(self):
-    if self.stunned and time() - self.hit_time < config["STUN_TIME"]:
+    if self.stunned and time() - self.hit_time > config["STUN_TIME"]:
       self.stunned = False
 
     if self.cant_move():
