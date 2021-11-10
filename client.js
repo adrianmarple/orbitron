@@ -1,0 +1,150 @@
+#!/usr/bin/env node
+const fs = require('fs')
+const path = require('path')
+const process = require('process')
+const { spawn } = require('child_process')
+const SimpleSignalClient = require('simple-signal-client') 
+const wrtc = require('wrtc')
+const { io } = require("socket.io-client");
+
+const NO_TIMEOUT = process.argv.includes('-t')
+const INSTALLATION = process.env.INSTALLATION || "debug"
+const KEY = process.env.ORBITRON_KEY || "debug"
+
+let GAME = "bomberman"
+for (let arg of process.argv.slice(2)) {
+    if (arg[0] !== '-') {
+        GAME = arg
+        break
+    }
+}
+
+//WebRTC connection to switchboard
+const socket = io("http://localhost:9000");
+var signalClient = new SimpleSignalClient(socket)
+signalClient.on('discover', (allIDs) => {
+    console.log("DISCOVER",allIDs)
+})
+
+signalClient.on('request', async (request) => {
+    const { peer } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
+    console.log("REQUEST",request,peer)
+    connectionQueue.push(peer)
+    upkeep() // Will claim player if available
+    bindDataEvents(peer)
+})
+
+function bindDataEvents(peer) {
+    peer.on('data', data => {
+        console.log("DATA",data)
+        if (!connections[peer._id]) {
+            return
+        }
+        content = JSON.parse(data)
+        content.self = peer._id
+        peer.lastActivityTime = Date.now()
+        //python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
+    })
+
+    peer.on('close', () => {
+        console.log("CLOSE",peer._id)
+        release = { self: peer._id, type: "release" }
+        //python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
+        if (connections[peer._id]) {
+            delete connections[peer._id]
+        } else {
+            connectionQueue = connectionQueue.filter(elem => elem !== peer)
+        }
+
+    })
+    peer.on('error', (err) => {
+        console.error("ERROR",peer._id,err)
+    })
+}
+
+setInterval(upkeep, 1000)
+
+function upkeep() {
+    //refresh signal server
+    signalClient.discover({installation:INSTALLATION,key:KEY})
+    // Check for stale players
+    if (gameState.players && !NO_TIMEOUT) {
+        for (let peer of Object.values(connections)) {
+            let player = gameState.players[peer._id]
+            if (!player.isReady && !player.isPlaying &&
+                Date.now() - peer.lastActivityTime > 30*1000) { // 30 seconds
+                console.log("Player timed out.")
+                peer.destroy()
+            }
+        }
+    }
+
+    for (let peer of [...connectionQueue]) {
+        while (Object.keys(connections).length < MAX_PLAYERS) {
+            if (!connections[peer._id]) {
+                peer.lastActivityTime = Date.now()
+                connections[peer._id] = peer
+                claim = { self: peer._id, type: "claim" }
+                //python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
+                connectionQueue = connectionQueue.filter(elem => elem !== peer)
+                break;
+            }
+        }
+        if (Object.keys(connections).length >= MAX_PLAYERS) {
+            message = {...gameState}
+            message.queuePosition = connectionQueue.indexOf(peer) + 1
+            peer.send(JSON.stringify(message))
+        }
+    }
+}
+
+MAX_PLAYERS = 6
+connections = {}
+connectionQueue = []
+
+
+// Communications with python script
+
+gameState = {}
+
+function broadcast(baseMessage) {
+    gameState = baseMessage
+    for (let id in connections) {
+        baseMessage.self = id
+        connections[id].socket.send(JSON.stringify(baseMessage))
+    }
+    delete baseMessage.self
+    for (let i = 0; i < connectionQueue.length; i++) {
+        baseMessage.queuePosition = i + 1
+        connectionQueue[i].socket.send(JSON.stringify(baseMessage))
+    }
+}
+/*
+const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/${GAME}.py`]);
+python_process.stdout.on('data', data => {
+    message = data.toString()
+    if (data[0] == 123) { // check is first char is '{'
+        try {
+            broadcast(JSON.parse(message));
+        } catch(e) {
+            console.error(e);
+            console.error(message);
+        }
+    } else {
+        message = message.slice(0, -1)
+        if (message) {
+            console.log(message)
+        }
+    }
+});
+python_process.stderr.on('data', data => {
+    message = data.toString()
+    if (!message.includes("underrun occurred")) {
+        message = message.slice(0, -1)
+        if (message) {
+            console.log(message)
+        }
+    }
+});
+*/
+
