@@ -19,9 +19,9 @@ config["PACMAN_MOVE_FREQ"] = 0.18
 config["PACMAN_POWER_MOVE_FREQ"] = 0.12
 config["GHOST_MOVE_FREQ"] = 0.22
 config["GHOST_SCARED_MOVE_FREQ"] = 0.3
-config["WINNING_PELLET_RATIO"] = 0.2
 config["GHOST_RANDOMNESS"] = 0.1
 config["PELLET_SCORE"] = 10
+config["POWER_PELLET_SCORE"] = 50
 config["GHOST_KILL_SCORE"] = 200
 config["VICTORY_SCORE"] = 3000
 
@@ -112,7 +112,7 @@ def play_update():
     if status == "pellet":
       pellet_count += 1
 
-  if pellet_count / 420.0 <= config["WINNING_PELLET_RATIO"]:
+  if data["score"] >= config["VICTORY_SCORE"]:
     gameover("pacmen")
 
 
@@ -231,6 +231,7 @@ class Pacman(Player):
             ghost.stunned = True
             ghost.position = unique_antipodes[ghost.position]
             ghost.hit_time = time()
+            data["score"] = config["GHOST_KILL_SCORE"]
             broadcast_state()
             break
           else:
@@ -244,7 +245,11 @@ class Pacman(Player):
     if statuses[self.position] == "power":
       power_pellet_start_time = time()
       are_ghosts_scared = True
-    statuses[self.position] = "blank"
+      data["score"] += config["POWER_PELLET_SCORE"]
+      statuses[self.position] = "blank"
+    elif statuses[self.position] == "pellet":
+      data["score"] += config["PELLET_SCORE"]
+      statuses[self.position] = "blank"
 
 
 class Ghost(Player):
