@@ -13,14 +13,25 @@ from engine import *
 
 config["NUM_PACMEN"] = 2
 config["NUM_GHOSTS"] = 4
+config["STARTING_POWER_PELLET_COUNT"] = 15
+config["POWER_PELLET_DURATION"] = 10
 config["PACMAN_MOVE_FREQ"] = 0.18
+config["PACMAN_POWER_MOVE_FREQ"] = 0.12
 config["GHOST_MOVE_FREQ"] = 0.22
+config["GHOST_SCARED_MOVE_FREQ"] = 0.3
 config["WINNING_PELLET_RATIO"] = 0.2
-config["GHOST_RANDOMNESS"] = 0.3
+config["GHOST_RANDOMNESS"] = 0.1
+config["PELLET_SCORE"] = 10
+config["GHOST_KILL_SCORE"] = 200
+config["VICTORY_SCORE"] = 3000
 
 
 battle_channel = None
 vamp = None
+
+power_pellet_start_time = 0
+are_ghosts_scared = False
+data["score"] = 0
 
 prewarm_audio(sound_file_names=[
     "battle1.ogg", "battle1Loop.ogg", "victory.mp3", "waiting.ogg",
@@ -28,6 +39,7 @@ prewarm_audio(sound_file_names=[
   ], start_loop="waiting")
 
 
+scaredy_ghost_color = np.array((0,0,255))
 
 def pacman_start():
   Pacman(
@@ -67,6 +79,9 @@ def start_update():
     for i in range(len(statuses)):
       statuses[i] = "pellet"
 
+    for i in range(config["STARTING_POWER_PELLET_COUNT"]):
+      statuses[randrange(len(statuses))] = "power"
+
     engine.state_end_time = time() + 4
     broadcast_state()
     sounds["waiting"].fadeout(4000)
@@ -79,6 +94,9 @@ def play_update():
   for player in playing_players():
     player.move()
 
+  global are_ghosts_scared
+  if are_ghosts_scared and time() - power_pellet_start_time > config["POWER_PELLET_DURATION"]:
+    are_ghosts_scared = False
 
   ghosts_win = True
   for player in playing_players():
@@ -147,7 +165,9 @@ def render_game():
       # already handled
       pass
     elif statuses[i] == "pellet":
-      color_pixel(i, (11, 9, 9))
+      color_pixel(i, (10, 10, 10))
+    elif statuses[i] == "power":
+      color_pixel(i, (255, 255, 255))
 
   for player in playing_players():
     player.render()
@@ -165,6 +185,11 @@ def gameover(winner):
   battle_channel.stop()
   broadcast_state()
 
+def ghosts():
+  return [player for player in players if not player.is_pacman]
+def pacmen():
+  return [player for player in players if player.is_pacman]
+
 
 start_state = State("start", start_update, start_ontimeout, render_sandbox)
 play_state = State("play", play_update, None, render_game)
@@ -181,10 +206,11 @@ class Pacman(Player):
 
 
   def cant_move(self):
+    move_freq = config["PACMAN_POWER_MOVE_FREQ"] if are_ghosts_scared else config["PACMAN_MOVE_FREQ"]
     return (not self.is_alive or
       self.stunned or
       (game_state == start_state and self.is_ready) or # Don't move when marked ready
-      time() - self.last_move_time < config["PACMAN_MOVE_FREQ"] or # just moved
+      time() - self.last_move_time < move_freq or # just moved
       (self.move_direction == ZERO_2D).all()
     )
 
@@ -196,16 +222,28 @@ class Pacman(Player):
     return False
 
   def move(self):
+    global power_pellet_start_time, are_ghosts_scared
+
     if self.is_alive:
-      for player in playing_players():
-        if not player.is_pacman and player.position == self.position:
-          self.is_alive = False
-          broadcast_state()
-          return
+      for ghost in ghosts():
+        if ghost.position == self.position:
+          if are_ghosts_scared:
+            ghost.stunned = True
+            ghost.position = unique_antipodes[ghost.position]
+            ghost.hit_time = time()
+            broadcast_state()
+            break
+          else:
+            self.is_alive = False
+            broadcast_state()
+            return
 
     Player.move(self)
 
     # Pacman consumes pellets as they move
+    if statuses[self.position] == "power":
+      power_pellet_start_time = time()
+      are_ghosts_scared = True
     statuses[self.position] = "blank"
 
 
@@ -214,11 +252,21 @@ class Ghost(Player):
     Player.__init__(self, *args, **kwargs)
     self.is_pacman = False
 
+  def current_color(self):
+    if are_ghosts_scared:
+      time_left = config["POWER_PELLET_DURATION"] - (time() - power_pellet_start_time)
+      if time_left < 3 and time_left % 0.5 > 0.25:
+        return np.array((0, 0, 0))
+      else:
+        return scaredy_ghost_color
+    else:
+      return self.color
 
   def cant_move(self):
+    move_freq = config["GHOST_SCARED_MOVE_FREQ"] if are_ghosts_scared else config["GHOST_MOVE_FREQ"]
     return (self.stunned or
       (game_state == start_state and self.is_ready) or # Don't move when marked ready
-      time() - self.last_move_time < config["GHOST_MOVE_FREQ"] or # just moved
+      time() - self.last_move_time < move_freq or # just moved
       (self.is_claimed and (self.move_direction == ZERO_2D).all())
     )
 
@@ -227,27 +275,37 @@ class Ghost(Player):
       return Player.get_next_position(self)
     else:
       pos = self.position
+      my_coord = unique_coords[self.position]
 
       if random() < config["GHOST_RANDOMNESS"]:
-        new_pos = choice(neighbors[pos])
-      else:
-        min_dist_sq = 1000
-        for player in playing_players():
-          if player.is_pacman:
-            for neighbor in neighbors[pos]:
-              delta = unique_coords[neighbor] - unique_coords[player.position]
-              dist_sq = np.dot(delta, delta)
-              if dist_sq < min_dist_sq:
-                new_pos = neighbor
-                min_dist_sq = dist_sq
+        return choice(neighbors[pos])
+
+      best_dist_sq = 1000
+      closest_pacman_coord = my_coord
+      for pacman in pacmen():
+        pacman_coord = unique_coords[pacman.position]
+        delta = pacman_coord - my_coord
+        dist_sq = np.dot(delta, delta)
+        if dist_sq < best_dist_sq:
+          closest_pacman_coord = pacman_coord
+          best_dist_sq = dist_sq
+
+      new_pos = 0
+      best_dist_sq = 0 if are_ghosts_scared else 1000
+      for neighbor in neighbors[pos]:
+        delta = unique_coords[neighbor] - closest_pacman_coord
+        dist_sq = np.dot(delta, delta)
+
+        if are_ghosts_scared:
+          is_better_dist = dist_sq > best_dist_sq
+        else:
+          is_better_dist = dist_sq < best_dist_sq
+
+        if is_better_dist:
+          new_pos = neighbor
+          best_dist_sq = dist_sq
 
       return new_pos
-      # else: # Just continue in same direction in halls
-      #   direction_string = str((self.prev_pos, pos))
-      #   if direction_string in next_pixel:
-      #     new_pos = next_pixel[direction_string]
-      #   else:
-      #     return pos
 
 
   def is_occupied(self, position):
@@ -257,6 +315,15 @@ class Ghost(Player):
         return True
     return False
 
+  def render(self):
+    if self.stunned:
+      render_pulse(
+        direction=unique_coords[self.position],
+        color=self.current_color(),
+        start_time=self.hit_time,
+        duration=READY_PULSE_DURATION)
+
+    Player.render(self)
 
 # ================================ Actual Start =========================================
 

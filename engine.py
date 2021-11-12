@@ -52,15 +52,11 @@ coordinate_matrix = np.matrix(coordinates).transpose()
 unique_coords = [np.array(coord) for coord in pixel_info["unique_coords"]]
 unique_coord_matrix = np.matrix(unique_coords).transpose()
 unique_to_dupes = pixel_info["unique_to_dupes"]
-dupe_to_unique = [0] * RAW_SIZE
+dupe_to_unique = pixel_info["dupe_to_unique"]
+unique_antipodes = pixel_info["unique_antipodes"]
 
 pixels = np.zeros((SIZE, 3))
 raw_pixels = np.zeros((RAW_SIZE, 3))
-dupe_matrix = np.zeros((RAW_SIZE, SIZE))
-for (i, dupes) in enumerate(unique_to_dupes):
-  for dupe in dupes:
-    dupe_to_unique[dupe] = i
-    dupe_matrix[dupe, i] = 1
 
 neopixels = neopixel.NeoPixel(board.D18, RAW_SIZE, auto_write=False)
 print("Running %s pixels" % pixel_info["RAW_SIZE"])
@@ -73,6 +69,7 @@ state_end_time = 0
 victory_color = None
 victory_color_string = None
 
+data = {}
 players = []
 teams = []
 
@@ -460,6 +457,7 @@ def broadcast_state():
     "timeRemaining": state_end_time - time(),
     "victoryColor": victory_color_string,
     "config": config,
+    "data": data,
   }
   print(json.dumps(message))
   last_broadcast_time = time()

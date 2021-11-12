@@ -34,6 +34,11 @@ def add_coord(i, coord):
 for (i, coord) in enumerate(coordinates):
   add_coord(i, coord)
 
+dupe_to_unique = [0] * len(coordinates)
+for (i, dupes) in enumerate(unique_to_dupes):
+  for dupe in dupes:
+    dupe_to_unique[dupe] = i
+
 
 neighbors = []
 expanded_neighbors = []
@@ -75,6 +80,16 @@ def latlong(coord):
 latlongs = [latlong(coord) for coord in unique_coords]
 
 
+unique_antipodes = [0] * len(unique_coords)
+for i in range(len(unique_coords)):
+  i_coord = unique_coords[i]
+  for j in range(len(unique_coords)):
+    if norm(unique_coords[j] + i_coord) < 0.01:
+      unique_antipodes[i] = j
+      break
+
+
+
 counts = {}
 for n in neighbors:
   count = len(n)
@@ -92,10 +107,12 @@ f.write(json.dumps({
   "SIZE": len(latlongs),
   "coordinates": og_coordinates,
   "unique_to_dupes": unique_to_dupes,
+  "dupe_to_unique": dupe_to_unique,
   "unique_coords": [coord.tolist() for coord in unique_coords],
   # "latlongs": latlongs,
   "neighbors": neighbors,
   "expanded_neighbors": expanded_neighbors,
   "next_pixel": next_pixel,
+  "unique_antipodes": unique_antipodes,
   } ))
 f.close()
