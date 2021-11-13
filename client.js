@@ -36,12 +36,12 @@ signalClient.on('request', async (request) => {
 
 function bindDataEvents(peer) {
     peer.on('data', data => {
-        console.log("DATA",data)
         if (!peer.pid || !connections[peer.pid]) {
             return
         }
         content = JSON.parse(data)
         content.self = peer.pid
+        console.log("DATA",content)
         peer.lastActivityTime = Date.now()
         python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     })
