@@ -30,35 +30,35 @@ signalClient.on('request', async (request) => {
     const { peer } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
     console.log("REQUEST",request,peer)
     connectionQueue.push(peer)
-    upkeep() // Will claim player if available
     bindDataEvents(peer)
+    upkeep() // Will claim player if available
 })
 
 function bindDataEvents(peer) {
     peer.on('data', data => {
         console.log("DATA",data)
-        if (!connections[peer._id]) {
+        if (!peer.pid || !connections[peer.pid]) {
             return
         }
         content = JSON.parse(data)
-        content.self = peer._id
+        content.self = peer.pid
         peer.lastActivityTime = Date.now()
         python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     })
 
     peer.on('close', () => {
-        console.log("CLOSE",peer._id)
-        release = { self: peer._id, type: "release" }
+        console.log("CLOSE",peer.pid)
+        release = { self: peer.pid, type: "release" }
         python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
-        if (connections[peer._id]) {
-            delete connections[peer._id]
+        if (peer.pid && connections[peer.pid]) {
+            delete connections[peer.pid]
         } else {
             connectionQueue = connectionQueue.filter(elem => elem !== peer)
         }
 
     })
     peer.on('error', (err) => {
-        console.error("ERROR",peer._id,err)
+        console.error("ERROR",peer.pid,err)
     })
 }
 
@@ -70,7 +70,7 @@ function upkeep() {
     // Check for stale players
     if (gameState.players && !NO_TIMEOUT) {
         for (let peer of Object.values(connections)) {
-            let player = gameState.players[peer._id]
+            let player = gameState.players[peer.pid]
             if (!player.isReady && !player.isPlaying &&
                 Date.now() - peer.lastActivityTime > 30*1000) { // 30 seconds
                 console.log("Player timed out.")
@@ -79,18 +79,21 @@ function upkeep() {
         }
     }
 
+    let id = 0;
     for (let peer of [...connectionQueue]) {
-        while (Object.keys(connections).length < MAX_PLAYERS) {
-            if (!connections[peer._id]) {
+        while (id < MAX_PLAYERS) {
+            if (!connections[id]) {
+                peer.pid=id
                 peer.lastActivityTime = Date.now()
-                connections[peer._id] = peer
-                claim = { self: peer._id, type: "claim" }
+                connections[peer.pid] = peer
+                claim = { self: peer.pid, type: "claim" }
                 python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
                 connectionQueue = connectionQueue.filter(elem => elem !== peer)
                 break;
             }
+            id += 1;
         }
-        if (Object.keys(connections).length >= MAX_PLAYERS) {
+        if (id >= MAX_PLAYERS) {
             message = {...gameState}
             message.queuePosition = connectionQueue.indexOf(peer) + 1
             peer.send(JSON.stringify(message))
@@ -111,12 +114,12 @@ function broadcast(baseMessage) {
     gameState = baseMessage
     for (let id in connections) {
         baseMessage.self = id
-        connections[id].socket.send(JSON.stringify(baseMessage))
+        connections[id].send(JSON.stringify(baseMessage))
     }
     delete baseMessage.self
     for (let i = 0; i < connectionQueue.length; i++) {
         baseMessage.queuePosition = i + 1
-        connectionQueue[i].socket.send(JSON.stringify(baseMessage))
+        connectionQueue[i].send(JSON.stringify(baseMessage))
     }
 }
 
