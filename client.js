@@ -43,13 +43,13 @@ function bindDataEvents(peer) {
         content = JSON.parse(data)
         content.self = peer._id
         peer.lastActivityTime = Date.now()
-        //python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
+        python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     })
 
     peer.on('close', () => {
         console.log("CLOSE",peer._id)
         release = { self: peer._id, type: "release" }
-        //python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
+        python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
         if (connections[peer._id]) {
             delete connections[peer._id]
         } else {
@@ -85,7 +85,7 @@ function upkeep() {
                 peer.lastActivityTime = Date.now()
                 connections[peer._id] = peer
                 claim = { self: peer._id, type: "claim" }
-                //python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
+                python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
                 connectionQueue = connectionQueue.filter(elem => elem !== peer)
                 break;
             }
@@ -119,7 +119,7 @@ function broadcast(baseMessage) {
         connectionQueue[i].socket.send(JSON.stringify(baseMessage))
     }
 }
-/*
+
 const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/${GAME}.py`]);
 python_process.stdout.on('data', data => {
     message = data.toString()
@@ -146,5 +146,4 @@ python_process.stderr.on('data', data => {
         }
     }
 });
-*/
 

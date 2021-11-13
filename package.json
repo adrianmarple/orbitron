@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "express": "^4.17.1",
+    "node-pre-gyp": "^0.17.0",
     "simple-peer-server": "^0.0.8",
     "simple-peer-wrapper": "^0.0.2",
     "simple-signal-client": "^3.0.0",
