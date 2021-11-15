@@ -4,7 +4,8 @@ import asyncio
 import board
 import collections
 import json
-import neopixel
+from neopixel_write import neopixel_write
+import digitalio
 import numpy as np
 import numbers
 import pathlib
@@ -55,10 +56,15 @@ unique_to_dupes = pixel_info["unique_to_dupes"]
 dupe_to_unique = pixel_info["dupe_to_unique"]
 unique_antipodes = pixel_info["unique_antipodes"]
 
-pixels = np.zeros((SIZE, 3))
-raw_pixels = np.zeros((RAW_SIZE, 3))
+pixels = np.zeros((SIZE, 3),dtype="<u1")
+raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
+dupe_matrix = np.zeros((RAW_SIZE, SIZE),dtype="<u1")
+for (i, dupes) in enumerate(unique_to_dupes):
+  for dupe in dupes:
+    dupe_matrix[dupe, i] = 1
 
-neopixels = neopixel.NeoPixel(board.D18, RAW_SIZE, auto_write=False)
+pin = digitalio.DigitalInOut(board.D18)
+pin.direction = digitalio.Direction.OUTPUT
 print("Running %s pixels" % pixel_info["RAW_SIZE"])
 
 START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
@@ -141,9 +147,10 @@ def update():
 
   pixels = np.minimum(pixels, 255)
   pixels = np.maximum(pixels, 0)
-  for i in range(RAW_SIZE):
-    neopixels[i] = pixels[dupe_to_unique[i]]
-  neopixels.show()
+  raw_pixels = np.matmul(dupe_matrix,pixels)
+  raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
+  output=np.array(raw_pixels,dtype="<u1").tobytes()
+  neopixel_write(pin,output)
 
 
 
@@ -419,9 +426,8 @@ def render_snake():
   phases = np.sin(pi * phases) * 50
   raw_pixels = np.outer(phases, np.ones((1, 3)))
 
-  for i in range(RAW_SIZE):
-    neopixels[i] = raw_pixels[i]
-  neopixels.show()
+  output=np.array(raw_pixels,dtype="<u1").tobytes()
+  neopixel_write(pin,output)
 
 
 def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
@@ -433,7 +439,7 @@ def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
     ds = direction * unique_coord_matrix / COORD_SQ_MAGNITUDE / 2 + 0.5
     ds = ds * 6 - (t * 8 - 1)
     ds = np.maximum(0, np.multiply(ds, (ds - 1)) / -3)
-    pixels += np.outer(ds, color)
+    pixels += np.array(np.outer(ds, color), dtype="<u1")
 
 def render_victory():
   for (i, coord) in enumerate(unique_coords):

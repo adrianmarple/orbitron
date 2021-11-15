@@ -13,7 +13,7 @@ from engine import *
 
 config["NUM_PACMEN"] = 2
 config["NUM_GHOSTS"] = 4
-config["STARTING_POWER_PELLET_COUNT"] = 15
+config["STARTING_POWER_PELLET_COUNT"] = 4
 config["POWER_PELLET_DURATION"] = 10
 config["PACMAN_MOVE_FREQ"] = 0.18
 config["PACMAN_POWER_MOVE_FREQ"] = 0.12
@@ -23,7 +23,7 @@ config["GHOST_RANDOMNESS"] = 0.1
 config["PELLET_SCORE"] = 10
 config["POWER_PELLET_SCORE"] = 50
 config["GHOST_KILL_SCORE"] = 200
-config["VICTORY_SCORE"] = 3000
+config["VICTORY_SCORE"] = 5000
 
 
 battle_channel = None
@@ -34,10 +34,12 @@ are_ghosts_scared = False
 data["score"] = 0
 
 prewarm_audio(sound_file_names=[
-    "battle1.ogg", "battle1Loop.ogg", "victory.mp3", "waiting.ogg",
-    "explosion.wav", "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav",
-  ], start_loop="waiting")
-
+    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3", 
+    "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "explosion.wav"
+  ],
+  #stubs=["battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3"]
+  #, start_loop="waiting"
+  )
 
 scaredy_ghost_color = np.array((0,0,255))
 
@@ -64,6 +66,10 @@ def pacman_start():
     color_string="#d0da23") #yellow
   Ghost(
     position=168,
+    color=(200, 50, 0),
+    color_string="#ff9800") #orange
+  Ghost(
+    position=311,
     color=(200, 50, 0),
     color_string="#ff9800") #orange
 
@@ -135,9 +141,11 @@ def previctory_ontimeout():
 def victory_ontimeout():
   engine.game_state = start_state
   engine.state_end_time = 0
+  data["score"] = 0
   sounds["victory"].fadeout(1000)
   sounds["waiting"].play(loops=-1, fade_ms=2000)
-
+  global are_ghosts_scared
+  are_ghosts_scared = False
 
 
 def render_sandbox():
@@ -231,7 +239,7 @@ class Pacman(Player):
             ghost.stunned = True
             ghost.position = unique_antipodes[ghost.position]
             ghost.hit_time = time()
-            data["score"] = config["GHOST_KILL_SCORE"]
+            data["score"] += config["GHOST_KILL_SCORE"]
             broadcast_state()
             break
           else:

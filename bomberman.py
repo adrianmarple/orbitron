@@ -37,9 +37,12 @@ battle_channel = None
 vamp = None
 
 prewarm_audio(sound_file_names=[
-    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg", "explosion.wav",
-    "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "victory.mp3", "waiting.ogg",
-  ], start_loop="waiting")
+    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3", 
+    "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "explosion.wav"
+  ],
+  #stubs=["battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3"]
+  start_loop="waiting"
+  )
 
 
 
@@ -396,7 +399,7 @@ class Bomberman(Player):
       # Hurt
       killer = explosion_providence[pos]
       suicide = killer == self
-      frag = killer.team == self.team and config["TEAM_MODE"]
+      frag = killer and killer.team == self.team and config["TEAM_MODE"]
       if frag and config["FRAG_SUICIDE"]:
         suicide = True
       if suicide and config["SUICIDE_STUN"]:

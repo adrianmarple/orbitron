@@ -24,7 +24,7 @@ class SoundShell:
 sounds = {}
 
 
-def prewarm_audio(sound_file_names, music_directory="/home/pi/Rhomberman/audio/", start_loop=""):
+def prewarm_audio(sound_file_names, stubs=None, music_directory="/home/pi/Rhomberman/audio/", start_loop=""):
   def thread_func():
     try:
       mixer.init(devicename="USB Audio Device, USB Audio")
@@ -45,6 +45,12 @@ def prewarm_audio(sound_file_names, music_directory="/home/pi/Rhomberman/audio/"
   for file_name in sound_file_names:
     name = file_name[:-4]
     sounds[name] = SoundShell()
+
+  if stubs:
+    for name in stubs:
+      name = name[:-4]
+      sounds[name] = SoundShell()
+      
 
   prewarm_thread = Thread(target=thread_func)
   prewarm_thread.start()
