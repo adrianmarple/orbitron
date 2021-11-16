@@ -1,4 +1,6 @@
 {
+  "name":"Super Obritron",
+  "verstion": "1.0.0",
   "dependencies": {
     "child_process": "^1.0.2",
     "express": "^4.17.1",
@@ -14,5 +16,8 @@
     "socket.io": "^4.3.2",
     "socket.io-client": "^4.3.2",
     "wrtc": "^0.4.7"
+  },
+  "scripts": {
+    "start": "node switchboard.js"
   }
 }
