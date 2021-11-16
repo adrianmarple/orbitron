@@ -1,5 +1,5 @@
 {
-  "name":"Super Obritron",
+  "name":"super-obritron",
   "verstion": "1.0.0",
   "dependencies": {
     "child_process": "^1.0.2",
