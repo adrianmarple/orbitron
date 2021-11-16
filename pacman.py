@@ -338,6 +338,3 @@ class Ghost(Player):
 
     Player.render(self)
 
-# ================================ Actual Start =========================================
-
-start(pacman_start, start_state)

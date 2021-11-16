@@ -119,7 +119,8 @@ function broadcast(baseMessage) {
     connectionQueue[i].socket.send(JSON.stringify(baseMessage))
   }
 }
-const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/${GAME}.py`]);
+// const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/${GAME}.py`]);
+const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/main.py`]);
 python_process.stdout.on('data', data => {
   message = data.toString()
   if (data[0] == 123) { // check is first char is '{'
@@ -141,11 +142,13 @@ python_process.stderr.on('data', data => {
   if (!message.includes("underrun occurred")) {
     message = message.slice(0, -1)
     if (message) {
-      console.log(message)
+      console.error(message)
     }
   }
 });
 
+let start_message = { type: "start", game: GAME }
+python_process.stdin.write(JSON.stringify(start_message) + "\n", "utf8")
 
 
 // Simple HTTP server

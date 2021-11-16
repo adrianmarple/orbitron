@@ -1,25 +1,17 @@
 #!/usr/bin/env python
 
-import asyncio
 import board
 import collections
 import json
 from neopixel_write import neopixel_write
 import digitalio
 import numpy as np
-import numbers
-import pathlib
-import socket
-import ssl
-import subprocess
-import urllib.request
-import websockets
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
-from threading import Thread
-from time import time, sleep
+# from threading import Thread
+from time import time
 
 
 
@@ -104,18 +96,17 @@ class State:
 
 # ================================ START =========================================
 
-def start(start_function, starting_state):
-  start_function()
+def start(starting_state):
   global start_state, game_state
   start_state = starting_state
   game_state = start_state
 
-  last_frame_time = time()
-  while True:
-    update()
-    frame_time = time() - last_frame_time
-    # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)))
-    last_frame_time = time()
+  # last_frame_time = time()
+  # while True:
+  #   update()
+  #   frame_time = time() - last_frame_time
+  #   # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)))
+  #   last_frame_time = time()
 
 
 # ================================ UPDATE =========================================
@@ -125,6 +116,11 @@ def update():
   global game_state, state_end_time
   global victory_color, victory_color_string
   global pixels
+
+  # Render special idle state if no one is there
+  if not game_state or (game_state == start_state and len(claimed_players()) == 0):
+    render_snake()
+    return
 
   game_state.update()
 
@@ -137,10 +133,6 @@ def update():
   if game_state == start_state and remaining_time > 0 and remaining_time % 1 < 0.05:
     broadcast_state()
 
-  # Render special idle state if no one is there
-  if game_state == start_state and len(claimed_players()) == 0:
-    render_snake()
-    return
 
   pixels *= 0
   game_state.render()
@@ -151,7 +143,6 @@ def update():
   raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
   output=np.array(raw_pixels,dtype="<u1").tobytes()
   neopixel_write(pin,output)
-
 
 
 # ================================ TEAM =========================================
@@ -446,7 +437,7 @@ def render_victory():
     color_pixel(i, victory_color * sin(coord[2] - 4*time()))
 
 
-# ================================ WebSocket stuff =========================================
+# ================================ Communication with node.js =========================================
 
 def broadcast_event(event):
   print(json.dumps(event))
@@ -469,42 +460,55 @@ def broadcast_state():
   last_broadcast_time = time()
 
 
-import fileinput
+# import fileinput
 
 
-def consume_input():
-  for line in fileinput.input():
-    try:
-      message = json.loads(line)
+# def consume_input():
+#   for line in fileinput.input():
+#     try:
+#       message = json.loads(line)
 
-      player = players[message["self"]]
+#       player = players[message["self"]]
 
-      if message["type"] == "move":
-        player.move_direction = np.array(message["move"])
-      elif message["type"] == "ready":
-        player.set_ready()
-      elif message["type"] == "unready":
-        player.set_unready()
-      elif message["type"] == "pulse":
-        player.pulse()
-      elif message["type"] == "claim":
-        player.is_claimed = True
-        broadcast_state()
-      elif message["type"] == "release":
-        player.is_claimed = False
-        broadcast_state()
-      elif message["type"] == "tap":
-        player.tap = time()
-      elif message["type"] == "settings":
-        config.update(message["update"])
-        broadcast_state()
-      else:
-        print("Unknown message type:")
-        print(message)
-    except json.decoder.JSONDecodeError:
-      print("Bad input:\n%s" % line)
+#       if message["type"] == "move":
+#         player.move_direction = np.array(message["move"])
+#       elif message["type"] == "ready":
+#         player.set_ready()
+#       elif message["type"] == "unready":
+#         player.set_unready()
+#       elif message["type"] == "pulse":
+#         player.pulse()
+#       elif message["type"] == "claim":
+#         player.is_claimed = True
+#         broadcast_state()
+#       elif message["type"] == "release":
+#         player.is_claimed = False
+#         broadcast_state()
+#       elif message["type"] == "tap":
+#         player.tap = time()
+#       elif message["type"] == "settings":
+#         config.update(message["update"])
+#         broadcast_state()
+#       else:
+#         print("Unknown message type:")
+#         print(message)
+#     except json.decoder.JSONDecodeError:
+#       print("Bad input:\n%s" % line)
 
 
-thread = Thread(target=consume_input)
-thread.start()
+# thread = Thread(target=consume_input)
+# thread.start()
+
+
+
+# ================================ Core loop =========================================
+
+def run_core_loop():
+  last_frame_time = time()
+  while True:
+    update()
+    frame_time = time() - last_frame_time
+    # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)))
+    last_frame_time = time()
+
 

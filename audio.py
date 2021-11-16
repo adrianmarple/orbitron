@@ -44,12 +44,12 @@ def prewarm_audio(sound_file_names, stubs=None, music_directory="/home/pi/Rhombe
 
   for file_name in sound_file_names:
     name = file_name[:-4]
-    sounds[name] = SoundShell()
+    if not name in sounds:
+      sounds[name] = SoundShell()
 
   if stubs:
     for name in stubs:
       name = name[:-4]
-      sounds[name] = SoundShell()
       
 
   prewarm_thread = Thread(target=thread_func)

@@ -627,8 +627,3 @@ class Bomb:
     explosion_providence[pos] = self.owner
     secondary_explosion_providence[pos] = self.secondary_owner
 
-
-
-# ================================ Actual Start =========================================
-
-start(bomberman_start, start_state)
