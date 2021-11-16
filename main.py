@@ -25,6 +25,7 @@ def consume_input():
 
       if message["type"] == "quit":
         current_game = "none"
+        engine.quit()
       elif message["type"] == "start":
         current_game = message["game"]
         print("Starting %s" % current_game)
@@ -52,7 +53,7 @@ def consume_input():
       elif message["type"] == "tap":
         player.tap = time()
       elif message["type"] == "settings":
-        config.update(message["update"])
+        engine.config.update(message["update"])
         engine.broadcast_state()
       else:
         print("Unknown message type:")

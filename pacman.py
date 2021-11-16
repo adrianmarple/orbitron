@@ -11,6 +11,7 @@ import engine
 from engine import *
 
 
+config["PACMEN_LIVES"] = 3
 config["NUM_PACMEN"] = 2
 config["NUM_GHOSTS"] = 4
 config["STARTING_POWER_PELLET_COUNT"] = 4
@@ -168,6 +169,7 @@ def render_game():
   for player in playing_players():
     player.render_ghost_trail()
 
+  power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 4))
   for i in range(SIZE):
     if statuses[i] == "blank":
       # already handled
@@ -175,7 +177,7 @@ def render_game():
     elif statuses[i] == "pellet":
       color_pixel(i, (10, 10, 10))
     elif statuses[i] == "power":
-      color_pixel(i, (255, 255, 255))
+      color_pixel(i, power_color)
 
   for player in playing_players():
     player.render()
@@ -212,18 +214,23 @@ class Pacman(Player):
     Player.__init__(self, *args, **kwargs)
     self.is_pacman = True
 
+  def reset(self):
+    Player.reset(self)
+    self.lives_left = config["PACMEN_LIVES"]
+
 
   def cant_move(self):
-    move_freq = config["PACMAN_POWER_MOVE_FREQ"] if are_ghosts_scared else config["PACMAN_MOVE_FREQ"]
+    is_fast = are_ghosts_scared or time() - self.hit_time < config["INVULNERABILITY_TIME"]
+    move_freq = config["PACMAN_POWER_MOVE_FREQ"] if is_fast else config["PACMAN_MOVE_FREQ"]
     return (not self.is_alive or
       self.stunned or
-      (game_state == start_state and self.is_ready) or # Don't move when marked ready
+      (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < move_freq or # just moved
       (self.move_direction == ZERO_2D).all()
     )
 
   def is_occupied(self, position):
-    considered_players = claimed_players() if game_state == start_state else playing_players()
+    considered_players = claimed_players() if engine.game_state == start_state else playing_players()
     for player in considered_players:
       if player.is_alive and player.is_pacman == self.is_pacman and player.position == position:
         return True
@@ -232,7 +239,7 @@ class Pacman(Player):
   def move(self):
     global power_pellet_start_time, are_ghosts_scared
 
-    if self.is_alive:
+    if self.is_alive and engine.game_state != start_state:
       for ghost in ghosts():
         if ghost.position == self.position:
           if are_ghosts_scared:
@@ -242,10 +249,16 @@ class Pacman(Player):
             data["score"] += config["GHOST_KILL_SCORE"]
             broadcast_state()
             break
-          else:
-            self.is_alive = False
+          elif time() - self.hit_time > config["INVULNERABILITY_TIME"]:
+            self.hit_time = time()
+            self.lives_left -= 1
+            if self.lives_left < 0:
+              self.is_alive = False
             broadcast_state()
-            return
+            break
+
+    if not self.is_alive:
+      return
 
     Player.move(self)
 
@@ -258,6 +271,12 @@ class Pacman(Player):
     elif statuses[self.position] == "pellet":
       data["score"] += config["PELLET_SCORE"]
       statuses[self.position] = "blank"
+
+  def to_json(self):
+    dictionary = Player.to_json(self)
+    dictionary["isPacman"] = True
+    dictionary["livesLeft"] = self.lives_left
+    return dictionary
 
 
 class Ghost(Player):
@@ -278,7 +297,7 @@ class Ghost(Player):
   def cant_move(self):
     move_freq = config["GHOST_SCARED_MOVE_FREQ"] if are_ghosts_scared else config["GHOST_MOVE_FREQ"]
     return (self.stunned or
-      (game_state == start_state and self.is_ready) or # Don't move when marked ready
+      (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < move_freq or # just moved
       (self.is_claimed and (self.move_direction == ZERO_2D).all())
     )
@@ -322,7 +341,7 @@ class Ghost(Player):
 
 
   def is_occupied(self, position):
-    considered_players = claimed_players() if game_state == start_state else playing_players()
+    considered_players = claimed_players() if engine.game_state == start_state else playing_players()
     for player in considered_players:
       if player.is_alive and player.is_pacman == self.is_pacman and player.position == position:
         return True

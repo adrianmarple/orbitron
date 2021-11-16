@@ -288,6 +288,9 @@ body, #app, .main {
       <div>
         Score: {{score}}
       </div>
+      <div v-if="self.isPacman">
+        Lives left: {{self.livesLeft}}
+      </div>
       <div v-if="!self.isPlaying">
         You have to wait until next round :(
       </div>
@@ -330,6 +333,7 @@ var app = new Vue({
     settings: false,
 
     settingTypes: [
+      {name: "PACMEN_LIVES"},
       {name: "STARTING_POWER_PELLET_COUNT"},
       {name: "POWER_PELLET_DURATION"},
       {name: "VICTORY_SCORE"},

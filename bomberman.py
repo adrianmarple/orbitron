@@ -473,21 +473,28 @@ class Bomberman(Player):
     if self.is_alive:
       color_pixel(self.position, color)
 
-
   def to_json(self):
-    # TODO use base class to_json
-    return {
-      "isClaimed": self.is_claimed,
-      "isReady": self.is_ready,
-      "isPlaying": self.is_playing,
-      "isAlive": self.is_alive,
-      "color": self.color_string,
-      "position": self.position,
-      "bombPower": self.bomb_power,
-      "killCount": self.kill_count,
-      "deathCount": self.death_count,
-      "team": self.team.id,
-    }
+    dictionary = Player.to_json(self)
+    dictionary["bombPower"] = self.bomb_power
+    dictionary["killCount"] = self.kill_count
+    dictionary["deathCount"] = self.death_count
+    dictionary["team"] = self.team.id
+    return dictionary
+
+  # def to_json(self):
+  #   # TODO use base class to_json
+  #   return {
+  #     "isClaimed": self.is_claimed,
+  #     "isReady": self.is_ready,
+  #     "isPlaying": self.is_playing,
+  #     "isAlive": self.is_alive,
+  #     "color": self.color_string,
+  #     "position": self.position,
+  #     "bombPower": self.bomb_power,
+  #     "killCount": self.kill_count,
+  #     "deathCount": self.death_count,
+  #     "team": self.team.id,
+  #   }
 
 
 

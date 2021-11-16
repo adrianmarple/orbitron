@@ -101,12 +101,10 @@ def start(starting_state):
   start_state = starting_state
   game_state = start_state
 
-  # last_frame_time = time()
-  # while True:
-  #   update()
-  #   frame_time = time() - last_frame_time
-  #   # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)))
-  #   last_frame_time = time()
+def quit():
+  global start_state, game_state
+  start_state = None
+  game_state = None
 
 
 # ================================ UPDATE =========================================
@@ -299,8 +297,9 @@ class Player:
     color = self.current_color()
 
     flash_time = config["STUN_TIME"] if self.stunned else config["INVULNERABILITY_TIME"]
+    flash_speed = 16 if self.stunned else 30
     if time() - self.hit_time < flash_time:
-      color = color * sin(time() * 20)
+      color = color * sin(time() * flash_speed)
 
     if self.is_alive:
       color_pixel(self.position, color)
