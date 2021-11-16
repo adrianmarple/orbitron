@@ -74,8 +74,8 @@ function upkeep() {
             let player = gameState.players[peer.pid]
             if (!player.isReady && !player.isPlaying &&
                 Date.now() - peer.lastActivityTime > 30*1000) { // 30 seconds
-                console.log("Player timed out.")
-                peer.destroy()
+                console.log("Player timed out.",peer._id, peer.id,peer.lastActivityTime)
+                //peer.destroy()
             }
         }
     }
