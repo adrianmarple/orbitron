@@ -10,6 +10,7 @@ const { io } = require("socket.io-client");
 const NO_TIMEOUT = process.argv.includes('-t')
 const INSTALLATION = process.env.INSTALLATION || "debug"
 const KEY = process.env.ORBITRON_KEY || "debug"
+const SWITCHBOARD = process.env.SWITCHBOARD || "https://super-orbitron.herokuapp.com/"
 
 let GAME = "bomberman"
 for (let arg of process.argv.slice(2)) {
@@ -20,7 +21,7 @@ for (let arg of process.argv.slice(2)) {
 }
 
 //WebRTC connection to switchboard
-const socket = io("http://localhost:9000");
+const socket = io(SWITCHBOARD);
 var signalClient = new SimpleSignalClient(socket)
 signalClient.on('discover', (allIDs) => {
     console.log("DISCOVER",allIDs)
