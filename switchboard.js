@@ -4,7 +4,7 @@ const path = require('path')
 const SimplePeerServer = require('simple-peer-server');
 const { Server } = require("socket.io");
 
-let GAME = "bomberman"
+let GAME = process.env.ORBITRON_GAME || "bomberman"
 let PORT = process.env.PORT || 9000
 let DEBUG = process.env.DEBUG || true
 
