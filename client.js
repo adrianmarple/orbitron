@@ -37,13 +37,14 @@ signalClient.on('request', async (request) => {
 
 function bindDataEvents(peer) {
     peer.on('data', data => {
-        console.log("DATA",peer.pid,peer._id,data)
-        if (!peer.pid || !connections[peer.pid]) {
+        console.log("DATA",peer.pid,peer._id,!peer.pid,!connections[peer.pid])
+        if (!typeof(peer.pid)==="number" || !connections[peer.pid]) {
             return
         }
         content = JSON.parse(data)
         content.self = peer.pid
         peer.lastActivityTime = Date.now()
+        console.log("DATA CONTENT",content)
         python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     })
 
@@ -51,7 +52,7 @@ function bindDataEvents(peer) {
         console.log("CLOSE",peer.pid,peer._id)
         release = { self: peer.pid, type: "release" }
         python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
-        if (peer.pid && connections[peer.pid]) {
+        if (typeof(peer.pid)==="number" && connections[peer.pid]) {
             console.log("DELETED FROM CONNECTIONS")
             delete connections[peer.pid]
         } else {
@@ -69,7 +70,7 @@ setInterval(upkeep, 1000)
 
 function upkeep() {
     //refresh signal server
-    console.log("UPKEEP",connections,connectionQueue)
+    console.log("UPKEEP",Object.values(connections).length,connectionQueue.length)
     signalClient.discover({installation:INSTALLATION,key:KEY})
     // Check for stale players
     if (gameState.players && !NO_TIMEOUT) {
