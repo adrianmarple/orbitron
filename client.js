@@ -37,23 +37,25 @@ signalClient.on('request', async (request) => {
 
 function bindDataEvents(peer) {
     peer.on('data', data => {
+        console.log("DATA",peer.pid,peer._id,data)
         if (!peer.pid || !connections[peer.pid]) {
             return
         }
         content = JSON.parse(data)
         content.self = peer.pid
-        console.log("DATA",content)
         peer.lastActivityTime = Date.now()
         python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     })
 
     peer.on('close', () => {
-        console.log("CLOSE",peer.pid)
+        console.log("CLOSE",peer.pid,peer._id)
         release = { self: peer.pid, type: "release" }
         python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
         if (peer.pid && connections[peer.pid]) {
+            console.log("DELETED FROM CONNECTIONS")
             delete connections[peer.pid]
         } else {
+            console.log("DELETED FROM CONNECTION QUEUE")
             connectionQueue = connectionQueue.filter(elem => elem !== peer)
         }
 
@@ -67,6 +69,7 @@ setInterval(upkeep, 1000)
 
 function upkeep() {
     //refresh signal server
+    console.log("UPKEEP",connections,connectionQueue)
     signalClient.discover({installation:INSTALLATION,key:KEY})
     // Check for stale players
     if (gameState.players && !NO_TIMEOUT) {
@@ -74,8 +77,8 @@ function upkeep() {
             let player = gameState.players[peer.pid]
             if (!player.isReady && !player.isPlaying &&
                 Date.now() - peer.lastActivityTime > 30*1000) { // 30 seconds
-                console.log("Player timed out.",peer._id, peer.id,peer.lastActivityTime)
-                //peer.destroy()
+                console.log("Player timed out.",peer._id, peer.pid,peer.lastActivityTime)
+                peer.destroy("TIMEOUT")
             }
         }
     }
