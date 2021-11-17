@@ -347,6 +347,7 @@ var app = new Vue({
   el: '#app',
   data: {
     ws: null,
+    connectionStatus: "CONNECTING",
     showSettings: false,
     oldConfig: null,
     state: {},
@@ -388,6 +389,7 @@ var app = new Vue({
     // onfocus = startWebsocket
     // onblur = () => {
     //   this.destroyWebsocket()
+    //   this.connectionStatus = "BLURRED"
     // };
 
 
@@ -435,7 +437,7 @@ var app = new Vue({
       return this.state.config || {}
     },
     hasClaimed() {
-      return this.state.self && this.ws
+      return this.state.self && this.ws //this.connectionStatus == "CONNECTED"
     },
     self() {
       if (this.state.players)
@@ -502,7 +504,12 @@ var app = new Vue({
       if (!this.ws) {
         this.startWebsocket()
       } else {
-        this.ws.send(JSON.stringify(json))
+        try {
+          this.ws.send(JSON.stringify(json))
+        } catch (error) {
+          this.destroyWebsocket()
+          this.startWebsocket()
+        }
       }
     },
 
@@ -523,11 +530,14 @@ var app = new Vue({
       if(self.signalClient) {
         return // Already trying to establish a connection
       }
-      self.socket = io("https://super-orbitron.herokuapp.com");
+      this.connectionStatus = "CONNECTING"
+      // self.socket = io("https://super-orbitron.herokuapp.com")
+      self.socket = io(location.origin)
       self.signalClient = new SimpleSignalClient(self.socket)
       self.signalClient.on('discover', async (allIDs) => {
         allIDs.forEach(async function(id){
           const { peer } = await self.signalClient.connect(id)
+          this.connectionStatus = "CONNECTED"
           console.log(peer)
           self.ws = peer
           peer.on('data', function(data){
@@ -547,10 +557,12 @@ var app = new Vue({
           })
           peer.on('close',function(){
             console.log("CLOSE")
+            this.connectionStatus = "TIMEDOUT"
             setTimeout(function(){ self.destroyWebsocket(); })
           })
           peer.on('error', (err) => {
             console.error("ERROR",err)
+            this.connectionStatus = "ERROR"
             setTimeout(function(){ self.destroyWebsocket(); })
           })
         })
