@@ -387,7 +387,8 @@ var app = new Vue({
     this.warmUpAudio()
     // onfocus = startWebsocket
     // onblur = () => {
-    //   this.ws.close()
+    //   this.ws.destroy()
+    //   this.ws = null
     // };
 
 
@@ -507,14 +508,23 @@ var app = new Vue({
     },
 
     startWebsocket() {
-      var socket = io("https://super-orbitron.herokuapp.com");
-      signalClient = new SimpleSignalClient(socket)
       let self=this
-      signalClient.on('discover', async (allIDs) => {
+      if(self.ws){
+        self.ws.destroy()
+        self.ws = null
+      }
+      if(self.socket) {
+        self.socket.close()
+        self.socket = null
+        self.signalClient = null
+      }
+      self.socket = io("https://super-orbitron.herokuapp.com");
+      self.signalClient = new SimpleSignalClient(self.socket)
+      self.signalClient.on('discover', async (allIDs) => {
         allIDs.forEach(async function(id){
-          const { peer } = await signalClient.connect(id)
+          const { peer } = await self.signalClient.connect(id)
           console.log(peer)
-          self.ws=peer
+          self.ws = peer
           peer.on('data', function(data){
             console.log("DATA",data)
             message = JSON.parse(data)
@@ -532,14 +542,14 @@ var app = new Vue({
           })
           peer.on('close',function(){
             console.log("CLOSE")
-            self.ws=null
+            self.ws = null
           })
           peer.on('error', (err) => {
             console.error("ERROR",err)
           })
         })
       })
-      signalClient.discover({installation:"debug"})
+      self.signalClient.discover({installation:"debug"})
     },
 
     handleStart(location) {
