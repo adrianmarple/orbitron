@@ -9,6 +9,8 @@
 <link rel="shortcut icon" href="/images/favicon.jpg" />
 <script src="/vue.js" type="text/javascript"></script>
 <script src="/math.js" type="text/javascript"></script>
+<script src="/simple-signal-client.min.js" type="text/javascript"></script>
+<script src="/socket.io/socket.io.js" type="text/javascript"></script>
 
 <style type="text/css">
 
@@ -385,7 +387,7 @@ var app = new Vue({
     this.warmUpAudio()
     // onfocus = startWebsocket
     // onblur = () => {
-    //   this.ws.close()
+    //   this.destroyWebsocket()
     // };
 
 
@@ -433,7 +435,7 @@ var app = new Vue({
       return this.state.config || {}
     },
     hasClaimed() {
-      return this.state.self && this.ws.readyState === WebSocket.OPEN
+      return this.state.self && this.ws
     },
     self() {
       if (this.state.players)
@@ -497,37 +499,62 @@ var app = new Vue({
 
   methods: {
     send(json) {
-      if (this.ws.readyState === WebSocket.CLOSED) {
+      if (!this.ws) {
         this.startWebsocket()
-      } else if (this.ws.readyState === WebSocket.OPEN) {
+      } else {
         this.ws.send(JSON.stringify(json))
       }
     },
 
-    startWebsocket() {
-      this.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
-      this.ws.onmessage = event => {
-        message = JSON.parse(event.data)
-        switch(message.event) {
-        case "sound":
-          if (message.playerId < 0 || message.playerId == message.self) {
-            this.playSound(message.type)
-          }
-          break
-        default:
-          this.state = message
-          // console.log(message)
-          this.$forceUpdate()
-        }
-      };
+    destroyWebsocket() {
+      if(this.ws) {
+        this.ws.destroy()
+        this.ws = null
+      }
+      if(this.socket) {
+        this.socket.close()
+        this.socket = null
+      }
+      this.signalClient = null
+    },
 
-      let self = this
-      this.ws.onerror = event => {
-        console.log("WebSocket error observed")
+    startWebsocket() {
+      let self=this
+      if(self.signalClient) {
+        return // Already trying to establish a connection
       }
-      this.ws.onclose = event => {
-        console.log("WebSocket closed")
-      }
+      self.socket = io("https://super-orbitron.herokuapp.com");
+      self.signalClient = new SimpleSignalClient(self.socket)
+      self.signalClient.on('discover', async (allIDs) => {
+        allIDs.forEach(async function(id){
+          const { peer } = await self.signalClient.connect(id)
+          console.log(peer)
+          self.ws = peer
+          peer.on('data', function(data){
+            console.log("DATA",data)
+            message = JSON.parse(data)
+            switch(message.event) {
+            case "sound":
+              if (message.playerId < 0 || message.playerId == message.self) {
+                self.playSound(message.type)
+              }
+              break
+            default:
+              self.state = message
+              // console.log(message)
+              self.$forceUpdate()
+            }
+          })
+          peer.on('close',function(){
+            console.log("CLOSE")
+            setTimeout(function(){ self.destroyWebsocket(); })
+          })
+          peer.on('error', (err) => {
+            console.error("ERROR",err)
+          })
+        })
+      })
+      self.signalClient.discover({installation:"debug"})
     },
 
     handleStart(location) {

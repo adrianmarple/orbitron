@@ -1,0 +1,23 @@
+{
+  "name": "super-obritron",
+  "verstion": "1.0.0",
+  "dependencies": {
+    "child_process": "^1.0.2",
+    "express": "^4.17.1",
+    "fs": "^0.0.1-security",
+    "http": "^0.0.1-security",
+    "node-pre-gyp": "^0.17.0",
+    "path": "^0.12.7",
+    "process": "^0.11.10",
+    "simple-peer-server": "^0.0.8",
+    "simple-peer-wrapper": "^0.0.2",
+    "simple-signal-client": "^3.0.0",
+    "simple-signal-server": "^3.0.0",
+    "socket.io": "^4.3.2",
+    "socket.io-client": "^4.3.2",
+    "wrtc": "^0.4.7"
+  },
+  "scripts": {
+    "start": "node switchboard.js"
+  }
+}
