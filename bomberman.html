@@ -387,8 +387,7 @@ var app = new Vue({
     this.warmUpAudio()
     // onfocus = startWebsocket
     // onblur = () => {
-    //   this.ws.destroy()
-    //   this.ws = null
+    //   this.destroyWebsocket()
     // };
 
 
@@ -507,16 +506,22 @@ var app = new Vue({
       }
     },
 
+    destroyWebsocket() {
+      if(this.ws) {
+        this.ws.destroy()
+        this.ws = null
+      }
+      if(this.socket) {
+        this.socket.close()
+        this.socket = null
+      }
+      this.signalClient = null
+    }
+
     startWebsocket() {
       let self=this
-      if(self.ws){
-        self.ws.destroy()
-        self.ws = null
-      }
-      if(self.socket) {
-        self.socket.close()
-        self.socket = null
-        self.signalClient = null
+      if(self.signalClient) {
+        return // Already trying to establish a connection
       }
       self.socket = io("https://super-orbitron.herokuapp.com");
       self.signalClient = new SimpleSignalClient(self.socket)
@@ -542,7 +547,7 @@ var app = new Vue({
           })
           peer.on('close',function(){
             console.log("CLOSE")
-            self.ws = null
+            setTimeout(function(){ self.destroyWebsocket(); })
           })
           peer.on('error', (err) => {
             console.error("ERROR",err)
