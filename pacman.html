@@ -268,7 +268,19 @@ body, #app, .main {
       >
         I'm not ready.
       </div>
-      <div v-else
+      <div v-if="!self.isReady && self.isPacman"
+        class="button"
+        @click.stop="changeRole('ghost')"
+      >
+        Become Ghost
+      </div>
+      <div v-if="!self.isReady && !self.isPacman"
+        class="button"
+        @click.stop="changeRole('pacman')"
+      >
+        Become PacMan
+      </div>
+      <div v-if="!self.isReady"
         class="button"
         @click.stop="makeReady"
       >
@@ -336,7 +348,10 @@ var app = new Vue({
       {name: "PACMEN_LIVES"},
       {name: "STARTING_POWER_PELLET_COUNT"},
       {name: "POWER_PELLET_DURATION"},
+      {name: "PELLET_REGEN_FREQ"},
+      {name: "POWER_PELLET_REGEN_FREQ"},
       {name: "VICTORY_SCORE"},
+      {name: "MULTI_PACMAN_VICTORY_SCORE"},
       {name: "GHOST_KILL_SCORE"},
       {name: "PELLET_SCORE"},
       {name: "POWER_PELLET_SCORE"},
@@ -551,6 +566,9 @@ var app = new Vue({
       this.settings = !this.settings;
     },
 
+    changeRole(role) {
+      this.send({type: "roleChange", role})
+    },
     makeReady() {
       this.send({type: "ready"})
     },

@@ -12,9 +12,10 @@ from time import time
 from threading import Thread
 
 current_game = "none"
+game_module = None
 
 def consume_input():
-  global current_game
+  global current_game, game_module
 
   for line in fileinput.input():
     try:
@@ -22,20 +23,24 @@ def consume_input():
 
       if "self" in message:
         player = engine.players[message["self"]]
+      else:
+        player = None
 
       if message["type"] == "quit":
         current_game = "none"
+        game_module = None
         engine.quit()
       elif message["type"] == "start":
         current_game = message["game"]
         print("Starting %s" % current_game)
-        # TODO transfer claimed players
         if current_game == "bomberman":
-          bomberman.bomberman_start()
-          engine.start(bomberman.start_state)
+          game_module = bomberman
         elif current_game == "pacman":
-          pacman.pacman_start()
-          engine.start(pacman.start_state)
+          game_module = pacman
+
+        game_module.setup()
+        engine.start(game_module.start_state)
+
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])
       elif message["type"] == "ready":
@@ -55,9 +60,8 @@ def consume_input():
       elif message["type"] == "settings":
         engine.config.update(message["update"])
         engine.broadcast_state()
-      else:
-        print("Unknown message type:")
-        print(message)
+      elif game_module:
+        game_module.handle_event(message, player)
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line)
 

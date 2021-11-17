@@ -13,7 +13,7 @@ from engine import *
 
 config["PACMEN_LIVES"] = 3
 config["NUM_PACMEN"] = 2
-config["NUM_GHOSTS"] = 4
+config["NUM_GHOSTS"] = 5
 config["STARTING_POWER_PELLET_COUNT"] = 4
 config["POWER_PELLET_DURATION"] = 10
 config["PACMAN_MOVE_FREQ"] = 0.18
@@ -24,7 +24,10 @@ config["GHOST_RANDOMNESS"] = 0.1
 config["PELLET_SCORE"] = 10
 config["POWER_PELLET_SCORE"] = 50
 config["GHOST_KILL_SCORE"] = 200
-config["VICTORY_SCORE"] = 5000
+config["VICTORY_SCORE"] = 3000
+config["MULTI_PACMAN_VICTORY_SCORE"] = 5000
+config["PELLET_REGEN_FREQ"] = 3
+config["POWER_PELLET_REGEN_FREQ"] = 20
 
 
 battle_channel = None
@@ -44,35 +47,39 @@ prewarm_audio(sound_file_names=[
 
 scaredy_ghost_color = np.array((0,0,255))
 
-def pacman_start():
-  Pacman(
-    position=105,
-    color=(190, 200, 5),
-    color_string="#dad023") #yellow
-  Ghost(
-    position=198,
-    color=(255, 0, 0),
-    color_string="#ff0000") #red
-  Ghost(
-    position=24,
-    color=(200, 5, 30),
-    color_string="#e91e63") #pink
-  Ghost(
-    position=252,
-    color=(2, 60, 200),
-    color_string="#1e88e5") #cyan
-  Pacman(
-    position=54,
-    color=(200, 180, 2),
-    color_string="#d0da23") #yellow
-  Ghost(
-    position=168,
-    color=(200, 50, 0),
-    color_string="#ff9800") #orange
-  Ghost(
-    position=311,
-    color=(200, 50, 0),
-    color_string="#ff9800") #orange
+ghost_colors = [
+  np.array((255, 0, 0)),
+  np.array((200, 5, 30)),
+  np.array((0, 200, 0)),
+  np.array((200, 50, 0)),
+  np.array((50, 0, 150)),
+  np.array((180, 200, 5)),
+]
+ghost_color_strings = [
+  "#ff0000",
+  "#e91e63",
+  "#4caf50",
+  "#ff9800",
+  "#9575cd",
+  "#c0ca33",
+]
+
+def setup():
+  Pacman(position=105)
+  Ghost(position=198)
+  Ghost(position=24)
+  Ghost(position=252)
+  Ghost(position=168)
+  Ghost(position=311)
+  Ghost(position=76)
+
+def handle_event(message, player):
+  if message["type"] == "roleChange":
+    if message["role"] == "ghost":
+      new_player = Ghost(template_player=player)
+    else:
+      new_player = Pacman(template_player=player)
+    broadcast_state()
 
 
 def start_update():
@@ -81,8 +88,25 @@ def start_update():
       player.move()
 
   if engine.state_end_time == 0 and is_everyone_ready(minimum=1):
-    for player in players: # TODO adapt to add as many ghosts as needed
-      player.is_playing = True
+    for pacman in pacmen():
+      if pacman.is_claimed:
+        pacman.is_playing = True
+
+    ghost_count = 0
+    for ghost in ghosts():
+      if ghost.is_claimed:
+        ghost.is_playing = True
+        ghost_count += 1
+
+    # Suppliment with AI ghosts
+    for ghost in ghosts():
+      if ghost_count >= config["NUM_GHOSTS"]:
+        break
+      if not ghost.is_claimed:
+        ghost.is_playing = True
+        ghost.set_color()
+        ghost_count += 1
+
     for i in range(len(statuses)):
       statuses[i] = "pellet"
 
@@ -119,7 +143,8 @@ def play_update():
     if status == "pellet":
       pellet_count += 1
 
-  if data["score"] >= config["VICTORY_SCORE"]:
+  victory_score = config["VICTORY_SCORE"] if len(pacmen()) == 1 else config["MULTI_PACMAN_VICTORY_SCORE"]
+  if data["score"] >= victory_score:
     gameover("pacmen")
 
 
@@ -211,6 +236,8 @@ victory_state = State("victory", start_update, victory_ontimeout, render_victory
 
 class Pacman(Player):
   def __init__(self, *args, **kwargs):
+    kwargs["color"] = (190, 195, 5)
+    kwargs["color_string"] = "#e7e023"
     Player.__init__(self, *args, **kwargs)
     self.is_pacman = True
 
@@ -241,7 +268,7 @@ class Pacman(Player):
 
     if self.is_alive and engine.game_state != start_state:
       for ghost in ghosts():
-        if ghost.position == self.position:
+        if ghost.is_playing and ghost.position == self.position:
           if are_ghosts_scared:
             ghost.stunned = True
             ghost.position = unique_antipodes[ghost.position]
@@ -283,6 +310,22 @@ class Ghost(Player):
   def __init__(self, *args, **kwargs):
     Player.__init__(self, *args, **kwargs)
     self.is_pacman = False
+    self.set_color()
+
+  def set_color(self):
+    for (color_index, color_string) in enumerate(ghost_color_strings):
+      color_is_available = True
+      for ghost in ghosts():
+        if (ghost.is_claimed or not self.is_claimed) and ghost.color_string == color_string:
+          color_is_available = False
+          break
+
+      if color_is_available:
+        self.color = ghost_colors[color_index]
+        self.team_color = self.color
+        self.color_string = color_string
+        return
+
 
   def current_color(self):
     if are_ghosts_scared:

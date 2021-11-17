@@ -46,7 +46,7 @@ prewarm_audio(sound_file_names=[
 
 
 
-def bomberman_start():
+def setup():
   Bomberman(
     position=105,
     color=(0, 200, 0),
@@ -97,6 +97,9 @@ def bomberman_start():
   teams.append(RED_TEAM)
   teams.append(BLUE_TEAM)
 
+
+def handle_event(message):
+  pass
 
 def start_update():
   for player in claimed_players():

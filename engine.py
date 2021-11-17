@@ -166,9 +166,13 @@ class Team:
 GHOST_BUFFER_LEN = 20
 
 class Player:
-  def __init__(self, position, color, color_string, team_color=None):
-    self.id = len(players)
-    players.append(self)
+  def __init__(self,
+      position=0,
+      color=(150,150,150),
+      color_string="white",
+      team_color=None,
+      template_player=None):
+
     self.initial_position = position
     self.color = np.array(color)
     if team_color:
@@ -183,7 +187,7 @@ class Player:
     self.move_direction = np.array((0, 0))
     self.prev_pos = 0
     self.tap = 0
-    self.websocket = None
+
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
     self.ghost_timestamps = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -192,6 +196,18 @@ class Player:
       self.ghost_timestamps.append(0)
 
     self.reset()
+
+    if template_player:
+      self.initial_position = template_player.initial_position
+      self.position = template_player.position
+      self.is_claimed = template_player.is_claimed
+      self.is_ready = template_player.is_ready
+      self.is_playing = template_player.is_playing
+      self.id = template_player.id
+      players[self.id] = self
+    else:
+      self.id = len(players)
+      players.append(self)
 
   def reset(self):
     self.is_ready = False
@@ -214,7 +230,7 @@ class Player:
     broadcast_state()
 
   def current_color(self):
-    return self.color if not config["TEAM_MODE"] else self.team_color
+    return self.team_color if config["TEAM_MODE"] else self.color
 
   def pulse(self):
     self.ready_time = time()
@@ -457,46 +473,6 @@ def broadcast_state():
   }
   print(json.dumps(message))
   last_broadcast_time = time()
-
-
-# import fileinput
-
-
-# def consume_input():
-#   for line in fileinput.input():
-#     try:
-#       message = json.loads(line)
-
-#       player = players[message["self"]]
-
-#       if message["type"] == "move":
-#         player.move_direction = np.array(message["move"])
-#       elif message["type"] == "ready":
-#         player.set_ready()
-#       elif message["type"] == "unready":
-#         player.set_unready()
-#       elif message["type"] == "pulse":
-#         player.pulse()
-#       elif message["type"] == "claim":
-#         player.is_claimed = True
-#         broadcast_state()
-#       elif message["type"] == "release":
-#         player.is_claimed = False
-#         broadcast_state()
-#       elif message["type"] == "tap":
-#         player.tap = time()
-#       elif message["type"] == "settings":
-#         config.update(message["update"])
-#         broadcast_state()
-#       else:
-#         print("Unknown message type:")
-#         print(message)
-#     except json.decoder.JSONDecodeError:
-#       print("Bad input:\n%s" % line)
-
-
-# thread = Thread(target=consume_input)
-# thread.start()
 
 
 
