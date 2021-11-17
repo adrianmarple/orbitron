@@ -67,3 +67,5 @@ node_modules/
 ._*
 .DS_Store
 __pycache__
+package-lock.json
+

@@ -551,6 +551,7 @@ var app = new Vue({
           })
           peer.on('error', (err) => {
             console.error("ERROR",err)
+            setTimeout(function(){ self.destroyWebsocket(); })
           })
         })
       })

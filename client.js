@@ -128,7 +128,7 @@ function broadcast(baseMessage) {
     }
 }
 
-const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/${GAME}.py`]);
+const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/main.py`]);
 python_process.stdout.on('data', data => {
     message = data.toString()
     if (data[0] == 123) { // check is first char is '{'
@@ -155,3 +155,5 @@ python_process.stderr.on('data', data => {
     }
 });
 
+let start_message = { type: "start", game: GAME }
+python_process.stdin.write(JSON.stringify(start_message) + "\n", "utf8")
