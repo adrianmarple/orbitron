@@ -11,7 +11,6 @@ import numpy as np
 from time import time
 from threading import Thread
 
-current_game = "none"
 game_module = None
 
 def consume_input():
@@ -27,17 +26,17 @@ def consume_input():
         player = None
 
       if message["type"] == "quit":
-        current_game = "none"
+        engine.current_game = "none"
         game_module = None
         engine.quit()
       elif message["type"] == "start":
-        current_game = message["game"]
-        print("Starting %s" % current_game)
-        if current_game == "bomberman":
+        engine.current_game = message["game"]
+        print("Starting %s" % engine.current_game)
+        if engine.current_game == "bomberman":
           game_module = bomberman
-        elif current_game == "pacman":
+        elif engine.current_game == "pacman":
           game_module = pacman
-        elif current_game == "snektron":
+        elif engine.current_game == "snektron":
           game_module = snektron
 
         game_module.setup()

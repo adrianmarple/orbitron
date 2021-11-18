@@ -13,7 +13,8 @@ from engine import *
 
 
 config["ROUND_TIME"] = 150
-config["START_LENGTH"] = 3
+config["START_LENGTH"] = 4
+config["ADDITIONAL_APPLES"] = 25
 
 
 battle_channel = None
@@ -95,7 +96,7 @@ def start_ontimeout():
   engine.game_state = play_state
   battle_channel = sounds["battle1"].play()
   vamp = sounds["battle1Loop"]
-  for i in range(len(playing_players())):
+  for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
     spawn_apple()
 
 def victory_ontimeout():
@@ -168,7 +169,7 @@ class Snek(Player):
     Player.__init__(self, *args, **kwargs)
 
   def reset(self):
-    self.score = 0
+    self.score = config["START_LENGTH"]
     self.tail.clear()
     for i in range(config["START_LENGTH"]):
       self.tail.appendleft(self.initial_position)
@@ -198,7 +199,9 @@ class Snek(Player):
     return False
 
   def tail_occupies(self, pos):
-    for position in self.tail:
+    for (i, position) in enumerate(self.tail):
+      if i == 0:
+        continue
       if pos == position:
         return True
     return False
@@ -209,7 +212,6 @@ class Snek(Player):
     self.position = self.tail[0]
 
   def move(self):
-    starting_position = self.position
     if engine.game_state == play_state:
       for player in playing_players():
         if player == self:
@@ -220,9 +222,11 @@ class Snek(Player):
           if player.position==self.position:
             player.die()
 
+    starting_position = self.position
     Player.move(self)
     if self.position==starting_position:
       return
+
     self.tail.appendleft(self.position)
     if statuses[self.position] == "apple":
       self.score = max(len(self.tail),self.score)

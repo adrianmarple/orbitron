@@ -10,7 +10,8 @@ const { io } = require("socket.io-client");
 const NO_TIMEOUT = process.argv.includes('-t')
 const INSTALLATION = process.env.INSTALLATION || "debug"
 const KEY = process.env.ORBITRON_KEY || "debug"
-const SWITCHBOARD = process.env.SWITCHBOARD || "https://super-orbitron.herokuapp.com/"
+const default_switchboard = NO_TIMEOUT ? "http://localhost:9000" : "https://super-orbitron.herokuapp.com/"
+const SWITCHBOARD = process.env.SWITCHBOARD || default_switchboard
 
 let GAME = "bomberman"
 for (let arg of process.argv.slice(2)) {
@@ -118,6 +119,7 @@ gameState = {}
 
 function broadcast(baseMessage) {
     gameState = baseMessage
+    baseMessage.notimeout = NO_TIMEOUT
     for (let id in connections) {
         baseMessage.self = id
         connections[id].send(JSON.stringify(baseMessage))

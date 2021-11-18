@@ -13,7 +13,7 @@ let server = http.createServer(function (request, response) {
   var filePath = request.url
 
   if (filePath == '/')
-    filePath = `${__dirname}/${GAME}.html`
+    filePath = `${__dirname}/index.html`
   else
     filePath = `${__dirname}/${filePath}`
   console.log(filePath);

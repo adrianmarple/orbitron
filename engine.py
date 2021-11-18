@@ -62,6 +62,7 @@ print("Running %s pixels" % pixel_info["RAW_SIZE"])
 START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
 statuses = ["blank"] * SIZE
 
+current_game = "none"
 game_state = None
 state_end_time = 0
 victory_color = None
@@ -464,6 +465,7 @@ def broadcast_state():
   if time() - last_broadcast_time < 0.01:
     return
   message = {
+    "game": current_game,
     "players": [player.to_json() for player in players],
     "teams": [team.to_json() for team in teams],
     "gameState": game_state.name,

@@ -197,7 +197,7 @@ body, #app, .main {
   <div v-if="showSettings" id="settings">
     <span style="font-size: 1.5em">Settings</span>
     <div id="settings-alignment-guide">
-      <div v-for="setting in settingTypes" class="setting">
+      <div v-for="setting in relevantSettings" class="setting">
         {{prettifySettingName(setting.name)}}
         <input
           v-if="setting.boolean"
@@ -233,6 +233,10 @@ body, #app, .main {
   <div id="playerMarker"
     :style="{ backgroundColor: self.color }"
   ></div>
+  <div v-if="BOMBERMAN" id="bombPower">
+    <span>{{self.bombPower}}</span>
+    <img src="images/explosion.png" />
+  </div>
 
 
   <div v-if="!self.isReady || (mode=='play' && self.isPlaying && self.isAlive)"
@@ -246,6 +250,10 @@ body, #app, .main {
     <div class="header">
       <div v-if="!self.isReady">
         Drag to Move
+        <span v-if="BOMBERMAN">
+          <br><br>
+          Tap to Bomb
+        </span>
       </div>
       <div v-else-if="claimedPlayers.length <= 1">Waiting for another player.</div>
       <div v-else>Waiting for...
@@ -259,6 +267,18 @@ body, #app, .main {
     </div>
 
     <div class="buttons">
+      <div v-if="PACMAN && !self.isReady && self.isPacman"
+        class="button"
+        @click.stop="changeRole('ghost')"
+      >
+        Become Ghost
+      </div>
+      <div v-if="PACMAN && !self.isReady && !self.isPacman"
+        class="button"
+        @click.stop="changeRole('pacman')"
+      >
+        Become PacMan
+      </div>
       <div v-if="self.isReady"
         class="button"
         @click.stop="pulse"
@@ -287,8 +307,29 @@ body, #app, .main {
   </div>
 
   <div v-if="mode=='play'" class="main">
-    <div class="header">
-      <div>Live players:
+    <div v-if="BOMBERMAN && config.DEATHMATCH" class="header">
+      <div v-if="config.TEAM_MODE">
+        <div v-for="team in teamsByRanking" class="ranking">
+          <div class="player"
+            :style="{backgroundColor: team.color}"
+          ></div>
+          {{team.killCount}}
+        </div>
+
+      </div>
+      <div v-else>
+        <div v-for="player in playersByRanking" class="ranking">
+          <div class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+          {{player.killCount}}
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="header">
+      <div v-if="BOMBERMAN">
+        Live players:
         <div class="players">
           <div v-for="player in livePlayers"
             class="player"
@@ -296,6 +337,21 @@ body, #app, .main {
           ></div>
         </div>
       </div>
+
+      <div v-if="PACMAN">
+        Score: {{state.data.score}}
+      </div>
+      <div v-if="PACMAN && self.isPacman && self.livesLeft >= 0">
+        Lives left: {{self.livesLeft}}
+      </div>
+
+      <div v-if="SNEKTRON">
+        Best Length: {{self.score}}
+      </div>
+      <div v-if="SNEKTRON">
+        Current Length: {{self.length}}
+      </div>
+
       <div v-if="!self.isPlaying">
         You have to wait until next round :(
       </div>
@@ -339,22 +395,65 @@ var app = new Vue({
     settings: false,
 
     settingTypes: [
-      {name: "STUN_TIME"},
-      {name: "INVULNERABILITY_TIME"},
-      {name: "MOVE_FREQ"},
-      {name: "MOVE_BIAS"},
-      {name: "ALLOW_CROSS_TIP_MOVE", boolean: true},
+      {game: "bomberman", name: "USE_SHIELDS", boolean: true},
+      {game: "bomberman", name: "DEATHMATCH", boolean: true},
+      {game: "bomberman", name: "TEAM_MODE", boolean: true},
+      {game: "bomberman", name: "FRAG_SUICIDE", boolean: true},
+      {game: "bomberman", name: "EXPLODE_ON_IMPACT", boolean: true},
+      {game: "bomberman", name: "FIXED_OWNERSHIP", boolean: true},
+      {game: "bomberman", name: "TARGET_KILL_COUNT"},
+      {game: "bomberman", name: "STARTING_BOMB_POWER"},
+      {game: "bomberman", name: "BOMB_FUSE_TIME"},
+      {game: "bomberman", name: "PICKUP_CHANCE"},
+      {game: "bomberman", name: "NUM_WALLS"},
+      {game: "bomberman", name: "BOMB_EXPLOSION_TIME"},
+      {game: "bomberman", name: "BATTLE_ROYALE_DURATION"},
+      {game: "bomberman", name: "DEATH_CREEP_DURATION"},
+      {game: "bomberman", name: "BOMB_MOVE_FREQ"},
+      {game: "bomberman", name: "SUICIDE_STUN", boolean: true},
+
+      {game: "pacman", name: "PACMEN_LIVES"},
+      {game: "pacman", name: "STARTING_POWER_PELLET_COUNT"},
+      {game: "pacman", name: "POWER_PELLET_DURATION"},
+      {game: "pacman", name: "PELLET_REGEN_FREQ"},
+      {game: "pacman", name: "POWER_PELLET_REGEN_FREQ"},
+      {game: "pacman", name: "VICTORY_SCORE"},
+      {game: "pacman", name: "MULTI_PACMAN_VICTORY_SCORE"},
+      {game: "pacman", name: "GHOST_KILL_SCORE"},
+      {game: "pacman", name: "PELLET_SCORE"},
+      {game: "pacman", name: "POWER_PELLET_SCORE"},
+      {game: "pacman", name: "NUM_PACMEN"},
+      {game: "pacman", name: "NUM_GHOSTS"},
+      {game: "pacman", name: "PACMAN_MOVE_FREQ"},
+      {game: "pacman", name: "GHOST_MOVE_FREQ"},
+
+      {game: "snektron", name: "START_LENGTH"},
+      {game: "snektron", name: "ADDITIONAL_APPLES"},
+      {game: "snektron", name: "ROUND_TIME"},
+
+      {game: "any", name: "STUN_TIME"},
+      {game: "any", name: "INVULNERABILITY_TIME"},
+      {game: "any", name: "ALLOW_CROSS_TIP_MOVE", boolean: true},
+      {game: "any", name: "MOVE_BIAS"},
+      {game: "any", name: "MOVE_FREQ"},
     ],
   },
 
   created() {
     this.startWebsocket()
     this.warmUpAudio()
-    // onfocus = startWebsocket
-    // onblur = () => {
-    //   this.destroyWebsocket()
-    //   this.connectionStatus = "BLURRED"
-    // };
+
+    onfocus = () => {
+      if (!this.ws) {
+        this.startWebsocket()
+      }
+    };
+    onblur = () => {
+      if (!this.state.notimeout) {
+        this.destroyWebsocket()
+        this.connectionStatus = "BLURRED"
+      }
+    };
 
 
     onmousedown = this.handleStart
@@ -394,6 +493,15 @@ var app = new Vue({
   },
 
   computed: {
+    BOMBERMAN() {
+      return this.state.game == 'bomberman'
+    },
+    PACMAN() {
+      return this.state.game == 'pacman'
+    },
+    SNEKTRON() {
+      return this.state.game == 'snektron'
+    },
     mode() {
       return this.state.gameState
     },
@@ -408,6 +516,12 @@ var app = new Vue({
         return this.state.players[this.state.self]
       else
         return {}
+    },
+    myTeam() {
+      return this.state.teams[this.self.team]
+    },
+    teamColor() {
+      return (this.config.TEAM_MODE ? this.myTeam : this.self).color
     },
     claimedPlayers() {
       if (this.state.players) {
@@ -424,6 +538,12 @@ var app = new Vue({
     },
     playersByRanking() {
       return this.claimedPlayers.sort((p0, p1) => {
+        return p1.killCount - p0.killCount
+      })
+    },
+
+    teamsByRanking() {
+      return this.state.teams.sort((p0, p1) => {
         return p1.killCount - p0.killCount
       })
     },
@@ -448,6 +568,10 @@ var app = new Vue({
         right: (25 * this.move[0]) + "%",
         bottom: (25 * this.move[1]) + "%",
       }
+    },
+
+    relevantSettings() {
+      return this.settingTypes.filter(setting => setting.game == this.state.game || setting.game == "any")
     },
   },
 
@@ -493,7 +617,6 @@ var app = new Vue({
           console.log(peer)
           self.ws = peer
           peer.on('data', function(data){
-            console.log("DATA",data)
             message = JSON.parse(data)
             switch(message.event) {
             case "sound":
@@ -578,6 +701,9 @@ var app = new Vue({
       this.send({type: "move", move: this.move})
     },
 
+    changeRole(role) { // PACMAN
+      this.send({type: "roleChange", role})
+    },
     toggleSettings() {
       this.settings = !this.settings;
     },
