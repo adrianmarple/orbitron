@@ -9,6 +9,8 @@
 <link rel="shortcut icon" href="/images/favicon.jpg" />
 <script src="/vue.js" type="text/javascript"></script>
 <script src="/math.js" type="text/javascript"></script>
+<script src="/simple-signal-client.min.js" type="text/javascript"></script>
+<script src="/socket.io/socket.io.js" type="text/javascript"></script>
 
 <style type="text/css">
 
@@ -215,10 +217,15 @@ body, #app, .main {
 
 
   <div id="queue" v-if="!hasClaimed" class="header">
-    All the play slots have been claimed.
-    <br/>
-    <br/>
-    Position in queue: {{state.queuePosition}}
+    <div v-if="connectionStatus != 'CONNECTED'">
+      {{connectionStatus}}
+    </div>
+    <div v-else>
+      All the play slots have been claimed.
+      <br/>
+      <br/>
+      Position in queue: {{state.queuePosition}}
+    </div>
   </div>
 
   <div v-else>
@@ -226,10 +233,6 @@ body, #app, .main {
   <div id="playerMarker"
     :style="{ backgroundColor: self.color }"
   ></div>
-  <div id="bombPower">
-    <span>{{self.bombPower}}</span>
-    <img src="images/explosion.png" />
-  </div>
 
 
   <div v-if="!self.isReady || (mode=='play' && self.isPlaying && self.isAlive)"
@@ -268,19 +271,7 @@ body, #app, .main {
       >
         I'm not ready.
       </div>
-      <div v-if="!self.isReady && self.isPacman"
-        class="button"
-        @click.stop="changeRole('ghost')"
-      >
-        Become Ghost
-      </div>
-      <div v-if="!self.isReady && !self.isPacman"
-        class="button"
-        @click.stop="changeRole('pacman')"
-      >
-        Become PacMan
-      </div>
-      <div v-if="!self.isReady"
+      <div v-else
         class="button"
         @click.stop="makeReady"
       >
@@ -297,11 +288,13 @@ body, #app, .main {
 
   <div v-if="mode=='play'" class="main">
     <div class="header">
-      <div>
-        Score: {{score}}
-      </div>
-      <div v-if="self.isPacman">
-        Lives left: {{self.livesLeft}}
+      <div>Live players:
+        <div class="players">
+          <div v-for="player in livePlayers"
+            class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+        </div>
       </div>
       <div v-if="!self.isPlaying">
         You have to wait until next round :(
@@ -334,6 +327,7 @@ var app = new Vue({
   el: '#app',
   data: {
     ws: null,
+    connectionStatus: "CONNECTING",
     showSettings: false,
     oldConfig: null,
     state: {},
@@ -345,23 +339,11 @@ var app = new Vue({
     settings: false,
 
     settingTypes: [
-      {name: "PACMEN_LIVES"},
-      {name: "STARTING_POWER_PELLET_COUNT"},
-      {name: "POWER_PELLET_DURATION"},
-      {name: "PELLET_REGEN_FREQ"},
-      {name: "POWER_PELLET_REGEN_FREQ"},
-      {name: "VICTORY_SCORE"},
-      {name: "MULTI_PACMAN_VICTORY_SCORE"},
-      {name: "GHOST_KILL_SCORE"},
-      {name: "PELLET_SCORE"},
-      {name: "POWER_PELLET_SCORE"},
-      {name: "NUM_PACMEN"},
-      {name: "NUM_GHOSTS"},
-      {name: "PACMAN_MOVE_FREQ"},
-      {name: "GHOST_MOVE_FREQ"},
-      {name: "CONSTANT_MOTION", boolean: true},
-      {name: "ALLOW_CROSS_TIP_MOVE", boolean: true},
+      {name: "STUN_TIME"},
+      {name: "INVULNERABILITY_TIME"},
+      {name: "MOVE_FREQ"},
       {name: "MOVE_BIAS"},
+      {name: "ALLOW_CROSS_TIP_MOVE", boolean: true},
     ],
   },
 
@@ -370,7 +352,8 @@ var app = new Vue({
     this.warmUpAudio()
     // onfocus = startWebsocket
     // onblur = () => {
-    //   this.ws.close()
+    //   this.destroyWebsocket()
+    //   this.connectionStatus = "BLURRED"
     // };
 
 
@@ -417,11 +400,8 @@ var app = new Vue({
     config() {
       return this.state.config || {}
     },
-    score() {
-      return this.state.data.score
-    },
     hasClaimed() {
-      return this.state.self && this.ws.readyState === WebSocket.OPEN
+      return this.state.self && this.ws //this.connectionStatus == "CONNECTED"
     },
     self() {
       if (this.state.players)
@@ -473,37 +453,73 @@ var app = new Vue({
 
   methods: {
     send(json) {
-      if (this.ws.readyState === WebSocket.CLOSED) {
+      if (!this.ws) {
         this.startWebsocket()
-      } else if (this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(JSON.stringify(json))
+      } else {
+        try {
+          this.ws.send(JSON.stringify(json))
+        } catch (error) {
+          this.destroyWebsocket()
+          this.startWebsocket()
+        }
       }
     },
 
-    startWebsocket() {
-      this.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
-      this.ws.onmessage = event => {
-        message = JSON.parse(event.data)
-        switch(message.event) {
-        case "sound":
-          if (message.playerId < 0 || message.playerId == message.self) {
-            this.playSound(message.type)
-          }
-          break
-        default:
-          this.state = message
-          // console.log(message)
-          this.$forceUpdate()
-        }
-      };
+    destroyWebsocket() {
+      if(this.ws) {
+        this.ws.destroy()
+        this.ws = null
+      }
+      if(this.socket) {
+        this.socket.close()
+        this.socket = null
+      }
+      this.signalClient = null
+    },
 
-      let self = this
-      this.ws.onerror = event => {
-        console.log("WebSocket error observed")
+    startWebsocket() {
+      let self=this
+      if(self.signalClient) {
+        return // Already trying to establish a connection
       }
-      this.ws.onclose = event => {
-        console.log("WebSocket closed")
-      }
+      this.connectionStatus = "CONNECTING"
+      // self.socket = io("https://super-orbitron.herokuapp.com")
+      self.socket = io(location.origin)
+      self.signalClient = new SimpleSignalClient(self.socket)
+      self.signalClient.on('discover', async (allIDs) => {
+        allIDs.forEach(async function(id){
+          const { peer } = await self.signalClient.connect(id)
+          this.connectionStatus = "CONNECTED"
+          console.log(peer)
+          self.ws = peer
+          peer.on('data', function(data){
+            console.log("DATA",data)
+            message = JSON.parse(data)
+            switch(message.event) {
+            case "sound":
+              if (message.playerId < 0 || message.playerId == message.self) {
+                self.playSound(message.type)
+              }
+              break
+            default:
+              self.state = message
+              // console.log(message)
+              self.$forceUpdate()
+            }
+          })
+          peer.on('close',function(){
+            console.log("CLOSE")
+            self.connectionStatus = "TIMEDOUT"
+            setTimeout(function(){ self.destroyWebsocket(); })
+          })
+          peer.on('error', (err) => {
+            console.error("ERROR",err)
+            self.connectionStatus = "ERROR"
+            setTimeout(function(){ self.destroyWebsocket(); })
+          })
+        })
+      })
+      self.signalClient.discover({installation:"debug"})
     },
 
     handleStart(location) {
@@ -566,9 +582,6 @@ var app = new Vue({
       this.settings = !this.settings;
     },
 
-    changeRole(role) {
-      this.send({type: "roleChange", role})
-    },
     makeReady() {
       this.send({type: "ready"})
     },

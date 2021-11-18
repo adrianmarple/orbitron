@@ -77,9 +77,12 @@ def play_ontimeout():
   battle_channel.stop()
   sounds["victory"].play()
   engine.game_state = victory_state
-  #TODO determine winner and set color accordingly
-  engine.victory_color = players[0].color
-  engine.victory_color_string = players[0].color_string
+  top_score = 0
+  for player in playing_players():
+    if player.score > top_score:
+      top_score = player.score
+      engine.victory_color = player.color
+      engine.victory_color_string = player.color_string
   engine.state_end_time = time() + 10
   broadcast_state()
   clear()
@@ -88,9 +91,12 @@ def play_ontimeout():
 
 def start_ontimeout():
   global battle_channel, vamp
+  engine.state_end_time = time() + config["ROUND_TIME"]
   engine.game_state = play_state
   battle_channel = sounds["battle1"].play()
   vamp = sounds["battle1Loop"]
+  for i in range(len(playing_players())):
+    spawn_apple()
 
 def victory_ontimeout():
   engine.game_state = start_state
@@ -134,6 +140,20 @@ def render_game():
   for player in playing_players():
     player.render()
 
+def spawn_apple():
+  while True:
+    apple_pos = randrange(0,SIZE)
+    if statuses[apple_pos] == "apple":
+      continue
+    occupied = False
+    for player in playing_players():
+      if player.occupies(apple_pos):
+        occupies = True
+        break
+    if occupied:
+      continue
+    statuses[apple_pos] = "apple"
+    return
 
 start_state = State("start", start_update, start_ontimeout, render_sandbox)
 play_state = State("play", play_update, play_ontimeout, render_game)
@@ -144,8 +164,8 @@ victory_state = State("victory", start_update, victory_ontimeout, render_victory
 
 class Snek(Player):
   def __init__(self, *args, **kwargs):
-    Player.__init__(self, *args, **kwargs)
     self.tail = collections.deque(maxlen=SIZE)
+    Player.__init__(self, *args, **kwargs)
 
   def reset(self):
     self.score = 0
@@ -154,61 +174,73 @@ class Snek(Player):
       self.tail.appendleft(self.initial_position)
     Player.reset(self)
 
+  def set_ready(self):
+    Player.set_ready(self)
+    self.tail.clear()
+    for i in range(config["START_LENGTH"]):
+      self.tail.appendleft(self.initial_position)
+
+
   def cant_move(self):
     return (
       self.stunned or
       (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
-      time() - self.last_move_time < config["MOVE_FREQ"] or # just moved
+      time() - self.last_move_time < config["MOVE_FREQ"] # just moved
     )
 
   def is_occupied(self, position):
-    return self.tail[1] != position:
+    return self.tail[1] == position
 
-  def occupies(pos):
-      #TODO CHECK TAIL
-    pass
+  def occupies(self, pos):
+    for position in self.tail:
+      if pos == position:
+        return True
+    return False
 
-  def die():
-    pass
+  def tail_occupies(self, pos):
+    for position in self.tail:
+      if pos == position:
+        return True
+    return False
+
+  def die(self):
+    while len(self.tail)>config["START_LENGTH"]:
+      self.tail.popleft()
+    self.position = self.tail[0]
 
   def move(self):
+    starting_position = self.position
     if engine.game_state == play_state:
       for player in playing_players():
         if player == self:
-          continue
-        if player.occupies(self.position):
+          if player.tail_occupies(self.position):
+            self.die()
+        elif player.occupies(self.position):
           self.die()
           if player.position==self.position:
             player.die()
 
     Player.move(self)
+    if self.position==starting_position:
+      return
     self.tail.appendleft(self.position)
     if statuses[self.position] == "apple":
+      self.score = max(len(self.tail),self.score)
       statuses[self.position] = "blank"
-      while True:
-        apple_pos = randrange(0,SIZE)
-        if statuses[apple_pos] == "apple":
-          continue
-        occupied = False
-        for player in playing_players():
-          if player.occupies(apple_pos):
-            occupies = True
-            break
-        if occupied:
-          continue
-        statuses[apple_pos] = "apple"
+      spawn_apple()
     else:
       self.tail.pop()
 
   def to_json(self):
     dictionary = Player.to_json(self)
-    dictionary["length"] = self.length
+    dictionary["length"] = len(self.tail)
     dictionary["score"] = self.score
     return dictionary
 
   def render(self):
     if not self.is_alive:
       return
-    for position in tail:
-      color_pixel(position, self.current_color())
+    for position in self.tail:
+      color_pixel(position, self.current_color()/8)
+    color_pixel(self.position, self.current_color())
 
