@@ -29,22 +29,7 @@ signalClient.on('discover', (allIDs) => {
 
 signalClient.on('request', async (request) => {
     try {
-      let config = { config:{ iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478?transport=udp' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        { urls: 'stun:stun.ekiga.net' },
-        { urls: 'stun:stun.ideasip.com' },
-        { urls: 'stun:stun.schlund.de' },
-        { urls: 'stun:stun.stunprotocol.org:3478' },
-        { urls: 'stun:stun.voiparound.com' },
-        { urls: 'stun:stun.voipbuster.com' },
-        { urls: 'stun:stun.voipstunt.com' },
-      ]}}
-      const { peer } = await request.accept(null,{wrtc:wrtc,config:config.config}) // Accept the incoming request
+      const { peer } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
       console.log("REQUEST",request,peer)
       connectionQueue.push(peer)
       bindDataEvents(peer)

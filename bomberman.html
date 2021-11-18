@@ -356,6 +356,7 @@ var app = new Vue({
     showSettings: false,
     oldConfig: null,
     state: {},
+
     startLocation: null,
     isMoving: false,
     move: [0,0],
@@ -540,22 +541,7 @@ var app = new Vue({
       self.signalClient = new SimpleSignalClient(self.socket)
       self.signalClient.on('discover', async (allIDs) => {
         allIDs.forEach(async function(id){
-          let config = { config:{ iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:global.stun.twilio.com:3478?transport=udp' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302' },
-            { urls: 'stun:stun4.l.google.com:19302' },
-            { urls: 'stun:stun.ekiga.net' },
-            { urls: 'stun:stun.ideasip.com' },
-            { urls: 'stun:stun.schlund.de' },
-            { urls: 'stun:stun.stunprotocol.org:3478' },
-            { urls: 'stun:stun.voiparound.com' },
-            { urls: 'stun:stun.voipbuster.com' },
-            { urls: 'stun:stun.voipstunt.com' },
-          ]}}
-          const { peer } = await self.signalClient.connect(id,null,config)
+          const { peer } = await self.signalClient.connect(id)
           this.connectionStatus = "CONNECTED"
           console.log(peer)
           self.ws = peer
