@@ -101,14 +101,12 @@ def start(starting_state):
   global start_state, game_state
   start_state = starting_state
   game_state = start_state
-  broadcast_state()
 
 def quit():
   global start_state, game_state, current_game
   start_state = None
   game_state = None
   current_game = ""
-  broadcast_state()
 
 
 # ================================ UPDATE =========================================
@@ -191,6 +189,7 @@ class Player:
     self.move_direction = np.array((0, 0))
     self.prev_pos = 0
     self.tap = 0
+    self.vote = ""
 
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -347,6 +346,7 @@ class Player:
       "isAlive": self.is_alive,
       "color": self.color_string,
       "position": self.position,
+      "vote": self.vote,
     }
     if hasattr(self, "team"):
       dictionary["team"] = self.team.id

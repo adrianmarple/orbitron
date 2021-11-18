@@ -13,6 +13,10 @@ from threading import Thread
 
 game_module = None
 
+def clear_votes():
+  for player in engine.players:
+    player.vote = ""
+
 def consume_input():
   global current_game, game_module
 
@@ -26,31 +30,72 @@ def consume_input():
         player = None
 
       if message["type"] == "vote":
-        pass # TODO combine quit and start into vote
+        vote = message["vote"]
 
-      if message["type"] == "quit":
-        game_module = None
-        engine.quit()
-      elif message["type"] == "start":
-        engine.current_game = message["game"]
+        if player.vote == vote:
+          player.vote = ""
+        else:
+          player.vote = vote
 
-        if engine.current_game == "bomberman":
-          game_module = bomberman
-        elif engine.current_game == "pacman":
-          game_module = pacman
-        elif engine.current_game == "snektron":
-          game_module = snektron
+        majority_count = len(engine.claimed_players()) / 2.0
+        vote_count = 0
+        for player in engine.claimed_players():
+          if player.vote == vote:
+            vote_count += 1
 
-        claimed = []
-        for player in engine.players:
-          claimed.append(player.is_claimed)
-        engine.players.clear()
-        game_module.setup()
-        for (i, player) in enumerate(engine.players):
-          if i < len(claimed):
-            player.is_claimed = claimed[i]
+        if vote_count >= majority_count:
+          # vote passed clear existing votes
+          for player in engine.players:
+            player.vote = ""
 
-        engine.start(game_module.start_state)
+          if vote == "quit":
+            game_module = None
+            engine.quit()
+          else:
+            engine.current_game = vote
+            if engine.current_game == "bomberman":
+              game_module = bomberman
+            elif engine.current_game == "pacman":
+              game_module = pacman
+            elif engine.current_game == "snektron":
+              game_module = snektron
+
+            claimed = []
+            for player in engine.players:
+              claimed.append(player.is_claimed)
+            engine.players.clear()
+            game_module.setup()
+            for (i, player) in enumerate(engine.players):
+              if i < len(claimed):
+                player.is_claimed = claimed[i]
+
+            engine.start(game_module.start_state)
+
+        engine.broadcast_state()
+
+      # if message["type"] == "quit":
+      #   game_module = None
+      #   engine.quit()
+      # elif message["type"] == "start":
+      #   engine.current_game = message["game"]
+
+      #   if engine.current_game == "bomberman":
+      #     game_module = bomberman
+      #   elif engine.current_game == "pacman":
+      #     game_module = pacman
+      #   elif engine.current_game == "snektron":
+      #     game_module = snektron
+
+      #   claimed = []
+      #   for player in engine.players:
+      #     claimed.append(player.is_claimed)
+      #   engine.players.clear()
+      #   game_module.setup()
+      #   for (i, player) in enumerate(engine.players):
+      #     if i < len(claimed):
+      #       player.is_claimed = claimed[i]
+
+      #   engine.start(game_module.start_state)
 
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])
