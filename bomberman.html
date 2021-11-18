@@ -217,10 +217,15 @@ body, #app, .main {
 
 
   <div id="queue" v-if="!hasClaimed" class="header">
-    All the play slots have been claimed.
-    <br/>
-    <br/>
-    Position in queue: {{state.queuePosition}}
+    <div v-if="connectionStatus != 'CONNECTED'">
+      {{connectionStatus}}
+    </div>
+    <div v-else>
+      All the play slots have been claimed.
+      <br/>
+      <br/>
+      Position in queue: {{state.queuePosition}}
+    </div>
   </div>
 
   <div v-else>
@@ -557,12 +562,12 @@ var app = new Vue({
           })
           peer.on('close',function(){
             console.log("CLOSE")
-            this.connectionStatus = "TIMEDOUT"
+            self.connectionStatus = "TIMEDOUT"
             setTimeout(function(){ self.destroyWebsocket(); })
           })
           peer.on('error', (err) => {
             console.error("ERROR",err)
-            this.connectionStatus = "ERROR"
+            self.connectionStatus = "ERROR"
             setTimeout(function(){ self.destroyWebsocket(); })
           })
         })

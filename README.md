@@ -19,13 +19,15 @@
 - `ssh pi@raspberrypi.local`
 - `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
 
-## Running the game
+## Running locally
 
 - ssh into the pi
 - `sudo killall python3 node`
-- `sudo /usr/bin/node ~/Rhomberman/server.js`
-- Visit `http://192.168.4.1:1337`
-- Of if using mDNS, visit `http://raspberrypi.local:1337`
+- `export SWITCHBOARD="http://localhost:9000"`
+- `cd Rhomberman`
+- `node server.js`
+- `node switchboard.js`
+- Visit `http://raspberrypi.local:9000`
 
 ## Saving
 - Just use normal git commands with within directory `~/Rhomberman`
