@@ -25,13 +25,15 @@ def consume_input():
       else:
         player = None
 
+      if message["type"] == "vote":
+        pass # TODO combine quit and start into vote
+
       if message["type"] == "quit":
-        engine.current_game = "none"
         game_module = None
         engine.quit()
       elif message["type"] == "start":
         engine.current_game = message["game"]
-        print("Starting %s" % engine.current_game)
+
         if engine.current_game == "bomberman":
           game_module = bomberman
         elif engine.current_game == "pacman":
@@ -39,7 +41,15 @@ def consume_input():
         elif engine.current_game == "snektron":
           game_module = snektron
 
+        claimed = []
+        for player in engine.players:
+          claimed.append(player.is_claimed)
+        engine.players.clear()
         game_module.setup()
+        for (i, player) in enumerate(engine.players):
+          if i < len(claimed):
+            player.is_claimed = claimed[i]
+
         engine.start(game_module.start_state)
 
       elif message["type"] == "move":

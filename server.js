@@ -13,13 +13,6 @@ const KEY = process.env.ORBITRON_KEY || "debug"
 const default_switchboard = NO_TIMEOUT ? "http://localhost:9000" : "https://super-orbitron.herokuapp.com/"
 const SWITCHBOARD = process.env.SWITCHBOARD || default_switchboard
 
-let GAME = "bomberman"
-for (let arg of process.argv.slice(2)) {
-    if (arg[0] !== '-') {
-        GAME = arg
-        break
-    }
-}
 
 //WebRTC connection to switchboard
 const socket = io(SWITCHBOARD);
@@ -49,7 +42,7 @@ function bindDataEvents(peer) {
         content = JSON.parse(data)
         content.self = peer.pid
         peer.lastActivityTime = Date.now()
-        //console.log("DATA CONTENT",content)
+        // console.log("DATA CONTENT",content)
         python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     })
 
@@ -96,6 +89,9 @@ function upkeep() {
                 claim = { self: peer.pid, type: "claim" }
                 python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
                 connectionQueue = connectionQueue.filter(elem => elem !== peer)
+                message = {...gameState}
+                message.self = peer.pid
+                peer.send(JSON.stringify(message))
                 break;
             }
             id += 1;
@@ -120,6 +116,7 @@ gameState = {}
 function broadcast(baseMessage) {
     gameState = baseMessage
     baseMessage.notimeout = NO_TIMEOUT
+
     for (let id in connections) {
         baseMessage.self = id
         connections[id].send(JSON.stringify(baseMessage))
@@ -136,6 +133,7 @@ python_process.stdout.on('data', data => {
     message = data.toString()
     if (data[0] == 123) { // check is first char is '{'
         try {
+            // console.log(JSON.parse(message))
             broadcast(JSON.parse(message));
         } catch(e) {
             console.error(e);
@@ -158,5 +156,3 @@ python_process.stderr.on('data', data => {
     }
 });
 
-let start_message = { type: "start", game: GAME }
-python_process.stdin.write(JSON.stringify(start_message) + "\n", "utf8")

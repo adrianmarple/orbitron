@@ -62,7 +62,7 @@ print("Running %s pixels" % pixel_info["RAW_SIZE"])
 START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
 statuses = ["blank"] * SIZE
 
-current_game = "none"
+current_game = ""
 game_state = None
 state_end_time = 0
 victory_color = None
@@ -101,11 +101,14 @@ def start(starting_state):
   global start_state, game_state
   start_state = starting_state
   game_state = start_state
+  broadcast_state()
 
 def quit():
-  global start_state, game_state
+  global start_state, game_state, current_game
   start_state = None
   game_state = None
+  current_game = ""
+  broadcast_state()
 
 
 # ================================ UPDATE =========================================
@@ -468,7 +471,7 @@ def broadcast_state():
     "game": current_game,
     "players": [player.to_json() for player in players],
     "teams": [team.to_json() for team in teams],
-    "gameState": game_state.name,
+    "gameState": game_state.name if game_state else "none",
     "timeRemaining": state_end_time - time(),
     "victoryColor": victory_color_string,
     "config": config,
@@ -482,6 +485,9 @@ def broadcast_state():
 # ================================ Core loop =========================================
 
 def run_core_loop():
+  for i in range(6):
+    Player()
+
   last_frame_time = time()
   while True:
     update()
