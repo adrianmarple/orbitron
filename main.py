@@ -3,7 +3,7 @@
 import engine
 import bomberman
 import pacman
-# import snektron
+import snektron
 
 import fileinput
 import json
@@ -37,6 +37,8 @@ def consume_input():
           game_module = bomberman
         elif current_game == "pacman":
           game_module = pacman
+        elif current_game == "snektron":
+          game_module = snektron
 
         game_module.setup()
         engine.start(game_module.start_state)
