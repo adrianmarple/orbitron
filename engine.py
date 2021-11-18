@@ -310,6 +310,8 @@ class Player:
       color_pixel(self.ghost_positions[i], color)
 
   def render(self):
+    if not self.is_alive:
+      return
     color = self.current_color()
 
     flash_time = config["STUN_TIME"] if self.stunned else config["INVULNERABILITY_TIME"]
@@ -317,8 +319,7 @@ class Player:
     if time() - self.hit_time < flash_time:
       color = color * sin(time() * flash_speed)
 
-    if self.is_alive:
-      color_pixel(self.position, color)
+    color_pixel(self.position, color)
 
 
   def render_ready(self):
