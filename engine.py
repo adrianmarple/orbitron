@@ -220,11 +220,13 @@ class Player:
     self.prev_pos = self.position
     self.stunned = False
     self.hit_time = 0
+    self.ready_from_direction = None
 
   def set_ready(self):
+    self.ready_from_direction = unique_coords[self.position]
+    self.ready_time = time()
     self.position = self.initial_position
     self.is_ready = True
-    self.ready_time = time()
     broadcast_state()
 
   def set_unready(self):
@@ -236,6 +238,7 @@ class Player:
     return self.team_color if config["TEAM_MODE"] else self.color
 
   def pulse(self):
+    self.ready_from_direction = None
     self.ready_time = time()
     broadcast_state()
 
@@ -246,6 +249,7 @@ class Player:
       time() - self.last_move_time < config["MOVE_FREQ"] or # just moved
       (self.move_direction == ZERO_2D).all()
     )
+
 
   def get_next_position(self):
     pos = self.position
@@ -333,6 +337,7 @@ class Player:
 
     render_pulse(
       direction=unique_coords[self.position],
+      # from_direction=self.ready_from_direction,
       color=self.current_color(),
       start_time=self.ready_time,
       duration=READY_PULSE_DURATION)
@@ -442,14 +447,26 @@ def render_snake():
 
 
 def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
+    from_direction=None,
     color=(200,200,200), start_time=0, duration=1):
 
   global pixels
   t = (time() - start_time) / duration
+
   if (t < 1):
-    ds = direction * unique_coord_matrix / COORD_SQ_MAGNITUDE / 2 + 0.5
-    ds = ds * 6 - (t * 8 - 1)
-    ds = np.maximum(0, np.multiply(ds, (ds - 1)) / -3)
+    if from_direction is not None:
+      alpha = 1.4 * t - 0.2
+      alpha = max(alpha, 0)
+      alpha = min(alpha, 1)
+      direction = alpha * direction - (1 - alpha) * from_direction
+
+    direction /= np.linalg.norm(direction)
+
+    ds = direction * unique_coord_matrix / COORD_MAGNITUDE / 2 + 0.5
+    ds = ds * 6 - (t * 7 - 1)
+    # ds = 6*(ds + 1) - 7*t
+    # ds *= -1
+    ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
     pixels += np.array(np.outer(ds, color), dtype="<u1")
 
 def render_victory():

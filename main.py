@@ -73,30 +73,6 @@ def consume_input():
 
         engine.broadcast_state()
 
-      # if message["type"] == "quit":
-      #   game_module = None
-      #   engine.quit()
-      # elif message["type"] == "start":
-      #   engine.current_game = message["game"]
-
-      #   if engine.current_game == "bomberman":
-      #     game_module = bomberman
-      #   elif engine.current_game == "pacman":
-      #     game_module = pacman
-      #   elif engine.current_game == "snektron":
-      #     game_module = snektron
-
-      #   claimed = []
-      #   for player in engine.players:
-      #     claimed.append(player.is_claimed)
-      #   engine.players.clear()
-      #   game_module.setup()
-      #   for (i, player) in enumerate(engine.players):
-      #     if i < len(claimed):
-      #       player.is_claimed = claimed[i]
-
-      #   engine.start(game_module.start_state)
-
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])
       elif message["type"] == "ready":
