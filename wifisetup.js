@@ -49,20 +49,20 @@ SUBMITTED = `
 `
 
 function submitSSID(formData) {
-    var ssid = formData.ssid
-    var password = formData.password
+    var ssid = formData.ssid.replace(/'/g, "\\'")
+    var password = formData.password.replace(/'/g, "\\'")
     var priority = formData.priority == 'low' ? 1 : 2
     var append = `
 network={
-    ssid='${ssid}'
-    psk='${password}'
+    ssid="${ssid}"
+    psk="${password}"
     key_mgmt=WPA-PSK
     scan_ssid=1
-    id_str='${ssid}'
+    id_str="${ssid}"
     priority=${priority}
 }
 `
-    var toExec=`echo "${append}" | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
+    var toExec=`echo $'${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
     exec(toExec)
     exec("sudo wpa_cli reconfigure")
 }
