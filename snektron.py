@@ -79,9 +79,11 @@ def play_ontimeout():
   sounds["victory"].play()
   engine.game_state = victory_state
   top_score = 0
+  top_score_time = 0
   for player in playing_players():
-    if player.score > top_score:
+    if player.score > top_score or (player.score == top_score and player.score_timestamp < top_score_time):
       top_score = player.score
+      top_score_time = player.score_timestamp
       engine.victory_color = player.color
       engine.victory_color_string = player.color_string
   engine.state_end_time = time() + 10
@@ -169,28 +171,22 @@ class Snek(Player):
     Player.__init__(self, *args, **kwargs)
 
   def reset(self):
+    self.buffered_move = ZERO_2D
+    self.last_move_input_time = 0
+    self.score_timestamp = 0
     self.score = config["START_LENGTH"]
     self.tail.clear()
+    self.shrinking = False
     for i in range(config["START_LENGTH"]):
-      self.tail.appendleft(self.initial_position)
+      self.tail.append(self.initial_position)
     Player.reset(self)
 
   def set_ready(self):
     Player.set_ready(self)
     self.tail.clear()
     for i in range(config["START_LENGTH"]):
-      self.tail.appendleft(self.initial_position)
+      self.tail.append(self.initial_position)
 
-
-  def cant_move(self):
-    return (
-      self.stunned or
-      (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
-      time() - self.last_move_time < config["MOVE_FREQ"] # just moved
-    )
-
-  def is_occupied(self, position):
-    return self.tail[1] == position
 
   def occupies(self, pos):
     for position in self.tail:
@@ -207,11 +203,69 @@ class Snek(Player):
     return False
 
   def die(self):
-    while len(self.tail)>config["START_LENGTH"]:
-      self.tail.popleft()
-    self.position = self.tail[0]
+    self.shrinking = True
+    # while len(self.tail)>config["START_LENGTH"]:
+    #   self.tail.popleft()
+    # self.position = self.tail[0]
+    # self.prev_pos = self.tail[1]
+
+
+  def cant_move(self):
+    return (
+      (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
+      time() - self.last_move_time < config["MOVE_FREQ"] # just moved
+    )
+
+  def get_next_position(self):
+    pos = self.position
+
+    direction_string = str((self.prev_pos, pos))
+    if direction_string in next_pixel:
+      continuation_pos = next_pixel[direction_string]
+    else:
+      continuation_pos = pos
+
+    local_neighbors = (expanded_neighbors if config["ALLOW_CROSS_TIP_MOVE"] else neighbors)[pos]
+    if continuation_pos != pos and len(local_neighbors) <= 2:
+      return continuation_pos
+
+    up = unique_coords[pos]
+    up = up / np.linalg.norm(up)
+    north = np.array((0, 0, 1))
+    north = ortho_proj(north, up)
+    north /= np.linalg.norm(north) # normalize
+    east = np.cross(up, north)
+
+    basis = np.array((east, north, up))
+
+    max_dot = 0
+    new_pos = pos
+    for n in local_neighbors:
+      delta = unique_coords[pos] - unique_coords[n]
+      delta /= np.linalg.norm(delta)  # normalize
+      rectified_delta = -np.matmul(basis, delta)[0:2]
+      dot = np.dot(rectified_delta, self.buffered_move)
+      if n == continuation_pos:
+        dot *= (1 - config["MOVE_BIAS"])
+
+      if dot > max_dot:
+        max_dot = dot
+        new_pos = n
+
+    if new_pos == self.position or new_pos == self.tail[1]:
+      return continuation_pos
+    else:
+      return new_pos
 
   def move(self):
+    if len(self.tail) <= config["START_LENGTH"]:
+      self.shrinking = False
+    if self.shrinking:
+      self.tail.popleft()
+      self.position = self.tail[0]
+      self.prev_pos = self.tail[1]
+
+
     if engine.game_state == play_state:
       for player in playing_players():
         if player == self:
@@ -222,18 +276,33 @@ class Snek(Player):
           if player.position==self.position:
             player.die()
 
-    starting_position = self.position
-    Player.move(self)
-    if self.position==starting_position:
+    if not (self.move_direction == ZERO_2D).all():
+      self.buffered_move = self.move_direction
+      self.last_move_input_time = time()
+    elif time() - self.last_move_input_time > config["MOVE_FREQ"] * 2:
+      self.buffered_move = ZERO_2D
+
+    if self.cant_move():
       return
+
+    new_pos = self.get_next_position()
+
+    self.prev_pos = self.position
+    self.position = new_pos
+    self.last_move_time = time()
 
     self.tail.appendleft(self.position)
     if statuses[self.position] == "apple":
-      self.score = max(len(self.tail),self.score)
+      if len(self.tail) > self.score:
+        self.score = len(self.tail)
+        self.score_timestamp = time()
+
       statuses[self.position] = "blank"
       spawn_apple()
     else:
       self.tail.pop()
+
+    broadcast_state()
 
   def to_json(self):
     dictionary = Player.to_json(self)
