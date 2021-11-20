@@ -42,7 +42,7 @@ SUBMITTED = `
    </head>
 
    <body>
-        SSID and Password submitted, WiFi will now restart to apply changes and the page wiill refresh.
+        SSID and Password submitted, WiFi will now restart to apply changes and the page will refresh.
    </body>
 
 </html>
@@ -62,7 +62,7 @@ network={
     priority=${priority}
 }
 `
-    var toExec=`echo $'${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
+    var toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
     exec(toExec)
     exec("sudo wpa_cli reconfigure")
 }
