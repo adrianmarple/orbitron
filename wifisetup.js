@@ -36,7 +36,7 @@ let FORM = `
 SUBMITTED = `
 <!DOCTYPE html>
 <html>
-   <meta http-equiv="Refresh" content="2">
+   <meta http-equiv="Refresh" content="3">
    <head>
       <title>Submission Completed</title>
    </head>
@@ -64,7 +64,7 @@ network={
 `
     var toExec=`echo "${append}" | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
     exec(toExec)
-    exec("sudo killall -HUP wpa_supplicant")
+    exec("sudo wpa_cli reconfigure")
 }
 
 let server = http.createServer(function (req, res) {
