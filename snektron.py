@@ -84,8 +84,7 @@ def play_ontimeout():
     if player.score > top_score or (player.score == top_score and player.score_timestamp < top_score_time):
       top_score = player.score
       top_score_time = player.score_timestamp
-      engine.victory_color = player.color
-      engine.victory_color_string = player.color_string
+      engine.victor = player
   engine.state_end_time = time() + 10
   broadcast_state()
   clear()
