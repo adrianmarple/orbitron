@@ -282,8 +282,9 @@ def is_pixel_blank(index):
 def gameover(winner):
   engine.game_state = previctory_state
   engine.state_end_time = time() + 2
-  engine.victory_color = winner.color
-  engine.victory_color_string = winner.color_string
+  engine.victor = winner
+  # engine.victory_color = winner.color
+  # engine.victory_color_string = winner.color_string
   battle_channel.stop()
   broadcast_state()
 

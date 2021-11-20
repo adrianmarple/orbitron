@@ -11,7 +11,7 @@ import engine
 from engine import *
 
 
-config["PACMEN_LIVES"] = 3
+config["PACMEN_LIVES"] = 2
 config["NUM_PACMEN"] = 2
 config["NUM_GHOSTS"] = 5
 config["STARTING_POWER_PELLET_COUNT"] = 4
@@ -26,16 +26,18 @@ config["POWER_PELLET_SCORE"] = 50
 config["GHOST_KILL_SCORE"] = 200
 config["VICTORY_SCORE"] = 3000
 config["MULTI_PACMAN_VICTORY_SCORE"] = 5000
-config["PELLET_REGEN_FREQ"] = 3
-config["POWER_PELLET_REGEN_FREQ"] = 20
+config["PELLET_REGEN_FREQ"] = 5
+config["POWER_PELLET_REGEN_FREQ"] = 45
 
 
 battle_channel = None
 vamp = None
 
-power_pellet_start_time = 0
-are_ghosts_scared = False
 data["score"] = 0
+power_pulses = []
+
+previous_pellet_generation_time = 0
+previous_power_pellet_generation_time = 0
 
 prewarm_audio(sound_file_names=[
     "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3", 
@@ -125,10 +127,6 @@ def play_update():
   for player in playing_players():
     player.move()
 
-  global are_ghosts_scared
-  if are_ghosts_scared and time() - power_pellet_start_time > config["POWER_PELLET_DURATION"]:
-    are_ghosts_scared = False
-
   ghosts_win = True
   for player in playing_players():
     if player.is_pacman and player.is_alive:
@@ -138,10 +136,13 @@ def play_update():
   if ghosts_win:
     gameover("ghosts")
 
-  pellet_count = 0
-  for status in statuses:
-    if status == "pellet":
-      pellet_count += 1
+  global previous_pellet_generation_time, previous_power_pellet_generation_time
+  if time() - previous_pellet_generation_time > config["PELLET_REGEN_FREQ"]:
+    add_pellet("pellet")
+    previous_pellet_generation_time = time()
+  if time() - previous_power_pellet_generation_time > config["POWER_PELLET_REGEN_FREQ"]:
+    add_pellet("power")
+    previous_power_pellet_generation_time = time()
 
   victory_score = config["VICTORY_SCORE"] if len(pacmen()) == 1 else config["MULTI_PACMAN_VICTORY_SCORE"]
   if data["score"] >= victory_score:
@@ -151,6 +152,9 @@ def play_update():
 
 def start_ontimeout():
   global battle_channel, vamp
+  global previous_pellet_generation_time, previous_power_pellet_generation_time
+  previous_pellet_generation_time = time()
+  previous_power_pellet_generation_time = time()
   engine.game_state = play_state
   battle_channel = sounds["battle1"].play()
   vamp = sounds["battle1Loop"]
@@ -170,8 +174,6 @@ def victory_ontimeout():
   data["score"] = 0
   sounds["victory"].fadeout(1000)
   sounds["waiting"].play(loops=-1, fade_ms=2000)
-  global are_ghosts_scared
-  are_ghosts_scared = False
 
 
 def render_sandbox():
@@ -191,6 +193,7 @@ def render_sandbox():
       player.render()
 
 def render_game():
+
   for player in playing_players():
     player.render_ghost_trail()
 
@@ -207,16 +210,31 @@ def render_game():
   for player in playing_players():
     player.render()
 
+  global power_pulses
+  READY_PULSE_DURATION
+  power_pulses = [pulse for pulse in power_pulses if time() < pulse[1] + READY_PULSE_DURATION]
+  for (origin, start_time) in power_pulses:
+    render_pulse(direction=-origin,
+      color=(200,200,200),
+      start_time=start_time,
+      duration=READY_PULSE_DURATION)
 
 def gameover(winner):
   engine.game_state = previctory_state
   engine.state_end_time = time() + 2
   if winner == "pacmen":
-    engine.victory_color = players[0].color
-    engine.victory_color_string = players[0].color_string
+    pacmans = pacmen()
+    if len(pacmans) > 0:
+      engine.victor = pacmans[0]
+    else:
+      engine.victor = players[0]
   else:
-    engine.victory_color = players[1].color
-    engine.victory_color_string = players[1].color_string
+    team_ghost = Team(team_id=0,
+      name="Ghosts",
+      color=(255, 0, 0),
+      color_string="red",
+      players=ghosts())
+    engine.victor = team_ghost
   battle_channel.stop()
   broadcast_state()
 
@@ -225,6 +243,13 @@ def ghosts():
 def pacmen():
   return [player for player in players if player.is_pacman]
 
+
+def add_pellet(type):
+  for i in range(100):
+    pellet_pos = randrange(0, SIZE)
+    if statuses[pellet_pos] == "blank":
+      statuses[pellet_pos] = type
+      return
 
 start_state = State("start", start_update, start_ontimeout, render_sandbox)
 play_state = State("play", play_update, None, render_game)
@@ -244,10 +269,13 @@ class Pacman(Player):
   def reset(self):
     Player.reset(self)
     self.lives_left = config["PACMEN_LIVES"]
+    self.power_pellet_end_time = 0
 
+  def is_powerful(self):
+    return time() < self.power_pellet_end_time
 
   def cant_move(self):
-    is_fast = are_ghosts_scared or time() - self.hit_time < config["INVULNERABILITY_TIME"]
+    is_fast = self.is_powerful() or time() - self.hit_time < config["INVULNERABILITY_TIME"]
     move_freq = config["PACMAN_POWER_MOVE_FREQ"] if is_fast else config["PACMAN_MOVE_FREQ"]
     return (not self.is_alive or
       self.stunned or
@@ -264,15 +292,14 @@ class Pacman(Player):
     return False
 
   def move(self):
-    global power_pellet_start_time, are_ghosts_scared
-
     if self.is_alive and engine.game_state != start_state:
       for ghost in ghosts():
         if ghost.is_playing and ghost.position == self.position:
-          if are_ghosts_scared:
+          if self.is_powerful():
             ghost.stunned = True
             ghost.position = unique_antipodes[ghost.position]
             ghost.hit_time = time()
+            ghost.power_pellet_end_time = 0 # ghost no longer scared
             data["score"] += config["GHOST_KILL_SCORE"]
             broadcast_state()
             break
@@ -291,10 +318,12 @@ class Pacman(Player):
 
     # Pacman consumes pellets as they move
     if statuses[self.position] == "power":
-      power_pellet_start_time = time()
-      are_ghosts_scared = True
+      power_pellet_end_time = time() + config["POWER_PELLET_DURATION"]
+      for player in playing_players():
+        player.power_pellet_end_time = power_pellet_end_time
       data["score"] += config["POWER_PELLET_SCORE"]
       statuses[self.position] = "blank"
+      power_pulses.append((unique_coords[self.position], time()))
     elif statuses[self.position] == "pellet":
       data["score"] += config["PELLET_SCORE"]
       statuses[self.position] = "blank"
@@ -312,6 +341,10 @@ class Ghost(Player):
     self.is_pacman = False
     self.set_color()
 
+  def reset(self):
+    Player.reset(self)
+    self.power_pellet_end_time = 0
+
   def set_color(self):
     for (color_index, color_string) in enumerate(ghost_color_strings):
       color_is_available = True
@@ -326,10 +359,12 @@ class Ghost(Player):
         self.color_string = color_string
         return
 
+  def is_scared(self):
+    return time() < self.power_pellet_end_time
 
   def current_color(self):
-    if are_ghosts_scared:
-      time_left = config["POWER_PELLET_DURATION"] - (time() - power_pellet_start_time)
+    time_left = self.power_pellet_end_time - time()
+    if time_left > 0:
       if time_left < 3 and time_left % 0.5 > 0.25:
         return np.array((0, 0, 0))
       else:
@@ -338,7 +373,7 @@ class Ghost(Player):
       return self.color
 
   def cant_move(self):
-    move_freq = config["GHOST_SCARED_MOVE_FREQ"] if are_ghosts_scared else config["GHOST_MOVE_FREQ"]
+    move_freq = config["GHOST_SCARED_MOVE_FREQ"] if self.is_scared() else config["GHOST_MOVE_FREQ"]
     return (self.stunned or
       (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < move_freq or # just moved
@@ -366,12 +401,12 @@ class Ghost(Player):
           best_dist_sq = dist_sq
 
       new_pos = 0
-      best_dist_sq = 0 if are_ghosts_scared else 1000
+      best_dist_sq = 0 if self.is_scared()  else 1000
       for neighbor in neighbors[pos]:
         delta = unique_coords[neighbor] - closest_pacman_coord
         dist_sq = np.dot(delta, delta)
 
-        if are_ghosts_scared:
+        if self.is_scared():
           is_better_dist = dist_sq > best_dist_sq
         else:
           is_better_dist = dist_sq < best_dist_sq

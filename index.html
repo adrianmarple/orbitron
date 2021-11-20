@@ -359,20 +359,32 @@ body, #app, .main {
         class="button"
         @click.stop="makeReady"
       >
-        Ready?
+        Ready!
       </div>
     </div>
   </div>
 
-  <div v-if="mode=='start' && state.timeRemaining >= 0" class="main">
+  <div v-else-if="mode=='start' && state.timeRemaining >= 0" class="main">
     <div class="header">
       <div class="banner">{{Math.round(state.timeRemaining)}}</div>
     </div>
   </div>
 
-  <div v-if="mode=='play'" class="main">
-    <div v-if="BOMBERMAN && config.DEATHMATCH" class="header">
-      <div v-if="config.TEAM_MODE">
+  {{mode}}
+  <div v-else class="main">
+    <div class="header">
+      <div v-if="mode=='victory'">
+        <div v-if="iAmVictorious">
+          Victory!
+        </div>
+        <div v-else>
+          You lost.
+        </div>
+        <br/>
+        <br/>
+      </div>
+
+      <div v-if="BOMBERMAN && config.DEATHMATCH && config.TEAM_MODE">
         <div v-for="team in teamsByRanking" class="ranking">
           <div class="player"
             :style="{backgroundColor: team.color}"
@@ -381,7 +393,7 @@ body, #app, .main {
         </div>
 
       </div>
-      <div v-else>
+      <div v-if="BOMBERMAN && config.DEATHMATCH && !config.TEAM_MODE">
         <div v-for="player in playersByRanking" class="ranking">
           <div class="player"
             :style="{backgroundColor: player.color}"
@@ -389,10 +401,7 @@ body, #app, .main {
           {{player.killCount}}
         </div>
       </div>
-    </div>
-
-    <div v-else class="header">
-      <div v-if="BOMBERMAN">
+      <div v-if="BOMBERMAN && !config.DEATHMATCH && livePlayers.length > 0">
         Live players:
         <div class="players">
           <div v-for="player in livePlayers"
@@ -416,28 +425,13 @@ body, #app, .main {
         Current Length: {{self.length}}
       </div>
 
-      <div v-if="!self.isPlaying">
+      <div v-if="mode=='play' && !self.isPlaying">
         You have to wait until next round :(
       </div>
       <div v-else-if="!self.isAlive">
         You died...
       </div>
     </div>
-  </div>
-  <div v-if="mode=='victory'"
-    class="main"
-    :style="{ backgroundColor: state.victoryColor }">
-    <div class="header" :style="{ color: 'white' }">
-      <div v-if="self.color === state.victoryColor">
-        Victory!
-      </div>
-      <div v-else>
-        You died.
-      </div>
-    </div>
-
-  </div>
-
   </div>
 </div>
 
@@ -643,6 +637,17 @@ var app = new Vue({
 
     relevantSettings() {
       return this.settingTypes.filter(setting => setting.game == this.state.game || setting.game == "any")
+    },
+
+    iAmVictorious() {
+      if (!this.state.victor) {
+        return false
+      }
+      if (this.state.victor.players) {
+        return this.state.victor.players.includes(parseInt(this.state.self))
+      } else {
+        return this.self.color === this.state.victor.color
+      }
     },
   },
 

@@ -65,8 +65,7 @@ statuses = ["blank"] * SIZE
 current_game = ""
 game_state = None
 state_end_time = 0
-victory_color = None
-victory_color_string = None
+victor = None
 
 data = {}
 players = []
@@ -114,7 +113,6 @@ def quit():
 
 def update():
   global game_state, state_end_time
-  global victory_color, victory_color_string
   global pixels
 
   # Render special idle state if no one is there
@@ -150,7 +148,7 @@ def update():
 class Team:
   def __init__(self, team_id, color, color_string, name, players):
     self.id = team_id
-    self.color = color
+    self.color = np.array(color)
     self.color_string = color_string
     self.name = name
     self.players = players
@@ -160,6 +158,7 @@ class Team:
   def to_json(self):
     return {
       "id": self.id,
+      "name": self.name,
       "color": self.color_string,
       "players": [player.id for player in self.players],
     }
@@ -471,7 +470,7 @@ def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
 
 def render_victory():
   for (i, coord) in enumerate(unique_coords):
-    color_pixel(i, victory_color * sin(coord[2] - 4*time()))
+    color_pixel(i, victor.color * sin(coord[2] - 4*time()))
 
 
 # ================================ Communication with node.js =========================================
@@ -490,7 +489,7 @@ def broadcast_state():
     "teams": [team.to_json() for team in teams],
     "gameState": game_state.name if game_state else "none",
     "timeRemaining": state_end_time - time(),
-    "victoryColor": victory_color_string,
+    "victor": victor.to_json() if victor else {},
     "config": config,
     "data": data,
   }
