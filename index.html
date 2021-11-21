@@ -2,7 +2,7 @@
 <html>
 <head>
 
-<meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=0"/>
+<meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
 <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
 
 <title>Super Rhomberman</title>
@@ -27,14 +27,13 @@ body, #app, .main {
   font-size: 2vw;
 }
 
-.main * {
+#quit-button, #settings-button, #quit-vote-tally, #game-selection-menu, .main {
   user-select: none;
   -webkit-user-select: none; /* Safari */
   -khtml-user-select: none; /* Konqueror HTML */
   -moz-user-select: none; /* Firefox */
   -ms-user-select: none; /* Internet Explorer/Edge */
 }
-
 
 #settings-button, #quit-button {
   position: fixed;
@@ -87,6 +86,11 @@ body, #app, .main {
   display: flex;
   align-items: center;
   height: 6vw;
+  user-select: initial;
+  -webkit-user-select: initial; /* Safari */
+  -khtml-user-select: initial; /* Konqueror HTML */
+  -moz-user-select: initial; /* Firefox */
+  -ms-user-select: initial; /* Internet Explorer/Edge */
 }
 .setting input[type="checkbox"] {
   width: 4vw;
@@ -125,7 +129,7 @@ body, #app, .main {
   transform: rotate(45deg);
   width: 50vw;
   height: 50vw;
-  border: 3vw solid black;
+  border: 3vw solid transparent;
   box-sizing: border-box;
 }
 
@@ -240,7 +244,7 @@ body, #app, .main {
   <div id="quit-button" class="button" @click="vote('quit')" :class="{selected: self.vote=='quit'}">
     QUIT
   </div>
-  <div v-if="voteTally.quit" id="quit-vote-tally" class="vote-tally">
+  <div id="quit-vote-tally" v-if="voteTally.quit" class="vote-tally">
     {{voteTally.quit}}/{{majorityCount}}
   </div>
 
@@ -436,6 +440,14 @@ body, #app, .main {
 </div>
 
 <script>
+// To prevent zoom on iOS
+document.addEventListener("click", event => {
+  console.log(event.target.tagName)
+  if (event.target.tagName != "INPUT") {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+})
 
 var app = new Vue({
   el: '#app',
