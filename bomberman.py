@@ -104,7 +104,7 @@ def setup():
   teams.append(BLUE_TEAM)
 
 
-def handle_event(message):
+def handle_event(message,player):
   pass
 
 def start_update():

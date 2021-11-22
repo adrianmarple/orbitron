@@ -24,10 +24,10 @@ def consume_input():
     try:
       message = json.loads(line)
 
-      if "self" in message:
-        player = engine.players[message["self"]]
-      else:
-        player = None
+      if "self" not in message:
+        return
+      
+      player = engine.players[message["self"]]
 
       if message["type"] == "vote":
         vote = message["vote"]
