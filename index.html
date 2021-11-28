@@ -419,10 +419,13 @@ body, #app, .main {
       </div>
 
       <div v-if="SNEKTRON">
-        Best Length: {{self.score}}
-      </div>
-      <div v-if="SNEKTRON">
-        Current Length: {{self.length}}
+        <div v-for="player in playersByRanking" class="ranking">
+          <div class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+          Best: {{player.score}}
+          Current: {{player.length}}
+        </div>
       </div>
 
       <div v-if="mode=='play' && !self.isPlaying">
@@ -603,7 +606,11 @@ var app = new Vue({
     },
     playersByRanking() {
       return this.claimedPlayers.sort((p0, p1) => {
-        return p1.killCount - p0.killCount
+        if (this.game == "BOMBERMAN") {
+          return p1.killCount - p0.killCount
+        } else {
+          return p1.score - p0.score
+        }
       })
     },
 

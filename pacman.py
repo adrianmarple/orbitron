@@ -164,17 +164,6 @@ def previctory_ontimeout():
   engine.state_end_time = time() + 10
   sounds["victory"].play()
 
-  clear()
-  for player in players:
-    player.reset()
-
-def victory_ontimeout():
-  engine.game_state = start_state
-  engine.state_end_time = 0
-  data["score"] = 0
-  sounds["victory"].fadeout(1000)
-  sounds["waiting"].play(loops=-1, fade_ms=2000)
-
 
 def render_sandbox():
   if engine.state_end_time > 0:

@@ -15,6 +15,7 @@ from engine import *
 config["ROUND_TIME"] = 150
 config["START_LENGTH"] = 4
 config["ADDITIONAL_APPLES"] = 25
+config["SNAKE_MOVE_FREQ"] = 0.3
 
 
 battle_channel = None
@@ -87,9 +88,6 @@ def play_ontimeout():
       engine.victor = player
   engine.state_end_time = time() + 10
   broadcast_state()
-  clear()
-  for player in players:
-    player.reset()
 
 def start_ontimeout():
   global battle_channel, vamp
@@ -100,11 +98,6 @@ def start_ontimeout():
   for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
     spawn_apple()
 
-def victory_ontimeout():
-  engine.game_state = start_state
-  engine.state_end_time = 0
-  sounds["victory"].fadeout(1000)
-  sounds["waiting"].play(loops=-1, fade_ms=2000)
 
 def render_sandbox():
   if engine.state_end_time > 0:
@@ -212,7 +205,7 @@ class Snek(Player):
   def cant_move(self):
     return (
       (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
-      time() - self.last_move_time < config["MOVE_FREQ"] # just moved
+      time() - self.last_move_time < config["SNAKE_MOVE_FREQ"] # just moved
     )
 
   def get_next_position(self):
@@ -245,7 +238,9 @@ class Snek(Player):
       rectified_delta = -np.matmul(basis, delta)[0:2]
       dot = np.dot(rectified_delta, self.buffered_move)
       if n == continuation_pos:
-        dot *= (1 - config["MOVE_BIAS"])
+        dot *= 1 - config["MOVE_BIAS"]
+      if n == self.prev_pos:
+        dot *= 0.1
 
       if dot > max_dot:
         max_dot = dot
@@ -313,6 +308,6 @@ class Snek(Player):
     if not self.is_alive:
       return
     for position in self.tail:
-      color_pixel(position, self.current_color()/8)
-    color_pixel(self.position, self.current_color())
+      add_color_to_pixel(position, self.current_color()/8)
+    add_color_to_pixel(self.position, self.current_color())
 

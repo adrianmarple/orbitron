@@ -8,9 +8,10 @@ const wrtc = require('wrtc')
 const { io } = require("socket.io-client");
 
 const NO_TIMEOUT = process.argv.includes('-t')
+const LOCAL_SERVER = process.argv.includes('-l')
 const INSTALLATION = process.env.INSTALLATION || "debug"
 const KEY = process.env.ORBITRON_KEY || "debug"
-const default_switchboard = NO_TIMEOUT ? "http://localhost:9000" : "https://super-orbitron.herokuapp.com/"
+const default_switchboard = LOCAL_SERVER ? "http://localhost:9000" : "https://super-orbitron.herokuapp.com/"
 const SWITCHBOARD = process.env.SWITCHBOARD || default_switchboard
 
 

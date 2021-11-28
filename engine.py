@@ -13,7 +13,7 @@ from random import randrange, random
 # from threading import Thread
 from time import time
 
-
+from audio import sounds
 
 # Actual constants
 COORD_MAGNITUDE = 4.46590101883
@@ -368,15 +368,8 @@ def playing_players():
 def color_pixel(index, color):
   pixels[index] = color
 
-def color_raw_pixel(index, color):
-  raw_pixels[index] = color
-
 def add_color_to_pixel(index, color):
-  for dupe in unique_to_dupes[index]:
-    pixels[dupe] = (
-      max(0, min(255, pixels[dupe][0] + int(color[0]))),
-      max(0, min(255, pixels[dupe][1] + int(color[1]))),
-      max(0, min(255, pixels[dupe][2] + int(color[2]))))
+  pixels[index] += np.array(color,dtype="<u1")
 
 def multi_lerp(x, control_points):
   if x < 0:
@@ -471,6 +464,17 @@ def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
 def render_victory():
   for (i, coord) in enumerate(unique_coords):
     color_pixel(i, victor.color * sin(coord[2] - 4*time()))
+
+
+def victory_ontimeout():
+  global game_state, state_end_time
+  game_state = start_state
+  state_end_time = 0
+  sounds["victory"].fadeout(1000)
+  sounds["waiting"].play(loops=-1, fade_ms=2000)
+  clear()
+  for player in players:
+    player.reset()
 
 
 # ================================ Communication with node.js =========================================

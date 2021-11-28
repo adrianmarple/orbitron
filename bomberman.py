@@ -195,17 +195,6 @@ def previctory_ontimeout():
   engine.state_end_time = time() + 10
   sounds["victory"].play()
 
-  clear()
-  for player in players:
-    player.reset()
-
-def victory_ontimeout():
-  engine.game_state = start_state
-  engine.state_end_time = 0
-  sounds["victory"].fadeout(1000)
-  sounds["waiting"].play(loops=-1, fade_ms=2000)
-
-
 
 def render_sandbox():
   if engine.state_end_time > 0:
@@ -484,21 +473,6 @@ class Bomberman(Player):
     dictionary["deathCount"] = self.death_count
     dictionary["team"] = self.team.id
     return dictionary
-
-  # def to_json(self):
-  #   # TODO use base class to_json
-  #   return {
-  #     "isClaimed": self.is_claimed,
-  #     "isReady": self.is_ready,
-  #     "isPlaying": self.is_playing,
-  #     "isAlive": self.is_alive,
-  #     "color": self.color_string,
-  #     "position": self.position,
-  #     "bombPower": self.bomb_power,
-  #     "killCount": self.kill_count,
-  #     "deathCount": self.death_count,
-  #     "team": self.team.id,
-  #   }
 
 
 

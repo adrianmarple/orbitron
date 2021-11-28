@@ -16,8 +16,8 @@
 
 ## SSH
 
-- `ssh pi@raspberrypi.local`
-- `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
+- `ssh pi@orbitron.local`
+- `sshfs pi@orbitron.local:/home/pi/Rhomberman ~/Rhomberman`
 
 ## Running locally
 
@@ -27,7 +27,7 @@
 - `cd Rhomberman`
 - `node server.js`
 - `node switchboard.js`
-- Visit `http://raspberrypi.local:9000`
+- Visit `http://orbitron.local:9000`
 
 ## Saving
 - Just use normal git commands with within directory `~/Rhomberman`
@@ -40,13 +40,17 @@
 ## Unmount sshfs so you can remount
 
 - `sudo diskutil umount force ~/Rhomberman`
-- `sshfs pi@raspberrypi.local:/home/pi/Rhomberman ~/Rhomberman`
+- `sshfs pi@orbitron.local:/home/pi/Rhomberman ~/Rhomberman`
 
 ## WIFI QR code generator
 
-- https://www.qr-code-generator.com/solutions/wifi-qr-code/
 - https://goqr.me/
 
+## Add wifi password
+
+- Setup wifi hotspot "Dragonair" password "dragonrage"
+- Visit `http://orbitron.local:9090`
+- Fill out the form then turn hotspot off and restart the Orbitron
 
 # OG Setup (out of date)
 
@@ -68,7 +72,7 @@
 - Run `sudo raspi-config`
 - SSH is in Interfacing Options
 - Ensure Bonjour is running `sudo apt-get install avahi-daemon`
-- `ssh pi@raspberrypi.local`
+- `ssh pi@orbitron.local`
 
 ## Raspberry PI stuff
 
