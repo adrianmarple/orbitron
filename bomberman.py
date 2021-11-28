@@ -37,7 +37,7 @@ battle_channel = None
 vamp = None
 
 prewarm_audio(sound_file_names=[
-    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3", 
+    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3",
     "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "explosion.wav"
   ],
   #stubs=["battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3"]
@@ -50,33 +50,39 @@ def setup():
   Bomberman(
     position=105,
     color=(0, 200, 0),
+    color_string="#4caf50",
     team_color=(220, 30, 0),
-    color_string="#4caf50") #green
+    team_color_string="#fc9d03")
   Bomberman(
     position=198,
     color=(1, 12, 200),
+    color_string="#1e88e5",
     team_color=(0, 0, 250),
-    color_string="#1e88e5") #blue
+    team_color_string="#00e")
   Bomberman(
     position=24,
     color=(200, 2, 20),
+    color_string="#e91e63",
     team_color=(250, 20, 10),
-    color_string="#e91e63") #pink
+    team_color_string="#ff2a12")
   Bomberman(
     position=54,
     color=(100, 0, 250),
+    color_string="#9575cd",
     team_color=(50, 0, 150),
-    color_string="#9575cd") #deep purple
+    team_color_string="#7d00f2")
   Bomberman(
     position=252,
     color=(180, 200, 5),
+    color_string="#c0ca33",
     team_color=(200, 70, 0),
-    color_string="#c0ca33") #lime
+    team_color_string="#00b6f2")
   Bomberman(
     position=168,
     color=(200, 50, 0),
+    color_string="#ff9800",
     team_color=(0, 120, 120),
-    color_string="#ff9800") #orange
+    team_color_string="#00b6f2")
 
   global RED_TEAM, BLUE_TEAM
 
@@ -98,7 +104,7 @@ def setup():
   teams.append(BLUE_TEAM)
 
 
-def handle_event(message):
+def handle_event(message,player):
   pass
 
 def start_update():
@@ -272,9 +278,8 @@ def gameover(winner):
   engine.game_state = previctory_state
   engine.state_end_time = time() + 2
   engine.victor = winner
-  # engine.victory_color = winner.color
-  # engine.victory_color_string = winner.color_string
   battle_channel.stop()
+  touchall()
   broadcast_state()
 
 
@@ -323,6 +328,8 @@ class Team:
 
 class Bomberman(Player):
   def __init__(self, *args, **kwargs):
+    self.team_color_string = kwargs["team_color_string"]
+    kwargs.pop("team_color_string")
     Player.__init__(self, *args, **kwargs)
 
     self.explosion_color_sequence = [
@@ -384,6 +391,12 @@ class Bomberman(Player):
         self.bombs.remove(bomb)
 
 
+
+    if self.is_alive and statuses[pos] == "death":
+      sounds["death"].play()
+      self.death_count += 1
+      self.is_alive = False
+      return
 
     # non-blank status means either explosion or death
     if engine.game_state == play_state and not is_pixel_blank(pos) and \
@@ -472,8 +485,10 @@ class Bomberman(Player):
     dictionary["killCount"] = self.kill_count
     dictionary["deathCount"] = self.death_count
     dictionary["team"] = self.team.id
-    return dictionary
+    if config["TEAM_MODE"]:
+      dictionary["color"] = self.team_color_string
 
+    return dictionary
 
 
 # ================================ BOMB =========================================
@@ -517,7 +532,7 @@ class Bomb:
       return True
 
     occupied = statuses[new_pos] == "wall"
-    
+
     considered_players = playing_players() if engine.game_state == play_state else claimed_players()
     for player in considered_players:
       if not player.is_alive:

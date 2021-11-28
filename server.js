@@ -140,6 +140,10 @@ python_process.stdout.on('data', data => {
             console.error(e);
             console.error(message);
         }
+    } else if(message.startsWith("touchall")) {
+      for (let id in connections) {
+        connections[id].lastActivityTime = Date.now()
+      }
     } else {
         message = message.slice(0, -1)
         if (message) {
