@@ -76,7 +76,7 @@ def setup():
     color=(180, 200, 5),
     color_string="#c0ca33",
     team_color=(200, 70, 0),
-    team_color_string="#00b6f2")
+    team_color_string="#fcba03")
   Bomberman(
     position=168,
     color=(200, 50, 0),
