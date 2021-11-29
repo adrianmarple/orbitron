@@ -889,15 +889,9 @@ def playing_players():
 def color_pixel(index, color):
   pixels[index] = color
 
-def color_raw_pixel(index, color):
-  raw_pixels[index] = color
-
 def add_color_to_pixel(index, color):
-  for dupe in unique_to_dupes[index]:
-    pixels[dupe] = (
-      max(0, min(255, pixels[dupe][0] + int(color[0]))),
-      max(0, min(255, pixels[dupe][1] + int(color[1]))),
-      max(0, min(255, pixels[dupe][2] + int(color[2]))))
+  pixels[index] += np.array(color,dtype="<u1")
+
 
 def multi_lerp(x, control_points):
   if x < 0:
