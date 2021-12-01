@@ -219,6 +219,10 @@ def gameover(winner):
   battle_channel.stop()
   broadcast_state()
 
+
+def is_everyone_ready(minimum):
+  return engine.is_everyone_ready(minimum) and len(pacmen()) > 0
+
 def ghosts():
   return [player for player in players if not player.is_pacman]
 def pacmen():

@@ -728,7 +728,7 @@ var app = new Vue({
           })
           peer.on('close',function(){
             console.log("CLOSE")
-            self.connectionStatus = "TIMEDOUT"
+            self.connectionStatus = "TIMED OUT"
             setTimeout(function(){ self.destroyWebsocket(); })
           })
           peer.on('error', (err) => {

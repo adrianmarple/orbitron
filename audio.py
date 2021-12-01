@@ -20,6 +20,8 @@ class SoundShell:
     pass
   def fadeout(self, duration):
     pass
+  def get_num_channels(self):
+    return 0
 
 sounds = {}
 
