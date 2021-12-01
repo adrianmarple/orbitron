@@ -25,7 +25,20 @@ sounds = {}
 
 
 def prewarm_audio(sound_file_names, stubs=None, music_directory="/home/pi/Rhomberman/audio/", start_loop=""):
+
+  #Populate with shells first
+  for file_name in sound_file_names:
+    name = file_name[:-4]
+    sounds[name] = SoundShell()
+
+  if stubs:
+    for name in stubs:
+      name = name[:-4]
+      sounds[name] = SoundShell()
+
+  #Then run prewarm thread
   def thread_func():
+    global sounds
     try:
       mixer.init(devicename="USB Audio Device, USB Audio")
     except:
@@ -40,17 +53,6 @@ def prewarm_audio(sound_file_names, stubs=None, music_directory="/home/pi/Rhombe
       sounds[start_loop].play(loops=-1)
 
     print("Finished prewarming audio.")
-
-
-  for file_name in sound_file_names:
-    name = file_name[:-4]
-    if not name in sounds:
-      sounds[name] = SoundShell()
-
-  if stubs:
-    for name in stubs:
-      name = name[:-4]
-      
 
   prewarm_thread = Thread(target=thread_func)
   prewarm_thread.start()

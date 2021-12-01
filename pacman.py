@@ -6,7 +6,7 @@ from math import exp, ceil, floor, pi, cos, sin, sqrt
 from random import randrange, random, choice
 from time import time, sleep
 
-from audio import sounds, prewarm_audio
+from audio import sounds
 import engine
 from engine import *
 
@@ -38,14 +38,6 @@ power_pulses = []
 
 previous_pellet_generation_time = 0
 previous_power_pellet_generation_time = 0
-
-prewarm_audio(sound_file_names=[
-    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3", 
-    "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "explosion.wav"
-  ],
-  #stubs=["battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3"]
-  #, start_loop="waiting"
-  )
 
 scaredy_ghost_color = np.array((0,0,255))
 

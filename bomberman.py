@@ -7,7 +7,7 @@ from math import exp, ceil, floor, pi, cos, sin, sqrt
 from random import randrange, random
 from time import time, sleep
 
-from audio import sounds, prewarm_audio
+from audio import sounds
 import engine
 from engine import *
 
@@ -35,16 +35,6 @@ secondary_explosion_providence = [None] * SIZE
 
 battle_channel = None
 vamp = None
-
-prewarm_audio(sound_file_names=[
-    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3",
-    "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "explosion.wav"
-  ],
-  #stubs=["battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3"]
-  start_loop="waiting"
-  )
-
-
 
 def setup():
   Bomberman(

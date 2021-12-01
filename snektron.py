@@ -7,7 +7,7 @@ from random import randrange, random, choice
 from time import time, sleep
 import collections
 
-from audio import sounds, prewarm_audio
+from audio import sounds
 import engine
 from engine import *
 
@@ -20,15 +20,6 @@ config["SNAKE_MOVE_FREQ"] = 0.3
 
 battle_channel = None
 vamp = None
-
-
-prewarm_audio(sound_file_names=[
-    "battle1.ogg", "battle1Loop.ogg", "waiting.ogg", "victory.mp3", 
-    "hurt.wav",
-  ],
-  #stubs=["battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3"]
-  #, start_loop="waiting"
-  )
 
 def setup():
   Snek(position=105,

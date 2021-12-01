@@ -13,7 +13,15 @@ from random import randrange, random
 # from threading import Thread
 from time import time
 
-from audio import sounds
+from audio import sounds,prewarm_audio
+
+prewarm_audio(sound_file_names=[
+    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3",
+    "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "explosion.wav"
+  ],
+  #stubs=["battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3"]
+  start_loop="waiting"
+)
 
 # Actual constants
 COORD_MAGNITUDE = 4.46590101883
