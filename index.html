@@ -284,16 +284,15 @@ body, #app, .main {
 
 
 
-  <div id="queue" v-if="!hasClaimed" class="header">
-    <div v-if="connectionStatus != 'CONNECTED'">
-      {{connectionStatus}}
-    </div>
-    <div v-else>
-      All the play slots have been claimed.
-      <br/>
-      <br/>
-      Position in queue: {{state.queuePosition}}
-    </div>
+  <div v-if="connectionStatus != 'CONNECTED'">
+    {{connectionStatus}}
+  </div>
+  
+  <div id="queue" v-else-if="!hasClaimed" class="header">
+    All the play slots have been claimed.
+    <br/>
+    <br/>
+    Position in queue: {{state.queuePosition}}
   </div>
 
   <div v-else>
@@ -578,7 +577,7 @@ var app = new Vue({
       return this.state.config || {}
     },
     hasClaimed() {
-      return !isNothing(this.state.self) && this.ws //this.connectionStatus == "CONNECTED"
+      return !isNothing(this.state.self)
     },
     self() {
       if (this.state.players && !isNothing(this.state.self))
