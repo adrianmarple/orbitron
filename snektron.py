@@ -194,9 +194,10 @@ class Snek(Player):
 
 
   def cant_move(self):
+    move_freq = config["SNAKE_MOVE_FREQ"] * sqrt(config["START_LENGTH"]/len(self.tail))
     return (
       (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
-      time() - self.last_move_time < config["SNAKE_MOVE_FREQ"] # just moved
+      time() - self.last_move_time < move_freq # just moved
     )
 
   def get_next_position(self):

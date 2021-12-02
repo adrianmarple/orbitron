@@ -119,7 +119,7 @@ function broadcast(baseMessage) {
     baseMessage.notimeout = NO_TIMEOUT
 
     for (let id in connections) {
-        baseMessage.self = id
+        baseMessage.self = parseInt(id)
         connections[id].send(JSON.stringify(baseMessage))
     }
     delete baseMessage.self

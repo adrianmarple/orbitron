@@ -83,8 +83,7 @@ def start_update():
 
   if engine.state_end_time == 0 and is_everyone_ready(minimum=1):
     for pacman in pacmen():
-      if pacman.is_claimed:
-        pacman.is_playing = True
+      pacman.is_playing = True
 
     ghost_count = 0
     for ghost in ghosts():
@@ -150,6 +149,8 @@ def start_ontimeout():
   engine.game_state = play_state
   battle_channel = sounds["battle1"].play()
   vamp = sounds["battle1Loop"]
+  data["score"] = 0
+
 
 def previctory_ontimeout():
   engine.game_state = victory_state
@@ -178,7 +179,7 @@ def render_game():
   for player in playing_players():
     player.render_ghost_trail()
 
-  power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 4))
+  power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 16))
   for i in range(SIZE):
     if statuses[i] == "blank":
       # already handled
@@ -204,11 +205,7 @@ def gameover(winner):
   engine.game_state = previctory_state
   engine.state_end_time = time() + 2
   if winner == "pacmen":
-    pacmans = pacmen()
-    if len(pacmans) > 0:
-      engine.victor = pacmans[0]
-    else:
-      engine.victor = players[0]
+    engine.victor = pacmen()[0]
   else:
     team_ghost = Team(team_id=0,
       name="Ghosts",
@@ -226,7 +223,7 @@ def is_everyone_ready(minimum):
 def ghosts():
   return [player for player in players if not player.is_pacman]
 def pacmen():
-  return [player for player in players if player.is_pacman]
+  return [player for player in players if player.is_pacman and player.is_claimed]
 
 
 def add_pellet(type):

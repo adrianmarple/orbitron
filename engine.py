@@ -111,12 +111,11 @@ def start(starting_state):
   game_state = start_state
 
 def quit():
-  global start_state, game_state, current_game
+  global start_state, game_state, current_game, state_end_time, victor
   current_game = ""
   game_state = None
   start_state = None
   state_end_time = 0
-  victor = None
   clear()
   for sound in sounds:
     if sound=="waiting":
