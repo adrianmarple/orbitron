@@ -524,7 +524,8 @@ var app = new Vue({
 
     onfocus = () => {
       if (!this.ws) {
-          setTimeout(function(){this.startWebsocket();},10)
+          let self=this
+          setTimeout(function(){self.startWebsocket();},10)
       }
     };
     onblur = () => {
