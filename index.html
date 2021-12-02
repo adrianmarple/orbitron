@@ -515,7 +515,6 @@ var app = new Vue({
     this.startWebsocket()
     this.warmUpAudio()
 
-    /*
     onfocus = () => {
       if (!this.ws) {
         this.startWebsocket()
@@ -527,7 +526,6 @@ var app = new Vue({
         this.connectionStatus = "BLURRED"
       }
     };
-    */
 
     onmousedown = this.handleStart
     ontouchstart = event => {
