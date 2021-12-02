@@ -284,16 +284,22 @@ body, #app, .main {
 
 
 
-  <div id="queue" v-if="!hasClaimed" class="header">
-    <div v-if="connectionStatus != 'CONNECTED'">
-      {{connectionStatus}}
-    </div>
-    <div v-else>
-      All the play slots have been claimed.
-      <br/>
-      <br/>
-      Position in queue: {{state.queuePosition}}
-    </div>
+  <div v-if="connectionStatus == 'CONNECTING'" class="header">
+    {{connectionStatus}}
+  </div>
+
+  <div v-else-if="connectionStatus != 'CONNECTED'" class="header">
+    {{connectionStatus}}
+    <br/>
+    <br/>
+    Tap To Reconnect
+  </div>
+  
+  <div id="queue" v-else-if="!hasClaimed" class="header">
+    All the play slots have been claimed.
+    <br/>
+    <br/>
+    Position in queue: {{state.queuePosition}}
   </div>
 
   <div v-else>
@@ -516,19 +522,18 @@ var app = new Vue({
     this.startWebsocket()
     this.warmUpAudio()
 
-    /*
     onfocus = () => {
       if (!this.ws) {
-        this.startWebsocket()
+          let self=this
+          setTimeout(function(){self.startWebsocket();},10)
       }
     };
     onblur = () => {
       if (!this.state.notimeout) {
         this.destroyWebsocket()
-        this.connectionStatus = "BLURRED"
+        this.connectionStatus = "LOST FOCUS"
       }
     };
-    */
 
     onmousedown = this.handleStart
     ontouchstart = event => {
@@ -578,16 +583,20 @@ var app = new Vue({
       return this.state.config || {}
     },
     hasClaimed() {
-      return this.state.self && this.ws //this.connectionStatus == "CONNECTED"
+      return !isNothing(this.state.self)
     },
     self() {
-      if (this.state.players)
+      if (this.state.players && !isNothing(this.state.self))
         return this.state.players[this.state.self]
       else
         return {}
     },
     myTeam() {
-      return this.state.teams[this.self.team]
+      if(this.state.teams && this.self.team) {
+        return this.state.teams[this.self.team]
+      } else {
+        return []
+      }
     },
     teamColor() {
       return (this.config.TEAM_MODE ? this.myTeam : this.self).color
@@ -660,11 +669,11 @@ var app = new Vue({
     },
 
     iAmVictorious() {
-      if (!this.state.victor) {
+        if (!this.state.victor || isNothing(this.state.self)) {
         return false
       }
       if (this.state.victor.players) {
-        return this.state.victor.players.includes(parseInt(this.state.self))
+        return this.state.victor.players.includes(this.state.self)
       } else {
         return this.self.color === this.state.victor.color
       }
@@ -709,7 +718,7 @@ var app = new Vue({
       self.signalClient.on('discover', async (allIDs) => {
         allIDs.forEach(async function(id){
           const { peer } = await self.signalClient.connect(id)
-          this.connectionStatus = "CONNECTED"
+          self.connectionStatus = "CONNECTED"
           console.log(peer)
           self.ws = peer
           peer.on('data', function(data){
@@ -892,6 +901,10 @@ function playExplosion(event) {
 
   audio.appendChild(document.body);
   auido.play();
+}
+
+function isNothing(val) {
+  return val === undefined || val === null
 }
 
 
