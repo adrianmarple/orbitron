@@ -578,7 +578,7 @@ var app = new Vue({
       return this.state.config || {}
     },
     hasClaimed() {
-      return this.state.self && this.ws //this.connectionStatus == "CONNECTED"
+      return !isNothing(this.state.self) && this.ws //this.connectionStatus == "CONNECTED"
     },
     self() {
       if (this.state.players && !isNothing(this.state.self))
