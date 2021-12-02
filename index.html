@@ -581,13 +581,17 @@ var app = new Vue({
       return this.state.self && this.ws //this.connectionStatus == "CONNECTED"
     },
     self() {
-      if (this.state.players)
+      if (this.state.players && !isNothing(this.state.self))
         return this.state.players[this.state.self]
       else
         return {}
     },
     myTeam() {
-      return this.state.teams[this.self.team]
+      if(this.state.teams && this.self.team) {
+        return this.state.teams[this.self.team]
+      } else {
+        return []
+      }
     },
     teamColor() {
       return (this.config.TEAM_MODE ? this.myTeam : this.self).color
@@ -660,11 +664,11 @@ var app = new Vue({
     },
 
     iAmVictorious() {
-      if (!this.state.victor) {
+        if (!this.state.victor || isNothing(this.state.self)) {
         return false
       }
       if (this.state.victor.players) {
-        return this.state.victor.players.includes(parseInt(this.state.self))
+        return this.state.victor.players.includes(this.state.self)
       } else {
         return this.self.color === this.state.victor.color
       }
@@ -892,6 +896,10 @@ function playExplosion(event) {
 
   audio.appendChild(document.body);
   auido.play();
+}
+
+function isNothing(val) {
+  return val === undefined || val === null
 }
 
 
