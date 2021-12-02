@@ -284,8 +284,15 @@ body, #app, .main {
 
 
 
-  <div v-if="connectionStatus != 'CONNECTED'" class="header">
+  <div v-if="connectionStatus == 'CONNECTING'" class="header">
     {{connectionStatus}}
+  </div>
+
+  <div v-else-if="connectionStatus != 'CONNECTED'" class="header">
+    {{connectionStatus}}
+    <br/>
+    <br/>
+    Tap To Reconnect
   </div>
   
   <div id="queue" v-else-if="!hasClaimed" class="header">
@@ -517,13 +524,13 @@ var app = new Vue({
 
     onfocus = () => {
       if (!this.ws) {
-        this.startWebsocket()
+          setTimeout(function(){this.startWebsocket();},10)
       }
     };
     onblur = () => {
       if (!this.state.notimeout) {
         this.destroyWebsocket()
-        this.connectionStatus = "BLURRED"
+        this.connectionStatus = "LOST FOCUS"
       }
     };
 
