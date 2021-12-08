@@ -52,7 +52,10 @@ def consume_input():
             game_module = None
             engine.quit()
           else:
-            engine.current_game = vote
+            engine.current_game = message["game"]
+            if "settings" in message:
+              engine.config.update(message["settings"])
+
             if engine.current_game == "bomberman":
               game_module = bomberman
             elif engine.current_game == "pacman":

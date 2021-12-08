@@ -131,10 +131,14 @@ def update():
   global game_state, state_end_time
   global pixels
 
-  # Render special idle state if no one is there
-  if not game_state or (game_state == start_state and len(claimed_players()) == 0):
+
+  if not game_state:
     render_snake()
     return
+  if len(claimed_players()) == 0:
+    quit()
+    return
+
 
   game_state.update()
 

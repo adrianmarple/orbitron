@@ -241,7 +241,11 @@ body, #app, .main {
       xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
     <path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
   </svg> -->
-  <div id="quit-button" class="button" @click="vote('quit')" :class="{selected: self.vote=='quit'}">
+  <div id="quit-button"
+      class="button"
+      @click="vote({vote: 'quit'})"
+      :class="{selected: self.vote=='quit'}"
+  >
     QUIT
   </div>
   <div id="quit-vote-tally" v-if="voteTally.quit" class="vote-tally">
@@ -271,13 +275,19 @@ body, #app, .main {
 
   <div v-if="BETWEEN_GAMES" id="game-selection-menu">
     <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
-    <div v-for="game in ['snektron', 'pacman', 'bomberman']"
-        class="button"
-        :class="{selected: self.vote==game}"
-        @click="vote(game)">
-      {{game}}
-      <div v-if="voteTally[game]" class="vote-tally">
-        {{voteTally[game]}}/{{majorityCount}}
+    <div v-for="voteType in voteTypes">
+      <div v-if="voteType.divider" style="font-size: 4em; margin-top: 6vw;">
+        {{voteType.game}}
+      </div>
+      <div v-else
+          class="button"
+          :class="{selected: self.vote==voteType.vote}"
+          @click="vote(voteType)"
+      >
+        {{voteType.vote}}
+        <div v-if="voteTally[voteType.vote]" class="vote-tally">
+          {{voteTally[voteType.vote]}}/{{majorityCount}}
+        </div>
       </div>
     </div>
   </div>
@@ -451,7 +461,6 @@ body, #app, .main {
 <script>
 // To prevent zoom on iOS
 document.addEventListener("click", event => {
-  console.log(event.target.tagName)
   if (event.target.tagName != "INPUT") {
     event.preventDefault()
     event.stopPropagation()
@@ -515,6 +524,26 @@ var app = new Vue({
       {game: "any", name: "ALLOW_CROSS_TIP_MOVE", boolean: true},
       {game: "any", name: "MOVE_BIAS"},
       {game: "any", name: "MOVE_FREQ"},
+    ],
+
+    voteTypes: [
+      {game: "snektron", vote: "snektron"},
+      {game: "snektron", vote: "snektron"},
+      {game: "bomberman", divider: true},
+      {
+        game: "bomberman", vote: "battle royale",
+        settings: {
+          USE_SHIELDS: true,
+          DEATHMATCH: false,
+        }
+      },
+      {
+        game: "bomberman", vote: "deathmatch",
+        settings: {
+          USE_SHIELDS: false,
+          DEATHMATCH: true,
+        }
+      },
     ],
   },
 
@@ -719,7 +748,7 @@ var app = new Vue({
         allIDs.forEach(async function(id){
           const { peer } = await self.signalClient.connect(id)
           self.connectionStatus = "CONNECTED"
-          console.log(peer)
+          // console.log(peer)
           self.ws = peer
           peer.on('data', function(data){
             message = JSON.parse(data)
@@ -807,7 +836,8 @@ var app = new Vue({
     },
 
     vote(vote) {
-      this.send({type: 'vote', vote})
+      vote.type = "vote"
+      this.send(vote)
     },
     // quit() {
     //   this.send({type: 'quit'})
