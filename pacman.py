@@ -16,16 +16,16 @@ config["NUM_PACMEN"] = 2
 config["NUM_GHOSTS"] = 5
 config["STARTING_POWER_PELLET_COUNT"] = 4
 config["POWER_PELLET_DURATION"] = 10
-config["PACMAN_MOVE_FREQ"] = 0.18
-config["PACMAN_POWER_MOVE_FREQ"] = 0.12
+config["PACMAN_MOVE_FREQ"] = 0.22
+config["PACMAN_POWER_MOVE_FREQ"] = 0.18
 config["GHOST_MOVE_FREQ"] = 0.22
 config["GHOST_SCARED_MOVE_FREQ"] = 0.3
-config["GHOST_RANDOMNESS"] = 0.1
+config["GHOST_RANDOMNESS"] = 0.5
 config["PELLET_SCORE"] = 10
 config["POWER_PELLET_SCORE"] = 50
 config["GHOST_KILL_SCORE"] = 200
-config["VICTORY_SCORE"] = 3000
-config["MULTI_PACMAN_VICTORY_SCORE"] = 5000
+config["VICTORY_SCORE"] = 5000
+config["MULTI_PACMAN_VICTORY_SCORE"] = 7000
 config["PELLET_REGEN_FREQ"] = 5
 config["POWER_PELLET_REGEN_FREQ"] = 45
 
@@ -39,23 +39,21 @@ power_pulses = []
 previous_pellet_generation_time = 0
 previous_power_pellet_generation_time = 0
 
-scaredy_ghost_color = np.array((0,0,255))
-
 ghost_colors = [
-  np.array((255, 0, 0)),
-  np.array((200, 5, 30)),
+  np.array((200, 0, 0)),
   np.array((0, 200, 0)),
-  np.array((200, 50, 0)),
-  np.array((50, 0, 150)),
-  np.array((180, 200, 5)),
+  np.array((0, 100, 200)),
+  np.array((255, 128, 0)),
+  np.array((200, 0, 200)),
+  np.array((0, 200, 200)),
 ]
 ghost_color_strings = [
-  "#ff0000",
-  "#e91e63",
-  "#4caf50",
-  "#ff9800",
-  "#9575cd",
-  "#c0ca33",
+  "#c80000",
+  "#00c800",
+  "#0064c8",
+  "#ff8000",
+  "#c800c8",
+  "#00c8c8",
 ]
 
 def setup():
@@ -278,6 +276,7 @@ class Pacman(Player):
       for ghost in ghosts():
         if ghost.is_playing and ghost.position == self.position:
           if self.is_powerful():
+            sounds["kick"].play()
             ghost.stunned = True
             ghost.position = unique_antipodes[ghost.position]
             ghost.hit_time = time()
@@ -289,7 +288,10 @@ class Pacman(Player):
             self.hit_time = time()
             self.lives_left -= 1
             if self.lives_left < 0:
+              sounds["death"].play()
               self.is_alive = False
+            else:
+              sounds["hurt"].play()
             broadcast_state()
             break
 
@@ -300,6 +302,7 @@ class Pacman(Player):
 
     # Pacman consumes pellets as they move
     if statuses[self.position] == "power":
+      sounds["explosion"].play()
       power_pellet_end_time = time() + config["POWER_PELLET_DURATION"]
       for player in playing_players():
         player.power_pellet_end_time = power_pellet_end_time
@@ -307,6 +310,7 @@ class Pacman(Player):
       statuses[self.position] = "blank"
       power_pulses.append((unique_coords[self.position], time()))
     elif statuses[self.position] == "pellet":
+      sounds["placeBomb"].play(fade_ms=60)
       data["score"] += config["PELLET_SCORE"]
       statuses[self.position] = "blank"
 
@@ -350,7 +354,7 @@ class Ghost(Player):
       if time_left < 3 and time_left % 0.5 > 0.25:
         return np.array((0, 0, 0))
       else:
-        return scaredy_ghost_color
+        return np.array((255-self.color[0],255-self.color[1],255-self.color[2]))
     else:
       return self.color
 
@@ -370,7 +374,10 @@ class Ghost(Player):
       my_coord = unique_coords[self.position]
 
       if random() < config["GHOST_RANDOMNESS"]:
-        return choice(neighbors[pos])
+        goto = choice(neighbors[pos])
+        while goto == self.prev_pos:
+          goto = choice(neighbors[pos])
+        return goto
 
       best_dist_sq = 1000
       closest_pacman_coord = my_coord
@@ -393,7 +400,7 @@ class Ghost(Player):
         else:
           is_better_dist = dist_sq < best_dist_sq
 
-        if is_better_dist:
+        if is_better_dist and neighbor != self.prev_pos:
           new_pos = neighbor
           best_dist_sq = dist_sq
 
@@ -401,11 +408,12 @@ class Ghost(Player):
 
 
   def is_occupied(self, position):
-    considered_players = claimed_players() if engine.game_state == start_state else playing_players()
-    for player in considered_players:
-      if player.is_alive and player.is_pacman == self.is_pacman and player.position == position:
-        return True
     return False
+    #considered_players = claimed_players() if engine.game_state == start_state else playing_players()
+    #for player in considered_players:
+    #  if player.is_alive and player.is_pacman == self.is_pacman and player.position == position:
+    #    return True
+    #return False
 
   def render(self):
     if self.stunned:
