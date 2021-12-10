@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
 <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
 
-<title>Super Rhomberman</title>
+<title>Super Orbitron</title>
 <link rel="shortcut icon" href="/images/favicon.jpg" />
 <script src="/vue.js" type="text/javascript"></script>
 <script src="/math.js" type="text/javascript"></script>
@@ -276,7 +276,7 @@ body, #app, .main {
   <div v-if="BETWEEN_GAMES" id="game-selection-menu">
     <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
     <div v-for="voteType in voteTypes">
-      <div v-if="voteType.divider" style="font-size: 4em; margin-top: 6vw;">
+      <div v-if="voteType.divider" style="font-size: 4em; margin-top: 10vw;">
         {{voteType.game}}
       </div>
       <div v-else
@@ -384,7 +384,7 @@ body, #app, .main {
     </div>
   </div>
 
-  <div v-else-if="mode=='start' && state.timeRemaining >= 0" class="main">
+  <div v-else-if="mode=='countdown'" class="main">
     <div class="header">
       <div class="banner">{{Math.round(state.timeRemaining)}}</div>
     </div>
@@ -528,7 +528,7 @@ var app = new Vue({
 
     voteTypes: [
       {game: "snektron", vote: "snektron"},
-      {game: "snektron", vote: "snektron"},
+      {game: "pacman", vote: "pacman"},
       {game: "bomberman", divider: true},
       {
         game: "bomberman", vote: "battle royale",

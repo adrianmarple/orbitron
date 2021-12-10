@@ -78,6 +78,7 @@ def consume_input():
 
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])
+        player.last_move_input_time = time()
       elif message["type"] == "ready":
         player.set_ready()
       elif message["type"] == "unready":

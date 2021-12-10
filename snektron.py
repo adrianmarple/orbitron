@@ -54,9 +54,10 @@ def start_update():
     for player in claimed_players():
       player.is_playing = True
 
+    engine.game_state = countdown_state
     engine.state_end_time = time() + 4
-    broadcast_state()
     sounds["waiting"].fadeout(4000)
+    broadcast_state()
 
 
 def play_update():
@@ -78,36 +79,19 @@ def play_ontimeout():
       top_score_time = player.score_timestamp
       engine.victor = player
   engine.state_end_time = time() + 10
-  broadcast_state()
 
-def start_ontimeout():
+def countdown_ontimeout():
+  for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
+    spawn_apple()
+
   global battle_channel, vamp
   engine.state_end_time = time() + config["ROUND_TIME"]
   engine.game_state = play_state
   battle_channel = sounds["battle1"].play()
   vamp = sounds["battle1Loop"]
-  for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
-    spawn_apple()
-
-
-def render_sandbox():
-  if engine.state_end_time > 0:
-    countdown = ceil(engine.state_end_time - time())
-    countup = 5 - countdown
-    render_pulse(
-      direction=(0,0,COORD_MAGNITUDE),
-      color=np.array((60,60,60)) * countup,
-      start_time=engine.state_end_time - countdown,
-      duration=READY_PULSE_DURATION)
-
-  for player in claimed_players():
-    if player.is_ready:
-      player.render_ready()
-    else:
-      player.render()
 
 def render_game():
-  if engine.state_end_time - time() < 5:
+  if engine.state_end_time > 0 and engine.state_end_time - time() < 5:
     countdown = ceil(engine.state_end_time - time())
     countup = 5 - countdown
     render_pulse(
@@ -123,8 +107,20 @@ def render_game():
     elif statuses[i] == "apple":
       color_pixel(i, (10, 10, 10))
 
-  for player in playing_players():
-    player.render()
+
+  if engine.game_state == start_state:
+    for player in claimed_players():
+      if player.is_ready:
+        player.render_ready()
+      else:
+        player.render()
+  elif engine.game_state == countdown_state:
+    for player in playing_players():
+      player.render_ready()
+  else:
+    for player in playing_players():
+      player.render()
+
 
 def spawn_apple():
   while True:
@@ -141,7 +137,9 @@ def spawn_apple():
     statuses[apple_pos] = "apple"
     return
 
-start_state = State("start", start_update, start_ontimeout, render_sandbox)
+
+start_state = State("start", start_update, None, render_game)
+countdown_state = State("countdown", None, countdown_ontimeout, render_game)
 play_state = State("play", play_update, play_ontimeout, render_game)
 victory_state = State("victory", start_update, victory_ontimeout, render_victory)
 

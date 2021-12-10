@@ -98,12 +98,7 @@ def start_update():
         ghost.set_color()
         ghost_count += 1
 
-    for i in range(len(statuses)):
-      statuses[i] = "pellet"
-
-    for i in range(config["STARTING_POWER_PELLET_COUNT"]):
-      statuses[randrange(len(statuses))] = "power"
-
+    engine.game_state = countdown_state
     engine.state_end_time = time() + 4
     broadcast_state()
     sounds["waiting"].fadeout(4000)
@@ -139,7 +134,13 @@ def play_update():
 
 
 
-def start_ontimeout():
+def countdown_ontimeout():
+  for i in range(len(statuses)):
+    statuses[i] = "pellet"
+
+  for i in range(config["STARTING_POWER_PELLET_COUNT"]):
+    statuses[randrange(len(statuses))] = "power"
+
   global battle_channel, vamp
   global previous_pellet_generation_time, previous_power_pellet_generation_time
   previous_pellet_generation_time = time()
@@ -157,6 +158,13 @@ def previctory_ontimeout():
 
 
 def render_sandbox():
+  for player in claimed_players():
+    if player.is_ready:
+      player.render_ready()
+    else:
+      player.render()
+
+def render_countdown():
   if engine.state_end_time > 0:
     countdown = ceil(engine.state_end_time - time())
     countup = 5 - countdown
@@ -166,14 +174,10 @@ def render_sandbox():
       start_time=engine.state_end_time - countdown,
       duration=READY_PULSE_DURATION)
 
-  for player in claimed_players():
-    if player.is_ready:
-      player.render_ready()
-    else:
-      player.render()
+  for player in playing_players():
+    player.render_ready()
 
 def render_game():
-
   for player in playing_players():
     player.render_ghost_trail()
 
@@ -231,7 +235,8 @@ def add_pellet(type):
       statuses[pellet_pos] = type
       return
 
-start_state = State("start", start_update, start_ontimeout, render_sandbox)
+start_state = State("start", start_update, None, render_sandbox)
+countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
 victory_state = State("victory", start_update, victory_ontimeout, render_victory)

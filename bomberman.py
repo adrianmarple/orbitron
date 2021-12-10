@@ -109,14 +109,8 @@ def start_update():
       player.bomb_power = config["STARTING_BOMB_POWER"]
 
     clear()
-    for i in range(config["NUM_WALLS"]):
-      pos = randrange(SIZE)
-      bad_spot = pos in START_POSITIONS
-      for start_pos in START_POSITIONS:
-        bad_spot = bad_spot or pos in neighbors[start_pos]
 
-      if not bad_spot:
-        statuses[pos] = "wall"
+    engine.game_state = countdown_state
     engine.state_end_time = time() + 4
     broadcast_state()
     sounds["waiting"].fadeout(4000)
@@ -174,7 +168,16 @@ def play_update():
 
 
 
-def start_ontimeout():
+def countdown_ontimeout():
+  for i in range(config["NUM_WALLS"]):
+    pos = randrange(SIZE)
+    bad_spot = pos in START_POSITIONS
+    for start_pos in START_POSITIONS:
+      bad_spot = bad_spot or pos in neighbors[start_pos]
+
+    if not bad_spot:
+      statuses[pos] = "wall"
+
   global battle_channel, vamp
   engine.game_state = play_state
   engine.state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
@@ -192,7 +195,7 @@ def previctory_ontimeout():
   sounds["victory"].play()
 
 
-def render_sandbox():
+def render_game():
   if engine.state_end_time > 0:
     countdown = ceil(engine.state_end_time - time())
     countup = 5 - countdown
@@ -202,20 +205,6 @@ def render_sandbox():
       start_time=engine.state_end_time - countdown,
       duration=READY_PULSE_DURATION)
 
-  for i in range(SIZE):
-    if isinstance(statuses[i], float):
-      if statuses[i] < time():
-        statuses[i] = "blank"
-      else:
-        render_explosion(i)
-
-  for player in claimed_players():
-    if player.is_ready:
-      player.render_ready()
-    else:
-      player.render()
-
-def render_game():
   for player in playing_players():
     player.render_ghost_trail()
 
@@ -237,12 +226,23 @@ def render_game():
     else:
       render_explosion(i)
 
-  for player in playing_players():
-    player.render()
+  if engine.game_state == start_state:
+    for player in claimed_players():
+      if player.is_ready:
+        player.render_ready()
+      else:
+        player.render()
+  elif engine.game_state == countdown_state:
+    for player in playing_players():
+      player.render_ready()
+  else:
+    for player in playing_players():
+      player.render()
 
 
 
-start_state = State("start", start_update, start_ontimeout, render_sandbox)
+start_state = State("start", start_update, None, render_game)
+countdown_state = State("countdown", None, countdown_ontimeout, render_game)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
 victory_state = State("victory", start_update, victory_ontimeout, render_victory)

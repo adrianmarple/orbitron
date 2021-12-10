@@ -148,9 +148,8 @@ def update():
 
   # For countdown on phone
   remaining_time = state_end_time - time()
-  if game_state == start_state and remaining_time > 0 and remaining_time % 1 < 0.05:
+  if remaining_time > 0 and remaining_time % 1 < 0.05:
     broadcast_state()
-
 
   pixels *= 0
   game_state.render()
@@ -205,6 +204,7 @@ class Player:
     self.ready_time = 0
     self.is_claimed = False
     self.is_playing = False
+    self.last_move_input_time = 0
     self.move_direction = np.array((0, 0))
     self.prev_pos = 0
     self.tap = 0
@@ -266,7 +266,8 @@ class Player:
       self.stunned or
       (game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < config["MOVE_FREQ"] or # just moved
-      (self.move_direction == ZERO_2D).all()
+      (self.move_direction == ZERO_2D).all() or
+      time() - self.last_move_input_time > 1 # no recent updates, probably missed a "stop" update
     )
 
 
