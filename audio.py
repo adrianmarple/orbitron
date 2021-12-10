@@ -2,7 +2,7 @@
 
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 import pygame._sdl2 as sdl2
-from threading import Thread
+from threading import main_thread, Thread
 from time import sleep
 
 MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
@@ -82,7 +82,10 @@ def prewarm_audio():
     # thread now to handle vamps
     vamp_sounds = [sound for sound in sounds.values() if sound.vamp]
     while True:
-      sleep(5)
+      sleep(3)
+      if not main_thread().is_alive():
+        return
+
       for sound in vamp_sounds:
         if sound.channel and sound.channel.get_queue() is None:
           sound.channel.queue(sound.vamp)
