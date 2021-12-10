@@ -15,13 +15,7 @@ from time import time
 
 from audio import sounds,prewarm_audio
 
-prewarm_audio(sound_file_names=[
-    "battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3",
-    "kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "explosion.wav"
-  ],
-  #stubs=["battle1.ogg", "battle1Loop.ogg", "dm1.ogg", "dm1Loop.ogg","waiting.ogg","victory.mp3"]
-  start_loop="waiting"
-)
+prewarm_audio()
 
 # Actual constants
 COORD_MAGNITUDE = 4.46590101883
@@ -491,8 +485,7 @@ def victory_ontimeout():
   game_state = start_state
   state_end_time = 0
   sounds["victory"].fadeout(1000)
-  if sounds["waiting"].get_num_channels() <= 0:
-    sounds["waiting"].play(loops=-1, fade_ms=2000)
+  sounds["waiting"].play()
   clear()
   for player in players:
     player.reset()

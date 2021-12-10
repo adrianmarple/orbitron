@@ -85,7 +85,7 @@ body, #app, .main {
   font-size: 2em;
   display: flex;
   align-items: center;
-  height: 6vw;
+  height: 8vw;
   user-select: initial;
   -webkit-user-select: initial; /* Safari */
   -khtml-user-select: initial; /* Konqueror HTML */
@@ -93,15 +93,15 @@ body, #app, .main {
   -ms-user-select: initial; /* Internet Explorer/Edge */
 }
 .setting input[type="checkbox"] {
-  width: 4vw;
-  height: 4vw;
+  width: 6vw;
+  height: 6vw;
   margin: 0 8vw 0 2vw;
   box-sizing: border-box;
 }
 .setting textarea {
-  width: 12vw;
-  height: 5vw;
-  line-height: 5vw;
+  width: 15vw;
+  height: 7vw;
+  line-height: 7vw;
   font-size: 1em;
   text-align: right;
   margin-left: 2vw;
@@ -267,7 +267,8 @@ body, #app, .main {
           v-else
           type="number"
           v-model.number="config[setting.name]"
-          @onchange="updateSettings"
+          @keydown="settingsKeydown"
+          @change="updateSettings"
         ></textarea>
       </div>
     </div>
@@ -583,6 +584,19 @@ var app = new Vue({
   watch: {
     config: {
       handler: function (val) {
+        for (let key in val) {
+          if (typeof(val[key]) == "string") {
+            try {
+              val[key] = parseFloat(val[key])
+              if (isNaN(val[key])) {
+                val[key] = 0
+              }
+            } catch(err) {
+              // pass
+            }
+          }
+        }
+
         if (this.oldConfig == null) {
           this.oldConfig = { ...val }
           return
@@ -864,8 +878,14 @@ var app = new Vue({
       this.send({type: "pulse"})
     },
 
+    settingsKeydown(event) {
+      if(event.keyCode == 13) {
+        event.target.blur()
+        event.preventDefault()
+      }
+    },
     updateSettings() {
-      console.log(this.config)
+      // console.log(this.config)
     },
     prettifySettingName(name) {
       return name.toLowerCase().replaceAll("_", " ")
@@ -905,7 +925,6 @@ function delay(millis, v) {
     setTimeout(resolve.bind(null, v), millis)
   });
 }
-
 
 
 playerMarker = document.getElementById("playerMarker")

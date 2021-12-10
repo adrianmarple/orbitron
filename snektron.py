@@ -18,9 +18,6 @@ config["ADDITIONAL_APPLES"] = 25
 config["SNAKE_MOVE_FREQ"] = 0.3
 
 
-battle_channel = None
-vamp = None
-
 def setup():
   Snek(position=105,
     color=(0, 200, 0),
@@ -61,14 +58,11 @@ def start_update():
 
 
 def play_update():
-  if battle_channel.get_queue() is None:
-    battle_channel.queue(vamp)
-
   for player in playing_players():
     player.move()
 
 def play_ontimeout():
-  battle_channel.stop()
+  sounds["battle1"].stop()
   sounds["victory"].play()
   engine.game_state = victory_state
   top_score = 0
@@ -83,12 +77,9 @@ def play_ontimeout():
 def countdown_ontimeout():
   for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
     spawn_apple()
-
-  global battle_channel, vamp
   engine.state_end_time = time() + config["ROUND_TIME"]
   engine.game_state = play_state
-  battle_channel = sounds["battle1"].play()
-  vamp = sounds["battle1Loop"]
+  sounds["battle1"].play()
 
 def render_game():
   if engine.state_end_time > 0 and engine.state_end_time - time() < 5:

@@ -30,9 +30,6 @@ config["PELLET_REGEN_FREQ"] = 5
 config["POWER_PELLET_REGEN_FREQ"] = 45
 
 
-battle_channel = None
-vamp = None
-
 data["score"] = 0
 power_pulses = []
 
@@ -105,9 +102,6 @@ def start_update():
 
 
 def play_update():
-  if battle_channel.get_queue() is None:
-    battle_channel.queue(vamp)
-
   for player in playing_players():
     player.move()
 
@@ -141,13 +135,11 @@ def countdown_ontimeout():
   for i in range(config["STARTING_POWER_PELLET_COUNT"]):
     statuses[randrange(len(statuses))] = "power"
 
-  global battle_channel, vamp
   global previous_pellet_generation_time, previous_power_pellet_generation_time
   previous_pellet_generation_time = time()
   previous_power_pellet_generation_time = time()
   engine.game_state = play_state
-  battle_channel = sounds["battle1"].play()
-  vamp = sounds["battle1Loop"]
+  sounds["battle1"].play()
   data["score"] = 0
 
 
@@ -215,7 +207,7 @@ def gameover(winner):
       color_string="red",
       players=ghosts())
     engine.victor = team_ghost
-  battle_channel.stop()
+  sounds["battle1"].stop()
   broadcast_state()
 
 

@@ -7,7 +7,7 @@ from math import exp, ceil, floor, pi, cos, sin, sqrt
 from random import randrange, random
 from time import time, sleep
 
-from audio import sounds
+from audio import sounds, stop_all_audio
 import engine
 from engine import *
 
@@ -32,9 +32,6 @@ config["FIXED_OWNERSHIP"] = False
 
 explosion_providence = [None] * SIZE
 secondary_explosion_providence = [None] * SIZE
-
-battle_channel = None
-vamp = None
 
 def setup():
   Bomberman(
@@ -117,9 +114,6 @@ def start_update():
 
 
 def play_update():
-  if battle_channel.get_queue() is None:
-    battle_channel.queue(vamp)
-
   for player in playing_players():
     player.move()
 
@@ -178,16 +172,13 @@ def countdown_ontimeout():
     if not bad_spot:
       statuses[pos] = "wall"
 
-  global battle_channel, vamp
   engine.game_state = play_state
   engine.state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
 
   if config["DEATHMATCH"]:
-    battle_channel = sounds["dm1"].play()
-    vamp = sounds["dm1Loop"]
+    sounds["dm1"].play()
   else:
-    battle_channel = sounds["battle1"].play()
-    vamp = sounds["battle1Loop"]
+    sounds["battle1"].play()
 
 def previctory_ontimeout():
   engine.game_state = victory_state
@@ -195,16 +186,19 @@ def previctory_ontimeout():
   sounds["victory"].play()
 
 
-def render_game():
-  if engine.state_end_time > 0:
-    countdown = ceil(engine.state_end_time - time())
-    countup = 5 - countdown
-    render_pulse(
-      direction=(0,0,COORD_MAGNITUDE),
-      color=np.array((60,60,60)) * countup,
-      start_time=engine.state_end_time - countdown,
-      duration=READY_PULSE_DURATION)
+def render_countdown():
+  countdown = ceil(engine.state_end_time - time())
+  countup = 5 - countdown
+  render_pulse(
+    direction=(0,0,COORD_MAGNITUDE),
+    color=np.array((60,60,60)) * countup,
+    start_time=engine.state_end_time - countdown,
+    duration=READY_PULSE_DURATION)
 
+  for player in playing_players():
+    player.render_ready()
+
+def render_game():
   for player in playing_players():
     player.render_ghost_trail()
 
@@ -232,9 +226,6 @@ def render_game():
         player.render_ready()
       else:
         player.render()
-  elif engine.game_state == countdown_state:
-    for player in playing_players():
-      player.render_ready()
   else:
     for player in playing_players():
       player.render()
@@ -242,7 +233,7 @@ def render_game():
 
 
 start_state = State("start", start_update, None, render_game)
-countdown_state = State("countdown", None, countdown_ontimeout, render_game)
+countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
 victory_state = State("victory", start_update, victory_ontimeout, render_victory)
@@ -268,7 +259,7 @@ def gameover(winner):
   engine.game_state = previctory_state
   engine.state_end_time = time() + 2
   engine.victor = winner
-  battle_channel.stop()
+  stop_all_audio()
   touchall()
   broadcast_state()
 
