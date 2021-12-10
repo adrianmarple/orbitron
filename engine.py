@@ -13,7 +13,7 @@ from random import randrange, random
 # from threading import Thread
 from time import time
 
-from audio import sounds,prewarm_audio
+from audio import sounds, prewarm_audio
 
 prewarm_audio()
 
@@ -113,8 +113,7 @@ def quit():
   clear()
   for sound in sounds:
     if sound=="waiting":
-      if sounds[sound].get_num_channels()<=0:
-        sounds[sound].play(loops=-1, fade_ms=2000)
+      sounds[sound].play()
     else: 
       sounds[sound].stop()
 
