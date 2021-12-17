@@ -23,9 +23,9 @@ config["GHOST_RANDOMNESS"] = 0.5
 config["PELLET_SCORE"] = 10
 config["POWER_PELLET_SCORE"] = 50
 config["GHOST_KILL_SCORE"] = 200
-config["VICTORY_SCORE"] = 4000
+config["VICTORY_SCORE"] = 3000
 config["MARGINAL_PACMAN_VICTORY_SCORE"] = 1000
-config["PELLET_REGEN_FREQ"] = 3
+config["PELLET_REGEN_FREQ"] = 1
 config["POWER_PELLET_REGEN_FREQ"] = 30
 
 
@@ -50,12 +50,36 @@ ghost_color_strings = [
 ]
 
 def setup():
-  Pacman(position=105)
-  Pacman(position=24)
-  Pacman(position=252)
-  Pacman(position=168)
-  Pacman(position=311)
-  Pacman(position=76)
+  Pacman(
+    position=24,
+    color=(255, 255, 0),
+    color_string="#ffff00"
+  )
+  Pacman(
+    position=105,
+    color=(128, 255, 0),
+    color_string="#80ff00"
+  )
+  Pacman(
+    position=202,
+    color=(0, 255, 0),
+    color_string="#00ff00"
+  )
+  Pacman(
+    position=117,
+    color=(0, 255, 128),
+    color_string="#00ff80"
+  )
+  Pacman(
+    position=50,
+    color=(0, 255, 255),
+    color_string="#00ffff"
+  )
+  Pacman(
+    position=157,
+    color=(255, 128, 0),
+    color_string="#ff8000"
+  )
   #North Pole Coords = 268-273 133-141 172
   Ghost(position=133)
   Ghost(position=137)
@@ -242,8 +266,8 @@ victory_state = State("victory", start_update, victory_ontimeout, render_victory
 
 class Pacman(Player):
   def __init__(self, *args, **kwargs):
-    kwargs["color"] = (190, 195, 5)
-    kwargs["color_string"] = "#e7e023"
+    #kwargs["color"] = (190, 195, 5)
+    #kwargs["color_string"] = "#e7e023"
     Player.__init__(self, *args, **kwargs)
     self.is_pacman = True
 
@@ -272,7 +296,7 @@ class Pacman(Player):
         return True
     return False
 
-  def move(self):
+  def hit_check(self):
     if self.is_alive and engine.game_state != start_state:
       for ghost in ghosts():
         if ghost.is_playing and ghost.position == self.position:
@@ -296,10 +320,13 @@ class Pacman(Player):
             broadcast_state()
             break
 
+
+  def move(self):
+    self.hit_check()
     if not self.is_alive:
       return
-
     Player.move(self)
+    self.hit_check()
 
     # Pacman consumes pellets as they move
     if statuses[self.position] == "power":
