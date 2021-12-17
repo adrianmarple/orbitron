@@ -339,7 +339,7 @@ class Player:
     if time() - self.hit_time < flash_time:
       color = color * sin(time() * flash_speed)
 
-    add_color_to_pixel(self.position, color)
+    color_pixel(self.position, color)
 
 
   def render_ready(self):

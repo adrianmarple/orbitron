@@ -37,18 +37,16 @@ previous_pellet_generation_time = 0
 previous_power_pellet_generation_time = 0
 
 ghost_colors = [
-  np.array((0.5, 0, 1)),
   np.array((1, 0.5, 0)),
   np.array((1, 0, 0)),
   np.array((1, 0, 0.5)),
-  np.array((1, 0, 1)),
+  np.array((0, 1, 1)),
 ]
 ghost_color_strings = [
-  "#7f00ff",
   "#ff7f00",
   "#ff0000",
   "#ff007f",
-  "#ff00ff",
+  "#0ff",
 ]
 
 def setup():
@@ -172,7 +170,9 @@ def render_countdown():
     player.render_ready()
 
 def render_game():
-  for player in playing_players():
+  reversed_players = playing_players()
+  reversed_players.reverse()
+  for player in reversed_players:
     player.render_ghost_trail()
 
   power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 16))
@@ -185,7 +185,7 @@ def render_game():
     elif statuses[i] == "power":
       color_pixel(i, power_color)
 
-  for player in playing_players():
+  for player in reversed_players:
     player.render()
 
   global power_pulses
@@ -276,7 +276,7 @@ class Pacman(Player):
     if self.is_alive and engine.game_state != start_state:
       for ghost in ghosts():
         if ghost.is_playing and ghost.position == self.position:
-          if self.is_powerful():
+          if ghost.is_scared():
             sounds["kick"].play()
             ghost.stunned = True
             ghost.position = unique_antipodes[ghost.position]
@@ -333,7 +333,7 @@ class Ghost(Player):
     self.power_pellet_end_time = 0
 
   def set_color(self):
-    color_index = self.id % 5
+    color_index = self.id % len(ghost_colors)
     self.color = ghost_colors[color_index]
     self.team_color = self.color
     self.color_string = ghost_color_strings[color_index]
@@ -349,7 +349,7 @@ class Ghost(Player):
       if time_left < 3 and time_left % 0.5 > 0.25:
         base_color = np.array((0, 0, 0))
       else:
-        base_color = np.array((1,1,1)) - self.color
+        base_color = np.array((0,0,1.0))
     return 255*np.power(base_color,2)
 
   def cant_move(self):
