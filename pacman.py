@@ -25,8 +25,8 @@ config["POWER_PELLET_SCORE"] = 50
 config["GHOST_KILL_SCORE"] = 200
 config["VICTORY_SCORE"] = 4000
 config["MARGINAL_PACMAN_VICTORY_SCORE"] = 1000
-config["PELLET_REGEN_FREQ"] = 5
-config["POWER_PELLET_REGEN_FREQ"] = 45
+config["PELLET_REGEN_FREQ"] = 3
+config["POWER_PELLET_REGEN_FREQ"] = 30
 
 
 data["score"] = 0
@@ -37,16 +37,16 @@ previous_pellet_generation_time = 0
 previous_power_pellet_generation_time = 0
 
 ghost_colors = [
-  np.array((1, 0.5, 0)),
+  #np.array((1, 0.5, 0)),
   np.array((1, 0, 0)),
-  np.array((1, 0, 0.5)),
-  np.array((0, 1, 1)),
+  #np.array((1, 0, 0.5)),
+  #np.array((1, 0, 1)),
 ]
 ghost_color_strings = [
-  "#ff7f00",
+  #"#ff7f00",
   "#ff0000",
-  "#ff007f",
-  "#0ff",
+  #"#ff007f",
+  #"#f0f",
 ]
 
 def setup():
@@ -205,7 +205,7 @@ def gameover(winner):
   else:
     team_ghost = Team(team_id=0,
       name="Ghosts",
-      color=(255, 0, 127),
+      color=(255, 0, 0),
       color_string="red",
       players=ghosts())
     engine.victor = team_ghost
@@ -408,6 +408,9 @@ class Ghost(Player):
     #  if player.is_alive and player.is_pacman == self.is_pacman and player.position == position:
     #    return True
     #return False
+
+  def render_ready(self):
+    self.render()
 
   def render(self):
     if self.stunned:

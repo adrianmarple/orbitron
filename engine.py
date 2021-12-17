@@ -27,7 +27,7 @@ config = {
   "MOVE_FREQ": 0.18,
   "ALLOW_CROSS_TIP_MOVE": False,
   "MOVE_BIAS": 0.5,
-  "TEAM_MODE": True,
+  "TEAM_MODE": False,
 }
 
 READY_PULSE_DURATION = 0.75
