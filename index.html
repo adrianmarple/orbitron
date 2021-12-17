@@ -352,18 +352,6 @@ body, #app, .main {
     </div>
 
     <div class="buttons">
-      <div v-if="PACMAN && !self.isReady && self.isPacman"
-        class="button"
-        @click.stop="changeRole('ghost')"
-      >
-        Become Ghost
-      </div>
-      <div v-if="PACMAN && !self.isReady && !self.isPacman"
-        class="button"
-        @click.stop="changeRole('pacman')"
-      >
-        Become PacMan
-      </div>
       <div v-if="self.isReady"
         class="button"
         @click.stop="pulse"
@@ -433,7 +421,7 @@ body, #app, .main {
       </div>
 
       <div v-if="PACMAN">
-        Score: {{state.data.score}}
+        Score: {{state.data.score}}/{{state.data.victory_score}}
       </div>
       <div v-if="PACMAN && self.isPacman && self.livesLeft >= 0">
         Lives left: {{self.livesLeft}}
@@ -507,11 +495,10 @@ var app = new Vue({
       {game: "pacman", name: "PELLET_REGEN_FREQ"},
       {game: "pacman", name: "POWER_PELLET_REGEN_FREQ"},
       {game: "pacman", name: "VICTORY_SCORE"},
-      {game: "pacman", name: "MULTI_PACMAN_VICTORY_SCORE"},
+      {game: "pacman", name: "MARGINAL_PACMAN_VICTORY_SCORE"},
       {game: "pacman", name: "GHOST_KILL_SCORE"},
       {game: "pacman", name: "PELLET_SCORE"},
       {game: "pacman", name: "POWER_PELLET_SCORE"},
-      {game: "pacman", name: "NUM_PACMEN"},
       {game: "pacman", name: "NUM_GHOSTS"},
       {game: "pacman", name: "PACMAN_MOVE_FREQ"},
       {game: "pacman", name: "GHOST_MOVE_FREQ"},

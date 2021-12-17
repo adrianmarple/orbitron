@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from math import exp, ceil, floor, pi, cos, sin, sqrt
+from math import exp, ceil, floor, pi, cos, sin, sqrt, pow
 from random import randrange, random, choice
 from time import time, sleep
 
@@ -12,8 +12,7 @@ from engine import *
 
 
 config["PACMEN_LIVES"] = 2
-config["NUM_PACMEN"] = 2
-config["NUM_GHOSTS"] = 5
+config["NUM_GHOSTS"] = 4
 config["STARTING_POWER_PELLET_COUNT"] = 4
 config["POWER_PELLET_DURATION"] = 10
 config["PACMAN_MOVE_FREQ"] = 0.22
@@ -24,43 +23,52 @@ config["GHOST_RANDOMNESS"] = 0.5
 config["PELLET_SCORE"] = 10
 config["POWER_PELLET_SCORE"] = 50
 config["GHOST_KILL_SCORE"] = 200
-config["VICTORY_SCORE"] = 5000
-config["MULTI_PACMAN_VICTORY_SCORE"] = 7000
+config["VICTORY_SCORE"] = 4000
+config["MARGINAL_PACMAN_VICTORY_SCORE"] = 1000
 config["PELLET_REGEN_FREQ"] = 5
 config["POWER_PELLET_REGEN_FREQ"] = 45
 
 
 data["score"] = 0
+data["victory_score"] = 0
 power_pulses = []
 
 previous_pellet_generation_time = 0
 previous_power_pellet_generation_time = 0
 
 ghost_colors = [
-  np.array((200, 0, 0)),
-  np.array((0, 200, 0)),
-  np.array((0, 100, 200)),
-  np.array((255, 128, 0)),
-  np.array((200, 0, 200)),
-  np.array((0, 200, 200)),
+  np.array((0.5, 0, 1)),
+  np.array((1, 0.5, 0)),
+  np.array((1, 0, 0)),
+  np.array((1, 0, 0.5)),
+  np.array((1, 0, 1)),
 ]
 ghost_color_strings = [
-  "#c80000",
-  "#00c800",
-  "#0064c8",
-  "#ff8000",
-  "#c800c8",
-  "#00c8c8",
+  "#7f00ff",
+  "#ff7f00",
+  "#ff0000",
+  "#ff007f",
+  "#ff00ff",
 ]
 
 def setup():
   Pacman(position=105)
-  Ghost(position=198)
-  Ghost(position=24)
-  Ghost(position=252)
-  Ghost(position=168)
-  Ghost(position=311)
-  Ghost(position=76)
+  Pacman(position=24)
+  Pacman(position=252)
+  Pacman(position=168)
+  Pacman(position=311)
+  Pacman(position=76)
+  #North Pole Coords = 268-273 133-141 172
+  Ghost(position=133)
+  Ghost(position=137)
+  Ghost(position=141)
+  Ghost(position=172)
+  Ghost(position=135)
+  Ghost(position=139)
+  Ghost(position=269)
+  Ghost(position=272)
+  Ghost(position=134)
+  Ghost(position=138)
 
 def handle_event(message, player):
   if message["type"] == "roleChange":
@@ -80,20 +88,14 @@ def start_update():
     for pacman in pacmen():
       pacman.is_playing = True
 
-    ghost_count = 0
-    for ghost in ghosts():
-      if ghost.is_claimed:
-        ghost.is_playing = True
-        ghost_count += 1
-
     # Suppliment with AI ghosts
+    ghost_count = 0
+    num_ghosts = config["NUM_GHOSTS"]+len(pacmen())
     for ghost in ghosts():
-      if ghost_count >= config["NUM_GHOSTS"]:
+      if ghost_count >= num_ghosts:
         break
-      if not ghost.is_claimed:
-        ghost.is_playing = True
-        ghost.set_color()
-        ghost_count += 1
+      ghost.is_playing = True
+      ghost_count += 1
 
     engine.game_state = countdown_state
     engine.state_end_time = time() + 4
@@ -122,8 +124,7 @@ def play_update():
     add_pellet("power")
     previous_power_pellet_generation_time = time()
 
-  victory_score = config["VICTORY_SCORE"] if len(pacmen()) == 1 else config["MULTI_PACMAN_VICTORY_SCORE"]
-  if data["score"] >= victory_score:
+  if data["score"] >= data["victory_score"]:
     gameover("pacmen")
 
 
@@ -141,6 +142,7 @@ def countdown_ontimeout():
   engine.game_state = play_state
   sounds["battle1"].play()
   data["score"] = 0
+  data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
 
 
 def previctory_ontimeout():
@@ -203,7 +205,7 @@ def gameover(winner):
   else:
     team_ghost = Team(team_id=0,
       name="Ghosts",
-      color=(255, 0, 0),
+      color=(255, 0, 127),
       color_string="red",
       players=ghosts())
     engine.victor = team_ghost
@@ -218,6 +220,8 @@ def ghosts():
   return [player for player in players if not player.is_pacman]
 def pacmen():
   return [player for player in players if player.is_pacman and player.is_claimed]
+def pacmen_playing():
+  return [player for player in players if player.is_pacman and player.is_playing]
 
 
 def add_pellet(type):
@@ -329,31 +333,24 @@ class Ghost(Player):
     self.power_pellet_end_time = 0
 
   def set_color(self):
-    for (color_index, color_string) in enumerate(ghost_color_strings):
-      color_is_available = True
-      for ghost in ghosts():
-        if (ghost.is_claimed or not self.is_claimed) and ghost.color_string == color_string:
-          color_is_available = False
-          break
-
-      if color_is_available:
-        self.color = ghost_colors[color_index]
-        self.team_color = self.color
-        self.color_string = color_string
-        return
+    color_index = self.id % 5
+    self.color = ghost_colors[color_index]
+    self.team_color = self.color
+    self.color_string = ghost_color_strings[color_index]
+    return
 
   def is_scared(self):
     return time() < self.power_pellet_end_time
 
   def current_color(self):
+    base_color = self.color
     time_left = self.power_pellet_end_time - time()
     if time_left > 0:
       if time_left < 3 and time_left % 0.5 > 0.25:
-        return np.array((0, 0, 0))
+        base_color = np.array((0, 0, 0))
       else:
-        return np.array((255-self.color[0],255-self.color[1],255-self.color[2]))
-    else:
-      return self.color
+        base_color = np.array((1,1,1)) - self.color
+    return 255*np.power(base_color,2)
 
   def cant_move(self):
     move_freq = config["GHOST_SCARED_MOVE_FREQ"] if self.is_scared() else config["GHOST_MOVE_FREQ"]
