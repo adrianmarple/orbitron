@@ -27,11 +27,10 @@ config["SUICIDE_STUN"] = True
 config["FRAG_SUICIDE"] = True
 config["EXPLODE_ON_IMPACT"] = False
 config["FIXED_OWNERSHIP"] = False
-
+config["TAP_TO_DETONATE"] = True
 
 
 explosion_providence = [None] * SIZE
-secondary_explosion_providence = [None] * SIZE
 
 def setup():
   Bomberman(
@@ -380,8 +379,7 @@ class Bomberman(Player):
       return
 
     # non-blank status means either explosion or death
-    if engine.game_state == play_state and not is_pixel_blank(pos) and \
-        time() - self.hit_time > config["INVULNERABILITY_TIME"]:
+    if not is_pixel_blank(pos) and time() - self.hit_time > config["INVULNERABILITY_TIME"]:
 
       # Hurt
       killer = explosion_providence[pos]
@@ -393,11 +391,13 @@ class Bomberman(Player):
         self.stunned = True
       else:
         self.stunned = False
-        self.death_count += 1
 
-        if self.has_shield:
+        if engine.game_state == start_state:
+          pass
+        elif self.has_shield:
           self.has_shield = False
         else:
+          self.death_count += 1
           if not config["DEATHMATCH"]:
             self.is_alive = False
           if suicide:
@@ -417,13 +417,19 @@ class Bomberman(Player):
     # Try to place bomb if tapped
     tap = self.tap
     self.tap = 0 # consume tap signal
-    can_place_bomb = self.is_alive and not self.stunned
-    for bomb in self.bombs:
-      if pos == bomb.position:
-        can_place_bomb = False
-    if can_place_bomb and time() - tap < 0.1:
-      sounds["placeBomb"].play()
-      self.bombs.append(Bomb(self))
+
+    if time() - tap < 0.1:
+      if config["TAP_TO_DETONATE"] and len(self.bombs) > 0:
+        for bomb in self.bombs:
+          bomb.explode()
+      else:
+        can_place_bomb = self.is_alive and not self.stunned
+        for bomb in self.bombs:
+          if pos == bomb.position:
+            can_place_bomb = False
+        if can_place_bomb:
+          sounds["placeBomb"].play()
+          self.bombs.append(Bomb(self))
 
 
     Player.move(self)
@@ -498,7 +504,6 @@ class Bomb:
 
   def __init__(self, player):
     self.owner = player
-    self.secondary_owner = None
     self.position = player.position
     self.prev_pos = player.position
     self.last_move_time = time()
@@ -569,42 +574,43 @@ class Bomb:
     if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or \
         not is_pixel_blank(self.position) or \
         (impacted and config["EXPLODE_ON_IMPACT"]):
-      # Propagate ownership if triggered by other bomb
-      #if not is_pixel_blank(self.position) and statuses[self.position] != "death":
-      #  self.bump_owner(explosion_providence[self.position])
+      self.explode()
 
-      sounds["explosion"].play()
-      finish_time = time() + config["BOMB_EXPLOSION_TIME"]
+  def explode(self):
+    if self.has_exploded:
+      return
 
-      self.set_explosion_status(self.position, finish_time)
-      for neighbor in neighbors[self.position]:
-        self.explode((self.position, neighbor), self.power)
+    # Propagate ownership if triggered by other bomb
+    #if not is_pixel_blank(self.position) and statuses[self.position] != "death":
+    #  self.bump_owner(explosion_providence[self.position])
 
-      self.has_exploded = True
-      self.explosion_time = time()
+    sounds["explosion"].play()
+    finish_time = time() + config["BOMB_EXPLOSION_TIME"]
+
+    statuses[self.position] = finish_time
+    explosion_providence[self.position] = self.owner
+    for neighbor in neighbors[self.position]:
+      direction = (self.position, neighbor)
+      for i in range(self.power):
+        next_pos = direction[1]
+
+        if statuses[next_pos] == "wall":
+          if random() < config["PICKUP_CHANCE"]:
+            statuses[next_pos] = "power_pickup"
+          else:
+            statuses[next_pos] = "blank"
+          return
+
+        finish_time = time() + config["BOMB_EXPLOSION_TIME"] + (i+1)/32
+        statuses[next_pos] = finish_time
+        explosion_providence[next_pos] = self.owner
+        direction = (next_pos, next_pixel[str(direction)])
+
+    self.has_exploded = True
+    self.explosion_time = time()
 
   def bump_owner(self, new_owner):
-    if new_owner and self.owner != new_owner:
-      self.secondary_owner = self.owner
+    if new_owner:
       self.owner = new_owner
 
-  def explode(self, direction, power):
-    for i in range(power):
-      next_pos = direction[1]
-
-      if statuses[next_pos] == "wall":
-        if random() < config["PICKUP_CHANCE"]:
-          statuses[next_pos] = "power_pickup"
-        else:
-          statuses[next_pos] = "blank"
-        return
-
-      finish_time = time() + config["BOMB_EXPLOSION_TIME"] + i/32
-      self.set_explosion_status(next_pos, finish_time)
-      direction = (next_pos, next_pixel[str(direction)])
-
-  def set_explosion_status(self, pos, finish_time):
-    statuses[pos] = finish_time
-    explosion_providence[pos] = self.owner
-    secondary_explosion_providence[pos] = self.secondary_owner
 
