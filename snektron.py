@@ -12,10 +12,10 @@ import engine
 from engine import *
 
 
-config["ROUND_TIME"] = 150
+config["ROUND_TIME"] = 90
 config["START_LENGTH"] = 4
 config["ADDITIONAL_APPLES"] = 25
-config["SNAKE_MOVE_FREQ"] = 0.3
+config["SNAKE_MOVE_FREQ"] = 0.25
 
 
 def setup():

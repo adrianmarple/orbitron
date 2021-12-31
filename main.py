@@ -17,8 +17,32 @@ def clear_votes():
   for player in engine.players:
     player.vote = ""
 
+def start_game(game, settings=None):
+  engine.current_game = game
+  if settings:
+    engine.config.update(settings)
+
+  if engine.current_game == "bomberman":
+    game_module = bomberman
+  elif engine.current_game == "pacman":
+    game_module = pacman
+  elif engine.current_game == "snektron":
+    game_module = snektron
+
+  claimed = []
+  for player in engine.players:
+    claimed.append(player.is_claimed)
+  engine.players.clear()
+  game_module.setup()
+  for (i, player) in enumerate(engine.players):
+    if i < len(claimed):
+      player.is_claimed = claimed[i]
+
+  engine.start(game_module.start_state)
+
+
 def consume_input():
-  global current_game, game_module
+  global game_module
 
   for line in fileinput.input():
     try:
@@ -29,7 +53,16 @@ def consume_input():
       
       player = engine.players[message["self"]]
 
-      if message["type"] == "vote":
+      if message["type"] == "claim":
+        player.is_claimed = True
+        # Always start with snektron when first player joins
+        if len(engine.claimed_players()) == 1:
+          start_game("snektron")
+        engine.broadcast_state()
+      elif message["type"] == "release":
+        player.is_claimed = False
+        engine.broadcast_state()
+      elif message["type"] == "vote":
         vote = message["vote"]
 
         if player.vote == vote:
@@ -52,27 +85,10 @@ def consume_input():
             game_module = None
             engine.quit()
           else:
-            engine.current_game = message["game"]
+            settings = None
             if "settings" in message:
-              engine.config.update(message["settings"])
-
-            if engine.current_game == "bomberman":
-              game_module = bomberman
-            elif engine.current_game == "pacman":
-              game_module = pacman
-            elif engine.current_game == "snektron":
-              game_module = snektron
-
-            claimed = []
-            for player in engine.players:
-              claimed.append(player.is_claimed)
-            engine.players.clear()
-            game_module.setup()
-            for (i, player) in enumerate(engine.players):
-              if i < len(claimed):
-                player.is_claimed = claimed[i]
-
-            engine.start(game_module.start_state)
+              settings = message["settings"]
+            start_game(message["game"], settings)
 
         engine.broadcast_state()
 
@@ -85,12 +101,6 @@ def consume_input():
         player.set_unready()
       elif message["type"] == "pulse":
         player.pulse()
-      elif message["type"] == "claim":
-        player.is_claimed = True
-        engine.broadcast_state()
-      elif message["type"] == "release":
-        player.is_claimed = False
-        engine.broadcast_state()
       elif message["type"] == "tap":
         player.tap = time()
       elif message["type"] == "settings":

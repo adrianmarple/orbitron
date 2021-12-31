@@ -35,26 +35,30 @@ body, #app, .main {
   -ms-user-select: none; /* Internet Explorer/Edge */
 }
 
-#settings-button, #quit-button {
+#settings-button, #quit-button, #rules-button {
   position: fixed;
-  left:  2vw;
-  top:  20vw;
   cursor: pointer;
   z-index: 2;
-  width: 12vw;
-  height: 12vw;
+  height: 10vw;
+  font-size: 2em;
 }
-#quit-button {
+#rules-button, #quit-button {
   top:  -2vw;
   left: 2vw;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 2em;
-  padding: 0 1vw;
+  padding: 0 2vw;
+}
+#settings-button {
+  right:  2vw;
+  top:  2vw;
+}
+#rules-button {
+  top:  12vw;
 }
 
-#settings, #game-selection-menu {
+#settings, #game-selection-menu, #rules-splash {
   position: absolute;
   width: 100vw;
   min-height: 100vh;
@@ -64,10 +68,28 @@ body, #app, .main {
   flex-direction: column;
   align-items: center;
 }
+
+#rules-splash {
+  z-index: 3;
+  color:  white;
+  font-size: 2rem;
+  padding: 5vw;
+  background: linear-gradient(rgba(212,0,255,1), rgba(122,5,11,1));
+}
+
+#rules-splash p {
+  margin-top: 5vw;
+}
+
 #game-selection-menu {
   color:  white;
-  z-index: 3;
-  background: linear-gradient(rgba(0,212,255,1), rgba(5,122,11,1));;
+  z-index: 10;
+  background: linear-gradient(rgba(0,212,255,1), rgba(5,122,11,1));
+}
+#game-selection-menu > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 
@@ -109,6 +131,8 @@ body, #app, .main {
   overflow: hidden;
   box-sizing: border-box;
 }
+
+
 
 
 .header {
@@ -241,12 +265,18 @@ body, #app, .main {
       xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
     <path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
   </svg> -->
+  <div id="rules-button"
+      class="button"
+      @click="showRules=true"
+  >
+    RULES
+  </div>
   <div id="quit-button"
       class="button"
       @click="vote({vote: 'quit'})"
       :class="{selected: self.vote=='quit'}"
   >
-    QUIT
+    OTHER GAMES
   </div>
   <div id="quit-vote-tally" v-if="voteTally.quit" class="vote-tally">
     {{voteTally.quit}}/{{majorityCount}}
@@ -275,24 +305,50 @@ body, #app, .main {
   </div>
 
   <div v-if="BETWEEN_GAMES" id="game-selection-menu">
-    <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
-    <div v-for="voteType in voteTypes">
-      <div v-if="voteType.divider" style="font-size: 4em; margin-top: 10vw;">
-        {{voteType.game}}
-      </div>
-      <div v-else
-          class="button"
-          :class="{selected: self.vote==voteType.vote}"
-          @click="vote(voteType)"
-      >
-        {{voteType.vote}}
-        <div v-if="voteTally[voteType.vote]" class="vote-tally">
-          {{voteTally[voteType.vote]}}/{{majorityCount}}
+    <div v-if="connectionStatus == 'CONNECTING'" class="header">
+      {{connectionStatus}}
+    </div>
+    <div v-else>
+      <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
+      <div v-for="voteType in voteTypes">
+        <div v-if="voteType.divider" style="font-size: 4em; margin-top: 10vw;">
+          {{voteType.game}}
+        </div>
+        <div v-else
+            class="button"
+            :class="{selected: self.vote==voteType.vote}"
+            @click="vote(voteType)"
+        >
+          {{voteType.vote}}
+          <div v-if="voteTally[voteType.vote]" class="vote-tally">
+            {{voteTally[voteType.vote]}}/{{majorityCount}}
+          </div>
         </div>
       </div>
     </div>
   </div>
 
+  <div v-if="hasNotSeenGame || showRules"
+      id="rules-splash"
+      @click="dismissRules"
+  >
+    <div v-if="SNEKTRON">
+      Snektron!
+      <p>Welcome! You are currently playing Snektron in sandbox mode.</p>
+      <p>You can practice moving around and when you want to play the full game pres the "Ready!" button.</p>
+      <p>Once the game starts, move over the white pixel "apples" to grow longer.</p>
+      <p>But if you run into yourself or anyone else, you'll shrink back down.</p>
+      <p>A round lasts a minute and a half, and whoever had the longest snek during that time wins!</p>
+    </div>
+    <div v-if="PACMAN">
+      Co-op Pac-Man!
+      <p>Rules to come.</p>
+    </div>
+    <div v-if="BOMBERMAN">
+      Bomber Being
+      <p>Rules to come.</p>
+    </div>
+  </div>
 
 
   <div v-if="connectionStatus == 'CONNECTING'" class="header">
@@ -315,13 +371,13 @@ body, #app, .main {
 
   <div v-else>
 
-  <div id="playerMarker"
+<!--   <div id="playerMarker"
     :style="{ backgroundColor: self.color }"
   ></div>
   <div v-if="BOMBERMAN" id="bombPower">
     <span>{{self.bombPower}}</span>
     <img src="images/explosion.png" />
-  </div>
+  </div> -->
 
 
   <div v-if="!self.isReady || (mode=='play' && self.isPlaying && self.isAlive)"
@@ -331,7 +387,10 @@ body, #app, .main {
     <div class="joystick-nub" :style="joystickNubStyle"></div>
   </div>
 
-  <div v-if="mode=='start' && state.timeRemaining < 0" class="main">
+  <div v-if="mode=='start'"
+    class="main"
+    :style="{ backgroundColor: self.color }"
+  >
     <div class="header">
       <div v-if="!self.isReady">
         Drag to Move
@@ -462,14 +521,15 @@ var app = new Vue({
     ws: null,
     connectionStatus: "CONNECTING",
     showSettings: false,
+    showRules: false,
     oldConfig: null,
     state: {},
+    localFlags: {},
 
     startLocation: null,
     isMoving: false,
     move: [0,0],
     timestamp: 0,
-    settings: false,
 
     settingTypes: [
       {game: "bomberman", name: "USE_SHIELDS", boolean: true},
@@ -506,6 +566,7 @@ var app = new Vue({
       {game: "snektron", name: "START_LENGTH"},
       {game: "snektron", name: "ADDITIONAL_APPLES"},
       {game: "snektron", name: "ROUND_TIME"},
+      {game: "snektron", name: "SNAKE_MOVE_FREQ"},
 
       {game: "any", name: "STUN_TIME"},
       {game: "any", name: "INVULNERABILITY_TIME"},
@@ -608,6 +669,9 @@ var app = new Vue({
     SNEKTRON() { return this.state.game == 'snektron' },
     mode() {
       return this.state.gameState
+    },
+    hasNotSeenGame() {
+      return !this.localFlags[this.state.game]
     },
     config() {
       return this.state.config || {}
@@ -836,6 +900,11 @@ var app = new Vue({
       this.send({type: "move", move: this.move})
     },
 
+    dismissRules() {
+      this.$set(this.localFlags, this.state.game, true)
+      this.showRules = false
+    },
+
     vote(vote) {
       vote.type = "vote"
       this.send(vote)
@@ -849,9 +918,6 @@ var app = new Vue({
 
     changeRole(role) { // PACMAN
       this.send({type: "roleChange", role})
-    },
-    toggleSettings() {
-      this.settings = !this.settings;
     },
 
     makeReady() {
