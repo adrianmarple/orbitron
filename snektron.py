@@ -264,7 +264,10 @@ class Snek(Player):
 
     self.prev_pos = self.position
     self.position = new_pos
-    self.last_move_time = time()
+
+    move_freq = config["SNAKE_MOVE_FREQ"] * sqrt(config["START_LENGTH"]/len(self.tail))
+    self.last_move_time += move_freq
+    self.last_move_time = max(self.last_move_time, time() - move_freq)
 
     self.tail.appendleft(self.position)
     if statuses[self.position] == "apple":
