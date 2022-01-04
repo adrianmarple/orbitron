@@ -28,6 +28,7 @@ config["FRAG_SUICIDE"] = True
 config["EXPLODE_ON_IMPACT"] = False
 config["FIXED_OWNERSHIP"] = False
 config["TAP_TO_DETONATE"] = True
+config["NEWTONS_CRADLE"] = True
 
 
 explosion_providence = [None] * SIZE
@@ -530,6 +531,8 @@ class Bomb:
 
       for bomb in player.bombs:
         if bomb.position == new_pos:
+          if config["NEWTONS_CRADLE"]:
+            bomb.move(self.position)
           occupied = True
           break
 
