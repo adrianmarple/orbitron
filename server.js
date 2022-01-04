@@ -19,90 +19,90 @@ const SWITCHBOARD = process.env.SWITCHBOARD || default_switchboard
 const socket = io(SWITCHBOARD);
 var signalClient = new SimpleSignalClient(socket)
 signalClient.on('discover', (allIDs) => {
-    //console.log("DISCOVER",allIDs)
+  //console.log("DISCOVER",allIDs)
 })
 
 signalClient.on('request', async (request) => {
-    try {
-      const { peer } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
-      //console.log("REQUEST",request,peer)
-      connectionQueue.push(peer)
-      bindDataEvents(peer)
-      upkeep() // Will claim player if available
-    } catch (e) {
-      console.error(e)
-    }
+  try {
+    const { peer } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
+    //console.log("REQUEST",request,peer)
+    connectionQueue.push(peer)
+    bindDataEvents(peer)
+    upkeep() // Will claim player if available
+  } catch (e) {
+    console.error(e)
+  }
 })
 
 function bindDataEvents(peer) {
-    peer.on('data', data => {
-        //console.log("DATA",peer.pid,peer._id,!peer.pid,!connections[peer.pid])
-        if (!typeof(peer.pid)==="number" || !connections[peer.pid]) {
-            return
-        }
-        content = JSON.parse(data)
-        content.self = peer.pid
-        peer.lastActivityTime = Date.now()
-        // console.log("DATA CONTENT",content)
-        python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
-    })
+  peer.on('data', data => {
+    //console.log("DATA",peer.pid,peer._id,!peer.pid,!connections[peer.pid])
+    if (!typeof(peer.pid)==="number" || !connections[peer.pid]) {
+      return
+    }
+    content = JSON.parse(data)
+    content.self = peer.pid
+    peer.lastActivityTime = Date.now()
+    // console.log("DATA CONTENT",content)
+    python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
+  })
 
-    peer.on('close', () => {
-        //console.log("CLOSE",peer.pid,peer._id)
-        release = { self: peer.pid, type: "release" }
-        python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
-        if (typeof(peer.pid)==="number" && connections[peer.pid]) {
-            delete connections[peer.pid]
-        } else {
-            connectionQueue = connectionQueue.filter(elem => elem !== peer)
-        }
+  peer.on('close', () => {
+    //console.log("CLOSE",peer.pid,peer._id)
+    release = { self: peer.pid, type: "release" }
+    python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
+    if (typeof(peer.pid)==="number" && connections[peer.pid]) {
+      delete connections[peer.pid]
+    } else {
+      connectionQueue = connectionQueue.filter(elem => elem !== peer)
+    }
 
-    })
-    peer.on('error', (err) => {
-        console.error("ERROR",peer.pid,err)
-    })
+  })
+  peer.on('error', (err) => {
+    console.error("ERROR",peer.pid,err)
+  })
 }
 
 setInterval(upkeep, 1000)
 
 function upkeep() {
-    //refresh signal server
-    signalClient.discover({installation:INSTALLATION,key:KEY})
-    // Check for stale players
-    if (gameState.players && !NO_TIMEOUT) {
-        for (let peer of Object.values(connections)) {
-            let player = gameState.players[peer.pid]
-            if (!player.isReady && !player.isPlaying &&
-                Date.now() - peer.lastActivityTime > 30*1000) { // 30 seconds
-                //console.log("Player timed out.",peer._id, peer.pid,peer.lastActivityTime)
-                peer.destroy("TIMEOUT")
-            }
-        }
+  //refresh signal server
+  signalClient.discover({installation:INSTALLATION,key:KEY})
+  // Check for stale players
+  if (gameState.players && !NO_TIMEOUT) {
+    for (let peer of Object.values(connections)) {
+      let player = gameState.players[peer.pid]
+      if (!player.isReady && !player.isPlaying &&
+        Date.now() - peer.lastActivityTime > 30*1000) { // 30 seconds
+        //console.log("Player timed out.",peer._id, peer.pid,peer.lastActivityTime)
+        peer.destroy("TIMEOUT")
+      }
     }
+  }
 
-    let id = 0;
-    for (let peer of [...connectionQueue]) {
-        while (id < MAX_PLAYERS) {
-            if (!connections[id]) {
-                peer.pid=id
-                peer.lastActivityTime = Date.now()
-                connections[peer.pid] = peer
-                claim = { self: peer.pid, type: "claim" }
-                python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
-                connectionQueue = connectionQueue.filter(elem => elem !== peer)
-                message = {...gameState}
-                message.self = peer.pid
-                peer.send(JSON.stringify(message))
-                break;
-            }
-            id += 1;
-        }
-        if (id >= MAX_PLAYERS) {
-            message = {...gameState}
-            message.queuePosition = connectionQueue.indexOf(peer) + 1
-            peer.send(JSON.stringify(message))
-        }
+  let id = 0;
+  for (let peer of [...connectionQueue]) {
+    while (id < MAX_PLAYERS) {
+      if (!connections[id]) {
+        peer.pid=id
+        peer.lastActivityTime = Date.now()
+        connections[peer.pid] = peer
+        claim = { self: peer.pid, type: "claim" }
+        python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
+        connectionQueue = connectionQueue.filter(elem => elem !== peer)
+        message = {...gameState}
+        message.self = peer.pid
+        peer.send(JSON.stringify(message))
+        break;
+      }
+      id += 1;
     }
+    if (id >= MAX_PLAYERS) {
+      message = {...gameState}
+      message.queuePosition = connectionQueue.indexOf(peer) + 1
+      peer.send(JSON.stringify(message))
+    }
+  }
 }
 
 MAX_PLAYERS = 6
@@ -115,49 +115,49 @@ connectionQueue = []
 gameState = {}
 
 function broadcast(baseMessage) {
-    gameState = baseMessage
-    baseMessage.notimeout = NO_TIMEOUT
+  gameState = baseMessage
+  baseMessage.notimeout = NO_TIMEOUT
 
-    for (let id in connections) {
-        baseMessage.self = parseInt(id)
-        connections[id].send(JSON.stringify(baseMessage))
-    }
-    delete baseMessage.self
-    for (let i = 0; i < connectionQueue.length; i++) {
-        baseMessage.queuePosition = i + 1
-        connectionQueue[i].send(JSON.stringify(baseMessage))
-    }
+  for (let id in connections) {
+    baseMessage.self = parseInt(id)
+    connections[id].send(JSON.stringify(baseMessage))
+  }
+  delete baseMessage.self
+  for (let i = 0; i < connectionQueue.length; i++) {
+    baseMessage.queuePosition = i + 1
+    connectionQueue[i].send(JSON.stringify(baseMessage))
+  }
 }
 
 const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/main.py`]);
 python_process.stdout.on('data', data => {
-    message = data.toString()
-    if (data[0] == 123) { // check is first char is '{'
-        try {
-            // console.log(JSON.parse(message))
-            broadcast(JSON.parse(message));
-        } catch(e) {
-            console.error(e);
-            console.error(message);
-        }
-    } else if(message.startsWith("touchall")) {
-      for (let id in connections) {
-        connections[id].lastActivityTime = Date.now()
-      }
-    } else {
-        message = message.slice(0, -1)
-        if (message) {
-            console.log(message)
-        }
+  message = data.toString()
+  if (data[0] == 123) { // check is first char is '{'
+    try {
+      // console.log(JSON.parse(message))
+      broadcast(JSON.parse(message));
+    } catch(e) {
+      console.error(e);
+      console.error(message);
     }
+  } else if(message.startsWith("touchall")) {
+    for (let id in connections) {
+      connections[id].lastActivityTime = Date.now()
+    }
+  } else {
+    message = message.slice(0, -1)
+    if (message) {
+      console.log(message)
+    }
+  }
 });
 python_process.stderr.on('data', data => {
-    message = data.toString()
-    if (!message.includes("underrun occurred")) {
-        message = message.slice(0, -1)
-        if (message) {
-            console.log(message)
-        }
+  message = data.toString()
+  if (!message.includes("underrun occurred")) {
+    message = message.slice(0, -1)
+    if (message) {
+      console.log(message)
     }
+  }
 });
 
