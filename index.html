@@ -9,8 +9,6 @@
 <link rel="shortcut icon" href="/images/favicon.jpg" />
 <script src="/vue.js" type="text/javascript"></script>
 <script src="/math.js" type="text/javascript"></script>
-<script src="/simple-signal-client.min.js" type="text/javascript"></script>
-<script src="/socket.io/socket.io.js" type="text/javascript"></script>
 
 <style type="text/css">
 
@@ -833,9 +831,9 @@ var app = new Vue({
 
   methods: {
     send(json) {
-      if (!this.ws) {
+      if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
         this.startWebsocket()
-      } else {
+      } else if(this.ws.readyState === WebSocket.OPEN) {
         try {
           this.ws.send(JSON.stringify(json))
         } catch (error) {
@@ -847,58 +845,43 @@ var app = new Vue({
 
     destroyWebsocket() {
       if(this.ws) {
-        this.ws.destroy()
+        this.ws.close()
         this.ws = null
       }
-      if(this.socket) {
-        this.socket.close()
-        this.socket = null
-      }
-      this.signalClient = null
     },
 
     startWebsocket() {
       let self=this
-      if(self.signalClient) {
+      if(self.ws) {
         return // Already trying to establish a connection
       }
       this.connectionStatus = "CONNECTING"
-      // self.socket = io("https://super-orbitron.herokuapp.com")
-      self.socket = io(location.origin)
-      self.signalClient = new SimpleSignalClient(self.socket)
-      self.signalClient.on('discover', async (allIDs) => {
-        allIDs.forEach(async function(id){
-          const { peer } = await self.signalClient.connect(id)
-          self.connectionStatus = "CONNECTED"
-          // console.log(peer)
-          self.ws = peer
-          peer.on('data', function(data){
-            message = JSON.parse(data)
-            switch(message.event) {
-            case "sound":
-              if (message.playerId < 0 || message.playerId == message.self) {
-                self.playSound(message.type)
-              }
-              break
-            default:
-              self.state = message
-              // console.log(message)
-              self.$forceUpdate()
-            }
-          })
-          peer.on('close',function(){
-            console.log("CLOSE")
-            self.connectionStatus = "TIMED OUT"
-            setTimeout(function(){ self.destroyWebsocket(); })
-          })
-          peer.on('error', (err) => {
-            console.error("ERROR",err)
-            self.connectionStatus = "ERROR"
-            setTimeout(function(){ self.destroyWebsocket(); })
-          })
-        })
-      })
-      self.signalClient.discover({installation:"debug"})
+      this.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
+      this.ws.onmessage = event => {
+        self.connectionStatus = "CONNECTED"
+        message = JSON.parse(event.data)
+        switch(message.event) {
+        case "sound":
+          if (message.playerId < 0 || message.playerId == message.self) {
+            self.playSound(message.type)
+          }
+          break
+        default:
+          self.state = message
+          // console.log(message)
+          self.$forceUpdate()
+        }
+      }
+      this.ws.onclose = event => {
+        console.log("CLOSE")
+        self.connectionStatus = "TIMED OUT"
+        setTimeout(function(){ self.destroyWebsocket(); })
+      }
+      this.ws.onerror = event => {
+        console.error("ERROR",event)
+        self.connectionStatus = "ERROR"
+        setTimeout(function(){ self.destroyWebsocket(); })
+      }
     },
 
     handleStart(location) {
