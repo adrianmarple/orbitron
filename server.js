@@ -1,41 +1,36 @@
 #!/usr/bin/env node
+const WebSocket = require('ws')
+const http = require('http')
 const fs = require('fs')
 const path = require('path')
 const process = require('process')
 const { spawn } = require('child_process')
-const SimpleSignalClient = require('simple-signal-client') 
-const wrtc = require('wrtc')
-const { io } = require("socket.io-client");
 
 const NO_TIMEOUT = process.argv.includes('-t')
 const LOCAL_SERVER = process.argv.includes('-l')
-const INSTALLATION = process.env.INSTALLATION || "debug"
-const KEY = process.env.ORBITRON_KEY || "debug"
-const default_switchboard = LOCAL_SERVER ? "http://localhost:9000" : "https://super-orbitron.herokuapp.com/"
-const SWITCHBOARD = process.env.SWITCHBOARD || default_switchboard
 
+// Websocket server
 
-//WebRTC connection to switchboard
-const socket = io(SWITCHBOARD);
-var signalClient = new SimpleSignalClient(socket)
-signalClient.on('discover', (allIDs) => {
-  //console.log("DISCOVER",allIDs)
+var server = http.createServer(function(request, response) {
+  console.log(' Received request for ' + request.url)
+  response.writeHead(404)
+  response.end()
+})
+server.listen(7777, function() {
+  console.log('WebSocket Server is listening on port 7777')
 })
 
-signalClient.on('request', async (request) => {
-  try {
-    const { peer } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
-    //console.log("REQUEST",request,peer)
-    connectionQueue.push(peer)
-    bindDataEvents(peer)
-    upkeep() // Will claim player if available
-  } catch (e) {
-    console.error(e)
-  }
+wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
+
+wsServer.on('connection', socket => {
+  console.log('Connection accepted.')
+  connectionQueue.push(socket)
+  bindDataEvents(socket)
+  upkeep() // Will claim player if available
 })
 
 function bindDataEvents(peer) {
-  peer.on('data', data => {
+  peer.on('message', data => {
     //console.log("DATA",peer.pid,peer._id,!peer.pid,!connections[peer.pid])
     if (!typeof(peer.pid)==="number" || !connections[peer.pid]) {
       return
@@ -56,26 +51,23 @@ function bindDataEvents(peer) {
     } else {
       connectionQueue = connectionQueue.filter(elem => elem !== peer)
     }
-
   })
-  peer.on('error', (err) => {
-    console.error("ERROR",peer.pid,err)
-  })
+  //peer.on('error', (err) => {
+  //  console.error("ERROR",peer.pid,err)
+  //})
 }
 
 setInterval(upkeep, 1000)
 
 function upkeep() {
-  //refresh signal server
-  signalClient.discover({installation:INSTALLATION,key:KEY})
   // Check for stale players
   if (gameState.players && !NO_TIMEOUT) {
     for (let peer of Object.values(connections)) {
       let player = gameState.players[peer.pid]
       if (!player.isReady && !player.isPlaying &&
         Date.now() - peer.lastActivityTime > 30*1000) { // 30 seconds
-        //console.log("Player timed out.",peer._id, peer.pid,peer.lastActivityTime)
-        peer.destroy("TIMEOUT")
+        //console.log("Player timed out.",peer.pid,peer.lastActivityTime)
+        peer.close()
       }
     }
   }
@@ -161,3 +153,61 @@ python_process.stderr.on('data', data => {
   }
 });
 
+// Simple HTTP server
+
+http.createServer(function (request, response) {
+  var filePath = request.url
+
+  if (filePath == '/')
+    filePath = `${__dirname}/index.html`
+  else
+    filePath = `${__dirname}/${filePath}`
+  //console.log(filePath);
+
+  var extname = path.extname(filePath)
+  var contentType = 'text/html'
+  switch (extname) {
+    case '.js':
+      contentType = 'text/javascript'
+      break;
+    case '.css':
+      contentType = 'text/css'
+      break;
+    case '.json':
+      contentType = 'application/json'
+      break;
+    case '.png':
+      contentType = 'image/png'
+      break;      
+    case '.jpg':
+      contentType = 'image/jpg'
+      break;    
+    case '.ico':
+      contentType = 'image/x-icon'
+      break;
+    case '.wav':
+      contentType = 'audio/wav'
+      break;
+  }
+
+  fs.readFile(filePath, function(error, content) {
+    if (error) {
+      if(error.code == 'ENOENT'){
+        fs.readFile('./404.html', function(error, content) {
+          response.writeHead(200, { 'Content-Type': contentType })
+          response.end(content, 'utf-8')
+        });
+      }
+      else {
+        response.writeHead(500)
+        response.end('Sorry, check with the site admin for error: '+error.code+' ..\n')
+        response.end();
+      }
+    }
+    else {
+      response.writeHead(200, { 'Content-Type': contentType })
+      response.end(content, 'utf-8')
+    }
+  });
+
+}).listen(1337)

@@ -23,11 +23,9 @@
 
 - ssh into the pi
 - `sudo killall python3 node`
-- `export SWITCHBOARD="http://localhost:9000"`
 - `cd Rhomberman`
 - `node server.js`
-- `node switchboard.js`
-- Visit `http://orbitron.local:9000`
+- Visit `http://orbitron.local:1337` or `http://192.168.4.1:1337`
 
 ## Saving
 - Just use normal git commands with within directory `~/Rhomberman`
