@@ -16,7 +16,7 @@ var server = http.createServer(function(request, response) {
   response.writeHead(404)
   response.end()
 })
-server.listen(7777, function() {
+server.listen(7777, "0.0.0.0", function() {
   console.log('WebSocket Server is listening on port 7777')
 })
 
@@ -210,4 +210,4 @@ http.createServer(function (request, response) {
     }
   });
 
-}).listen(1337)
+}).listen(1337, "0.0.0.0")
