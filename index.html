@@ -19,6 +19,7 @@
 body, #app, .main {
   /* Disables pull-to-refresh but allows overscroll glow effects. */
   overscroll-behavior-y: contain;
+  overflow-y: hidden;
   touch-action: none;
   user-select: none;
   display: flex;
@@ -647,7 +648,6 @@ var app = new Vue({
   created() {
     this.startWebsocket()
     this.warmUpAudio()
-
     onfocus = () => {
       if (!this.ws) {
           let self=this
@@ -902,8 +902,8 @@ var app = new Vue({
       }
       if (Date.now() - this.timestamp > 10 &&
           Date.now() - this.timestamp < 300 &&
-          Math.abs(this.startLocation[0] - location.clientX) < 5 &&
-          Math.abs(this.startLocation[1] - location.clientY) < 5) {
+          Math.abs(this.startLocation[0] - location.clientX) < 10 &&
+          Math.abs(this.startLocation[1] - location.clientY) < 10) {
         this.send({type: "tap"})
       }
       this.move = [0,0]

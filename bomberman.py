@@ -15,7 +15,7 @@ from engine import *
 config["BOMB_FUSE_TIME"] = 3
 config["BOMB_EXPLOSION_TIME"] = 0.9 # Should be less than INVUNERABILITY_TIME
 config["STARTING_BOMB_POWER"] = 4 # 2
-config["PICKUP_CHANCE"] = 0 # 0.3
+config["PICKUP_CHANCE"] = 0.3
 config["NUM_WALLS"] = 60
 config["BOMB_MOVE_FREQ"] = 0.07
 config["USE_SHIELDS"] = True
@@ -27,7 +27,7 @@ config["SUICIDE_STUN"] = True
 config["FRAG_SUICIDE"] = True
 config["EXPLODE_ON_IMPACT"] = False
 config["FIXED_OWNERSHIP"] = False
-config["TAP_TO_DETONATE"] = True
+config["TAP_TO_DETONATE"] = False
 config["NEWTONS_CRADLE"] = True
 
 
@@ -251,8 +251,8 @@ def render_explosion(index):
 
 def is_pixel_blank(index):
   status = statuses[index]
-  return status == "blank" or (
-      isinstance(status, numbers.Number) and status - time() > config["BOMB_EXPLOSION_TIME"])
+  return status == "blank" 
+    #or (isinstance(status, numbers.Number) and status - time() > config["BOMB_EXPLOSION_TIME"])
 
 
 def gameover(winner):
@@ -403,7 +403,7 @@ class Bomberman(Player):
             self.is_alive = False
           if suicide:
             self.kill_count -= 1
-          elif not frag:
+          elif not frag and killer:
             killer.kill_count += 1
 
       if self.is_alive:
@@ -532,7 +532,11 @@ class Bomb:
       for bomb in player.bombs:
         if bomb.position == new_pos:
           if config["NEWTONS_CRADLE"]:
-            bomb.move(self.position)
+            bomb_next = next_pixel.get(str((bomb.prev_pos, bomb.position)), None)
+            if bomb_next == self.position:
+              bomb.prev_pos = bomb.position
+            else:
+              bomb.move(self.position)
           occupied = True
           break
 
@@ -602,7 +606,7 @@ class Bomb:
             statuses[next_pos] = "power_pickup"
           else:
             statuses[next_pos] = "blank"
-          return
+          break
 
         finish_time = time() + config["BOMB_EXPLOSION_TIME"] + (i+1)/32
         statuses[next_pos] = finish_time
