@@ -57,7 +57,7 @@ def prewarm_audio():
   SoundWrapper("battle1.ogg", vamp_file_name="battle1Loop.ogg")
   SoundWrapper("dm1.ogg", vamp_file_name="dm1Loop.ogg")
   SoundWrapper("waiting.ogg", loop=True, fade_ms=2000)
-  SoundWrapper("victory.mp3")
+  SoundWrapper("victory.ogg", vamp_file_name="victoryLoop.ogg")
   SoundWrapper("kick.wav")
   SoundWrapper("placeBomb.wav")
   SoundWrapper("hurt.wav")
