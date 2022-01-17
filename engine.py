@@ -28,6 +28,7 @@ config = {
   "ALLOW_CROSS_TIP_MOVE": False,
   "MOVE_BIAS": 0.5,
   "TEAM_MODE": False,
+  "VICTORY_TIMEOUT": 30,
 }
 
 READY_PULSE_DURATION = 0.75

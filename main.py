@@ -18,6 +18,7 @@ def clear_votes():
     player.vote = ""
 
 def start_game(game, settings=None):
+  global game_module
   engine.current_game = game
   if settings:
     engine.config.update(settings)
@@ -41,8 +42,39 @@ def start_game(game, settings=None):
   engine.start(game_module.start_state)
 
 
-def consume_input():
+vote_to_message = {}
+def check_vote():
   global game_module
+
+  votes = {}
+  for player in engine.claimed_players():
+    if player.vote:
+      votes[player.vote] = votes.get(player.vote, 0) + 1
+
+  majority_count = len(engine.claimed_players()) / 2.0
+  final_vote = None
+  for (vote, count) in votes.items():
+    if count >= majority_count:
+      final_vote = vote
+      break
+
+  if not final_vote:
+    return
+
+  if final_vote == "quit":
+    game_module = None
+    engine.quit()
+  elif final_vote == "skip":
+    engine.game_state.ontimeout()
+  else:
+    message = vote_to_message[final_vote]
+    settings = None
+    if "settings" in message:
+      settings = message["settings"]
+    start_game(message["game"], settings)
+
+
+def consume_input():
 
   for line in fileinput.input():
     try:
@@ -61,37 +93,17 @@ def consume_input():
         engine.broadcast_state()
       elif message["type"] == "release":
         player.is_claimed = False
+        check_vote()
         engine.broadcast_state()
       elif message["type"] == "vote":
         vote = message["vote"]
-
+        vote_to_message[vote] = message
         if player.vote == vote:
           player.vote = ""
         else:
           player.vote = vote
-
-        majority_count = len(engine.claimed_players()) / 2.0
-        vote_count = 0
-        for player in engine.claimed_players():
-          if player.vote == vote:
-            vote_count += 1
-
-        if vote_count >= majority_count:
-          # vote passed clear existing votes
-          for player in engine.players:
-            player.vote = ""
-
-          if vote == "quit":
-            game_module = None
-            engine.quit()
-          else:
-            settings = None
-            if "settings" in message:
-              settings = message["settings"]
-            start_game(message["game"], settings)
-
+        check_vote()
         engine.broadcast_state()
-
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])
         player.last_move_input_time = time()

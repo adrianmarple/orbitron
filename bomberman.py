@@ -182,7 +182,7 @@ def countdown_ontimeout():
 
 def previctory_ontimeout():
   engine.game_state = victory_state
-  engine.state_end_time = time() + 10
+  engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
   sounds["victory"].play()
 
 

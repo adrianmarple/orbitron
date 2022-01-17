@@ -17,9 +17,6 @@
 }
 
 body, #app, .main {
-  /* Disables pull-to-refresh but allows overscroll glow effects. */
-  overscroll-behavior-y: contain;
-  overflow-y: hidden;
   touch-action: none;
   user-select: none;
   display: flex;
@@ -27,6 +24,11 @@ body, #app, .main {
   width: 100vw;
   height: 100vh;
   margin: 0;
+}
+.main {
+  /* Disables pull-to-refresh but allows overscroll glow effects. */
+  overscroll-behavior-y: contain;
+  overflow-y: hidden;
 }
 
 #quit-button, #settings-button, #quit-vote-tally, #game-selection-menu, .main {
@@ -250,7 +252,7 @@ body, #app, .main {
   padding: 0.25em 1em;
   margin-top: 2.5rem;
   text-align: center;
-  font-size: 4em;
+  font-size: 4rem;
   cursor: pointer;
   background: white;
   color: #121212;
@@ -263,9 +265,9 @@ body, #app, .main {
   bottom: 0;
 }
 #quit-vote-tally {
-  font-size: 2em;
-  left: 10rem;
-  top:  1.5rem;
+  font-size: 1.6em;
+  left: 13rem;
+  top:  5rem;
   z-index: 3;
 }
 
@@ -370,7 +372,7 @@ body, #app, .main {
       Co-op Pac-Man!
       <p>Welcome! You are currently playing Pac-Man in sandbox mode.</p>
       <p>You can practice moving around and when you want to play the full game pres the "Ready!" button.</p>
-      <p>You are one of several Pac-Men trying to avoid enemy AI ghosts. If you run into a red ghost you lose collective life.</p>
+      <p>You are one of several Pac-Men trying to avoid enemy AI ghosts. If you run into a RED ghost you lose collective life.</p>
       <p>Eating a normal pellet earns you 10 points.</p>
       <p>Eating a flashing POWER PELLET earns you 50 points and makes the ghosts scared (blue).</p>
       <p>Eating a BLUE scared ghost earns you 200 points!</p>
@@ -388,6 +390,8 @@ body, #app, .main {
       <p>If you hit someone else with your bomb you get a point.</p>
       <p>First to 5 points wins!</p>
     </div>
+
+    <div class="button">Dismiss</div>
   </div>
 
 
@@ -489,6 +493,12 @@ body, #app, .main {
           You lost.
         </div>
         <br/>
+        <div class="button" @click="vote({vote: 'skip'})">
+          Skip
+          <div v-if="voteTally['skip']" class="vote-tally">
+            {{voteTally['skip']}}/{{majorityCount}}
+          </div>
+        </div>
         <br/>
       </div>
 

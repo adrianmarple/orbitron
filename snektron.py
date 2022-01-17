@@ -72,7 +72,8 @@ def play_ontimeout():
       top_score = player.score
       top_score_time = player.score_timestamp
       engine.victor = player
-  engine.state_end_time = time() + 10
+  engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
+
 
 def countdown_ontimeout():
   for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):

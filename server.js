@@ -7,7 +7,6 @@ const process = require('process')
 const { spawn } = require('child_process')
 
 const NO_TIMEOUT = process.argv.includes('-t')
-const LOCAL_SERVER = process.argv.includes('-l')
 
 // Websocket server
 
