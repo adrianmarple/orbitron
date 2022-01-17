@@ -7,6 +7,7 @@ from time import sleep
 
 MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
 
+EMPTY_SOUND = None #Initialized to an empty bytes object after mixer init
 
 sounds = {}
 
@@ -46,6 +47,7 @@ class SoundWrapper:
 
   def fadeout(self, duration):
     if self.channel:
+      self.channel.queue(EMPTY_SOUND)
       self.channel.fadeout(duration)
       self.channel = None
 
@@ -57,7 +59,7 @@ def prewarm_audio():
   SoundWrapper("battle1.ogg", vamp_file_name="battle1Loop.ogg")
   SoundWrapper("dm1.ogg", vamp_file_name="dm1Loop.ogg")
   SoundWrapper("waiting.ogg", loop=True, fade_ms=2000)
-  SoundWrapper("victory.mp3")
+  SoundWrapper("victory.ogg", vamp_file_name="victoryLoop.ogg")
   SoundWrapper("kick.wav")
   SoundWrapper("placeBomb.wav")
   SoundWrapper("hurt.wav")
@@ -71,6 +73,9 @@ def prewarm_audio():
       mixer.init(devicename="USB Audio Device, USB Audio")
     except:
       mixer.init(devicename="USB PnP Sound Device, USB Audio")
+
+    global EMPTY_SOUND
+    EMPTY_SOUND = mixer.Sound(bytes(1))
 
     for sound in sounds.values():
       sound.init()
