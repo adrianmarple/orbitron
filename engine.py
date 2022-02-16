@@ -446,9 +446,24 @@ def render_snake():
   phases = indicies / 40 + time()/2
   phases = np.minimum(1, np.mod(phases, 6))
   phases = np.sin(pi * phases) * 50
-  raw_pixels = np.outer(phases, np.ones((1, 3)))
+  color_phase = (time()/10) % 1
+  if color_phase < 0.333:
+    r = 1 - 3 * color_phase
+    g = 3 * color_phase
+    b = 0
+  elif color_phase < 0.666:
+    r = 0
+    g = 2 - 3 * color_phase
+    b = 3 * color_phase - 1
+  else:
+    r = 3 * color_phase - 2
+    g = 0
+    b = 3 - 3 * color_phase
 
-  output=np.array(raw_pixels,dtype="<u1").tobytes()
+  raw_pixels = np.outer(phases, np.array((r,g,b)))
+  # raw_pixels = np.outer(phases, np.ones((1, 3)))
+
+  output = np.array(raw_pixels,dtype="<u1").tobytes()
   neopixel_write(pin,output)
 
 
