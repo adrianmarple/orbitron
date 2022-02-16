@@ -99,18 +99,37 @@ def start_update():
     if not player.is_ready:
       player.move()
 
-  if engine.state_end_time == 0 and is_everyone_ready(minimum=2):
-    for player in claimed_players():
-      player.is_playing = True
-      player.has_shield = config["USE_SHIELDS"]
-      player.bomb_power = config["STARTING_BOMB_POWER"]
+def start_ontimeout():
+  for player in claimed_players():
+    player.is_playing = True
+    player.has_shield = config["USE_SHIELDS"]
+    player.bomb_power = config["STARTING_BOMB_POWER"]
 
-    clear()
+  clear()
 
-    engine.game_state = countdown_state
-    engine.state_end_time = time() + 4
-    broadcast_state()
-    sounds["waiting"].fadeout(4000)
+  engine.game_state = countdown_state
+  engine.state_end_time = time() + 4
+  broadcast_state()
+  sounds["waiting"].fadeout(4000)
+
+
+def countdown_ontimeout():
+  for i in range(config["NUM_WALLS"]):
+    pos = randrange(SIZE)
+    bad_spot = pos in START_POSITIONS
+    for start_pos in START_POSITIONS:
+      bad_spot = bad_spot or pos in neighbors[start_pos]
+
+    if not bad_spot:
+      statuses[pos] = "wall"
+
+  engine.game_state = play_state
+  engine.state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
+
+  if config["DEATHMATCH"]:
+    sounds["dm1"].play()
+  else:
+    sounds["battle1"].play()
 
 
 def play_update():
@@ -160,25 +179,6 @@ def play_update():
       if live_player_count <= 1:
         gameover(last_player_alive)
 
-
-
-def countdown_ontimeout():
-  for i in range(config["NUM_WALLS"]):
-    pos = randrange(SIZE)
-    bad_spot = pos in START_POSITIONS
-    for start_pos in START_POSITIONS:
-      bad_spot = bad_spot or pos in neighbors[start_pos]
-
-    if not bad_spot:
-      statuses[pos] = "wall"
-
-  engine.game_state = play_state
-  engine.state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
-
-  if config["DEATHMATCH"]:
-    sounds["dm1"].play()
-  else:
-    sounds["battle1"].play()
 
 def previctory_ontimeout():
   engine.game_state = victory_state
@@ -232,7 +232,7 @@ def render_game():
 
 
 
-start_state = State("start", start_update, None, render_game)
+start_state = State("start", start_update, start_ontimeout, render_game)
 countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)

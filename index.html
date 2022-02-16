@@ -41,25 +41,11 @@ body, #app, .main {
 
 #settings-button, #quit-button, #rules-button {
   position: fixed;
+  right: 1rem;
+  top: 1rem;
   cursor: pointer;
   z-index: 2;
   height: 5rem;
-  font-size: 2em;
-}
-#rules-button, #quit-button {
-  top:  -1rem;
-  left: 1rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 0 1rem;
-}
-#settings-button {
-  right:  1rem;
-  top:  1rem;
-}
-#rules-button {
-  top:  5rem;
 }
 
 #settings, #game-selection-menu, #rules-splash {
@@ -258,22 +244,53 @@ body, #app, .main {
   color: #121212;
   position: relative;
 }
-.vote-tally {
-  font-size: 0.5em;
-  position: absolute;
-  right: 0.5em;
-  bottom: 0;
+
+#header-buttons {
+  position: fixed;
+  left: 1rem;
+  top: 0;
+  z-index: 2;
 }
-#quit-vote-tally {
-  font-size: 1.6em;
-  left: 13rem;
-  top:  5rem;
-  z-index: 3;
+#header-buttons .button {
+  margin-top: 1rem;
+  font-size: 2.5rem;
 }
 
+.choice {
+  width: 45rem;
+  display: flex;
+  justify-content: space-between;
+}
+.choice .button {
+  font-size: 2.5rem;
+}
+
+.vote-tally {
+  font-size: 1.8rem;
+  position: absolute;
+  left: calc(100% - 2rem);
+  top: -1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  background: black;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1.5rem;
+}
+
+.dormant {
+  color:  white;
+  background: #333;
+  border-color: #aaa;
+}
 .selected {
   box-shadow: 0 0.4rem 1rem 0.25rem rgba(0, 0, 0, 0.5);
   border-color: #666;
+}
+.dormant.selected {
+  border-color: white;
 }
 
 .hide {
@@ -303,21 +320,9 @@ body, #app, .main {
       xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
     <path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
   </svg> -->
-  <div id="rules-button"
-      class="button"
-      @click="showRules=true"
-  >
-    RULES
-  </div>
-  <div id="quit-button"
-      class="button"
-      @click="vote({vote: 'quit'})"
-      :class="{selected: self.vote=='quit'}"
-  >
-    OTHER GAMES
-  </div>
-  <div id="quit-vote-tally" v-if="voteTally.quit" class="vote-tally">
-    {{voteTally.quit}}/{{majorityCount}}
+  <div id="header-buttons">
+    <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
+    <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
   </div>
 
   <div v-if="showSettings" id="settings">
@@ -348,20 +353,8 @@ body, #app, .main {
     </div>
     <div v-else>
       <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
-      <div v-for="voteType in voteTypes">
-        <div v-if="voteType.divider" style="font-size: 4em; margin-top: 10vw;">
-          {{voteType.game}}
-        </div>
-        <div v-else
-            class="button"
-            :class="{selected: self.vote==voteType.vote}"
-            @click="vote(voteType)"
-        >
-          {{voteType.vote}}
-          <div v-if="voteTally[voteType.vote]" class="vote-tally">
-            {{voteTally[voteType.vote]}}/{{majorityCount}}
-          </div>
-        </div>
+      <div v-for="game in ['snektron', 'pacman', 'bomberman']">
+        <TallyButton :label="game" election="start" :vote="game" />
       </div>
     </div>
   </div>
@@ -398,7 +391,7 @@ body, #app, .main {
       <p>You can practice moving and bombing and when you want to play the full game press the "Ready!" button.</p>
       <p>Tap to place a bomb.</p>
       <p>If you move into a bomb you will kick it and send it traveling.</p>
-      <p>The white pixels are walls. You can’t pass through them, but you can blow them up.</p>
+      <p>The white pixels are walls. You can't pass through them, but you can blow them up.</p>
       <p>If you hit yourself, you will get stunned.</p>
       <p>If you hit someone else with your bomb you get a point.</p>
       <p>First to 5 points wins!</p>
@@ -438,7 +431,7 @@ body, #app, .main {
   </div> -->
 
 
-  <div v-if="!self.isReady || (mode=='play' && self.isPlaying && self.isAlive)"
+  <div v-if="(mode=='start' && !self.isReady) || (mode=='play' && self.isPlaying && self.isAlive)"
     class="joystick-bg"
     :style="joystickBGStyle"
   >
@@ -458,35 +451,41 @@ body, #app, .main {
         </span>
       </div>
       <div v-else-if="claimedPlayers.length <= 1">Waiting for another player.</div>
-      <div v-else>Waiting for...
-        <div class="players">
-          <div v-for="player in unreadyPlayers"
-            class="player"
-            :style="{backgroundColor: player.color}"
-          ></div>
-        </div>
-      </div>
     </div>
 
-    <div class="buttons">
-      <div v-if="self.isReady"
-        class="button"
-        @click.stop="pulse"
-      >
-        Pulse
+
+    <div v-if="isReady" class="buttons">
+      <div class="button" @click.stop="advance">Start</div>
+    </div>
+    <div v-else class="buttons">
+      <div v-if="BOMBERMAN" class="choice">
+        <TallyButton label="Battle Royale"
+            :vote="false"
+            election="DEATHMATCH"
+            :setting="true">
+        </TallyButton>
+        <TallyButton label="Deathmatch"
+            :vote="true"
+            election="DEATHMATCH"
+            :setting="true">
+        </TallyButton>
       </div>
-      <div v-if="self.isReady"
-        class="button"
-        @click.stop="makeUnready"
-      >
-        I'm not ready.
+      <div v-if="BOMBERMAN" class="choice">
+        <TallyButton label="Free for all"
+            :vote="false"
+            election="TEAM_MODE"
+            :setting="true">
+        </TallyButton>
+        <TallyButton label="Team"
+            :vote="true"
+            election="TEAM_MODE"
+            :setting="true">
+        </TallyButton>
       </div>
-      <div v-else
-        class="button"
-        @click.stop="makeReady"
-      >
-        Ready!
-      </div>
+
+      <div v-if="self.votes.ready" class="button" @click.stop="pulse">Pulse</div>
+      <TallyButton v-if="self.votes.ready" label="I'm not ready." election="ready" vote="yes"></TallyButton>
+      <TallyButton v-else label="Ready" election="ready" vote="yes"></TallyButton>
     </div>
   </div>
 
@@ -507,12 +506,7 @@ body, #app, .main {
           You lost.
         </div>
         <br/>
-        <div class="button" @click="vote({vote: 'skip'})">
-          Skip
-          <div v-if="voteTally['skip']" class="vote-tally">
-            {{voteTally['skip']}}/{{majorityCount}}
-          </div>
-        </div>
+        <TallyButton label="Skip" election="skip" vote="yes"></TallyButton>
         <br/>
       </div>
 
@@ -586,6 +580,47 @@ document.addEventListener("click", event => {
   }
 })
 
+Vue.component('tallybutton', {
+  props: ['label', 'election', 'vote', 'setting'],
+  computed: {
+    voteCount() {
+      if (!this.$root.voteTally[this.election]) {
+        return 0
+      }
+      return this.$root.voteTally[this.election][this.vote] || 0
+    },
+    selected() {
+      if (!this.$root.self.votes) {
+        return false
+      }
+      return this.$root.self.votes[this.election] === this.vote
+    },
+    dormant() {
+      if (this.setting)
+        return this.$root.config[this.election] != this.vote
+      else
+        return false
+    },
+  },
+  methods: {
+    sendVote() {
+      this.$root.send({
+        type: 'vote',
+        election: this.election,
+        vote: this.vote,
+        settings: { [this.settings]: this.vote },
+      })
+    },
+  },
+  template: `
+<div class="button" @click.stop="sendVote" :class="{ selected, dormant }">
+  {{ label }}
+  <div v-if="voteCount" class="vote-tally">
+    {{ voteCount }}/{{ $root.majorityCount }}
+  </div>
+</div>`
+})
+
 var app = new Vue({
   el: '#app',
   data: {
@@ -652,20 +687,6 @@ var app = new Vue({
       {game: "snektron", vote: "snektron"},
       {game: "pacman", vote: "pacman"},
       {game: "bomberman", divider: true},
-      {
-        game: "bomberman", vote: "battle royale",
-        settings: {
-          USE_SHIELDS: true,
-          DEATHMATCH: false,
-        }
-      },
-      {
-        game: "bomberman", vote: "deathmatch",
-        settings: {
-          USE_SHIELDS: false,
-          DEATHMATCH: true,
-        }
-      },
     ],
   },
 
@@ -778,14 +799,25 @@ var app = new Vue({
     },
 
     majorityCount() {
-      return Math.ceil(this.claimedPlayers.length / 2)
+      return Math.ceil((this.claimedPlayers.length + 1) / 2)
     },
     voteTally() {
       let tally = {}
-      for (let player of this.claimedPlayers) {
-        tally[player.vote] = (tally[player.vote] || 0) + 1
+      for (const player of this.claimedPlayers) {
+        for (const election in player.votes) {
+          const vote = player.votes[election]
+          if (!tally[election]) {
+            tally[election] = {}
+          }
+          tally[election][vote] = (tally[election][vote] || 0) + 1
+        }
       }
       return tally
+    },
+    isReady() {
+      return this.voteTally.ready &&
+          this.voteTally.ready.yes > 1 &&
+          this.voteTally.ready.yes >= this.majorityCount
     },
 
     claimedPlayers() {
@@ -874,6 +906,12 @@ var app = new Vue({
           this.startWebsocket()
         }
       }
+    },
+    pulse() {
+      this.send({type: "pulse"})
+    },
+    advance() {
+      this.send({type: "advance"})
     },
 
     destroyWebsocket() {
@@ -980,32 +1018,6 @@ var app = new Vue({
         this.$set(this.localFlags, this.state.game, true)
         this.showRules = false
       }
-    },
-
-    vote(vote) {
-      vote.type = "vote"
-      this.send(vote)
-    },
-    // quit() {
-    //   this.send({type: 'quit'})
-    // },
-    // startGame(game) {
-    //   this.send({type: 'start', game})
-    // },
-
-    changeRole(role) { // PACMAN
-      this.send({type: "roleChange", role})
-    },
-
-    makeReady() {
-      this.send({type: "ready"})
-    },
-    makeUnready() {
-      this.send({type: "unready"})
-      this.timestamp = 0
-    },
-    async pulse() {
-      this.send({type: "pulse"})
     },
 
     settingsKeydown(event) {

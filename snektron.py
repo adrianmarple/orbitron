@@ -40,21 +40,31 @@ def setup():
     color_string="#ff9800") #orange
 
 def handle_event(message, player):
-    pass
+  pass
+
 
 def start_update():
   for player in claimed_players():
     if not player.is_ready:
       player.move()
 
-  if engine.state_end_time == 0 and is_everyone_ready(minimum=2):
-    for player in claimed_players():
-      player.is_playing = True
+def start_ontimeout():
+  for player in claimed_players():
+    player.is_playing = True
+    player.is_ready = False
 
-    engine.game_state = countdown_state
-    engine.state_end_time = time() + 4
-    sounds["waiting"].fadeout(4000)
-    broadcast_state()
+  engine.game_state = countdown_state
+  engine.state_end_time = time() + 4
+  sounds["waiting"].fadeout(4000)
+  broadcast_state()
+
+
+def countdown_ontimeout():
+  for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
+    spawn_apple()
+  engine.state_end_time = time() + config["ROUND_TIME"]
+  engine.game_state = play_state
+  sounds["battle1"].play()
 
 
 def play_update():
@@ -73,14 +83,6 @@ def play_ontimeout():
       top_score_time = player.score_timestamp
       engine.victor = player
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
-
-
-def countdown_ontimeout():
-  for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
-    spawn_apple()
-  engine.state_end_time = time() + config["ROUND_TIME"]
-  engine.game_state = play_state
-  sounds["battle1"].play()
 
 def render_game():
   if engine.state_end_time > 0 and engine.state_end_time - time() < 5:
@@ -130,7 +132,7 @@ def spawn_apple():
     return
 
 
-start_state = State("start", start_update, None, render_game)
+start_state = State("start", start_update, start_ontimeout, render_game)
 countdown_state = State("countdown", None, countdown_ontimeout, render_game)
 play_state = State("play", play_update, play_ontimeout, render_game)
 victory_state = State("victory", start_update, victory_ontimeout, render_victory)

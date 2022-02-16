@@ -7,21 +7,18 @@ import snektron
 
 import fileinput
 import json
+import sys
 import numpy as np
 from time import time
 from threading import Thread
 
 game_module = None
 
-def clear_votes():
-  for player in engine.players:
-    player.vote = ""
 
-def start_game(game, settings=None):
+
+def start_game(game):
   global game_module
   engine.current_game = game
-  if settings:
-    engine.config.update(settings)
 
   if engine.current_game == "bomberman":
     game_module = bomberman
@@ -29,6 +26,8 @@ def start_game(game, settings=None):
     game_module = pacman
   elif engine.current_game == "snektron":
     game_module = snektron
+  else:
+    print("Error. Tried to start bad game: %s" % game)
 
   claimed = []
   for player in engine.players:
@@ -46,36 +45,46 @@ vote_to_message = {}
 def check_vote():
   global game_module
 
-  votes = {}
+  all_votes = {}
   for player in engine.claimed_players():
-    if player.vote:
-      votes[player.vote] = votes.get(player.vote, 0) + 1
+    for (election, vote) in player.votes.items():
+      if election not in all_votes:
+        all_votes[election] = {}
+      all_votes[election][vote] = all_votes[election].get(vote, 0) + 1
 
   majority_count = len(engine.claimed_players()) / 2.0
-  final_vote = None
-  for (vote, count) in votes.items():
-    if count >= majority_count:
-      final_vote = vote
-      break
 
-  if not final_vote:
-    return
+  for (election, votes) in all_votes.items():
+    final_vote = None
+    for (vote, count) in votes.items():
+      if count > majority_count:
+        final_vote = vote
+        break
 
-  if final_vote == "quit":
-    game_module = None
-    engine.quit()
-  elif final_vote == "skip":
-    engine.game_state.ontimeout()
-  else:
+    if not final_vote:
+      continue
+
     message = vote_to_message[final_vote]
-    settings = None
     if "settings" in message:
-      settings = message["settings"]
-    start_game(message["game"], settings)
+      engine.config.update(message["settings"])
+
+    if election == "quit":
+      game_module = None
+      engine.quit()
+    elif election == "skip":
+      engine.clear_votes()
+      engine.game_state.ontimeout()
+    elif election == "start":
+      start_game(message["vote"])
+    elif election == "ready":
+      continue # Don't clear this particular election
+
+    for player in engine.players:
+      if election in player.votes:
+        del player.votes[election]
 
 
 def consume_input():
-
   for line in fileinput.input():
     try:
       message = json.loads(line)
@@ -98,19 +107,20 @@ def consume_input():
       elif message["type"] == "vote":
         vote = message["vote"]
         vote_to_message[vote] = message
-        if player.vote == vote:
-          player.vote = ""
+        election = message["election"]
+        if player.votes.get(election, None) == vote:
+          player.votes[election] = ""
+          if election == "ready":
+            player.set_unready()
         else:
-          player.vote = vote
+          player.votes[election] = vote
+          if election == "ready":
+            player.set_ready()
         check_vote()
         engine.broadcast_state()
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])
         player.last_move_input_time = time()
-      elif message["type"] == "ready":
-        player.set_ready()
-      elif message["type"] == "unready":
-        player.set_unready()
       elif message["type"] == "pulse":
         player.pulse()
       elif message["type"] == "tap":
@@ -118,6 +128,10 @@ def consume_input():
       elif message["type"] == "settings":
         engine.config.update(message["update"])
         engine.broadcast_state()
+      elif message["type"] == "advance":
+        if engine.game_state:
+          engine.clear_votes()
+          engine.game_state.ontimeout()
       elif game_module:
         game_module.handle_event(message, player)
     except json.decoder.JSONDecodeError:

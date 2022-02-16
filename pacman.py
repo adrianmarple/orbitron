@@ -106,23 +106,39 @@ def start_update():
     if not player.is_ready:
       player.move()
 
-  if engine.state_end_time == 0 and is_everyone_ready(minimum=1):
-    for pacman in pacmen():
-      pacman.is_playing = True
+def start_ontimeout():
+  for pacman in pacmen():
+    pacman.is_playing = True
 
-    # Suppliment with AI ghosts
-    ghost_count = 0
-    num_ghosts = config["NUM_GHOSTS"]+len(pacmen())
-    for ghost in ghosts():
-      if ghost_count >= num_ghosts:
-        break
-      ghost.is_playing = True
-      ghost_count += 1
+  # Suppliment with AI ghosts
+  ghost_count = 0
+  num_ghosts = config["NUM_GHOSTS"]+len(pacmen())
+  for ghost in ghosts():
+    if ghost_count >= num_ghosts:
+      break
+    ghost.is_playing = True
+    ghost_count += 1
 
-    engine.game_state = countdown_state
-    engine.state_end_time = time() + 4
-    broadcast_state()
-    sounds["waiting"].fadeout(4000)
+  engine.game_state = countdown_state
+  engine.state_end_time = time() + 4
+  broadcast_state()
+  sounds["waiting"].fadeout(4000)
+
+
+def countdown_ontimeout():
+  for i in range(len(statuses)):
+    statuses[i] = "pellet"
+
+  for i in range(config["STARTING_POWER_PELLET_COUNT"]):
+    statuses[randrange(len(statuses))] = "power"
+
+  global previous_pellet_generation_time, previous_power_pellet_generation_time
+  previous_pellet_generation_time = time()
+  previous_power_pellet_generation_time = time()
+  engine.game_state = play_state
+  sounds["battle1"].play()
+  data["score"] = 0
+  data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
 
 
 def play_update():
@@ -149,22 +165,6 @@ def play_update():
   if data["score"] >= data["victory_score"]:
     gameover("pacmen")
 
-
-
-def countdown_ontimeout():
-  for i in range(len(statuses)):
-    statuses[i] = "pellet"
-
-  for i in range(config["STARTING_POWER_PELLET_COUNT"]):
-    statuses[randrange(len(statuses))] = "power"
-
-  global previous_pellet_generation_time, previous_power_pellet_generation_time
-  previous_pellet_generation_time = time()
-  previous_power_pellet_generation_time = time()
-  engine.game_state = play_state
-  sounds["battle1"].play()
-  data["score"] = 0
-  data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
 
 
 def previctory_ontimeout():
@@ -255,7 +255,7 @@ def add_pellet(type):
       statuses[pellet_pos] = type
       return
 
-start_state = State("start", start_update, None, render_sandbox)
+start_state = State("start", start_update, start_ontimeout, render_sandbox)
 countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)

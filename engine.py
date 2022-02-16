@@ -104,6 +104,7 @@ def start(starting_state):
   global start_state, game_state
   start_state = starting_state
   game_state = start_state
+  clear_votes()
 
 def quit():
   global start_state, game_state, current_game, state_end_time, victor
@@ -112,6 +113,7 @@ def quit():
   start_state = None
   state_end_time = 0
   clear()
+  clear_votes()
   for sound in sounds:
     if sound=="waiting":
       sounds[sound].play()
@@ -202,7 +204,7 @@ class Player:
     self.move_direction = np.array((0, 0))
     self.prev_pos = 0
     self.tap = 0
-    self.vote = ""
+    self.votes = {}
 
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -233,10 +235,8 @@ class Player:
     self.prev_pos = self.position
     self.stunned = False
     self.hit_time = 0
-    self.ready_from_direction = None
 
   def set_ready(self):
-    self.ready_from_direction = unique_coords[self.position]
     self.ready_time = time()
     self.position = self.initial_position
     self.is_ready = True
@@ -247,13 +247,12 @@ class Player:
     self.tap = 0
     broadcast_state()
 
-  def current_color(self):
-    return self.team_color if config["TEAM_MODE"] else self.color
-
   def pulse(self):
-    self.ready_from_direction = None
     self.ready_time = time()
     broadcast_state()
+
+  def current_color(self):
+    return self.team_color if config["TEAM_MODE"] else self.color
 
   def cant_move(self):
     return (not self.is_alive or
@@ -351,7 +350,6 @@ class Player:
 
     render_pulse(
       direction=unique_coords[self.position],
-      # from_direction=self.ready_from_direction,
       color=self.current_color(),
       start_time=self.ready_time,
       duration=READY_PULSE_DURATION)
@@ -365,7 +363,7 @@ class Player:
       "isAlive": self.is_alive,
       "color": self.color_string,
       "position": self.position,
-      "vote": self.vote,
+      "votes": self.votes,
     }
     if hasattr(self, "team"):
       dictionary["team"] = self.team.id
@@ -424,15 +422,11 @@ def projection(u, v): # assume v is normalized
 def ortho_proj(u, v):
   return u - projection(u,v)
 
-def is_everyone_ready(minimum):
-  claimed = claimed_players()
-  if len(claimed) < minimum:
-    return False
-  for player in claimed:
-    if not player.is_ready:
-      return False
-  return True
 
+
+def clear_votes():
+  for player in players:
+    player.votes = {}
 
 def clear():
   for i in range(len(statuses)):
