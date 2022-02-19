@@ -26,7 +26,6 @@ body, #app, .main {
   margin: 0;
 }
 .main {
-  /* Disables pull-to-refresh but allows overscroll glow effects. */
   overscroll-behavior-y: contain;
   overflow-y: hidden;
 }
@@ -53,17 +52,18 @@ body, #app, .main {
   width: 100vw;
   min-height: 100vh;
   box-sizing: border-box;
-  padding-top: 8rem;
+  padding: 6rem 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: scroll;
+  overscroll-behavior-y: none;
 }
 
 #rules-splash {
   z-index: 3;
   color:  white;
   font-size: 4rem;
-  padding: 2.5rem;
   background: linear-gradient(rgba(212,0,255,1), rgba(122,5,11,1));
 }
 
@@ -297,7 +297,7 @@ body, #app, .main {
   display: none !important;
 }
 .close {
-  position: absolute;
+  position: fixed;
   cursor: pointer;
   right: 1rem;
   top:  1rem;
@@ -325,41 +325,25 @@ body, #app, .main {
     <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
   </div>
 
-  <div v-if="showSettings" id="settings">
-    <span style="font-size: 4em">Settings</span>
-    <div id="settings-alignment-guide">
-      <div v-for="setting in relevantSettings" class="setting">
-        {{prettifySettingName(setting.name)}}
-        <input
-          v-if="setting.boolean"
-          type="checkbox"
-          v-model.number="config[setting.name]"
-          @onchange="updateSettings"
-        >
-        <textarea
-          v-else
-          type="number"
-          v-model.number="config[setting.name]"
-          @keydown="settingsKeydown"
-          @change="updateSettings"
-        ></textarea>
-      </div>
-    </div>
+  <div v-if="connectionStatus == 'CONNECTING'" class="header">
+    {{connectionStatus}}
   </div>
 
-  <div v-if="BETWEEN_GAMES" id="game-selection-menu">
-    <div v-if="connectionStatus == 'CONNECTING'" class="header">
-      {{connectionStatus}}
-    </div>
-    <div v-else>
-      <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
-      <div v-for="game in ['snektron', 'pacman', 'bomberman']">
-        <TallyButton :label="game" election="start" :vote="game" />
-      </div>
-    </div>
+  <div v-else-if="connectionStatus != 'CONNECTED'" class="header">
+    {{connectionStatus}}
+    <br/>
+    <br/>
+    Tap To Reconnect
   </div>
 
-  <div v-if="hasNotSeenGame || showRules"
+  <div v-else-if="!hasClaimed" id="queue" class="header">
+    All the play slots have been claimed.
+    <br/>
+    <br/>
+    Position in queue: {{state.queuePosition}}
+  </div>
+
+  <div v-else-if="hasNotSeenGame || showRules"
       id="rules-splash"
       @click="dismissRules"
   >
@@ -401,23 +385,38 @@ body, #app, .main {
     <div class="button">Dismiss</div>
   </div>
 
-
-  <div v-if="connectionStatus == 'CONNECTING'" class="header">
-    {{connectionStatus}}
+  <div v-else-if="showSettings" id="settings">
+    <span style="font-size: 4em">Settings</span>
+    <div id="settings-alignment-guide">
+      <div v-for="setting in relevantSettings" class="setting">
+        {{prettifySettingName(setting.name)}}
+        <input
+          v-if="setting.boolean"
+          type="checkbox"
+          v-model.number="config[setting.name]"
+          @onchange="updateSettings"
+        >
+        <textarea
+          v-else
+          type="number"
+          v-model.number="config[setting.name]"
+          @keydown="settingsKeydown"
+          @change="updateSettings"
+        ></textarea>
+      </div>
+    </div>
   </div>
 
-  <div v-else-if="connectionStatus != 'CONNECTED'" class="header">
-    {{connectionStatus}}
-    <br/>
-    <br/>
-    Tap To Reconnect
-  </div>
-  
-  <div id="queue" v-else-if="!hasClaimed" class="header">
-    All the play slots have been claimed.
-    <br/>
-    <br/>
-    Position in queue: {{state.queuePosition}}
+  <div v-else-if="BETWEEN_GAMES" id="game-selection-menu">
+    <div v-if="connectionStatus == 'CONNECTING'" class="header">
+      {{connectionStatus}}
+    </div>
+    <div v-else>
+      <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
+      <div v-for="game in ['snektron', 'pacman', 'bomberman']">
+        <TallyButton :label="game" election="start" :vote="game" />
+      </div>
+    </div>
   </div>
 
   <div v-else>
