@@ -12,7 +12,7 @@ import engine
 from engine import *
 
 
-config["ROUND_TIME"] = 90
+config["ROUND_TIME"] = 94
 config["START_LENGTH"] = 4
 config["ADDITIONAL_APPLES"] = 25
 config["SNAKE_MOVE_FREQ"] = 0.25
@@ -64,7 +64,7 @@ def countdown_ontimeout():
     spawn_apple()
   engine.state_end_time = time() + config["ROUND_TIME"]
   engine.game_state = play_state
-  sounds["battle1"].play()
+  sounds["snekBattle"].play()
 
 
 def play_update():
@@ -72,9 +72,9 @@ def play_update():
     player.move()
 
 def play_ontimeout():
-  sounds["battle1"].stop()
-  sounds["victory"].play()
-  engine.game_state = victory_state
+  sounds["snekBattle"].fadeout(1000)
+  sounds["victory"].play(delay_ms=1000)
+  engine.game_state = previctory_state
   top_score = 0
   top_score_time = 0
   for player in playing_players():
@@ -82,6 +82,10 @@ def play_ontimeout():
       top_score = player.score
       top_score_time = player.score_timestamp
       engine.victor = player
+  engine.state_end_time = time() + 4
+
+def previctory_ontimeout():
+  engine.game_state = victory_state
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
 
 def render_game():
@@ -135,6 +139,7 @@ def spawn_apple():
 start_state = State("start", start_update, start_ontimeout, render_game)
 countdown_state = State("countdown", None, countdown_ontimeout, render_game)
 play_state = State("play", play_update, play_ontimeout, render_game)
+previctory_state = State("previctory", None, previctory_ontimeout, render_game)
 victory_state = State("victory", start_update, victory_ontimeout, render_victory)
 
 

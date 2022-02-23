@@ -3,7 +3,7 @@
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 import pygame._sdl2 as sdl2
 from threading import main_thread, Thread
-from time import sleep
+from time import time, sleep
 
 MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
 
@@ -12,11 +12,14 @@ EMPTY_SOUND = None #Initialized to an empty bytes object after mixer init
 sounds = {}
 
 class SoundWrapper:
-  def __init__(self, file_name, vamp_file_name=None, loop=False, fade_ms=0):
+  def __init__(self, file_name, vamp_file_name=None, loop=False, fade_ms=0, delay_ms=0):
     self.file_name = file_name
     self.vamp_file_name = vamp_file_name
     self.loop = loop
     self.fade_ms = fade_ms
+    self.delay_ms = delay_ms
+    self.delay_fade_ms = None
+    self.delay_time = None
 
     self.sound = None
     self.vamp = None
@@ -30,13 +33,27 @@ class SoundWrapper:
     if self.vamp_file_name:
       self.vamp = mixer.Sound(MUSIC_DIRECTORY + self.vamp_file_name)
 
-  def play(self, fade_ms=None):
+  def play(self, fade_ms=None, delay_ms=None):
     if not self.sound or self.sound.get_num_channels() > 0:
       return
 
     if fade_ms is None:
       fade_ms = self.fade_ms
+      
+    if delay_ms is None:
+      delay_ms = self.delay_ms
 
+    if delay_ms is None:
+      self.delay_time = None
+      self._play(fade_ms=fade_ms)
+    else:
+      self.delay_time = time() + delay_ms/1000
+      if fade_ms not is None:
+        self.delay_fade_ms = fade_ms
+      else:
+        self.delay_fade_ms = None
+
+  def _play(self, fade_ms=None):
     loop_count = -1 if self.loop else 0
     self.channel = self.sound.play(loops=loop_count, fade_ms=fade_ms)
 
@@ -58,6 +75,7 @@ def stop_all_audio():
 def prewarm_audio():
   SoundWrapper("battle1.ogg", vamp_file_name="battle1Loop.ogg")
   SoundWrapper("dm1.ogg", vamp_file_name="dm1Loop.ogg")
+  SoundWrapper("snekBattle.ogg")
   SoundWrapper("waiting.ogg", loop=True, fade_ms=2000)
   SoundWrapper("victory.ogg", vamp_file_name="victoryLoop.ogg")
   SoundWrapper("kick.wav")
@@ -87,13 +105,17 @@ def prewarm_audio():
     # thread now to handle vamps
     vamp_sounds = [sound for sound in sounds.values() if sound.vamp]
     while True:
-      sleep(3)
+      sleep(0.1)
       if not main_thread().is_alive():
         return
 
       for sound in vamp_sounds:
         if sound.channel and sound.channel.get_queue() is None:
           sound.channel.queue(sound.vamp)
+      for sound in sounds:
+        if sound.delay_time not is None and sound.delay_time <= time():
+          sound.delay_time = None
+          sound.play(sound.delay_fade_ms)
 
 
   prewarm_thread = Thread(target=thread_func)
