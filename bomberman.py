@@ -183,7 +183,6 @@ def play_update():
 def previctory_ontimeout():
   engine.game_state = victory_state
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
-  sounds["victory"].play()
 
 
 def render_countdown():
@@ -259,7 +258,11 @@ def gameover(winner):
   engine.game_state = previctory_state
   engine.state_end_time = time() + 2
   engine.victor = winner
-  stop_all_audio()
+  if config["DEATHMATCH"]:
+    sounds["dm1"].stop()
+  else:
+    sounds["battle1"].stop()
+  sounds["victory"].play(delay_ms=1000)
   touchall()
   broadcast_state()
 

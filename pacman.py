@@ -170,7 +170,6 @@ def play_update():
 def previctory_ontimeout():
   engine.game_state = victory_state
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
-  sounds["victory"].play()
 
 
 def render_sandbox():
@@ -234,6 +233,7 @@ def gameover(winner):
       players=ghosts())
     engine.victor = team_ghost
   sounds["battle1"].stop()
+  sounds["victory"].play(delay_ms=1000)
   broadcast_state()
 
 
