@@ -11,14 +11,14 @@ import engine
 from engine import *
 
 
-config["PACMEN_LIVES"] = 2
+config["PACMEN_LIVES"] = 5
 config["NUM_GHOSTS"] = 4
 config["STARTING_POWER_PELLET_COUNT"] = 4
 config["POWER_PELLET_DURATION"] = 10
 config["PACMAN_MOVE_FREQ"] = 0.22
 config["PACMAN_POWER_MOVE_FREQ"] = 0.18
 config["GHOST_MOVE_FREQ"] = 0.22
-config["GHOST_SCARED_MOVE_FREQ"] = 0.3
+config["GHOST_SCARED_MOVE_FREQ"] = 0.4
 config["GHOST_RANDOMNESS"] = 0.5
 config["PELLET_SCORE"] = 10
 config["POWER_PELLET_SCORE"] = 50
@@ -27,10 +27,12 @@ config["VICTORY_SCORE"] = 3000
 config["MARGINAL_PACMAN_VICTORY_SCORE"] = 1000
 config["PELLET_REGEN_FREQ"] = 1
 config["POWER_PELLET_REGEN_FREQ"] = 30
+config["SHARED_LIVES"] = True
 
 
 data["score"] = 0
 data["victory_score"] = 0
+data["lives"] = config["PACMEN_LIVES"]
 power_pulses = []
 
 previous_pellet_generation_time = 0
@@ -119,6 +121,7 @@ def start_ontimeout():
     ghost.is_playing = True
     ghost_count += 1
 
+  data["lives"] = config["PACMEN_LIVES"]
   engine.game_state = countdown_state
   engine.state_end_time = time() + 4
   broadcast_state()
@@ -151,7 +154,7 @@ def play_update():
       ghosts_win = False
       break
 
-  if ghosts_win:
+  if ghosts_win or data["lives"] <= 0:
     gameover("ghosts")
 
   global previous_pellet_generation_time, previous_power_pellet_generation_time
@@ -311,7 +314,10 @@ class Pacman(Player):
             break
           elif time() - self.hit_time > config["INVULNERABILITY_TIME"]:
             self.hit_time = time()
-            self.lives_left -= 1
+            if config["SHARED_LIVES"]:
+              data["lives"] -= 1
+            else:
+              self.lives_left -= 1
             if self.lives_left < 0:
               sounds["death"].play()
               self.is_alive = False
@@ -338,14 +344,14 @@ class Pacman(Player):
       statuses[self.position] = "blank"
       power_pulses.append((unique_coords[self.position], time()))
     elif statuses[self.position] == "pellet":
-      sounds["placeBomb"].play(fade_ms=60)
+      # sounds["placeBomb"].play(fade_ms=60)
       data["score"] += config["PELLET_SCORE"]
       statuses[self.position] = "blank"
 
   def to_json(self):
     dictionary = Player.to_json(self)
     dictionary["isPacman"] = True
-    dictionary["livesLeft"] = self.lives_left
+    dictionary["livesLeft"] = data["lives"] if config["SHARED_LIVES"] else self.lives_left
     return dictionary
 
 
