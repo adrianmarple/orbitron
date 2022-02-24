@@ -12,7 +12,7 @@ EMPTY_SOUND = None #Initialized to an empty bytes object after mixer init
 sounds = {}
 
 class SoundWrapper:
-  def __init__(self, file_name, vamp_file_name=None, loop=False, fade_ms=0, delay_ms=0):
+  def __init__(self, file_name, vamp_file_name=None, loop=False, fade_ms=0, delay_ms=None):
     self.file_name = file_name
     self.vamp_file_name = vamp_file_name
     self.loop = loop
@@ -34,8 +34,16 @@ class SoundWrapper:
       self.vamp = mixer.Sound(MUSIC_DIRECTORY + self.vamp_file_name)
 
   def play(self, fade_ms=None, delay_ms=None):
-    if not self.sound or self.sound.get_num_channels() > 0:
+    if not self.sound:
       return
+    elif self.sound.get_num_channels() > 0:
+      if self.channel:
+        if not self.channel.get_busy():
+          self.sound.stop()
+        else:
+          return
+      else:
+        self.sound.stop()
 
     if fade_ms is None:
       fade_ms = self.fade_ms
@@ -48,7 +56,7 @@ class SoundWrapper:
       self._play(fade_ms=fade_ms)
     else:
       self.delay_time = time() + delay_ms/1000
-      if fade_ms not is None:
+      if fade_ms is not None:
         self.delay_fade_ms = fade_ms
       else:
         self.delay_fade_ms = None
@@ -88,9 +96,9 @@ def prewarm_audio():
   def thread_func():
     # TODO put this in an environment variable
     try:
-      mixer.init(devicename="USB Audio Device, USB Audio")
+      mixer.init(devicename="USB Audio Device, USB Audio", channels=1)
     except:
-      mixer.init(devicename="USB PnP Sound Device, USB Audio")
+      mixer.init(devicename="USB PnP Sound Device, USB Audio", channels=1)
 
     global EMPTY_SOUND
     EMPTY_SOUND = mixer.Sound(bytes(1))
@@ -112,10 +120,10 @@ def prewarm_audio():
       for sound in vamp_sounds:
         if sound.channel and sound.channel.get_queue() is None:
           sound.channel.queue(sound.vamp)
-      for sound in sounds:
-        if sound.delay_time not is None and sound.delay_time <= time():
+      for sound in sounds.values():
+        if sound.delay_time is not None and sound.delay_time <= time():
           sound.delay_time = None
-          sound.play(sound.delay_fade_ms)
+          sound._play(sound.delay_fade_ms)
 
 
   prewarm_thread = Thread(target=thread_func)

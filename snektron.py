@@ -82,16 +82,16 @@ def play_ontimeout():
       top_score = player.score
       top_score_time = player.score_timestamp
       engine.victor = player
-  engine.state_end_time = time() + 4
+  engine.state_end_time = time() + 2
 
 def previctory_ontimeout():
   engine.game_state = victory_state
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
 
 def render_game():
-  if engine.state_end_time > 0 and engine.state_end_time - time() < 5:
+  if engine.game_state == play_state and engine.state_end_time > 0 and engine.state_end_time - time() < 7:
     countdown = ceil(engine.state_end_time - time())
-    countup = 5 - countdown
+    countup = 7 - countdown
     render_pulse(
       direction=(0,0,COORD_MAGNITUDE),
       color=np.array((60,60,60)) * countup,
