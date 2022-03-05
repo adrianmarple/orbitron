@@ -12,7 +12,7 @@ import engine
 from engine import *
 
 
-config["ROUND_TIME"] = 94
+config["ROUND_TIME"] = 94.5
 config["START_LENGTH"] = 4
 config["ADDITIONAL_APPLES"] = 25
 config["SNAKE_MOVE_FREQ"] = 0.25
@@ -73,7 +73,7 @@ def play_update():
     player.move()
 
 def play_ontimeout():
-  sounds["snekBattle"].fadeout(1000)
+  sounds["snekBattle"].fadeout(1500)
   sounds["victory"].play(delay_ms=1000)
   engine.game_state = previctory_state
   top_score = 0

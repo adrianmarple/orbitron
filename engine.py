@@ -28,7 +28,7 @@ config = {
   "ALLOW_CROSS_TIP_MOVE": False,
   "MOVE_BIAS": 0.5,
   "TEAM_MODE": False,
-  "VICTORY_TIMEOUT": 30,
+  "VICTORY_TIMEOUT": 42,
 }
 
 READY_PULSE_DURATION = 0.75
@@ -493,8 +493,8 @@ def victory_ontimeout():
   global game_state, state_end_time
   game_state = start_state
   state_end_time = 0
-  sounds["victory"].fadeout(1000)
-  sounds["waiting"].play()
+  sounds["victory"].fadeout(2000)
+  sounds["waiting"].play(delay_ms=1000)
   clear()
   for player in players:
     player.reset()
