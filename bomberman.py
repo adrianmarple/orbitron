@@ -102,6 +102,8 @@ def start_update():
 def start_ontimeout():
   for player in claimed_players():
     player.is_playing = True
+    if not player.is_ready:
+      player.set_ready()
     player.has_shield = config["USE_SHIELDS"]
     player.bomb_power = config["STARTING_BOMB_POWER"]
 

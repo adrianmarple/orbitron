@@ -64,7 +64,7 @@ body, #app, .main {
   z-index: 3;
   color:  white;
   font-size: 4rem;
-  background: linear-gradient(rgba(212,0,255,1), rgba(122,5,11,1));
+  background: linear-gradient(rgba(100,0,150,1), rgba(0,0,11,1));
 }
 
 #rules-splash p {
@@ -135,6 +135,10 @@ body, #app, .main {
   font-size: 4em;
   display: flex;
   flex-direction: column;
+}
+.card {
+  background: rgba(255,255,255, 0.8);
+  border-radius: 1rem;
 }
 #playerMarker {
   position: fixed;
@@ -461,24 +465,24 @@ body, #app, .main {
         <TallyButton label="Battle Royale"
             :vote="false"
             election="DEATHMATCH"
-            :setting="true">
+            :settings="{ DEATHMATCH: false, USE_SHIEDS: true }">
         </TallyButton>
         <TallyButton label="Deathmatch"
             :vote="true"
             election="DEATHMATCH"
-            :setting="true">
+            :settings="{ DEATHMATCH: true, USE_SHIEDS: false }">
         </TallyButton>
       </div>
       <div v-if="BOMBERMAN" class="choice">
         <TallyButton label="Free for all"
             :vote="false"
             election="TEAM_MODE"
-            :setting="true">
+            :settings="{ TEAM_MODE: false }">
         </TallyButton>
         <TallyButton label="Team"
             :vote="true"
             election="TEAM_MODE"
-            :setting="true">
+            :settings="{ TEAM_MODE: true }">
         </TallyButton>
       </div>
 
@@ -488,15 +492,15 @@ body, #app, .main {
     </div>
   </div>
 
-  <div v-else-if="mode=='countdown'" class="main">
+  <div v-else-if="mode=='countdown'" class="main" :style="{ backgroundColor: self.color }">
     <div class="header">
       <div class="banner">{{Math.round(state.timeRemaining)}}</div>
     </div>
   </div>
 
-  {{mode}}
-  <div v-else class="main">
-    <div class="header">
+  <!-- {{mode}} -->
+  <div v-else class="main" :style="{ backgroundColor: self.color }">
+    <div class="header card">
       <div v-if="mode=='victory'">
         <div v-if="iAmVictorious">
           Victory!
@@ -544,6 +548,9 @@ body, #app, .main {
       </div>
 
       <div v-if="SNEKTRON">
+        <div v-if="self.isPlaying">
+          {{position}} ({{self.score}})
+        </div>
         <div v-for="player in playersByRanking">
           <div class="snek"
             :style="{
@@ -580,7 +587,7 @@ document.addEventListener("click", event => {
 })
 
 Vue.component('tallybutton', {
-  props: ['label', 'election', 'vote', 'setting'],
+  props: ['label', 'election', 'vote', 'settings'],
   computed: {
     voteCount() {
       if (!this.$root.voteTally[this.election]) {
@@ -595,7 +602,7 @@ Vue.component('tallybutton', {
       return this.$root.self.votes[this.election] === this.vote
     },
     dormant() {
-      if (this.setting)
+      if (this.settings)
         return this.$root.config[this.election] != this.vote
       else
         return false
@@ -607,7 +614,7 @@ Vue.component('tallybutton', {
         type: 'vote',
         election: this.election,
         vote: this.vote,
-        settings: { [this.settings]: this.vote },
+        settings: this.settings,
       })
     },
   },
@@ -833,13 +840,26 @@ var app = new Vue({
       return this.claimedPlayers.filter(player => player.isPlaying && player.isAlive)
     },
     playersByRanking() {
-      return this.claimedPlayers.sort((p0, p1) => {
+      return this.livePlayers.sort((p0, p1) => {
         if (this.game == "BOMBERMAN") {
           return p1.killCount - p0.killCount
         } else {
           return p1.score - p0.score
         }
       })
+    },
+    position() {
+      let rawPosition = this.playersByRanking.indexOf(this.self) + 1
+      if (rawPosition % 10 == 1) {
+        return rawPosition + "st";
+      }
+      if (rawPosition % 10 == 2) {
+        return rawPosition + "nd";
+      }
+      if (rawPosition % 10 == 3) {
+        return rawPosition + "rd";
+      }
+      return rawPosition + "th";
     },
 
     teamsByRanking() {

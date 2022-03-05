@@ -111,6 +111,8 @@ def start_update():
 def start_ontimeout():
   for pacman in pacmen():
     pacman.is_playing = True
+    if not pacman.is_ready:
+      pacmen.set_ready()
 
   # Suppliment with AI ghosts
   ghost_count = 0

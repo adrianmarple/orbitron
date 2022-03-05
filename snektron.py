@@ -51,7 +51,8 @@ def start_update():
 def start_ontimeout():
   for player in claimed_players():
     player.is_playing = True
-    player.is_ready = False
+    if not player.is_ready:
+      player.set_ready()
 
   engine.game_state = countdown_state
   engine.state_end_time = time() + 4

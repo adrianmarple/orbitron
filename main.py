@@ -27,7 +27,7 @@ def start_game(game):
   elif engine.current_game == "snektron":
     game_module = snektron
   else:
-    print("Error. Tried to start bad game: %s" % game)
+    print("Error. Tried to start bad game: %s" % game, file=sys.stderr)
 
   claimed = []
   for player in engine.players:
@@ -61,7 +61,7 @@ def check_vote():
         final_vote = vote
         break
 
-    if not final_vote:
+    if final_vote is None:
       continue
 
     message = vote_to_message[final_vote]
@@ -135,7 +135,7 @@ def consume_input():
       elif game_module:
         game_module.handle_event(message, player)
     except json.decoder.JSONDecodeError:
-      print("Bad input:\n%s" % line)
+      print("Bad input:\n%s" % line, file=sys.stderr)
 
 
 thread = Thread(target=consume_input)
