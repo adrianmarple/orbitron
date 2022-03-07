@@ -178,7 +178,10 @@ class Snek(Player):
 
   def set_ready(self):
     Player.set_ready(self)
+    self.score_timestamp = 0
+    self.score = config["START_LENGTH"]
     self.tail.clear()
+    self.shrinking = False
     for i in range(config["START_LENGTH"]):
       self.tail.append(self.initial_position)
 
@@ -263,16 +266,15 @@ class Snek(Player):
       self.position = self.tail[0]
       self.prev_pos = self.tail[1]
 
-
-    if engine.game_state == play_state:
-      for player in playing_players():
-        if player == self:
-          if player.tail_occupies(self.position):
-            self.die()
-        elif player.occupies(self.position):
+    players = playing_players() if engine.game_state.name == "playing" else claimed_players()
+    for player in players:
+      if player == self:
+        if player.tail_occupies(self.position):
           self.die()
-          if player.position==self.position:
-            player.die()
+      elif player.occupies(self.position):
+        self.die()
+        if player.position==self.position:
+          player.die()
 
     if not (self.move_direction == ZERO_2D).all():
       self.buffered_move = self.move_direction
