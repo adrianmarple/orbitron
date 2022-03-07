@@ -130,8 +130,9 @@ def consume_input():
         engine.broadcast_state()
       elif message["type"] == "advance":
         if engine.game_state:
-          engine.clear_votes()
-          engine.game_state.ontimeout()
+          if not message.get("from", None) or message["from"] == engine.game_state.name:
+            engine.clear_votes()
+            engine.game_state.ontimeout()
       elif game_module:
         game_module.handle_event(message, player)
     except json.decoder.JSONDecodeError:

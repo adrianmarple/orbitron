@@ -14,6 +14,7 @@ from engine import *
 
 config["ROUND_TIME"] = 94.5
 config["START_LENGTH"] = 4
+config["SANDBOX_APPLES_PER_SNEK"] = 15
 config["ADDITIONAL_APPLES"] = 25
 config["SNAKE_MOVE_FREQ"] = 0.25
 
@@ -44,6 +45,17 @@ def handle_event(message, player):
 
 
 def start_update():
+  apple_count = 0
+  for status in statuses:
+    if status == "apple":
+      apple_count += 1
+  total_snek_length = 0
+  for snek in claimed_players():
+    total_snek_length += len(snek.tail)
+  max_total_length = config["SANDBOX_APPLES_PER_SNEK"] * len(claimed_players())
+  for i in range(max_total_length - total_snek_length - apple_count):
+    spawn_apple()
+
   for player in claimed_players():
     if not player.is_ready:
       player.move()
@@ -54,6 +66,7 @@ def start_ontimeout():
     if not player.is_ready:
       player.set_ready()
 
+  clear()
   engine.game_state = countdown_state
   engine.state_end_time = time() + 4
   sounds["waiting"].fadeout(4000)
@@ -90,6 +103,7 @@ def previctory_ontimeout():
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
 
 def render_game():
+  countdown_length = 7 if engine.game_state == play_state else 5
   if engine.game_state == play_state and engine.state_end_time > 0 and engine.state_end_time - time() < 7:
     countdown = ceil(engine.state_end_time - time())
     countup = 7 - countdown
@@ -138,7 +152,7 @@ def spawn_apple():
 
 
 start_state = State("start", start_update, start_ontimeout, render_game)
-countdown_state = State("countdown", None, countdown_ontimeout, render_game)
+countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, play_ontimeout, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
 victory_state = State("victory", start_update, victory_ontimeout, render_victory)
@@ -285,7 +299,8 @@ class Snek(Player):
         self.score_timestamp = time()
 
       statuses[self.position] = "blank"
-      spawn_apple()
+      if engine.game_state != start_state:
+        spawn_apple()
     else:
       self.tail.pop()
 

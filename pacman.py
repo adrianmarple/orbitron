@@ -184,19 +184,6 @@ def render_sandbox():
     else:
       player.render()
 
-def render_countdown():
-  if engine.state_end_time > 0:
-    countdown = ceil(engine.state_end_time - time())
-    countup = 5 - countdown
-    render_pulse(
-      direction=(0,0,COORD_MAGNITUDE),
-      color=np.array((60,60,60)) * countup,
-      start_time=engine.state_end_time - countdown,
-      duration=READY_PULSE_DURATION)
-
-  for player in playing_players():
-    player.render_ready()
-
 def render_game():
   reversed_players = playing_players()
   reversed_players.reverse()

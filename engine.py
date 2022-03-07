@@ -484,6 +484,18 @@ def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
     ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
     pixels += np.array(np.outer(ds, color), dtype="<u1")
 
+def render_countdown():
+  countdown = ceil(state_end_time - time())
+  countup = 5 - countdown
+  render_pulse(
+    direction=(0,0,COORD_MAGNITUDE),
+    color=np.array((60,60,60)) * countup,
+    start_time=state_end_time - countdown,
+    duration=READY_PULSE_DURATION)
+
+  for player in playing_players():
+    player.render_ready()
+
 def render_victory():
   for (i, coord) in enumerate(unique_coords):
     color_pixel(i, victor.color * sin(coord[2] - 4*time()))

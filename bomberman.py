@@ -187,18 +187,6 @@ def previctory_ontimeout():
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
 
 
-def render_countdown():
-  countdown = ceil(engine.state_end_time - time())
-  countup = 5 - countdown
-  render_pulse(
-    direction=(0,0,COORD_MAGNITUDE),
-    color=np.array((60,60,60)) * countup,
-    start_time=engine.state_end_time - countdown,
-    duration=READY_PULSE_DURATION)
-
-  for player in playing_players():
-    player.render_ready()
-
 def render_game():
   for player in playing_players():
     player.render_ghost_trail()
