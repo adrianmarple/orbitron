@@ -28,6 +28,7 @@ body, #app, .main {
 .main {
   overscroll-behavior-y: contain;
   overflow-y: hidden;
+  position: relative;
 }
 
 #quit-button, #settings-button, #quit-vote-tally, #game-selection-menu, .main {
@@ -66,7 +67,7 @@ body, #app, .main {
   z-index: 3;
   color:  white;
   font-size: 4rem;
-  background: linear-gradient(rgba(100,0,150,1), rgba(0,0,11,1));
+  background: linear-gradient(#444, #000);
 }
 
 #rules-splash p {
@@ -136,7 +137,7 @@ body, #app, .main {
 
 
 .header {
-  position: absolute;
+  position: fixed;
   left: 5rem;
   right: 5rem;
   top: 10vh;
@@ -151,7 +152,7 @@ body, #app, .main {
   border-radius: 1rem;
 }
 #playerMarker {
-  position: absolute;
+  position: fixed;
   top: -12.5rem;
   right: -12.5rem;
   transform: rotate(45deg);
@@ -162,7 +163,7 @@ body, #app, .main {
 }
 
 #bombPower {
-  position: absolute;
+  position: fixed;
   top: 2rem;
   right: 2rem;
   color: white;
@@ -228,7 +229,7 @@ body, #app, .main {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
+  position: fixed;
   bottom:  30vh;
 }
 .joystick-nub {
@@ -343,6 +344,18 @@ body, #app, .main {
     Position in queue: {{state.queuePosition}}
   </div>
 
+  <div v-else-if="BETWEEN_GAMES" id="game-selection-menu">
+    <div v-if="connectionStatus == 'CONNECTING'" class="header">
+      {{connectionStatus}}
+    </div>
+    <div v-else>
+      <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
+      <div v-for="game in ['snektron', 'pacman', 'bomberman']">
+        <TallyButton :label="game" election="start" :vote="game" />
+      </div>
+    </div>
+  </div>
+
   <div v-else-if="hasNotSeenGame || showRules"
       id="rules-splash"
       @click="dismissRules"
@@ -358,8 +371,8 @@ body, #app, .main {
       <p>Drag to move.</p>
       <p>Eat to grow.</p>
       <p>Shrink on contact.</p>
-      <p>Hit "Ready!" when you want to play a game.</p>
-      <p>Record longest snake wins.</p>
+      <p>Hit "Ready" when you want to play a game.</p>
+      <p>The record longest snake wins!</p>
     </div>
     <div v-else-if="PACMAN">
       <p>Welcome! You are currently playing <i>Co-op Pac-Man</i> in sandbox mode.</p>
@@ -407,18 +420,6 @@ body, #app, .main {
     </div>
   </div>
 
-  <div v-else-if="BETWEEN_GAMES" id="game-selection-menu">
-    <div v-if="connectionStatus == 'CONNECTING'" class="header">
-      {{connectionStatus}}
-    </div>
-    <div v-else>
-      <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
-      <div v-for="game in ['snektron', 'pacman', 'bomberman']">
-        <TallyButton :label="game" election="start" :vote="game" />
-      </div>
-    </div>
-  </div>
-
   <div v-else>
 
 <!--   <div id="playerMarker"
@@ -461,12 +462,12 @@ body, #app, .main {
         <TallyButton label="Battle Royale"
             :vote="false"
             election="DEATHMATCH"
-            :settings="{ DEATHMATCH: false, USE_SHIEDS: true }">
+            :settings="{ DEATHMATCH: false, USE_SHIELDS: true }">
         </TallyButton>
         <TallyButton label="Deathmatch"
             :vote="true"
             election="DEATHMATCH"
-            :settings="{ DEATHMATCH: true, USE_SHIEDS: false }">
+            :settings="{ DEATHMATCH: true, USE_SHIELDS: false }">
         </TallyButton>
       </div>
       <div v-if="BOMBERMAN" class="choice">
@@ -485,6 +486,11 @@ body, #app, .main {
       <div v-if="self.votes.ready" class="button" @click.stop="pulse">Pulse</div>
       <TallyButton v-if="self.votes.ready" label="I'm not ready." election="ready" vote="yes"></TallyButton>
       <TallyButton v-else label="Ready" election="ready" vote="yes"></TallyButton>
+    </div>
+
+    <div id="header-buttons">
+      <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
+      <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
     </div>
   </div>
 
@@ -514,16 +520,19 @@ body, #app, .main {
           <div class="player"
             :style="{backgroundColor: team.color}"
           ></div>
-          {{team.killCount}}
+          {{team.score}}
         </div>
 
       </div>
       <div v-if="BOMBERMAN && config.DEATHMATCH && !config.TEAM_MODE">
+        <div v-if="self.isPlaying">
+          {{position}} ({{self.score}})
+        </div>
         <div v-for="player in playersByRanking" class="ranking">
           <div class="player"
             :style="{backgroundColor: player.color}"
           ></div>
-          {{player.killCount}}
+          {{player.score}}
         </div>
       </div>
       <div v-if="BOMBERMAN && !config.DEATHMATCH && livePlayers.length > 0">
@@ -570,6 +579,11 @@ body, #app, .main {
         You died...
       </div>
     </div>
+
+    <div id="header-buttons">
+      <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
+      <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
+    </div>
   </div>
 
   <div v-if="showVoteTooltip && !localFlags.hasSeenVote"
@@ -588,10 +602,6 @@ body, #app, .main {
       xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
     <path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
   </svg> -->
-  <div id="header-buttons">
-    <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
-    <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
-  </div>
 
 </div>
 
@@ -658,14 +668,16 @@ Vue.component('tallybutton', {
     },
   },
   template: `
-<div class="button"
-    @click.stop="sendVote"
-    :class="{ selected, dormant }"
-    :style="style"
->
-  {{ label }}
-  <div v-if="voteCount" class="vote-tally">
-    {{ voteCount }}/{{ $root.majorityCount }}
+<div style="position: relative">
+  <div class="button"
+      @click.stop="sendVote"
+      :class="{ selected, dormant }"
+      :style="style"
+  >
+    {{ label }}
+    <div v-if="voteCount" class="vote-tally">
+      {{ voteCount }}/{{ $root.majorityCount }}
+    </div>
   </div>
 </div>`
 })
@@ -701,6 +713,8 @@ var app = new Vue({
       {game: "bomberman", name: "BOMB_FUSE_TIME"},
       {game: "bomberman", name: "PICKUP_CHANCE"},
       {game: "bomberman", name: "NUM_WALLS"},
+      {game: "bomberman", name: "SANDBOX_WALL_NUM"},
+      {game: "bomberman", name: "WALL_SPAWN_TIME"},
       {game: "bomberman", name: "BOMB_EXPLOSION_TIME"},
       {game: "bomberman", name: "BATTLE_ROYALE_DURATION"},
       {game: "bomberman", name: "DEATH_CREEP_DURATION"},
@@ -886,11 +900,12 @@ var app = new Vue({
     },
     playersByRanking() {
       return this.livePlayers.sort((p0, p1) => {
-        if (this.game == "BOMBERMAN") {
-          return p1.killCount - p0.killCount
-        } else {
-          return p1.score - p0.score
-        }
+        return p1.score - p0.score
+      })
+    },
+    teamsByRanking() {
+      return this.state.teams.sort((p0, p1) => {
+        return p1.score - p0.score
       })
     },
     position() {
@@ -907,11 +922,6 @@ var app = new Vue({
       return rawPosition + "th";
     },
 
-    teamsByRanking() {
-      return this.state.teams.sort((p0, p1) => {
-        return p1.killCount - p0.killCount
-      })
-    },
 
     joystickBGStyle() {
       if (this.startLocation) {

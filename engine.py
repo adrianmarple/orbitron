@@ -6,11 +6,11 @@ import json
 from neopixel_write import neopixel_write
 import digitalio
 import numpy as np
+import traceback
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
-# from threading import Thread
 from time import time
 
 from audio import sounds, prewarm_audio
@@ -135,8 +135,10 @@ def update():
     quit()
     return
 
-
-  game_state.update()
+  try:
+    game_state.update()
+  except Exception:
+    print(traceback.format_exc())
 
   if state_end_time <= time() and state_end_time > 0:
     game_state.ontimeout()
@@ -263,6 +265,8 @@ class Player:
       time() - self.last_move_input_time > 1 # no recent updates, probably missed a "stop" update
     )
 
+  def occupies(self, pos):
+    return pos == self.position
 
   def get_next_position(self):
     pos = self.position
@@ -423,6 +427,20 @@ def ortho_proj(u, v):
   return u - projection(u,v)
 
 
+def spawn(status):
+  for i in range(SIZE):
+    pos = randrange(SIZE)
+    if statuses[pos] != "blank":
+      continue
+    occupied = False
+    for player in playing_players():
+      if player.occupies(pos):
+        occupies = True
+        break
+    if occupied:
+      continue
+    statuses[pos] = status
+    return
 
 def clear_votes():
   for player in players:

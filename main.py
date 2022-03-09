@@ -64,7 +64,7 @@ def check_vote():
     if final_vote is None:
       continue
 
-    message = vote_to_message[final_vote]
+    message = vote_to_message.get(final_vote, {})
     if "settings" in message:
       engine.config.update(message["settings"])
 

@@ -17,6 +17,8 @@ config["BOMB_EXPLOSION_TIME"] = 0.9 # Should be less than INVUNERABILITY_TIME
 config["STARTING_BOMB_POWER"] = 4 # 2
 config["PICKUP_CHANCE"] = 0.3
 config["NUM_WALLS"] = 60
+config["WALL_SPAWN_TIME"] = 5
+config["SANDBOX_WALL_NUM"] = 20
 config["BOMB_MOVE_FREQ"] = 0.07
 config["USE_SHIELDS"] = True
 config["DEATHMATCH"] = False
@@ -32,6 +34,7 @@ config["NEWTONS_CRADLE"] = True
 
 
 explosion_providence = [None] * SIZE
+previous_wall_generation_time = 0
 
 def setup():
   Bomberman(
@@ -95,6 +98,13 @@ def handle_event(message,player):
   pass
 
 def start_update():
+  wall_count = 0
+  for status in statuses:
+    if status == "wall":
+      wall_count += 1
+  for i in range(config["SANDBOX_WALL_NUM"] - wall_count):
+    spawn("wall")
+
   for player in claimed_players():
     if not player.is_ready:
       player.move()
@@ -117,16 +127,13 @@ def start_ontimeout():
 
 def countdown_ontimeout():
   for i in range(config["NUM_WALLS"]):
-    pos = randrange(SIZE)
-    bad_spot = pos in START_POSITIONS
-    for start_pos in START_POSITIONS:
-      bad_spot = bad_spot or pos in neighbors[start_pos]
-
-    if not bad_spot:
-      statuses[pos] = "wall"
+    spawn("wall")
 
   engine.game_state = play_state
   engine.state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
+
+  global previous_wall_generation_time
+  previous_wall_generation_time = time()
 
   if config["DEATHMATCH"]:
     sounds["dm1"].play()
@@ -137,6 +144,11 @@ def countdown_ontimeout():
 def play_update():
   for player in playing_players():
     player.move()
+
+  global previous_wall_generation_time
+  if time() - previous_wall_generation_time > config["WALL_SPAWN_TIME"]:
+    spawn("wall")
+    previous_wall_generation_time = time()
 
   if config["DEATHMATCH"]:
     if config["TEAM_MODE"]:
@@ -229,7 +241,6 @@ victory_state = State("victory", start_update, victory_ontimeout, render_victory
 
 
 
-
 def render_explosion(index):
   x = 1 + (time() - statuses[index]) / config["BOMB_EXPLOSION_TIME"]
   if (x >= 0):
@@ -293,7 +304,7 @@ class Team:
     return {
       "id": self.id,
       "color": self.color_string,
-      "killCount": self.kill_count(),
+      "score": self.kill_count(),
       "deathCount": self.death_count(),
       "players": [player.id for player in self.players],
     }
@@ -463,7 +474,7 @@ class Bomberman(Player):
   def to_json(self):
     dictionary = Player.to_json(self)
     dictionary["bombPower"] = self.bomb_power
-    dictionary["killCount"] = self.kill_count
+    dictionary["score"] = self.kill_count
     dictionary["deathCount"] = self.death_count
     dictionary["team"] = self.team.id
     if config["TEAM_MODE"]:

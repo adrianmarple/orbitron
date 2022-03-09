@@ -112,7 +112,7 @@ def start_ontimeout():
   for pacman in pacmen():
     pacman.is_playing = True
     if not pacman.is_ready:
-      pacmen.set_ready()
+      pacman.set_ready()
 
   # Suppliment with AI ghosts
   ghost_count = 0
@@ -161,10 +161,10 @@ def play_update():
 
   global previous_pellet_generation_time, previous_power_pellet_generation_time
   if time() - previous_pellet_generation_time > config["PELLET_REGEN_FREQ"]:
-    add_pellet("pellet")
+    spawn("pellet")
     previous_pellet_generation_time = time()
   if time() - previous_power_pellet_generation_time > config["POWER_PELLET_REGEN_FREQ"]:
-    add_pellet("power")
+    spawn("power")
     previous_power_pellet_generation_time = time()
 
   if data["score"] >= data["victory_score"]:
@@ -239,13 +239,6 @@ def pacmen():
 def pacmen_playing():
   return [player for player in players if player.is_pacman and player.is_playing]
 
-
-def add_pellet(type):
-  for i in range(100):
-    pellet_pos = randrange(0, SIZE)
-    if statuses[pellet_pos] == "blank":
-      statuses[pellet_pos] = type
-      return
 
 start_state = State("start", start_update, start_ontimeout, render_sandbox)
 countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)

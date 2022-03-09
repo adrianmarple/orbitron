@@ -54,7 +54,7 @@ def start_update():
     total_snek_length += len(snek.tail)
   max_total_length = config["SANDBOX_APPLES_PER_SNEK"] * len(claimed_players())
   for i in range(max_total_length - total_snek_length - apple_count):
-    spawn_apple()
+    spawn("apple")
 
   for player in claimed_players():
     if not player.is_ready:
@@ -75,7 +75,7 @@ def start_ontimeout():
 
 def countdown_ontimeout():
   for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
-    spawn_apple()
+    spawn("apple")
   engine.state_end_time = time() + config["ROUND_TIME"]
   engine.game_state = play_state
   sounds["snekBattle"].play()
@@ -134,21 +134,6 @@ def render_game():
     for player in playing_players():
       player.render()
 
-
-def spawn_apple():
-  while True:
-    apple_pos = randrange(0,SIZE)
-    if statuses[apple_pos] == "apple":
-      continue
-    occupied = False
-    for player in playing_players():
-      if player.occupies(apple_pos):
-        occupies = True
-        break
-    if occupied:
-      continue
-    statuses[apple_pos] = "apple"
-    return
 
 
 start_state = State("start", start_update, start_ontimeout, render_game)
@@ -210,6 +195,10 @@ class Snek(Player):
 
   def cant_move(self):
     move_freq = config["SNAKE_MOVE_FREQ"] * sqrt(config["START_LENGTH"]/len(self.tail))
+    if len(neighbors[self.position]) == 4:
+      move_freq *= 1.2
+    if len(neighbors[self.prev_pos]) == 4:
+      move_freq *= 0.9
     return (
       (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < move_freq # just moved
@@ -302,7 +291,7 @@ class Snek(Player):
 
       statuses[self.position] = "blank"
       if engine.game_state != start_state:
-        spawn_apple()
+        spawn("apple")
     else:
       self.tail.pop()
 
@@ -318,6 +307,8 @@ class Snek(Player):
     if not self.is_alive:
       return
     for position in self.tail:
-      add_color_to_pixel(position, self.current_color()/8)
-    add_color_to_pixel(self.position, self.current_color())
+      if position == self.position:
+        add_color_to_pixel(self.position, self.current_color())
+      else:
+        add_color_to_pixel(position, self.current_color()/8)
 
