@@ -31,6 +31,8 @@ config["EXPLODE_ON_IMPACT"] = False
 config["FIXED_OWNERSHIP"] = False
 config["TAP_TO_DETONATE"] = False
 config["NEWTONS_CRADLE"] = True
+config["TAP_BOMB_KICK"] = True
+config["AUTO_KICK"] = False
 
 
 explosion_providence = [None] * SIZE
@@ -432,9 +434,16 @@ class Bomberman(Player):
         for bomb in self.bombs:
           if pos == bomb.position:
             can_place_bomb = False
+            if config["TAP_BOMB_KICK"]:
+              bomb.move(self.prev_pos)
+              sounds["kick"].play()
+
         if can_place_bomb:
           sounds["placeBomb"].play()
-          self.bombs.append(Bomb(self))
+          bomb = Bomb(self)
+          self.bombs.append(bomb)
+          if config["AUTO_KICK"]:
+            bomb.move(self.prev_pos)
 
 
     Player.move(self)
