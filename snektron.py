@@ -16,6 +16,7 @@ config["ROUND_TIME"] = 94.5
 config["START_LENGTH"] = 4
 config["SANDBOX_APPLES_PER_SNEK"] = 15
 config["ADDITIONAL_APPLES"] = 25
+config["INTERSECTION_PAUSE_FACTOR"] = 0.2
 config["SNAKE_MOVE_FREQ"] = 0.25
 
 
@@ -196,9 +197,9 @@ class Snek(Player):
   def cant_move(self):
     move_freq = config["SNAKE_MOVE_FREQ"] * sqrt(config["START_LENGTH"]/len(self.tail))
     if len(neighbors[self.position]) == 4:
-      move_freq *= 1.2
+      move_freq *= 1 + config["INTERSECTION_PAUSE_FACTOR"]
     if len(neighbors[self.prev_pos]) == 4:
-      move_freq *= 0.9
+      move_freq *= 1 / (1 + config["INTERSECTION_PAUSE_FACTOR"]/2)
     return (
       (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < move_freq # just moved
