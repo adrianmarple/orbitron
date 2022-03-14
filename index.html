@@ -372,21 +372,22 @@ body, #app, .main {
       id="rules-splash"
       @click="dismissRules"
   >
-    <div v-if="!localFlags.hasPlayedOnce && false"> <!-- false to disable for now -->
+    <div v-if="!localFlags.hasPlayedOnce">
       <p>Welcome to Super Orbitron!</p>
-      <p>You all are currently playing <i>{{state.game}}</i>, but there are two other games you can play as well.</p>
+      <!-- <p>You all are currently playing <i>{{state.game}}</i>, but there are two other games you can play as well.</p>
       <p>Have fun!</p>
       <p style="float: right">- Adrian and Mana</p>
+      -->
     </div>
-    <div v-else-if="SNEKTRON">
+    <div v-if="SNEKTRON">
       <p style="font-size: 0.8em;">You are currently playing <i>Snektron</i> in sandbox mode.</p>
       <p>Instructions:</p>
       <div style="display: flex; flex-direction: column; align-items: center;">
-        <p>Drag to move.</p>
         <p>Eat to grow.</p>
         <img style="width:100%" src="/images/snektronEatTutorial.gif" />
         <p>Shrink on contact.</p>
         <img style="width:100%" src="/images/snektronShrinkTutorial.gif" />
+        <p>Drag to move.</p>
       <p>Hit "Ready" when you want to play a game.</p>
       <p>The record longest snake wins!</p>
       </div>
@@ -1101,12 +1102,9 @@ var app = new Vue({
     },
 
     dismissRules() {
-      if (!this.localFlags.hasPlayedOnce && false) { // disable this for now
-        this.$set(this.localFlags, 'hasPlayedOnce', true)
-      } else {
-        this.$set(this.localFlags, this.state.game, true)
-        this.showRules = false
-      }
+      this.$set(this.localFlags, 'hasPlayedOnce', true)
+      this.$set(this.localFlags, this.state.game, true)
+      this.showRules = false
     },
     dismissTooltip() {
       this.$set(this.localFlags, 'hasSeenVote', true)
