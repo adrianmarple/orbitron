@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Super Orbitron</title>
+
+<style type="text/css">
+#main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 3em;
+  width: 100vw;
+  padding-top: 10vh;
+}
+
+.e-show {
+  display: none;
+}
+.error .e-show {
+  display: initial;
+}
+
+.e-hide {
+  display: initial;
+}
+.error .e-hide {
+  display: none;
+}
+
+.button {
+  border: 1px solid black;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 23px;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div id="main">
+  <div class="e-show">Please connect to wifi "Super Orbitron"</div>
+  <div class="e-show button" onclick="checkConnection()">Try connecting to the Oribtron again</div>
+  <div class="e-hide button" onclick="checkConnection()">Connect to the Oribtron</div>
+</div>
+
+
+<script>
+const url = "http://192.168.4.1:1337"
+
+
+function checkConnection() {
+  console.log("Checking connection")
+  let newWindow = open(url)
+  newWindow.focus();
+
+  setTimeout(() => {
+    try {
+      newWindow.location.href
+      newWindow.close()
+      document.getElementById("main").classList.add("error")
+    } catch(e) {
+      // Error means cross domain access was attempted and page is loading properly.
+      close()
+    }
+    console.log(newWindow.location.href)
+  }, 100)
+}
+
+</script>
+</body>
+</html>
