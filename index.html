@@ -529,7 +529,7 @@ body, #app, .main {
           You lost.
         </div>
         <br/>
-        <TallyButton label="Skip" election="skip" vote="yes"></TallyButton>
+        <TallyButton label="Continue" election="skip" vote="yes"></TallyButton>
         <br/>
       </div>
 
@@ -736,6 +736,7 @@ var app = new Vue({
 
       {game: "bomberman", name: "TAP_BOMB_KICK", boolean: true},
       {game: "bomberman", name: "AUTO_KICK", boolean: true},
+      {game: "bomberman", name: "MAX_BOMBS"},
       {game: "bomberman", name: "TEAM_MODE", boolean: true},
       {game: "bomberman", name: "USE_SHIELDS", boolean: true},
       {game: "bomberman", name: "DEATHMATCH", boolean: true},
@@ -843,6 +844,13 @@ var app = new Vue({
       },
       deep: true
     },
+    "self.vibrating": value => {
+      if (value) {
+        navigator.vibrate(10000);
+      } else {
+        navigator.vibrate(0);
+      }
+    }
   },
 
   computed: {
@@ -916,7 +924,7 @@ var app = new Vue({
     },
     playersByRanking() {
       return this.livePlayers.sort((p0, p1) => {
-        return p1.score - p0.score
+        return (p1.score * 1e12 - p1.scoreTimestamp) - (p0.score * 1e12 - p0.scoreTimestamp)
       })
     },
     teamsByRanking() {

@@ -237,11 +237,15 @@ class Player:
     self.prev_pos = self.position
     self.stunned = False
     self.hit_time = 0
+    self.score = 0
+    self.score_timestamp = time()
 
   def set_ready(self):
     self.ready_time = time()
     self.position = self.initial_position
     self.is_ready = True
+    self.score = 0
+    self.score_timestamp = time()
     broadcast_state()
 
   def set_unready(self):
@@ -368,6 +372,8 @@ class Player:
       "color": self.color_string,
       "position": self.position,
       "votes": self.votes,
+      "score": self.score,
+      "scoreTimestamp": self.score_timestamp,
     }
     if hasattr(self, "team"):
       dictionary["team"] = self.team.id

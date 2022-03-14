@@ -33,6 +33,7 @@ config["TAP_TO_DETONATE"] = False
 config["NEWTONS_CRADLE"] = True
 config["TAP_BOMB_KICK"] = True
 config["AUTO_KICK"] = False
+config["MAX_BOMBS"] = 3
 
 
 explosion_providence = [None] * SIZE
@@ -411,6 +412,7 @@ class Bomberman(Player):
             self.kill_count -= 1
           elif not frag and killer:
             killer.kill_count += 1
+            killer.score_timestamp = time()
 
       if self.is_alive:
         sounds["hurt"].play()
@@ -430,7 +432,7 @@ class Bomberman(Player):
         for bomb in self.bombs:
           bomb.explode()
       else:
-        can_place_bomb = self.is_alive and not self.stunned
+        can_place_bomb = self.is_alive and not self.stunned and len(self.bombs) < config["MAX_BOMBS"]
         for bomb in self.bombs:
           if pos == bomb.position:
             can_place_bomb = False

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+import sys
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
 from random import randrange, random, choice
@@ -152,19 +153,17 @@ class Snek(Player):
     Player.__init__(self, *args, **kwargs)
 
   def reset(self):
+    Player.reset(self)
     self.buffered_move = ZERO_2D
     self.last_move_input_time = 0
-    self.score_timestamp = 0
     self.score = config["START_LENGTH"]
     self.tail.clear()
     self.shrinking = False
     for i in range(config["START_LENGTH"]):
       self.tail.append(self.initial_position)
-    Player.reset(self)
 
   def set_ready(self):
     Player.set_ready(self)
-    self.score_timestamp = 0
     self.score = config["START_LENGTH"]
     self.tail.clear()
     self.shrinking = False
@@ -256,7 +255,7 @@ class Snek(Player):
       self.position = self.tail[0]
       self.prev_pos = self.tail[1]
 
-    players = playing_players() if engine.game_state.name == "playing" else claimed_players()
+    players = playing_players() if engine.game_state.name == "play" else claimed_players()
     for player in players:
       if player == self:
         if player.tail_occupies(self.position):
@@ -302,6 +301,7 @@ class Snek(Player):
     dictionary = Player.to_json(self)
     dictionary["length"] = len(self.tail)
     dictionary["score"] = self.score
+    dictionary["vibrating"] = self.shrinking
     return dictionary
 
   def render(self):
