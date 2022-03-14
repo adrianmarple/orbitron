@@ -434,8 +434,7 @@ class Bomberman(Player):
         for bomb in self.bombs:
           if pos == bomb.position:
             can_place_bomb = False
-            if config["TAP_BOMB_KICK"]:
-              bomb.move(self.prev_pos)
+            if config["TAP_BOMB_KICK"] and bomb.move(self.prev_pos):
               sounds["kick"].play()
 
         if can_place_bomb:

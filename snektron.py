@@ -308,8 +308,6 @@ class Snek(Player):
     if not self.is_alive:
       return
     for position in self.tail:
-      if position == self.position:
-        add_color_to_pixel(self.position, self.current_color())
-      else:
+      if position != self.position:
         add_color_to_pixel(position, self.current_color()/8)
-
+    add_color_to_pixel(self.position, self.current_color())

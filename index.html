@@ -95,7 +95,7 @@ body, #app, .main {
 
 
 #settings {
-  z-index: 1;
+  z-index: 2;
   background: white;
 }
 #settings-alignment-guide {
@@ -222,6 +222,15 @@ body, #app, .main {
 }
 
 
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 .joystick-bg {
   background-image: url(images/JoystickBG.png);
   width: 35rem;
@@ -231,6 +240,7 @@ body, #app, .main {
   justify-content: center;
   position: fixed;
   bottom:  30vh;
+  z-index: 1;
 }
 .joystick-nub {
   background-image: url(images/JoystickNub.png);
@@ -244,8 +254,9 @@ body, #app, .main {
 }
 
 .buttons {
-  position: absolute;
-  bottom: 5vh;
+  position: fixed;
+  bottom: 5rem;
+  z-index: 2;
 }
 .button {
   border: 2px solid black;
@@ -261,9 +272,10 @@ body, #app, .main {
 }
 
 #header-buttons {
-  position: absolute;
+  position: fixed;
   left: 1rem;
   top: 0;
+  z-index: 2;
 }
 #header-buttons .button {
   margin-top: 1rem;
@@ -436,8 +448,12 @@ body, #app, .main {
   </div> -->
 
 
+    <div id="header-buttons">
+      <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
+      <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
+    </div>
   <div v-if="(mode=='start' && !self.isReady) || (mode=='play' && self.isPlaying && self.isAlive)"
-    class="joystick-bg"
+    class="joystick-bg unselectable"
     :style="joystickBGStyle"
   >
     <div class="joystick-nub" :style="joystickNubStyle"></div>
@@ -493,10 +509,6 @@ body, #app, .main {
       <TallyButton v-else label="Ready" election="ready" vote="yes"></TallyButton>
     </div>
 
-    <div id="header-buttons">
-      <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
-      <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
-    </div>
   </div>
 
   <div v-else-if="mode=='countdown'" class="main" :style="{ backgroundColor: self.color }">
@@ -585,10 +597,6 @@ body, #app, .main {
       </div>
     </div>
 
-    <div id="header-buttons">
-      <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
-      <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
-    </div>
   </div>
 
   <div v-if="showVoteTooltip && !localFlags.hasSeenVote"
