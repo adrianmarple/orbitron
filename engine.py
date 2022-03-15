@@ -14,7 +14,7 @@ from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
 from time import time
 
-from audio import sounds, prewarm_audio
+from audio import music, prewarm_audio
 
 prewarm_audio()
 
@@ -115,11 +115,7 @@ def quit():
   state_end_time = 0
   clear()
   clear_votes()
-  for sound in sounds:
-    if sound=="waiting":
-      sounds[sound].play()
-    else: 
-      sounds[sound].stop()
+  music["waiting"].play()
 
 # ================================ UPDATE =========================================
 
@@ -542,7 +538,7 @@ def start_ontimeout():
   global game_state, state_end_time
   game_state = current_game.countdown_state
   state_end_time = time() + 4
-  sounds["waiting"].fadeout(4000)
+  music["waiting"].fadeout(4000)
   broadcast_state()
 
 def victory_ontimeout():
@@ -552,8 +548,8 @@ def victory_ontimeout():
   global game_state, state_end_time
   game_state = current_game.start_state
   state_end_time = 0
-  sounds["victory"].fadeout(2000)
-  sounds["waiting"].play(delay_ms=1000)
+  music["victory"].fadeout(2000)
+  music["waiting"].play()
 
 
 # ================================ Communication with node.js =========================================

@@ -7,7 +7,7 @@ from math import exp, ceil, floor, pi, cos, sin, sqrt
 from random import randrange, random
 from time import time, sleep
 
-from audio import sounds, stop_all_audio
+from audio import sounds, music
 import engine
 from engine import *
 
@@ -126,9 +126,9 @@ def countdown_ontimeout():
   previous_wall_generation_time = time()
 
   if config["DEATHMATCH"]:
-    sounds["dm1"].play()
+    music["dm1"].play()
   else:
-    sounds["battle1"].play()
+    music["battle1"].play()
 
 
 def play_update():
@@ -243,10 +243,10 @@ def gameover(winner):
   engine.state_end_time = time() + 2
   engine.victor = winner
   if config["DEATHMATCH"]:
-    sounds["dm1"].stop()
+    music["dm1"].stop()
   else:
-    sounds["battle1"].stop()
-  sounds["victory"].play(delay_ms=1000)
+    music["battle1"].stop()
+  music["victory"].play(delay_ms=1000)
   touchall()
   broadcast_state()
 
