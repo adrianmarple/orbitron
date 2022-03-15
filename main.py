@@ -38,7 +38,7 @@ def start_game(game):
     if i < len(claimed):
       player.is_claimed = claimed[i]
 
-  engine.start(game_module.start_state)
+  engine.start(game_module)
 
 
 vote_to_message = {}

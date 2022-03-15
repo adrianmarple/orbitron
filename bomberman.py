@@ -12,6 +12,9 @@ import engine
 from engine import *
 
 
+name = "bomberman"
+
+
 config["BOMB_FUSE_TIME"] = 3
 config["BOMB_EXPLOSION_TIME"] = 0.9 # Should be less than INVUNERABILITY_TIME
 config["STARTING_BOMB_POWER"] = 4 # 2
@@ -109,23 +112,7 @@ def start_update():
     spawn("wall")
 
   for player in claimed_players():
-    if not player.is_ready:
-      player.move()
-
-def start_ontimeout():
-  for player in claimed_players():
-    player.is_playing = True
-    if not player.is_ready:
-      player.set_ready()
-    player.has_shield = config["USE_SHIELDS"]
-    player.bomb_power = config["STARTING_BOMB_POWER"]
-
-  clear()
-
-  engine.game_state = countdown_state
-  engine.state_end_time = time() + 4
-  broadcast_state()
-  sounds["waiting"].fadeout(4000)
+    player.move()
 
 
 def countdown_ontimeout():
@@ -203,7 +190,7 @@ def previctory_ontimeout():
 
 
 def render_game():
-  for player in playing_players():
+  for player in current_players():
     player.render_ghost_trail()
 
   for i in range(SIZE):
@@ -224,15 +211,8 @@ def render_game():
     else:
       render_explosion(i)
 
-  if engine.game_state == start_state:
-    for player in claimed_players():
-      if player.is_ready:
-        player.render_ready()
-      else:
-        player.render()
-  else:
-    for player in playing_players():
-      player.render()
+  for player in current_players():
+    player.render()
 
 
 
@@ -345,6 +325,12 @@ class Bomberman(Player):
   def set_ready(self):
     self.bombs = []
     Player.set_ready(self)
+
+  def setup_for_game(self):
+    Player.setup_for_game(self)
+    self.bombs = []
+    self.has_shield = config["USE_SHIELDS"]
+    self.bomb_power = config["STARTING_BOMB_POWER"]
 
   def current_color_sequence(self):
     return self.explosion_color_sequence_team if config["TEAM_MODE"] else self.explosion_color_sequence

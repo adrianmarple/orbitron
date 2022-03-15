@@ -449,11 +449,12 @@ body, #app, .main {
   </div> -->
 
 
-    <div id="header-buttons">
-      <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
-      <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
-    </div>
-  <div v-if="(mode=='start' && !self.isReady) || (mode=='play' && self.isPlaying && self.isAlive)"
+  <div id="header-buttons">
+    <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
+    <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
+  </div>
+
+  <div v-if="mode=='start' || (mode=='play' && self.isPlaying && self.isAlive)"
     class="joystick-bg unselectable"
     :style="joystickBGStyle"
   >
@@ -518,7 +519,6 @@ body, #app, .main {
     </div>
   </div>
 
-  <!-- {{mode}} -->
   <div v-else class="main" :style="{ backgroundColor: self.color }">
     <div class="header card">
       <div v-if="mode=='victory'">
@@ -1057,10 +1057,6 @@ var app = new Vue({
       if (this.showSettings) {
         return
       }
-      if (this.state.gameState === "start" && this.self.isReady) {
-        return
-      }
-
       this.isMoving = true
       this.startLocation = [location.clientX, location.clientY]
       this.timestamp = Date.now()

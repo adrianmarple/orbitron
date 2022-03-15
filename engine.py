@@ -6,6 +6,7 @@ import json
 from neopixel_write import neopixel_write
 import digitalio
 import numpy as np
+import sys
 import traceback
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
@@ -65,10 +66,10 @@ print("Running %s pixels" % pixel_info["RAW_SIZE"])
 START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
 statuses = ["blank"] * SIZE
 
-current_game = ""
+current_game = None
 game_state = None
-start_state = None
 state_end_time = 0
+states = {}
 victor = None
 
 data = {}
@@ -81,6 +82,7 @@ teams = []
 class State:
   def __init__(self, name, update=None, ontimeout=None, render=None):
     self.name = name
+    states[name] = self
     if update:
       self.update = update
     if ontimeout:
@@ -100,17 +102,16 @@ class State:
 
 # ================================ START =========================================
 
-def start(starting_state):
-  global start_state, game_state
-  start_state = starting_state
-  game_state = start_state
+def start(module):
+  global game_state, current_game
+  current_game = module
+  game_state = module.start_state
   clear_votes()
 
 def quit():
-  global start_state, game_state, current_game, state_end_time, victor
-  current_game = ""
+  global game_state, current_game, state_end_time, victor
+  current_game = None
   game_state = None
-  start_state = None
   state_end_time = 0
   clear()
   clear_votes()
@@ -241,9 +242,14 @@ class Player:
     self.score_timestamp = time()
 
   def set_ready(self):
+    self.is_ready = True
+    broadcast_state()
+
+  def setup_for_game(self):
+    self.is_playing = True
+    self.is_ready = True
     self.ready_time = time()
     self.position = self.initial_position
-    self.is_ready = True
     self.score = 0
     self.score_timestamp = time()
     broadcast_state()
@@ -263,7 +269,6 @@ class Player:
   def cant_move(self):
     return (not self.is_alive or
       self.stunned or
-      (game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < config["MOVE_FREQ"] or # just moved
       (self.move_direction == ZERO_2D).all() or
       time() - self.last_move_input_time > 1 # no recent updates, probably missed a "stop" update
@@ -389,7 +394,7 @@ def playing_players():
 
 def current_players():
   return [player for player in players if player.is_playing or
-      (player.is_claimed and game_state == start_state)]
+      (player.is_claimed and game_state == current_game.start_state)]
 
 
 def color_pixel(index, color):
@@ -529,15 +534,26 @@ def render_victory():
     color_pixel(i, victor.color * sin(coord[2] - 4*time()))
 
 
-def victory_ontimeout():
+
+def start_ontimeout():
+  for player in claimed_players():
+    player.setup_for_game()
+  clear()
   global game_state, state_end_time
-  game_state = start_state
+  game_state = current_game.countdown_state
+  state_end_time = time() + 4
+  sounds["waiting"].fadeout(4000)
+  broadcast_state()
+
+def victory_ontimeout():
+  for player in players:
+    player.reset()
+  clear()
+  global game_state, state_end_time
+  game_state = current_game.start_state
   state_end_time = 0
   sounds["victory"].fadeout(2000)
   sounds["waiting"].play(delay_ms=1000)
-  clear()
-  for player in players:
-    player.reset()
 
 
 # ================================ Communication with node.js =========================================
@@ -554,7 +570,7 @@ def broadcast_state():
   if time() - last_broadcast_time < 0.01:
     return
   message = {
-    "game": current_game,
+    "game": current_game.name if current_game else "",
     "players": [player.to_json() for player in players],
     "teams": [team.to_json() for team in teams],
     "gameState": game_state.name if game_state else "none",

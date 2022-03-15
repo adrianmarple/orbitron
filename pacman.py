@@ -12,6 +12,8 @@ import engine
 from engine import *
 
 
+name = "pacman"
+
 config["PACMEN_LIVES"] = 5
 config["NUM_GHOSTS"] = 4
 config["STARTING_POWER_PELLET_COUNT"] = 4
@@ -106,8 +108,7 @@ def handle_event(message, player):
 
 def start_update():
   for player in current_players():
-    if not player.is_ready:
-      player.move()
+    player.move()
 
   ghost_count = 0
   num_ghosts = len(pacmen())
@@ -117,12 +118,7 @@ def start_update():
 
   spawn_pellets()
 
-def start_ontimeout():
-  for pacman in pacmen():
-    pacman.is_playing = True
-    if not pacman.is_ready:
-      pacman.set_ready()
-
+def pac_start_ontimeout():
   # Suppliment with AI ghosts
   ghost_count = 0
   num_ghosts = config["NUM_GHOSTS"] + len(pacmen())
@@ -132,10 +128,8 @@ def start_ontimeout():
     ghost.is_playing = ghost_count <= num_ghosts
 
   data["lives"] = config["PACMEN_LIVES"]
-  engine.game_state = countdown_state
-  engine.state_end_time = time() + 4
-  broadcast_state()
-  sounds["waiting"].fadeout(4000)
+
+  start_ontimeout()
 
 
 def countdown_ontimeout():
@@ -187,13 +181,6 @@ def previctory_ontimeout():
   engine.game_state = victory_state
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
 
-
-# def render_sandbox():
-#   for player in claimed_players():
-#     if player.is_ready:
-#       player.render_ready()
-#     else:
-#       player.render()
 
 def render_game():
   reversed_players = current_players()
@@ -251,7 +238,7 @@ def pacmen_playing():
   return [player for player in players if player.is_pacman and player.is_playing]
 
 
-start_state = State("start", start_update, start_ontimeout, render_game)
+start_state = State("start", start_update, pac_start_ontimeout, render_game)
 countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
@@ -280,7 +267,6 @@ class Pacman(Player):
     move_freq = config["PACMAN_POWER_MOVE_FREQ"] if is_fast else config["PACMAN_MOVE_FREQ"]
     return (not self.is_alive or
       self.stunned or
-      (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < move_freq or # just moved
       (self.move_direction == ZERO_2D).all()
     )
@@ -383,7 +369,6 @@ class Ghost(Player):
   def cant_move(self):
     move_freq = config["GHOST_SCARED_MOVE_FREQ"] if self.is_scared() else config["GHOST_MOVE_FREQ"]
     return (self.stunned or
-      (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
       time() - self.last_move_time < move_freq or # just moved
       (self.is_claimed and (self.move_direction == ZERO_2D).all())
     )

@@ -12,6 +12,7 @@ from audio import sounds
 import engine
 from engine import *
 
+name = "snektron"
 
 config["ROUND_TIME"] = 94.5
 config["START_LENGTH"] = 4
@@ -59,20 +60,7 @@ def start_update():
     spawn("apple")
 
   for player in claimed_players():
-    if not player.is_ready:
-      player.move()
-
-def start_ontimeout():
-  for player in claimed_players():
-    player.is_playing = True
-    if not player.is_ready:
-      player.set_ready()
-
-  clear()
-  engine.game_state = countdown_state
-  engine.state_end_time = time() + 4
-  sounds["waiting"].fadeout(4000)
-  broadcast_state()
+    player.move()
 
 
 def countdown_ontimeout():
@@ -123,17 +111,11 @@ def render_game():
       color_pixel(i, (10, 10, 10))
 
 
-  if engine.game_state == start_state:
-    for player in claimed_players():
-      if player.is_ready:
-        player.render_ready()
-      else:
-        player.render()
-  elif engine.game_state == countdown_state:
+  if engine.game_state == countdown_state:
     for player in playing_players():
       player.render_ready()
   else:
-    for player in playing_players():
+    for player in current_players():
       player.render()
 
 
@@ -162,8 +144,8 @@ class Snek(Player):
     for i in range(config["START_LENGTH"]):
       self.tail.append(self.initial_position)
 
-  def set_ready(self):
-    Player.set_ready(self)
+  def setup_for_game(self):
+    Player.setup_for_game(self)
     self.score = config["START_LENGTH"]
     self.tail.clear()
     self.shrinking = False
@@ -199,10 +181,7 @@ class Snek(Player):
       move_freq *= 1 + config["INTERSECTION_PAUSE_FACTOR"]
     if len(neighbors[self.prev_pos]) == 4:
       move_freq *= 1 / (1 + config["INTERSECTION_PAUSE_FACTOR"]/2)
-    return (
-      (engine.game_state == start_state and self.is_ready) or # Don't move when marked ready
-      time() - self.last_move_time < move_freq # just moved
-    )
+    return time() - self.last_move_time < move_freq # just moved
 
   def get_next_position(self):
     pos = self.position
