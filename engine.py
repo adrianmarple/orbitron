@@ -305,8 +305,7 @@ class Player:
     if statuses[position] == "wall":
       return True
 
-    considered_players = claimed_players() if game_state == start_state else playing_players()
-    for player in considered_players:
+    for player in current_players():
       if player.is_alive and player.position == position:
         return True
 
@@ -388,6 +387,11 @@ def claimed_players():
 def playing_players():
   return [player for player in players if player.is_playing]
 
+def current_players():
+  return [player for player in players if player.is_playing or
+      (player.is_claimed and game_state == start_state)]
+
+
 def color_pixel(index, color):
   pixels[index] = color
 
@@ -434,12 +438,12 @@ def ortho_proj(u, v):
 
 
 def spawn(status):
-  for i in range(SIZE):
+  for i in range(10):
     pos = randrange(SIZE)
     if statuses[pos] != "blank":
       continue
     occupied = False
-    for player in playing_players():
+    for player in current_players():
       if player.occupies(pos):
         occupies = True
         break

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+import sys
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt, pow
 from random import randrange, random, choice
@@ -104,9 +105,17 @@ def handle_event(message, player):
 
 
 def start_update():
-  for player in claimed_players():
+  for player in current_players():
     if not player.is_ready:
       player.move()
+
+  ghost_count = 0
+  num_ghosts = len(pacmen())
+  for ghost in ghosts():
+    ghost_count += 1
+    ghost.is_playing = ghost_count <= num_ghosts
+
+  spawn_pellets()
 
 def start_ontimeout():
   for pacman in pacmen():
@@ -116,12 +125,11 @@ def start_ontimeout():
 
   # Suppliment with AI ghosts
   ghost_count = 0
-  num_ghosts = config["NUM_GHOSTS"]+len(pacmen())
+  num_ghosts = config["NUM_GHOSTS"] + len(pacmen())
   for ghost in ghosts():
-    if ghost_count >= num_ghosts:
-      break
-    ghost.is_playing = True
     ghost_count += 1
+    ghost.reset()
+    ghost.is_playing = ghost_count <= num_ghosts
 
   data["lives"] = config["PACMEN_LIVES"]
   engine.game_state = countdown_state
@@ -159,6 +167,12 @@ def play_update():
   if ghosts_win or data["lives"] <= 0:
     gameover("ghosts")
 
+  if data["score"] >= data["victory_score"]:
+    gameover("pacmen")
+
+  spawn_pellets()
+
+def spawn_pellets():
   global previous_pellet_generation_time, previous_power_pellet_generation_time
   if time() - previous_pellet_generation_time > config["PELLET_REGEN_FREQ"]:
     spawn("pellet")
@@ -167,9 +181,6 @@ def play_update():
     spawn("power")
     previous_power_pellet_generation_time = time()
 
-  if data["score"] >= data["victory_score"]:
-    gameover("pacmen")
-
 
 
 def previctory_ontimeout():
@@ -177,18 +188,18 @@ def previctory_ontimeout():
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
 
 
-def render_sandbox():
-  for player in claimed_players():
-    if player.is_ready:
-      player.render_ready()
-    else:
-      player.render()
+# def render_sandbox():
+#   for player in claimed_players():
+#     if player.is_ready:
+#       player.render_ready()
+#     else:
+#       player.render()
 
 def render_game():
-  reversed_players = playing_players()
+  reversed_players = current_players()
   reversed_players.reverse()
-  for player in reversed_players:
-    player.render_ghost_trail()
+  # for player in reversed_players:
+  #   player.render_ghost_trail()
 
   power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 16))
   for i in range(SIZE):
@@ -240,7 +251,7 @@ def pacmen_playing():
   return [player for player in players if player.is_pacman and player.is_playing]
 
 
-start_state = State("start", start_update, start_ontimeout, render_sandbox)
+start_state = State("start", start_update, start_ontimeout, render_game)
 countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
@@ -282,31 +293,33 @@ class Pacman(Player):
     return False
 
   def hit_check(self):
-    if self.is_alive and engine.game_state != start_state:
-      for ghost in ghosts():
-        if ghost.is_playing and ghost.position == self.position:
-          if ghost.is_scared():
-            sounds["kick"].play()
-            ghost.stunned = True
-            ghost.position = unique_antipodes[ghost.position]
-            ghost.hit_time = time()
-            ghost.power_pellet_end_time = 0 # ghost no longer scared
-            data["score"] += config["GHOST_KILL_SCORE"]
-            broadcast_state()
-            break
-          elif time() - self.hit_time > config["INVULNERABILITY_TIME"]:
-            self.hit_time = time()
-            if config["SHARED_LIVES"]:
-              data["lives"] -= 1
-            else:
-              self.lives_left -= 1
-            if self.lives_left < 0:
-              sounds["death"].play()
-              self.is_alive = False
-            else:
-              sounds["hurt"].play()
-            broadcast_state()
-            break
+    if not self.is_alive:
+      return
+
+    for ghost in ghosts():
+      if ghost.is_playing and ghost.position == self.position:
+        if ghost.is_scared():
+          sounds["kick"].play()
+          ghost.stunned = True
+          ghost.position = unique_antipodes[ghost.position]
+          ghost.hit_time = time()
+          ghost.power_pellet_end_time = 0 # ghost no longer scared
+          data["score"] += config["GHOST_KILL_SCORE"]
+          broadcast_state()
+          break
+        elif time() - self.hit_time > config["INVULNERABILITY_TIME"]:
+          self.hit_time = time()
+          if config["SHARED_LIVES"]:
+            data["lives"] -= 1
+          else:
+            self.lives_left -= 1
+          if self.lives_left < 0:
+            sounds["death"].play()
+            self.is_alive = False
+          else:
+            sounds["hurt"].play()
+          broadcast_state()
+          break
 
 
   def move(self):
@@ -376,53 +389,45 @@ class Ghost(Player):
     )
 
   def get_next_position(self):
-    if self.is_claimed:
-      return Player.get_next_position(self)
-    else:
-      pos = self.position
-      my_coord = unique_coords[self.position]
+    pos = self.position
+    my_coord = unique_coords[self.position]
 
-      if random() < config["GHOST_RANDOMNESS"]:
+    if random() < config["GHOST_RANDOMNESS"]:
+      goto = choice(neighbors[pos])
+      while goto == self.prev_pos:
         goto = choice(neighbors[pos])
-        while goto == self.prev_pos:
-          goto = choice(neighbors[pos])
-        return goto
+      return goto
 
-      best_dist_sq = 1000
-      closest_pacman_coord = my_coord
-      for pacman in pacmen():
-        pacman_coord = unique_coords[pacman.position]
-        delta = pacman_coord - my_coord
-        dist_sq = np.dot(delta, delta)
-        if dist_sq < best_dist_sq:
-          closest_pacman_coord = pacman_coord
-          best_dist_sq = dist_sq
+    best_dist_sq = 1000
+    closest_pacman_coord = my_coord
+    for pacman in pacmen():
+      pacman_coord = unique_coords[pacman.position]
+      delta = pacman_coord - my_coord
+      dist_sq = np.dot(delta, delta)
+      if dist_sq < best_dist_sq:
+        closest_pacman_coord = pacman_coord
+        best_dist_sq = dist_sq
 
-      new_pos = 0
-      best_dist_sq = 0 if self.is_scared()  else 1000
-      for neighbor in neighbors[pos]:
-        delta = unique_coords[neighbor] - closest_pacman_coord
-        dist_sq = np.dot(delta, delta)
+    new_pos = 0
+    best_dist_sq = 0 if self.is_scared() else 1000
+    for neighbor in neighbors[pos]:
+      delta = unique_coords[neighbor] - closest_pacman_coord
+      dist_sq = np.dot(delta, delta)
 
-        if self.is_scared():
-          is_better_dist = dist_sq > best_dist_sq
-        else:
-          is_better_dist = dist_sq < best_dist_sq
+      if self.is_scared():
+        is_better_dist = dist_sq > best_dist_sq
+      else:
+        is_better_dist = dist_sq < best_dist_sq
 
-        if is_better_dist and neighbor != self.prev_pos:
-          new_pos = neighbor
-          best_dist_sq = dist_sq
+      if is_better_dist and neighbor != self.prev_pos:
+        new_pos = neighbor
+        best_dist_sq = dist_sq
 
-      return new_pos
+    return new_pos
 
 
   def is_occupied(self, position):
     return False
-    #considered_players = claimed_players() if engine.game_state == start_state else playing_players()
-    #for player in considered_players:
-    #  if player.is_alive and player.is_pacman == self.is_pacman and player.position == position:
-    #    return True
-    #return False
 
   def render_ready(self):
     self.render()

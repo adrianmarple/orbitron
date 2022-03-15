@@ -353,8 +353,7 @@ class Bomberman(Player):
     if Player.is_occupied(self, position):
       return True
 
-    considered_players = claimed_players() if engine.game_state == start_state else playing_players()
-    for player in considered_players:
+    for player in current_players():
       for bomb in player.bombs:
         if bomb.position == position:
           if bomb.move(self.position):
@@ -534,8 +533,7 @@ class Bomb:
 
     occupied = statuses[new_pos] == "wall"
 
-    considered_players = playing_players() if engine.game_state == play_state else claimed_players()
-    for player in considered_players:
+    for player in current_players():
       if not player.is_alive:
         continue
 

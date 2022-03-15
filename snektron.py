@@ -255,8 +255,7 @@ class Snek(Player):
       self.position = self.tail[0]
       self.prev_pos = self.tail[1]
 
-    players = playing_players() if engine.game_state.name == "play" else claimed_players()
-    for player in players:
+    for player in current_players():
       if player == self:
         if player.tail_occupies(self.position):
           self.die()
