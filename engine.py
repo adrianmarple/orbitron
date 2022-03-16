@@ -107,6 +107,10 @@ def start(module):
   current_game = module
   game_state = module.start_state
   clear_votes()
+  if not music["waiting"].is_playing() and not music["waiting"].will_play():
+    music["any"].fadeout(2000)
+    music["waiting"].play()
+  music["waiting"].set_volume(1.0)
 
 def quit():
   global game_state, current_game, state_end_time, victor
@@ -115,7 +119,13 @@ def quit():
   state_end_time = 0
   clear()
   clear_votes()
-  music["waiting"].play()
+  #Do this once we have an idle song
+  #music["waiting"].fadeout(2000)
+  #music["idle"].play()
+  if not music["waiting"].is_playing() and not music["waiting"].will_play():
+    music["any"].fadeout(2000)
+    music["waiting"].play()
+  music["waiting"].set_volume(0.25)
 
 # ================================ UPDATE =========================================
 
@@ -538,7 +548,7 @@ def start_ontimeout():
   global game_state, state_end_time
   game_state = current_game.countdown_state
   state_end_time = time() + 4
-  music["waiting"].fadeout(4000)
+  music["waiting"].fadeout(3500)
   broadcast_state()
 
 def victory_ontimeout():

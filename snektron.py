@@ -14,7 +14,7 @@ from engine import *
 
 name = "snektron"
 
-config["ROUND_TIME"] = 94.5
+config["ROUND_TIME"] = 94.6
 config["START_LENGTH"] = 4
 config["SANDBOX_APPLES_PER_SNEK"] = 15
 config["ADDITIONAL_APPLES"] = 25
