@@ -8,13 +8,13 @@ from random import randrange, random, choice
 from time import time, sleep
 import collections
 
-from audio import sounds
+from audio import sounds, music
 import engine
 from engine import *
 
 name = "snektron"
 
-config["ROUND_TIME"] = 94.5
+config["ROUND_TIME"] = 94.6
 config["START_LENGTH"] = 4
 config["SANDBOX_APPLES_PER_SNEK"] = 15
 config["ADDITIONAL_APPLES"] = 25
@@ -68,7 +68,7 @@ def countdown_ontimeout():
     spawn("apple")
   engine.state_end_time = time() + config["ROUND_TIME"]
   engine.game_state = play_state
-  sounds["snekBattle"].play()
+  music["snekBattle"].play()
 
 
 def play_update():
@@ -76,8 +76,8 @@ def play_update():
     player.move()
 
 def play_ontimeout():
-  sounds["snekBattle"].fadeout(1500)
-  sounds["victory"].play(delay_ms=1000)
+  music["snekBattle"].fadeout(1000)
+  music["victory"].play()
   engine.game_state = previctory_state
   top_score = 0
   top_score_time = 0

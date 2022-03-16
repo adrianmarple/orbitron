@@ -7,7 +7,7 @@ from math import exp, ceil, floor, pi, cos, sin, sqrt, pow
 from random import randrange, random, choice
 from time import time, sleep
 
-from audio import sounds
+from audio import sounds, music
 import engine
 from engine import *
 
@@ -143,7 +143,7 @@ def countdown_ontimeout():
   previous_pellet_generation_time = time()
   previous_power_pellet_generation_time = time()
   engine.game_state = play_state
-  sounds["battle1"].play()
+  music["battle1"].play()
   data["score"] = 0
   data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
 
@@ -222,8 +222,8 @@ def gameover(winner):
       color_string="red",
       players=ghosts())
     engine.victor = team_ghost
-  sounds["battle1"].stop()
-  sounds["victory"].play(delay_ms=1000)
+  music["battle1"].stop()
+  music["victory"].play(delay_ms=1000)
   broadcast_state()
 
 
