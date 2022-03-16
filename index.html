@@ -292,18 +292,22 @@ body, #app, .main {
 }
 
 .vote-tally {
-  font-size: 1.8rem;
   position: absolute;
-  left: calc(100% - 2rem);
-  top: -1rem;
+  right: 0;
+  top: -0.8rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  background: black;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1.5rem;
+}
+.vote {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 1rem;
+  border:  0.1rem solid black;
+  margin-left: 0.5rem;
+}
+.blank.vote {
+  background-color: white;
+  border-style: dashed;
+  opacity: 0.5;
 }
 
 .dormant {
@@ -637,6 +641,15 @@ Vue.component('tallybutton', {
       }
       return voteCount
     },
+    voteColors() {
+      let icons = this.$root.claimedPlayers
+          .filter(player => player.votes[this.election] == this.vote)
+          .map(player => player.color)
+      for (let i = icons.length; i < this.$root.majorityCount; i++) {
+        icons.push("")
+      }
+      return icons
+    },
     selected() {
       if (!this.$root.self.votes) {
         return false
@@ -689,7 +702,10 @@ Vue.component('tallybutton', {
   >
     {{ label }}
     <div v-if="voteCount" class="vote-tally">
-      {{ voteCount }}/{{ $root.majorityCount }}
+      <div v-for="color in voteColors"
+          class="vote" :class="{ blank: !color }"
+          :style="{ background: color }"
+      ></div>
     </div>
   </div>
 </div>`
