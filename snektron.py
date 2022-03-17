@@ -124,7 +124,7 @@ start_state = State("start", start_update, start_ontimeout, render_game)
 countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, play_ontimeout, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
-victory_state = State("victory", start_update, victory_ontimeout, render_victory)
+victory_state = State("victory", None, victory_ontimeout, render_victory)
 
 
 # ================================ PLAYER =========================================
@@ -233,6 +233,7 @@ class Snek(Player):
       self.tail.popleft()
       self.position = self.tail[0]
       self.prev_pos = self.tail[1]
+      broadcast_state()
 
     for player in current_players():
       if player == self:
@@ -270,10 +271,10 @@ class Snek(Player):
       statuses[self.position] = "blank"
       if engine.game_state != start_state:
         spawn("apple")
+      broadcast_state()
     else:
       self.tail.pop()
 
-    broadcast_state()
 
   def to_json(self):
     dictionary = Player.to_json(self)

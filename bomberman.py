@@ -116,6 +116,9 @@ def start_update():
 
 
 def countdown_ontimeout():
+  for player in playing_players():
+    player.tap = 0 # Prevent bombs from being placed due to taps during countdown
+
   for i in range(config["NUM_WALLS"]):
     spawn("wall")
 
@@ -220,7 +223,7 @@ start_state = State("start", start_update, start_ontimeout, render_game)
 countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
-victory_state = State("victory", start_update, victory_ontimeout, render_victory)
+victory_state = State("victory", None, victory_ontimeout, render_victory)
 
 
 

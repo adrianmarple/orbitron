@@ -242,7 +242,7 @@ start_state = State("start", start_update, pac_start_ontimeout, render_game)
 countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
 play_state = State("play", play_update, None, render_game)
 previctory_state = State("previctory", None, previctory_ontimeout, render_game)
-victory_state = State("victory", start_update, victory_ontimeout, render_victory)
+victory_state = State("victory", None, victory_ontimeout, render_victory)
 
 
 # ================================ PLAYER =========================================

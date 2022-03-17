@@ -570,8 +570,11 @@ def touchall():
 def broadcast_event(event):
   print(json.dumps(event))
 
+# import traceback
 last_broadcast_time = 0
 def broadcast_state():
+  # for line in traceback.format_stack():
+  #   print(line.strip(), file=sys.stderr)
   global last_broadcast_time
   if time() - last_broadcast_time < 0.01:
     return

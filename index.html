@@ -181,7 +181,13 @@ body, #app, .main {
   justify-content: center;
 }
 
-.players, #victory {
+.players {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  justify-content: center;
+  align-items: center;
+}
+#victory {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -510,7 +516,7 @@ body, #app, .main {
         </TallyButton>
       </div>
 
-      <div v-if="self.votes.ready" class="button" @click.stop="pulse">Pulse</div>
+      <!-- <div v-if="self.votes.ready" class="button" @click.stop="pulse">Pulse</div> -->
       <TallyButton v-if="self.votes.ready" label="I'm not ready." election="ready" vote="yes"></TallyButton>
       <TallyButton v-else label="Ready" election="ready" vote="yes"></TallyButton>
     </div>
@@ -678,7 +684,7 @@ Vue.component('tallybutton', {
         console.log(this.election)
         this.$root.showVoteTooltip = true;
       }
-    }
+    },
   },
   methods: {
     sendVote() {
@@ -824,6 +830,9 @@ var app = new Vue({
   },
 
   watch: {
+    mode() {
+      console.log(this.mode)
+    },
     config: {
       handler: function (val) {
         for (let key in val) {
@@ -1053,7 +1062,7 @@ var app = new Vue({
           break
         default:
           self.state = message
-          // console.log(message)
+          console.log(message)
           self.$forceUpdate()
         }
       }
