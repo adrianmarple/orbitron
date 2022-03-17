@@ -48,7 +48,7 @@ body, #app, .main {
   height: 5rem;
 }
 
-#settings, #game-selection-menu, #rules-splash, #vote-tooltip {
+#settings, #game-selection-menu, #rules-splash, #vote-tooltip, #signup {
   position: absolute;
   width: 100vw;
   min-height: 100vh;
@@ -61,6 +61,12 @@ body, #app, .main {
   overscroll-behavior-y: none;
   top: 0;
   left: 0;
+}
+
+#signup {
+  z-index: 10;
+  background: white;
+  display: none;
 }
 
 #rules-splash {
@@ -342,10 +348,69 @@ body, #app, .main {
   width: 5rem;
   height: 5rem;
 }
+
+#mc_embed_signup #mce-success-response {
+  color: black !important;
+}
+#mc_embed_signup .button {
+  background-color: #333 !important;
+}
 </style>
 </head>
 <body>
 <div id=audio-root></div>
+<div id="signup" style="font-size: 2em;">
+  <link href="//cdn-images.mailchimp.com/embedcode/classic-10_7.css" rel="stylesheet" type="text/css">
+  <div id="mc_embed_signup">
+  <form action="https://marplebot.us19.list-manage.com/subscribe/post?u=94eb26fb510a67c9582cfe935&amp;id=235d9f85c5" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank">
+    <div id="mc_embed_signup_scroll">
+      <h3>Enjoying playing Super Orbitron?</h3>
+      <h3>Sign up to learn where it will appear in the future.</h3>
+      <div class="mc-field-group">
+        <label for="mce-EMAIL">Email Address (required)
+      </label>
+        <input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL">
+      </div>
+      <div class="mc-field-group">
+        <label for="mce-NAME">First Name </label>
+        <input type="text" value="" name="NAME" class="" id="mce-NAME">
+      </div>
+      <div id="mce-responses" class="clear">
+        <div class="response" id="mce-error-response" style="display:none"></div>
+        <div class="response" id="mce-success-response" style="display:none"></div>
+      </div>
+      <div class="clear"><input type="submit" value="Subscribe" name="subscribe" id="mc-embedded-subscribe" class="button" onclick="startSignup()"></div>
+      <div id="mc-embedded-dismiss" class="button" style="font-family: Arial;" onclick="dismissSignup()">
+          No it's ok I don't do mailing lists
+      </div>
+    </div>
+  </form>
+  </div>
+  <script type='text/javascript' src='//s3.amazonaws.com/downloads.mailchimp.com/js/mc-validate.js'></script>
+  <script type='text/javascript'>(function($) {
+    window.fnames = new Array(); window.ftypes = new Array();fnames[0]='EMAIL';ftypes[0]='email';fnames[1]='NAME';ftypes[1]='text';}(jQuery));var $mcj = jQuery.noConflict(true);
+
+    let interval;
+    function startSignup() {
+      if (interval) {
+        return
+      }
+      console.log("test")
+      let successMessage = document.getElementById("mce-success-response")
+      interval = setInterval(() => {
+        if (successMessage.style.display == 'block') {
+          clearInterval(interval)
+          document.getElementById("mc-embedded-subscribe").parentNode.remove()
+          document.getElementById("mc-embedded-dismiss").innerHTML = "Dismiss"
+        }
+      }, 1)
+    }
+
+    function dismissSignup() {
+      document.getElementById("signup").remove()
+    }
+  </script>
+</div>
 
 <div id=app>
   <div v-if="connectionStatus == 'CONNECTING'" class="header">
@@ -531,15 +596,18 @@ body, #app, .main {
 
   <div v-else class="main" :style="{ backgroundColor: self.color }">
     <div class="header card">
-      <div v-if="mode=='victory'">
+      <div v-if="mode=='victory'" @click="displaySignup">
         <div v-if="iAmVictorious">
           Victory!
         </div>
         <div v-else>
-          You lost.
+          You lost...
         </div>
         <br/>
-        <TallyButton label="Continue" election="skip" vote="yes"></TallyButton>
+        <TallyButton label="Continue"
+          election="skip"
+          vote="yes">
+        </TallyButton>
         <br/>
       </div>
 
@@ -610,13 +678,13 @@ body, #app, .main {
 
   </div>
 
-  <div v-if="showVoteTooltip && !localFlags.hasSeenVote"
+<!--   <div v-if="showVoteTooltip && !localFlags.hasSeenVote"
       id="vote-tooltip"
       @click="dismissTooltip"
   >
       <p>The black circle on this button indicates a vote.</p>
       <p>If a majority vote on something it comes to pass.</p>
-  </div>
+  </div> -->
 <!--   <svg id="quit-button" @click="vote('quit')" :class="{selected: self.vote=='quit'}"
       xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000">
     <path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
@@ -678,19 +746,18 @@ Vue.component('tallybutton', {
       }
     },
   },
-  watch: {
-    voteCount(value) {
-      if (value > 0) {
-        console.log(this.election)
-        this.$root.showVoteTooltip = true;
-      }
-    },
-  },
+  // watch: {
+  //   voteCount(value) {
+  //     if (value > 0) {
+  //       this.$root.showVoteTooltip = true;
+  //     }
+  //   },
+  // },
   methods: {
     sendVote() {
-      if (this.$root.showVoteTooltip) {
-        this.$root.dismissTooltip()
-      }
+      // if (this.$root.showVoteTooltip) {
+      //   this.$root.dismissTooltip()
+      // }
       this.$root.send({
         type: 'vote',
         election: this.election,
@@ -702,7 +769,7 @@ Vue.component('tallybutton', {
   template: `
 <div style="position: relative">
   <div class="button"
-      @click.stop="sendVote"
+      @click="sendVote"
       :class="{ selected, dormant }"
       :style="style"
   >
@@ -722,12 +789,12 @@ var app = new Vue({
   data: {
     ws: null,
     connectionStatus: "CONNECTING",
-    showSettings: false,
-    showRules: false,
-    showVoteTooltip: false,
     oldConfig: null,
     state: {},
     localFlags: {},
+    showSettings: false,
+    showRules: false,
+    // showVoteTooltip: false,
 
     startLocation: null,
     isMoving: false,
@@ -830,9 +897,6 @@ var app = new Vue({
   },
 
   watch: {
-    mode() {
-      console.log(this.mode)
-    },
     config: {
       handler: function (val) {
         for (let key in val) {
@@ -1062,7 +1126,7 @@ var app = new Vue({
           break
         default:
           self.state = message
-          console.log(message)
+          // console.log(message)
           self.$forceUpdate()
         }
       }
@@ -1135,9 +1199,17 @@ var app = new Vue({
       this.$set(this.localFlags, this.state.game, true)
       this.showRules = false
     },
-    dismissTooltip() {
-      this.$set(this.localFlags, 'hasSeenVote', true)
-      this.showVoteTooltip = false
+    // dismissTooltip() {
+    //   this.$set(this.localFlags, 'hasSeenVote', true)
+    //   this.showVoteTooltip = false
+    // },
+    displaySignup() {
+      console.log(this.localFlags.hasSeenSignup)
+      if (this.localFlags.hasSeenSignup) {
+        return
+      }
+      this.$set(this.localFlags, 'hasSeenSignup', true)
+      document.getElementById("signup").style.display = 'block'
     },
 
     settingsKeydown(event) {
