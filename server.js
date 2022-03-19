@@ -8,6 +8,22 @@ const { spawn } = require('child_process')
 
 const NO_TIMEOUT = process.argv.includes('-t')
 
+// Log to file and standard out
+const util = require('util')
+const log_file = __dirname + '/debug.log'
+const log_stdout = process.stdout
+
+console.log = function(d) {
+  fs.appendFileSync(log_file,'---' + new Date().toJSON() + '---\n' + util.format(d) + '\n')
+  log_stdout.write(util.format(d) + '\n')
+};
+
+process.on('uncaughtException', function(err) {
+  console.log('Caught exception: ' + err)
+});
+
+
+
 // Websocket server
 
 var server = http.createServer(function(request, response) {
@@ -151,6 +167,11 @@ python_process.stderr.on('data', data => {
     }
   }
 });
+
+python_process.on('uncaughtException', function(err) {
+  console.log('Caught python exception: ' + err);
+});
+
 
 // Simple HTTP server
 
