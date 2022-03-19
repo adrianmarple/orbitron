@@ -4,13 +4,46 @@
 <title>Super Orbitron</title>
 
 <style type="text/css">
+body {
+  margin: 0;
+}
 #main {
   display: flex;
   flex-direction: column;
   align-items: center;
   font-size: 3em;
+  font-family: Arial;
   width: 100vw;
+  height: 100vh;
   padding-top: 10vh;
+  box-sizing: border-box;
+  background: url("logoMonochromeAlpha.png");
+  background-repeat: no-repeat;
+  background-position: bottom 10% right 50%;
+  background-size: auto 50vh;
+}
+
+
+@keyframes animatedBackground {
+  from { background-position: 0 0; }
+  to { background-position: 100% 0; }
+}
+#background {
+  position: fixed;
+  left: -150vh;
+  top: -200vw;
+  z-index: -1;
+  width: 400vh;
+  height: 500vw;
+  background: url("greydient.png");
+  -webkit-transform: rotate(60deg);
+  -moz-transform: rotate(60deg);
+  -ms-transform: rotate(60deg);
+  -o-transform: rotate(60deg);
+  transform: rotate(60deg);
+  background-size: 20% 100%;
+  animation: animatedBackground 100s linear infinite;
+  opacity: 0.5;
 }
 
 .e-show {
@@ -27,20 +60,40 @@
   display: none;
 }
 
-.button {
-  border: 1px solid black;
-  border-radius: 12px;
+.bang {
+  color: white;
+  background: #121212;
   padding: 12px;
-  margin-top: 23px;
+  border-radius: 50%;
+  font-size: 3em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 128px;
+  height: 128px;
+  margin-top: 24px;
+}
+
+.button {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-top: 48px;
   cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 0.4rem 1rem 0.25rem rgba(0, 0, 0, 0.5);
 }
 </style>
 </head>
 <body>
+<div id="background"></div>
 <div id="main">
   <div class="e-show">Please connect to wifi "Super Orbitron"</div>
-  <div class="e-show button" onclick="checkConnection()">Try connecting to the Orbitron again</div>
+  <div class="e-show"><div class="bang">!</div></div>
+  <div class="e-show button" onclick="checkConnection()">Try connecting again</div>
   <div class="e-hide button" onclick="checkConnection()">Connect to the Orbitron</div>
+
+  <div id="logo" src="/logoMonochromeAlpha.png" />
 </div>
 
 
