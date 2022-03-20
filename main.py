@@ -73,7 +73,8 @@ def check_vote():
       engine.quit()
     elif election == "skip":
       engine.clear_votes()
-      engine.game_state.ontimeout()
+      if engine.game_state:
+        engine.game_state.ontimeout()
     elif election == "start":
       start_game(message["vote"])
     elif election == "ready":
@@ -90,7 +91,7 @@ def consume_input():
       message = json.loads(line)
 
       if "self" not in message:
-        return
+        continue
       
       player = engine.players[message["self"]]
 

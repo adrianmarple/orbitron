@@ -12,10 +12,16 @@ const NO_TIMEOUT = process.argv.includes('-t')
 const util = require('util')
 const log_file = __dirname + '/debug.log'
 const log_stdout = process.stdout
+const log_stderr = process.stderr
 
 console.log = function(d) {
-  fs.appendFileSync(log_file,'---' + new Date().toJSON() + '---\n' + util.format(d) + '\n')
+  fs.appendFileSync(log_file,'---' + new Date().toJSON() + '---\n' + util.format(d) + '\n', { encoding: "utf8", mode: 0o777, flag: "a"})
   log_stdout.write(util.format(d) + '\n')
+};
+
+console.error = function(d) {
+  fs.appendFileSync(log_file,'---' + new Date().toJSON() + '---\n' + util.format(d) + '\n', { encoding: "utf8", mode: 0o777, flag: "a"})
+  log_stderr.write(util.format(d) + '\n')
 };
 
 process.on('uncaughtException', function(err) {
@@ -58,7 +64,7 @@ function bindDataEvents(peer) {
   })
 
   peer.on('close', () => {
-    //console.log("CLOSE",peer.pid,peer._id)
+    //console.log("CLOSE "+ peer.pid)
     release = { self: peer.pid, type: "release" }
     python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
     if (typeof(peer.pid)==="number" && connections[peer.pid]) {
@@ -80,7 +86,7 @@ function upkeep() {
     for (let peer of Object.values(connections)) {
       let player = gameState.players[peer.pid]
       if (!player.isReady && !player.isPlaying &&
-        Date.now() - peer.lastActivityTime > 30*1000) { // 30 seconds
+        Date.now() - peer.lastActivityTime > 60*1000) { // 60 seconds
         //console.log("Player timed out.",peer.pid,peer.lastActivityTime)
         peer.close()
       }
@@ -151,20 +157,17 @@ python_process.stdout.on('data', data => {
     for (let id in connections) {
       connections[id].lastActivityTime = Date.now()
     }
-  } else {
-    message = message.slice(0, -1)
+  } else{
+    message = message.trim()
     if (message) {
       console.log(message)
     }
   }
 });
 python_process.stderr.on('data', data => {
-  message = data.toString()
-  if (!message.includes("underrun occurred")) {
-    message = message.slice(0, -1)
-    if (message) {
-      console.log(message)
-    }
+  message = data.toString().trim()
+  if(message){
+    console.log(message)
   }
 });
 

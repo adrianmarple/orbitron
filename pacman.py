@@ -62,7 +62,7 @@ def setup():
   )
   Pacman(
     position=105,
-    color=(128, 255, 0),
+    color=(96, 255, 0),
     color_string="#80ff00"
   )
   Pacman(
@@ -72,7 +72,7 @@ def setup():
   )
   Pacman(
     position=117,
-    color=(0, 255, 128),
+    color=(0, 255, 96),
     color_string="#00ff80"
   )
   Pacman(
