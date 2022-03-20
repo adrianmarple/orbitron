@@ -96,6 +96,7 @@ def setup():
     name="Blue Team",
     players=[players[1], players[3], players[5]]
   )
+  teams.clear()
   teams.append(RED_TEAM)
   teams.append(BLUE_TEAM)
 

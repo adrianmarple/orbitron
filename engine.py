@@ -144,27 +144,27 @@ def update():
 
   try:
     game_state.update()
+
+    if state_end_time <= time() and state_end_time > 0:
+      game_state.ontimeout()
+      broadcast_state()
+
+    # For countdown on phone
+    remaining_time = state_end_time - time()
+    if remaining_time > 0 and remaining_time % 1 < 0.05:
+      broadcast_state()
+
+    pixels *= 0
+    game_state.render()
+
+    pixels = np.minimum(pixels, 255)
+    pixels = np.maximum(pixels, 0)
+    raw_pixels = np.matmul(dupe_matrix,pixels)
+    raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
+    output=np.array(raw_pixels,dtype="<u1").tobytes()
+    neopixel_write(pin,output)
   except Exception:
     print(traceback.format_exc())
-
-  if state_end_time <= time() and state_end_time > 0:
-    game_state.ontimeout()
-    broadcast_state()
-
-  # For countdown on phone
-  remaining_time = state_end_time - time()
-  if remaining_time > 0 and remaining_time % 1 < 0.05:
-    broadcast_state()
-
-  pixels *= 0
-  game_state.render()
-
-  pixels = np.minimum(pixels, 255)
-  pixels = np.maximum(pixels, 0)
-  raw_pixels = np.matmul(dupe_matrix,pixels)
-  raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
-  output=np.array(raw_pixels,dtype="<u1").tobytes()
-  neopixel_write(pin,output)
 
 
 # ================================ TEAM =========================================

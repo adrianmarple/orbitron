@@ -128,6 +128,7 @@ def pac_start_ontimeout():
     ghost.is_playing = ghost_count <= num_ghosts
 
   data["lives"] = config["PACMEN_LIVES"]
+  data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
 
   start_ontimeout()
 
@@ -145,7 +146,6 @@ def countdown_ontimeout():
   engine.game_state = play_state
   music["battle1"].play()
   data["score"] = 0
-  data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
 
 
 def play_update():
