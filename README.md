@@ -1,10 +1,10 @@
 # Getting Set Up
 
 - Download SD card image from (TO UPDATE)
-- Update `/dev/disk2` below with the correct drive as determined from `diskutil list`
-- `diskutil unmountDisk /dev/disk2`
+- Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
+- `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
 - go to Download directory or wherever the SD image download is
-- `sudo dd if=Orbotron.dmg of=/dev/disk2`
+- `sudo dd if=Orbotron.img of=/dev/disk2 status=progress`
 
 
 ## SSHFS
@@ -30,7 +30,7 @@
 ## Saving
 - Just use normal git commands with within directory `~/Rhomberman`
 - If you edit outside the version controlled directory create a new SD card image
-- Update `/dev/disk2` below with the correct drive as determined from `diskutil list`
+- Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
 - `sudo dd if=/dev/disk2 of=Orbotron.img bs=1M count=8000 status=progress`
 
 # Other useful things
@@ -42,8 +42,7 @@
 - Navigate to `http://vonets.cfg` or `192.168.254.254`
 - Log in with `admin` as username and password
 - Use the Wizard and follow instructions to set it up
-- NOTE: When going through the wizard, set it up to be a wifi repeater and to have the DHCP server running. Might need to do this post-wizard in the Vonets settings.
-- NOTE: Set the repeater to be "Super Orbitron" and turn off security, which might have to be done in the Vonets settings after the Wizard
+- NOTE: When going through the wizard, set it up to be a wifi repeater with SSID "Super Orbitron" and to have the DHCP server running. Then go to the Wifi Repeater settings tab and disable Wifi Security. You'll have to power cycle the Vonets device for this to work properly.
 - Manual available [here](http://www.vonets.com/download/VAP11G-300/VAP11G-300%E2%80%94%E2%80%94Quick%20Setting%20Guide.pdf)
 
 ## Unmount sshfs so you can remount
@@ -99,4 +98,4 @@
 ### Static IP
 
 - Follow this guide: https://linuxhint.com/raspberry_pi_static_ip_address/
-- Basically, edit `/etc/dhcpcd.conf` and uncomment and edit the lines about a static IP on eth0
+- Basically, edit `/etc/dhcpcd.conf` and uncomment and edit the lines about a static IP on eth0 to use `192.168.1.101`
