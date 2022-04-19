@@ -1,13 +1,13 @@
-
 # Getting Set Up
 
-- Download SD card image from https://www.dropbox.com/s/2hdpyheacp6xizh/Orbotron.dmg.zip?dl=0
-- Update `/dev/disk2` below with the correct drive as determined from `diskutil list`
-- `diskutil unmountDisk /dev/disk2`
+- Download SD card image from (TO UPDATE)
+- Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
+- `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
 - go to Download directory or wherever the SD image download is
-- `sudo dd if=Orbotron.dmg of=/dev/disk2`
+- `sudo dd if=Orbotron.img of=/dev/disk2 status=progress`
 
-## SSH
+
+## SSHFS
 
 - Download sshfs from https://osxfuse.github.io/ and install
 - `mkdir ~/Rhomberban`
@@ -16,7 +16,7 @@
 
 ## SSH
 
-- `ssh pi@orbitron.local` or if connected to Pi AP: `ssh pi@192.168.4.1`
+- `ssh pi@orbitron.local` or: `ssh pi@192.168.1.101`
 - `sshfs pi@orbitron.local:/home/pi/Rhomberman ~/Rhomberman`
 
 ## Running locally
@@ -25,84 +25,32 @@
 - `sudo killall python3 node`
 - `cd Rhomberman`
 - `node server.js`
-- Visit `http://orbitron.local:1337` or `http://192.168.4.1:1337`
+- Visit `http://orbitron.local:1337` or `http://192.168.1.101:1337`
 
 ## Saving
 - Just use normal git commands with within directory `~/Rhomberman`
 - If you edit outside the version controlled directory create a new SD card image
-- Update `/dev/disk2` below with the correct drive as determined from `diskutil list`
-- `sudo dd if=/dev/disk2 of=Orbotron.dmg`
+- Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
+- `sudo dd if=/dev/disk2 of=Orbotron.img bs=1M count=8000 status=progress`
 
 # Other useful things
-
-
-## Access Point Setup
-
-- Follow these instructions: https://www.raspberrypi.com/documentation/computers/configuration.html#setting-up-a-routed-wireless-access-point 
-- Contents of hostapd.conf:
-```
-country_code=US
-interface=wlan0
-ssid=Super Orbitron
-hw_mode=g
-channel=7
-macaddr_acl=0
-auth_algs=1
-ignore_broadcast_ssid=0
-wpa=0
-```
-- Contents of dnsmasq.conf:
-```
-interface=wlan0
-server=8.8.8.8
-dhcp-range=192.168.4.2,192.168.4.250,255.255.255.0,12h
-domain=wlan
-address=/orbitron/192.168.4.1
-```
 
 ## Vonets Hardware Setup
 
 - Plug the USB and LAN cables into your computer
+- Hold down reset button for some time to reset the device
 - Navigate to `http://vonets.cfg` or `192.168.254.254`
 - Log in with `admin` as username and password
 - Use the Wizard and follow instructions to set it up
-- NOTE: When going through the wizard, set it up to not be a wifi repeater and to not have the DHCP server running. Might need to do this post-wizard in the Vonets settings.
+- NOTE: When going through the wizard, set it up to be a wifi repeater with SSID "Super Orbitron" and to have the DHCP server running. Then go to the Wifi Repeater settings tab and disable Wifi Security. You'll have to power cycle the Vonets device for this to work properly.
 - Manual available [here](http://www.vonets.com/download/VAP11G-300/VAP11G-300%E2%80%94%E2%80%94Quick%20Setting%20Guide.pdf)
-- NOTE: after initial setup, more access points can be added to the hardware for it to connect to using the setup page
-
-## Captive Portal Setup
-
-- Clone NoDogSplash into home directory and make then install it: https://github.com/nodogsplash/nodogsplash
-- `git clone https://github.com/nodogsplash/nodogsplash.git`
-- `cd ~/nodogsplash`
-- `make`
-- `sudo make install`
-- Edit the config file
-- `sudo nano /etc/nodogsplash/nodogsplash.conf`
-- Find and uncomment and edit the following lines to match
-- `GatewayInterface wlan0` and `GatewayAddress 192.168.4.1`
-- Then run it and confirm it works by connecting to the AP `sudo nodogsplash`
-- Once confirmed working, add to chron
-- Edit cron `sudo crontab -e`
-- Add the line `@reboot /usr/bin/nodogsplash`
-- Edit the splash by following the docs: https://nodogsplashdocs.readthedocs.io/en/stable/customize.html
 
 ## Unmount sshfs so you can remount
 
 - `sudo diskutil umount force ~/Rhomberman`
 - `sshfs pi@orbitron.local:/home/pi/Rhomberman ~/Rhomberman`
 
-## WIFI QR code generator
-
-- https://goqr.me/
-
-## Add wifi password (Obsolete)
-
-- Setup wifi hotspot "Dragonair" password "dragonrage"
-- Visit `http://orbitron.local:9090`
-- Fill out the form then turn hotspot off and restart the Orbitron
-
-# OG Setup (out of date)
+# OG/Fresh Setup
 
 ## Basics
 
@@ -146,3 +94,8 @@ address=/orbitron/192.168.4.1
 
 - Edit cron `sudo crontab -e`
 - Add the line `@reboot /usr/bin/node /home/pi/Rhomberman/server.js`
+
+### Static IP
+
+- Follow this guide: https://linuxhint.com/raspberry_pi_static_ip_address/
+- Basically, edit `/etc/dhcpcd.conf` and uncomment and edit the lines about a static IP on eth0 to use `192.168.1.101`
