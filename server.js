@@ -7,9 +7,6 @@ const path = require('path')
 const process = require('process')
 const { spawn, exec } = require('child_process')
 
-const NO_TIMEOUT = process.argv.includes('-t')
-const ORB_ID = process.env.ORB_ID || "default"
-
 // Log to file and standard out
 const util = require('util')
 const log_file = __dirname + '/debug.log'
@@ -30,6 +27,13 @@ process.on('uncaughtException', function(err) {
   console.log('Caught exception: ' + err)
 });
 
+//load and process config and environment variables
+
+const config = require('dotenv').config({ path: path.resolve(process.cwd(), 'config.env') }).parsed
+console.log(config)
+
+const NO_TIMEOUT = process.argv.includes('-t')
+const ORB_ID = process.env.ORB_ID || "default"
 
 
 // Websocket server
@@ -184,7 +188,7 @@ function broadcast(baseMessage) {
   }
 }
 
-const python_process = spawn('sudo', ['python3', '-u', `${__dirname}/main.py`]);
+const python_process = spawn('sudo', ['-E', 'python3', '-u', `${__dirname}/main.py`],{env:config});
 python_process.stdout.on('data', data => {
   message = data.toString()
   if (data[0] == 123) { // check is first char is '{'

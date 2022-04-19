@@ -214,11 +214,7 @@ def prewarm_audio():
 
   # Now run prewarm thread
   def thread_func():
-    # TODO put this in an environment variable
-    try:
-      mixer.init(devicename="USB Audio Device, USB Audio", channels=1)
-    except:
-      mixer.init(devicename="USB PnP Sound Device, USB Audio", channels=1)
+    mixer.init(devicename=os.getenv("AUDIO_DEVICE"), channels=1)
 
     global EMPTY_SOUND
     EMPTY_SOUND = mixer.Sound(bytes(1))
