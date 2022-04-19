@@ -47,6 +47,13 @@ html, body, #main {
   opacity: 0.5;
 }
 
+.wifi-icon {
+  width: 20%;
+}
+.wifi-icon.e-show path {
+  fill: red;
+}
+
 .e-show {
   display: none;
 }
@@ -89,22 +96,45 @@ html, body, #main {
 <body>
 <div id="background"></div>
 <div id="main">
-  <div class="e-show">Please connect to wifi "Super Orbitron"</div>
-  <div class="e-show"><div class="bang">!</div></div>
-  <div class="e-show button" onclick="checkConnection()">Try connecting again</div>
+  <!-- <div class="e-show"><div class="bang">!</div></div> -->
+  <svg class="wifi-icon e-hide" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 24 24"><path d="M12,21L15.6,16.2C14.6,15.45 13.35,15 12,15C10.65,15 9.4,15.45 8.4,16.2L12,21M12,3C7.95,3 4.21,4.34 1.2,6.6L3,9C5.5,7.12 8.62,6 12,6C15.38,6 18.5,7.12 21,9L22.8,6.6C19.79,4.34 16.05,3 12,3M12,9C9.3,9 6.81,9.89 4.8,11.4L6.6,13.8C8.1,12.67 9.97,12 12,12C14.03,12 15.9,12.67 17.4,13.8L19.2,11.4C17.19,9.89 14.7,9 12,9Z"/></svg>
+  <svg class="wifi-icon e-show" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M20.24 5H18V7.25C16.16 6.45 14.13 6 12 6C8.62 6 5.5 7.12 3 9L1.2 6.6C4.21 4.34 7.95 3 12 3C14.97 3 17.77 3.73 20.24 5M8.4 16.2L12 21L15.6 16.2C14.6 15.45 13.35 15 12 15S9.4 15.45 8.4 16.2M4.8 11.4L6.6 13.8C8.1 12.67 9.97 12 12 12S15.9 12.67 17.4 13.8L18 13V10.62C16.23 9.59 14.19 9 12 9C9.3 9 6.81 9.89 4.8 11.4M20 17H22V15H20V17M20 7V13H22V7H20Z" />
+  </svg>
+
+  <div class="e-show">Something went wrong</div>
+  <br class="e-show"/>
+  <div>Make sure you're on wifi</div>
+  <div>"Super Orbitron"</div>
+
+  <br/>
   <div class="e-hide button" onclick="checkConnection()">Connect to the Orbitron</div>
+  <div class="e-show button" onclick="checkConnection()">Try connecting again</div>
 
   <div id="logo" src="/logoMonochromeAlpha.png" />
 </div>
 
 
 <script>
-const url = "http://192.168.4.1:1337"
+let ip = "192.168.1.101"
+const name = location.pathname
+const xhttp = new XMLHttpRequest()
+xhttp.onreadystatechange = function() {
+  if (this.readyState == 4 && this.status == 200 && xhttp.responseText) {
+    const response = JSON.parse(xhttp.responseText)
+    console.log(response)
+    if (response) {
+      ip = response
+    }
+  }
+}
+xhttp.open("GET", `https://super-orbitron-default-rtdb.firebaseio.com/ips/${name}.json`, true)
+xhttp.send()
 
 
 function checkConnection() {
   console.log("Checking connection")
-  let newWindow = open(url)
+  let newWindow = open(`http://${ip}:1337`)
 
   setTimeout(() => {
     try {
