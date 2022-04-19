@@ -127,10 +127,11 @@ def pac_start_ontimeout():
     ghost.reset()
     ghost.is_playing = ghost_count <= num_ghosts
 
+  start_ontimeout()
+
   data["lives"] = config["PACMEN_LIVES"]
   data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
 
-  start_ontimeout()
 
 
 def countdown_ontimeout():
@@ -214,14 +215,17 @@ def gameover(winner):
   engine.game_state = previctory_state
   engine.state_end_time = time() + 2
   if winner == "pacmen":
-    engine.victor = pacmen()[0]
+    engine.victor = Team(team_id=0,
+      name="Pacmen",
+      color=pacmen()[0].color,
+      color_string=pacmen()[0].color_string,
+      players=pacmen())
   else:
-    team_ghost = Team(team_id=0,
+    engine.victor = Team(team_id=0,
       name="Ghosts",
       color=(255, 0, 0),
       color_string="red",
       players=ghosts())
-    engine.victor = team_ghost
   music["battle1"].stop()
   music["victory"].play(delay_ms=1000)
   broadcast_state()
@@ -262,14 +266,11 @@ class Pacman(Player):
   def is_powerful(self):
     return time() < self.power_pellet_end_time
 
-  def cant_move(self):
-    is_fast = self.is_powerful() or time() - self.hit_time < config["INVULNERABILITY_TIME"]
-    move_freq = config["PACMAN_POWER_MOVE_FREQ"] if is_fast else config["PACMAN_MOVE_FREQ"]
-    return (not self.is_alive or
-      self.stunned or
-      time() - self.last_move_time < move_freq or # just moved
-      (self.move_direction == ZERO_2D).all()
-    )
+  def move_delay(self):
+    if self.is_powerful() or time() - self.hit_time < config["INVULNERABILITY_TIME"]:
+      return config["PACMAN_POWER_MOVE_FREQ"]
+    else:
+      return config["PACMAN_MOVE_FREQ"]
 
   def is_occupied(self, position):
     considered_players = claimed_players() if engine.game_state == start_state else playing_players()

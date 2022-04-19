@@ -30,6 +30,7 @@ config = {
   "MOVE_BIAS": 0.5,
   "TEAM_MODE": False,
   "VICTORY_TIMEOUT": 42,
+  "STUN_SLOWDOWN": 0.3,
 }
 
 READY_PULSE_DURATION = 0.75
@@ -272,12 +273,17 @@ class Player:
   def current_color(self):
     return self.team_color if config["TEAM_MODE"] else self.color
 
+  def move_delay(self):
+    if self.stunned:
+      return config["MOVE_FREQ"] / config["STUN_SLOWDOWN"]
+    else:
+      return config["MOVE_FREQ"]
+
   def cant_move(self):
     return (not self.is_alive or
-      self.stunned or
-      time() - self.last_move_time < config["MOVE_FREQ"] or # just moved
+      time() - self.last_move_time < self.move_delay() or # just moved
       (self.move_direction == ZERO_2D).all() or
-      time() - self.last_move_input_time > 1 # no recent updates, probably missed a "stop" update
+      time() - self.last_move_input_time > 0.5 # no recent updates, probably missed a "stop" update
     )
 
   def occupies(self, pos):

@@ -416,7 +416,7 @@ class Bomberman(Player):
     tap = self.tap
     self.tap = 0 # consume tap signal
 
-    if time() - tap < 0.1:
+    if time() - tap < 0.1 and not self.stunned:
       if config["TAP_TO_DETONATE"] and len(self.bombs) > 0:
         for bomb in self.bombs:
           bomb.explode()

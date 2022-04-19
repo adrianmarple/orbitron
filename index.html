@@ -359,6 +359,7 @@ body, #app, .main {
 </head>
 <body>
 <div id=audio-root></div>
+<!--
 <div id="signup" style="font-size: 2em;">
   <link href="//cdn-images.mailchimp.com/embedcode/classic-10_7.css" rel="stylesheet" type="text/css">
   <div id="mc_embed_signup">
@@ -411,7 +412,7 @@ body, #app, .main {
     }
   </script>
 </div>
-
+-->
 <div id=app>
   <div v-if="connectionStatus == 'CONNECTING'" class="header">
     {{connectionStatus}}
@@ -1077,7 +1078,7 @@ var app = new Vue({
       return maxScore
     },
     iAmVictorious() {
-        if (!this.state.victor || isNothing(this.state.self)) {
+      if (!this.state.victor || isNothing(this.state.self)) {
         return false
       }
       if (this.state.victor.players) {

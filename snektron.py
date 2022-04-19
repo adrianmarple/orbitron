@@ -174,14 +174,16 @@ class Snek(Player):
     # self.position = self.tail[0]
     # self.prev_pos = self.tail[1]
 
+  def move_delay(self):
+    speed = config["SNAKE_MOVE_FREQ"] * sqrt(config["START_LENGTH"]/len(self.tail))
+    if len(neighbors[self.position]) == 4:
+      speed *= 1 + config["INTERSECTION_PAUSE_FACTOR"]
+    if len(neighbors[self.prev_pos]) == 4:
+      speed *= 1 / (1 + config["INTERSECTION_PAUSE_FACTOR"]/2)
+    return speed
 
   def cant_move(self):
-    move_freq = config["SNAKE_MOVE_FREQ"] * sqrt(config["START_LENGTH"]/len(self.tail))
-    if len(neighbors[self.position]) == 4:
-      move_freq *= 1 + config["INTERSECTION_PAUSE_FACTOR"]
-    if len(neighbors[self.prev_pos]) == 4:
-      move_freq *= 1 / (1 + config["INTERSECTION_PAUSE_FACTOR"]/2)
-    return time() - self.last_move_time < move_freq # just moved
+    return time() - self.last_move_time < self.move_delay() # just moved
 
   def get_next_position(self):
     pos = self.position
