@@ -31,7 +31,7 @@
 - Just use normal git commands with within directory `~/orbitron`
 - If you edit outside the version controlled directory create a new SD card image
 - Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
-- `sudo dd if=/dev/disk2 of=Orbotron.img bs=1M count=8000 status=progress`
+- `sudo dd if=/dev/disk2 of=Orbotron.img bs=1M count=14500 status=progress`
 
 # Other useful things
 
