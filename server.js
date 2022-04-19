@@ -132,9 +132,9 @@ function ipUpdate(){
       localIP = ip
       console.log(`Sending IP '${ORB_ID}':${ip}`)
       var options = {
-        hostname: 'super-orbitron-default-rtdb.firebaseio.com.json',
-        path: '',
-        method: 'PATCH',
+        hostname: 'super-orbitron-default-rtdb.firebaseio.com',
+        path: `/ips/${ORB_ID}.json`,
+        method: 'PUT',
         port: 443,
         headers: {
           'Content-Type': 'application/json',
@@ -148,15 +148,15 @@ function ipUpdate(){
         });
 
         res.on('end', () => {
-          console.log(rawData)
+          console.log(`IP Send Response: ${rawData}`)
           console.log("Sending IP completed")
         });
       });
       req.on('error', err => {
-        console.error(err)
+        console.error(`IP Send Error: ${err}`)
         console.error("Sending IP failed")
       });
-      req.write(JSON.stringify(`{${ORB_ID}: [${ip}]}`));
+      req.write(JSON.stringify(`${ip}`));
       req.end();
     }
   })
