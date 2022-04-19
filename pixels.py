@@ -1,6 +1,7 @@
 
 # TODO write all of this to a file and have main read it (#preprocessing!)
 
+import os
 import json
 import numpy as np
 from numpy.linalg import norm
@@ -101,7 +102,7 @@ print(len(unique_coords))
 print(counts)
 
 
-f = open("/home/pi/Rhomberman/pixels.json", "w")
+f = open(os.path.dirname(__file__) + "/pixels.json", "w")
 f.write(json.dumps({
   "RAW_SIZE": len(coordinates),
   "SIZE": len(latlongs),

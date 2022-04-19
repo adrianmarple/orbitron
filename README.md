@@ -10,25 +10,25 @@
 ## SSHFS
 
 - Download sshfs from https://osxfuse.github.io/ and install
-- `mkdir ~/Rhomberban`
+- `mkdir ~/orbitron`
 
 # Editing
 
 ## SSH
 
 - `ssh pi@orbitron.local` or: `ssh pi@192.168.1.101`
-- `sshfs pi@orbitron.local:/home/pi/Rhomberman ~/Rhomberman`
+- `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
 
 ## Running locally
 
 - ssh into the pi
 - `sudo killall python3 node`
-- `cd Rhomberman`
+- `cd orbitron`
 - `node server.js`
 - Visit `http://orbitron.local:1337` or `http://192.168.1.101:1337`
 
 ## Saving
-- Just use normal git commands with within directory `~/Rhomberman`
+- Just use normal git commands with within directory `~/orbitron`
 - If you edit outside the version controlled directory create a new SD card image
 - Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
 - `sudo dd if=/dev/disk2 of=Orbotron.img bs=1M count=8000 status=progress`
@@ -47,8 +47,8 @@
 
 ## Unmount sshfs so you can remount
 
-- `sudo diskutil umount force ~/Rhomberman`
-- `sshfs pi@orbitron.local:/home/pi/Rhomberman ~/Rhomberman`
+- `sudo diskutil umount force ~/orbitron`
+- `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
 
 # OG/Fresh Setup
 
@@ -93,7 +93,7 @@
 ### Setup to run on startup
 
 - Edit cron `sudo crontab -e`
-- Add the line `@reboot /usr/bin/node /home/pi/Rhomberman/server.js`
+- Add the line `@reboot /usr/bin/node /home/pi/orbitron/server.js`
 
 ### Static IP
 

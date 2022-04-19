@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+import os
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 import pygame._sdl2 as sdl2
 from threading import main_thread, Thread
 from time import time, sleep
 import traceback
 
-MUSIC_DIRECTORY = "/home/pi/Rhomberman/audio/"
+MUSIC_DIRECTORY = os.path.dirname(__file__) + "/audio/"
 
 EMPTY_SOUND = None #Initialized to an empty bytes object after mixer init
 

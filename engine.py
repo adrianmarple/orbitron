@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import board
 import collections
 import json
@@ -37,7 +38,7 @@ READY_PULSE_DURATION = 0.75
 SHOCKWAVE_DURATION = 0.5
 ZERO_2D = np.array((0, 0))
 
-f = open("/home/pi/Rhomberman/pixels.json", "r")
+f = open(os.path.dirname(__file__) + "/pixels.json", "r")
 pixel_info = json.loads(f.read())
 f.close()
 SIZE = pixel_info["SIZE"]
