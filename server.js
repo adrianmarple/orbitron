@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 const WebSocket = require('ws')
 const http = require('http')
+const https = require('https')
 const fs = require('fs')
 const path = require('path')
 const process = require('process')
-const { spawn } = require('child_process')
+const { spawn, exec } = require('child_process')
 
 const NO_TIMEOUT = process.argv.includes('-t')
+const ORB_ID = process.env.ORB_ID || "default"
 
 // Log to file and standard out
 const util = require('util')
@@ -121,6 +123,46 @@ function upkeep() {
 MAX_PLAYERS = 6
 connections = {}
 connectionQueue = []
+
+setInterval(ipUpdate, 10000)
+function ipUpdate(){
+  exec("ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/'", (error, stdout, stderr) => {
+    var ip=stdout.trim()
+    if(ip !== localIP){
+      localIP = ip
+      console.log(`Sending IP '${ORB_ID}':${ip}`)
+      var options = {
+        hostname: 'super-orbitron-default-rtdb.firebaseio.com.json',
+        path: '',
+        method: 'PATCH',
+        port: 443,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+      var req = https.request(options, res => {
+        let rawData = '';
+
+        res.on('data', chunk => {
+          rawData += chunk;
+        });
+
+        res.on('end', () => {
+          console.log(rawData)
+          console.log("Sending IP completed")
+        });
+      });
+      req.on('error', err => {
+        console.error(err)
+        console.error("Sending IP failed")
+      });
+      req.write(JSON.stringify(`{${ORB_ID}: [${ip}]}`));
+      req.end();
+    }
+  })
+}
+localIP = ""
+ipUpdate()
 
 
 // Communications with python script
