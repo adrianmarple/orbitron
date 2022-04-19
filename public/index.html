@@ -116,25 +116,25 @@ html, body, #main {
 
 
 <script>
-let url = "http://192.168.1.101:1337"
+let ip = "192.168.1.101"
 const name = location.pathname
 const xhttp = new XMLHttpRequest()
 xhttp.onreadystatechange = function() {
   if (this.readyState == 4 && this.status == 200 && xhttp.responseText) {
     const response = JSON.parse(xhttp.responseText)
+    console.log(response)
     if (response) {
-      url = response
-      console.log(url)
+      ip = response
     }
   }
 }
-xhttp.open("GET", `https://super-orbitron-default-rtdb.firebaseio.com/${name}.json`, true)
+xhttp.open("GET", `https://super-orbitron-default-rtdb.firebaseio.com/ips/${name}.json`, true)
 xhttp.send()
 
 
 function checkConnection() {
   console.log("Checking connection")
-  let newWindow = open(url)
+  let newWindow = open(`http://${ip}:1337`)
 
   setTimeout(() => {
     try {
