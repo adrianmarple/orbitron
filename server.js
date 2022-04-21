@@ -29,11 +29,9 @@ process.on('uncaughtException', function(err) {
 
 //load and process config and environment variables
 
-const config = require('dotenv').config({ path: path.resolve(process.cwd(), 'config.env') }).parsed
+config=require(__dirname + "/config.js")
 console.log(config)
-
 const NO_TIMEOUT = process.argv.includes('-t')
-const ORB_ID = process.env.ORB_ID || "default"
 
 
 // Websocket server
@@ -134,10 +132,10 @@ function ipUpdate(){
     var ip=stdout.trim()
     if(ip !== localIP){
       localIP = ip
-      console.log(`Sending IP '${ORB_ID}':${ip}`)
+      console.log(`Sending IP '${config.ORB_ID}':${ip}`)
       var options = {
         hostname: 'super-orbitron-default-rtdb.firebaseio.com',
-        path: `/ips/${ORB_ID}.json`,
+        path: `/ips/${config.ORB_ID}.json`,
         method: 'PUT',
         port: 443,
         headers: {
@@ -188,7 +186,7 @@ function broadcast(baseMessage) {
   }
 }
 
-const python_process = spawn('sudo', ['-E', 'python3', '-u', `${__dirname}/main.py`],{env:config});
+const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}});
 python_process.stdout.on('data', data => {
   message = data.toString()
   if (data[0] == 123) { // check is first char is '{'

@@ -214,7 +214,7 @@ def prewarm_audio():
 
   # Now run prewarm thread
   def thread_func():
-    mixer.init(devicename=os.getenv("AUDIO_DEVICE"), channels=1)
+    mixer.init(devicename=os.getenv("ORB_AUDIO"), channels=1)
 
     global EMPTY_SOUND
     EMPTY_SOUND = mixer.Sound(bytes(1))
