@@ -1,10 +1,10 @@
 # Getting Set Up
 
-- Download SD card image from (TO UPDATE)
+- Download SD card image from https://www.dropbox.com/s/gg0u2rp2sr6uatj/Orbitron.img.zip?dl=0
 - Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
 - `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
 - go to Download directory or wherever the SD image download is
-- `sudo dd if=Orbotron.img of=/dev/disk2 status=progress`
+- `sudo dd if=Orbitron.img of=/dev/disk2 status=progress`
 
 
 ## SSHFS
@@ -31,7 +31,7 @@
 - Just use normal git commands with within directory `~/orbitron`
 - If you edit outside the version controlled directory create a new SD card image
 - Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
-- `sudo dd if=/dev/disk2 of=Orbotron.img bs=1M count=14500 status=progress`
+- `sudo dd if=/dev/disk2 of=Orbitron.img bs=1M count=14500 status=progress`
 
 # Other useful things
 
