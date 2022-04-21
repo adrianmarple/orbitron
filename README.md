@@ -42,7 +42,7 @@
 - Navigate to `http://vonets.cfg` or `192.168.254.254`
 - Log in with `admin` as username and password
 - Use the Wizard and follow instructions to set it up
-- NOTE: When going through the wizard, set it up to be a wifi repeater with SSID "Super Orbitron" and to have the DHCP server running. Then go to the Wifi Repeater settings tab and disable Wifi Security. You'll have to power cycle the Vonets device for this to work properly.
+- NOTE: When going through the wizard, set it up to be a wifi repeater with SSID "Super Orbitron" and to NOT have the DHCP server running. Then go to the Wifi Repeater settings tab and disable Wifi Security. You'll have to power cycle the Vonets device for this to work properly.
 - Manual available [here](http://www.vonets.com/download/VAP11G-300/VAP11G-300%E2%80%94%E2%80%94Quick%20Setting%20Guide.pdf)
 
 ## Unmount sshfs so you can remount
