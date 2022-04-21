@@ -131,7 +131,6 @@ function ipUpdate(){
   exec("ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/'", (error, stdout, stderr) => {
     var ip=stdout.trim()
     if(ip !== localIP){
-      localIP = ip
       console.log(`Sending IP '${config.ORB_ID}':${ip}`)
       var options = {
         hostname: 'super-orbitron-default-rtdb.firebaseio.com',
@@ -150,6 +149,7 @@ function ipUpdate(){
         });
 
         res.on('end', () => {
+          localIP = ip
           console.log(`IP Send Response: ${rawData}`)
           console.log("Sending IP completed")
         });
