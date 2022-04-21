@@ -61,8 +61,8 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-config.env
+# config file
+config.js
 
 ._*
 .DS_Store
