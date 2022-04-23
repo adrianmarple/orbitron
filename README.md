@@ -1,10 +1,10 @@
 # Getting Set Up
 
-- Download SD card image from (TO UPDATE)
+- Download SD card image from https://www.dropbox.com/s/gg0u2rp2sr6uatj/Orbitron.img.zip?dl=0
 - Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
 - `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
 - go to Download directory or wherever the SD image download is
-- `sudo dd if=Orbotron.img of=/dev/disk2 status=progress`
+- `sudo dd if=Orbitron.img of=/dev/disk2 status=progress`
 
 
 ## SSHFS
@@ -31,7 +31,7 @@
 - Just use normal git commands with within directory `~/orbitron`
 - If you edit outside the version controlled directory create a new SD card image
 - Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
-- `sudo dd if=/dev/disk2 of=Orbotron.img bs=1M count=14500 status=progress`
+- `sudo dd if=/dev/disk2 of=Orbitron.img bs=1M count=14500 status=progress`
 
 # Other useful things
 
@@ -39,10 +39,17 @@
 
 - Plug the USB and LAN cables into your computer
 - Hold down reset button for some time to reset the device
-- Navigate to `http://vonets.cfg` or `192.168.254.254`
+- Power Cycle the device (unplug and replug USB)
+- Navigate to `192.168.254.254`
 - Log in with `admin` as username and password
-- Use the Wizard and follow instructions to set it up
-- NOTE: When going through the wizard, set it up to be a wifi repeater with SSID "Super Orbitron" and to have the DHCP server running. Then go to the Wifi Repeater settings tab and disable Wifi Security. You'll have to power cycle the Vonets device for this to work properly.
+- Select the `Operative Status` button
+- Click the `Scan Hotspots` tab and select your hotspot from the list, then click `Next`
+- Enter the hotpsot's password, uncheck `The configuration parameters of WiFi repeater security is synchronized with source hotspot` enter `Super Orbitron` into the `Repeater SSID` field and click `Apply`
+- Click `To Connect` when it loads
+- Click `Start Connect` and wait for the page to reload and show that it is connected to the hotspot
+- Click the `WiFi Repeater` tab and then `WiFi Security`
+- Change `Security Mode` to `Disable` and hit `Apply`
+- You will need to power cycle the Vonets device after all this is done and then plug it into the Pi to test
 - Manual available [here](http://www.vonets.com/download/VAP11G-300/VAP11G-300%E2%80%94%E2%80%94Quick%20Setting%20Guide.pdf)
 
 ## Unmount sshfs so you can remount
