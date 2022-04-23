@@ -74,6 +74,7 @@ body, #app, .main {
   color:  white;
   font-size: 4rem;
   background: linear-gradient(#444, #000);
+  overflow-x: hidden;
 }
 
 #rules-splash p {
@@ -355,6 +356,32 @@ body, #app, .main {
 #mc_embed_signup .button {
   background-color: #333 !important;
 }
+
+
+.carousel {
+  display: flex;
+  position: relative;
+}
+.slide {
+  width: 100vw;
+  padding:  0 2rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.carousel-dots {
+  display: flex;
+}
+.carousel-dots .dot {
+  padding: 1rem;
+  margin:  0.5rem;
+}
+.carousel-dots .dot .inner {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
 </style>
 </head>
 <body>
@@ -446,17 +473,39 @@ body, #app, .main {
 
   <div v-else-if="hasNotSeenGame || showRules"
       id="rules-splash"
-      @click="dismissRules"
   >
-    <div v-if="!localFlags.hasPlayedOnce">
-      <p>Welcome to Super Orbitron!</p>
-      <!-- <p>You all are currently playing <i>{{state.game}}</i>, but there are two other games you can play as well.</p>
-      <p>Have fun!</p>
-      <p style="float: right">- Adrian and Mana</p>
-      -->
+    <div class="close" @click="dismissRules">
+      <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
     </div>
+<!--     <div v-if="!localFlags.hasPlayedOnce">
+      <p>Welcome to Super Orbitron!</p>
+    </div> -->
+    <p>Instructions:</p>
     <div v-if="SNEKTRON">
-      <p style="font-size: 0.8em;">You are currently playing <i>Snektron</i> in sandbox mode.</p>
+      <div class="carousel" :style="carouselStyle">
+        <div class="slide">
+          <p>Welcome!</p>
+          <p>You are currently playing <i>Snektron</i> in sandbox mode.</p>
+        </div>
+        <div class="slide">
+          <p>Eat to grow.</p>
+          <img style="width:100%" src="/images/snektronEatTutorial.gif" />
+        </div>
+        <div class="slide">
+          <p>Shrink on contact.</p>
+          <img style="width:100%" src="/images/snektronShrinkTutorial.gif" />
+        </div>
+        <div class="slide">
+          <p>Drag to move.</p>
+          <img style="width:100%" src="/images/snektronMovementTutorial.gif" />
+        </div>
+        <div class="slide">
+          <p>That's it.</p>
+          <p>Hit "Ready" when you want to start a game.</p>
+        </div>
+      </div>
+
+<!--       <p style="font-size: 0.8em;">You are currently playing <i>Snektron</i> in sandbox mode.</p>
       <p>Instructions:</p>
       <div style="display: flex; flex-direction: column; align-items: center;">
         <p>Eat to grow.</p>
@@ -464,33 +513,76 @@ body, #app, .main {
         <p>Shrink on contact.</p>
         <img style="width:100%" src="/images/snektronShrinkTutorial.gif" />
         <p>Drag to move.</p>
-        <img style="width:100%" src="/images/snektronMovementTutorial.gif" />
+        <img style="width:100%" src="/images/snektronMovementTutorial.gif" /> -->
       <!-- <p>Hit "Ready" when you want to play a game.</p> -->
       <!-- <p>The record longest snake wins!</p> -->
-      </div>
+      <!-- </div> -->
     </div>
     <div v-else-if="PACMAN">
-      <p>Welcome! You are currently playing <i>Co-op Pac-Man</i> in sandbox mode.</p>
-      <p>Drag to move.</p>
-      <p>You are one of several Pac-Men trying to avoid enemy AI ghosts. If you run into a RED ghost you lose collective life.</p>
-      <p>Eating a normal pellet earns you 10 points.</p>
-      <p>Eating a flashing POWER PELLET earns you 50 points and makes the ghosts scared (blue).</p>
-      <p>Eating a BLUE scared ghost earns you 200 points!</p>
-      <p>You all win if you achieve the required victory score!</p>
+      <div class="carousel" :style="carouselStyle">
+        <div class="slide">
+          <p>Welcome!</p>
+          <p>You are currently playing <i>Co-op Pac-Man</i> in sandbox mode.</p>
+        </div>
+        <div class="slide">
+          <p>You are one of several Pac-Men trying to avoid enemy AI ghosts. If you run into a RED ghost you lose a collective life.</p>
+        </div>
+        <div class="slide">
+          <p>Eating a normal pellet earns you 10 points.</p>
+          <p>Eating a flashing POWER PELLET earns you 50 points and makes the ghosts scared (blue).</p>
+          <p>Eating a BLUE scared ghost earns you 200 points!</p>
+        </div>
+        <div class="slide">
+          <p>Drag to move.</p>
+          <img style="width:100%" src="/images/snektronMovementTutorial.gif" />
+        </div>
+        <div class="slide">
+          <p>You all win if you achieve the required victory score!</p>
+          <p>Hit "Ready" when you want to start a game.</p>
+        </div>
+      </div>
     </div>
     <div v-else-if="BOMBERMAN">
-      <p>Welcome! You are currently playing <i>Bomberman</i> in sandbox mode.</p>
-      <p>Drag to move.</p>
-      <p>Tap to place a bomb.</p>
-      <p>Tap again to kick your bomb.</p>
-      <p>Or if you move into a bomb you will also kick it.</p>
-      <p>The white pixels are walls. You can't pass through them, but you can blow them up.</p>
-      <p>If you hit yourself, you will get stunned.</p>
-      <p>If you hit someone else with your bomb they get hurt.</p>
+      <div class="carousel" :style="carouselStyle">
+        <div class="slide">
+          <p>Welcome!</p>
+          <p>You are currently playing <i>Bomberman</i> in sandbox mode.</p>
+        </div>
+        <div class="slide">
+          <p>Drag to move.</p>
+          <img style="width:100%" src="/images/snektronMovementTutorial.gif" />
+        </div>
+        <div class="slide">
+          <p>Tap to place a bomb.</p>
+        </div>
+        <div class="slide">
+          <p>Tap again to kick your bomb.</p>
+          <p>Or if you move into a bomb you will also kick it.</p>
+        </div>
+        <div class="slide">
+          <p>The white pixels are walls. You can't pass through them, but you can blow them up.</p>
+        </div>
+        <div class="slide">
+          <p>If you hit yourself, you will get stunned.</p>
+          <p>If you hit someone else with your bomb they get hurt.</p>
+        </div>
+      </div>
     </div>
 
-    <div class="close"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#000000"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg></div>
-    <div class="button">Dismiss</div>
+    <div class="carousel-dots">
+      <div class="dot"
+          v-for="i in carouselSize"
+          @click="carouselPosition = i-1; updateCarousel()"
+      >
+        <div class="inner"
+          :style="{background: carouselPosition >= i-1 ? 'white' : '#666'}">
+        </div>
+      </div>
+    </div>
+
+    <div class="button" @click="advanceCarousel">
+      {{carouselPosition >= carouselSize-1 ? "Dismiss" : "Next"}}
+    </div>
   </div>
 
   <div v-else-if="showSettings" id="settings">
@@ -809,6 +901,10 @@ var app = new Vue({
     move: [0,0],
     timestamp: 0,
 
+    carouselInterval: null,
+    carouselPosition: 0,
+    carouselCurrentX: 2 * innerWidth,
+
     settingTypes: [
       {game: "snektron", name: "START_LENGTH"},
       {game: "snektron", name: "ADDITIONAL_APPLES"},
@@ -941,13 +1037,16 @@ var app = new Vue({
       },
       deep: true
     },
-    "self.vibrating": value => {
-      if (value) {
-        navigator.vibrate(10000);
-      } else {
-        navigator.vibrate(0);
-      }
-    }
+    showRules() {
+      this.carouselCurrentX = (this.carouselSize - 1) / 2 * innerWidth
+    },
+    // "self.vibrating": value => {
+    //   if (value) {
+    //     navigator.vibrate(10000);
+    //   } else {
+    //     navigator.vibrate(0);
+    //   }
+    // }
   },
 
   computed: {
@@ -1087,6 +1186,19 @@ var app = new Vue({
         return this.self.color === this.state.victor.color
       }
     },
+
+    carouselSize() {
+      if (this.SNEKTRON)  return 5
+      if (this.PACMAN)    return 5
+      if (this.BOMBERMAN) return 6
+      return 6
+    },
+    carouselStyle() {
+      return {
+        left: this.carouselCurrentX + "px",
+        width: (this.carouselSize * innerWidth) + "px",
+      }
+    }
   },
 
   methods: {
@@ -1206,6 +1318,11 @@ var app = new Vue({
       this.$set(this.localFlags, 'hasPlayedOnce', true)
       this.$set(this.localFlags, this.state.game, true)
       this.showRules = false
+      this.carouselPosition = 0
+      if (this.carouselInterval) {
+        clearInterval(this.carouselInterval)
+        this.carouselInterval = null
+      }
     },
     // dismissTooltip() {
     //   this.$set(this.localFlags, 'hasSeenVote', true)
@@ -1258,6 +1375,29 @@ var app = new Vue({
       //   audio.clientHeight = 0
       //   document.getElementById("audio-root").appendChild(audio)
       // });
+    },
+
+    advanceCarousel() {
+      this.carouselPosition += 1
+      if (this.carouselPosition >= this.carouselSize) {
+        this.dismissRules()
+      }
+      this.updateCarousel()
+    },
+    updateCarousel() {
+      if (this.carouselInterval) {
+        return
+      }
+      this.carouselInterval = setInterval(() => {
+        let targetX = innerWidth * ((this.carouselSize - 1)/2 - this.carouselPosition)
+        const alpha = 0.75
+        this.carouselCurrentX = alpha * this.carouselCurrentX + (1 - alpha) * targetX
+        this.$forceUpdate()
+        if (Math.abs(this.carouselCurrentX - this.targetX) < 0.1) {
+          clearInterval(this.carouselInterval)
+          this.carouselInterval = null
+        }
+      }, 33)
     },
   },
 });
