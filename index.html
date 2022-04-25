@@ -465,8 +465,8 @@ body, #app, .main {
     </div>
     <div v-else>
       <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
-      <div v-for="game in ['snektron', 'pacman', 'bomberman']">
-        <TallyButton :label="game" election="start" :vote="game" />
+      <div v-for="{game, label} in games">
+        <TallyButton :label="label" election="start" :vote="game" />
       </div>
     </div>
   </div>
@@ -504,19 +504,23 @@ body, #app, .main {
           <p>Hit "Ready" when you want to start a game.</p>
         </div>
       </div>
-
-<!--       <p style="font-size: 0.8em;">You are currently playing <i>Snektron</i> in sandbox mode.</p>
-      <p>Instructions:</p>
-      <div style="display: flex; flex-direction: column; align-items: center;">
-        <p>Eat to grow.</p>
-        <img style="width:100%" src="/images/snektronEatTutorial.gif" />
-        <p>Shrink on contact.</p>
-        <img style="width:100%" src="/images/snektronShrinkTutorial.gif" />
-        <p>Drag to move.</p>
-        <img style="width:100%" src="/images/snektronMovementTutorial.gif" /> -->
-      <!-- <p>Hit "Ready" when you want to play a game.</p> -->
-      <!-- <p>The record longest snake wins!</p> -->
-      <!-- </div> -->
+    </div>
+    <div v-if="COLORWAR">
+      <div class="carousel" :style="carouselStyle">
+        <div class="slide">
+          <p>Welcome!</p>
+          <p>You are currently playing <i>Color War</i> in sandbox mode.</p>
+        </div>
+        <div class="slide">
+          <p>Drag to move.</p>
+          <img style="width:100%" src="/images/snektronMovementTutorial.gif" />
+        </div>
+        <div class="slide">
+          <p>Wherever you go, it turns your color.</p>
+          <p>Your score is the number of pixels turned your color.</p>
+          <p>Hit "Ready" when you want to start a game.</p>
+        </div>
+      </div>
     </div>
     <div v-else-if="PACMAN">
       <div class="carousel" :style="carouselStyle">
@@ -686,6 +690,7 @@ body, #app, .main {
     <div class="header">
       <div class="banner" style="font-size: 3em">{{Math.round(state.timeRemaining)}}</div>
       <div v-if="SNEKTRON">The record longest snake wins</div>
+      <div v-if="COLORWAR">Highest score wins.</div>
       <div v-if="PACMAN">You all win if you reach score {{state.data.victory_score}}</div>
       <div v-if="BOMBERMAN && config.DEATHMATCH && !config.TEAM_MODE">First to {{config.TARGET_KILL_COUNT}} points wins</div>
       <div v-if="BOMBERMAN && !config.DEATHMATCH && !config.TEAM_MODE">Last one standing wins</div>
@@ -768,6 +773,22 @@ body, #app, .main {
         </div>
       </div>
 
+      <div v-if="COLORWAR">
+        <div v-if="self.isPlaying">
+          {{position}} ({{self.score}})
+        </div>
+        <div v-for="player in playersByRanking">
+          <div class="snek"
+            :style="{
+              backgroundColor: player.color,
+              width: (player.score / maxScore * 100) + '%',
+            }"
+          >
+            <div class="snek-score">{{player.score}}</div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="mode=='play' && !self.isPlaying">
         You have to wait until next round :(
       </div>
@@ -775,7 +796,6 @@ body, #app, .main {
         You died...
       </div>
     </div>
-
   </div>
 
 <!--   <div v-if="showVoteTooltip && !localFlags.hasSeenVote"
@@ -958,10 +978,11 @@ var app = new Vue({
       {game: "any", name: "MOVE_FREQ"},
     ],
 
-    voteTypes: [
-      {game: "snektron", vote: "snektron"},
-      {game: "pacman", vote: "pacman"},
-      {game: "bomberman", divider: true},
+    games: [
+      {game: "snektron", label: "Snektron"},
+      {game: "colorwar", label: "Color War"},
+      {game: "pacman", label: "Co-op Pacman"},
+      {game: "bomberman", label: "Bomberman"},
     ],
   },
 
@@ -1054,6 +1075,8 @@ var app = new Vue({
     BOMBERMAN() { return this.state.game == 'bomberman' },
     PACMAN() { return this.state.game == 'pacman' },
     SNEKTRON() { return this.state.game == 'snektron' },
+    COLORWAR() { return this.state.game == 'colorwar' },
+
     mode() {
       return this.state.gameState
     },
@@ -1189,6 +1212,7 @@ var app = new Vue({
 
     carouselSize() {
       if (this.SNEKTRON)  return 5
+      if (this.COLORWAR)  return 3
       if (this.PACMAN)    return 5
       if (this.BOMBERMAN) return 6
       return 6

@@ -3,6 +3,7 @@ import engine
 import bomberman
 import pacman
 import snektron
+import colorwar
 
 import fileinput
 import json
@@ -25,6 +26,8 @@ def start_game(game):
     game_module = pacman
   elif engine.current_game == "snektron":
     game_module = snektron
+  elif engine.current_game == "colorwar":
+    game_module = colorwar
   else:
     print("Error. Tried to start bad game: %s" % game, file=sys.stderr)
 

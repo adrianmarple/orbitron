@@ -40,7 +40,6 @@ def setup():
     color_string="#c0ca33") #lime
   Snek(position=311,
     color=(200, 50, 0),
-    team_color=(0, 120, 120),
     color_string="#ff9800") #orange
 
 def handle_event(message, player):
@@ -281,7 +280,6 @@ class Snek(Player):
   def to_json(self):
     dictionary = Player.to_json(self)
     dictionary["length"] = len(self.tail)
-    dictionary["score"] = self.score
     dictionary["vibrating"] = self.shrinking
     return dictionary
 
