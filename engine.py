@@ -13,7 +13,7 @@ import traceback
 from math import exp, ceil, floor, pi, cos, sin, sqrt
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
-from time import time
+from time import sleep, time
 
 from audio import music, prewarm_audio
 
@@ -138,7 +138,8 @@ def update():
 
 
   if not game_state:
-    render_snake()
+    render_fluid()
+    # render_snake()
     return
   if len(claimed_players()) == 0:
     quit()
@@ -479,6 +480,32 @@ def clear():
     statuses[i] = "blank"
 
 
+
+fluid_heads = [0]
+fluid_values = np.array([1.0] + [0.0] * (SIZE - 1))
+def render_fluid():
+  sleep(0.03)
+  global fluid_heads, fluid_values
+  new_heads = []
+  for head in fluid_heads:
+    for n in neighbors[head]:
+      x = fluid_values[n] + 0.01
+      x *= (1 + len(fluid_heads)/3)
+      if x < random():
+        new_heads.append(n)
+        fluid_values[n] = 1
+
+  if len(new_heads) != 0:
+    fluid_heads = new_heads
+
+  fluid_values *= 0.86
+  squares = np.multiply(fluid_values, fluid_values)
+  pixels = np.outer(squares, phase_color() * 200)
+  raw_pixels = np.matmul(dupe_matrix,pixels)
+  raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
+  output=np.array(raw_pixels,dtype="<u1").tobytes()
+  neopixel_write(pin,output)
+
 indicies = np.arange(RAW_SIZE)
 def render_snake():
   global raw_pixels
@@ -486,6 +513,14 @@ def render_snake():
   phases = indicies / 40 + time()/2
   phases = np.minimum(1, np.mod(phases, 6))
   phases = np.sin(pi * phases) * 50
+
+  raw_pixels = np.outer(phases, phase_color())
+  # raw_pixels = np.outer(phases, np.ones((1, 3)))
+
+  output = np.array(raw_pixels,dtype="<u1").tobytes()
+  neopixel_write(pin,output)
+
+def phase_color():
   color_phase = (time()/10) % 1
   if color_phase < 0.333:
     r = 1 - 3 * color_phase
@@ -499,13 +534,7 @@ def render_snake():
     r = 3 * color_phase - 2
     g = 0
     b = 3 - 3 * color_phase
-
-  raw_pixels = np.outer(phases, np.array((r,g,b)))
-  # raw_pixels = np.outer(phases, np.ones((1, 3)))
-
-  output = np.array(raw_pixels,dtype="<u1").tobytes()
-  neopixel_write(pin,output)
-
+  return np.array((r,g,b))
 
 def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
     from_direction=None,
