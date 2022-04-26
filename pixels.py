@@ -115,5 +115,5 @@ f.write(json.dumps({
   "expanded_neighbors": expanded_neighbors,
   "next_pixel": next_pixel,
   "unique_antipodes": unique_antipodes,
-  } ))
+  },indent=2))
 f.close()
