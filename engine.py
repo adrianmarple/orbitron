@@ -4,13 +4,13 @@ import os
 import board
 import collections
 import json
-from neopixel_write import neopixel_write
+from orbpixel import neopixel_write
 import digitalio
 import numpy as np
 import sys
 import traceback
 
-from math import exp, ceil, floor, pi, cos, sin, sqrt
+from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
 from time import sleep, time
@@ -63,7 +63,7 @@ for (i, dupes) in enumerate(unique_to_dupes):
 
 pin = digitalio.DigitalInOut(board.D18)
 pin.direction = digitalio.Direction.OUTPUT
-print("Running %s pixels" % pixel_info["RAW_SIZE"])
+print("Running %s pixels" % pixel_info["RAW_SIZE"],file=sys.stderr)
 
 START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
 statuses = ["blank"] * SIZE
@@ -582,7 +582,9 @@ def render_mana_experiments():
   #direction = (0,sin(time()*6),cos(time()*6))
   #direction = (sin(time()*6),cos(time()*6),abs(sin(time()*6)))
   #direction = (sin(time()*6),cos(time()*5),sin(time()))
-  direction = (sin(time()*6)+cos(time()*6),1,sin(time()))
+  #direction = (sin(time()*6)+cos(time()*6),1,sin(time()))
+  direction = (cos(time()),sin(time()+10*sin(time())),0)
+  direction /= np.linalg.norm(direction)
 
   ds = direction * unique_coord_matrix / COORD_MAGNITUDE / 2 + 0.5
   ds = ds * 6 - 2.5
@@ -664,6 +666,6 @@ def run_core_loop():
   while True:
     update()
     frame_time = time() - last_frame_time
-    # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)))
+    print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
 
