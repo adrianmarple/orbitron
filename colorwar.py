@@ -14,6 +14,9 @@ from engine import *
 
 name = "colorwar"
 
+config["REQUIRED_LEAD_TIME"] = 10
+config["LEAD_THRESHOLD"] = 20
+config["FIXED_TIME_ROUNDS"] = False
 config["ROUND_TIME"] = 94.6
 # config["COLOR_MOVE_FREQ"] = 0.25
 
@@ -47,7 +50,11 @@ def start_update():
     player.move()
 
 def countdown_ontimeout():
-  engine.state_end_time = time() + config["ROUND_TIME"]
+  data["current_leader"] = -1
+  if config["FIXED_TIME_ROUNDS"]:
+    engine.state_end_time = time() + config["ROUND_TIME"]
+  else:
+    engine.state_end_time = 0
   engine.game_state = play_state
   music["snekBattle"].play()
 
@@ -61,8 +68,30 @@ def play_update():
     inkling = statuses[i]
     if inkling != "blank":
       counts[inkling] = counts.get(inkling, 0) + 1
+
+  leader = None
+  runner_up = None
   for (inkling, score) in counts.items():
     inkling.score = score
+    if leader is None or leader.score < score:
+      runner_up = leader
+      leader = inkling
+    elif runner_up is None or runner_up.score < score:
+      runner_up = inkling
+
+  print(leader.score, file=sys.stderr)
+  print(runner_up.score, file=sys.stderr)
+
+  if not config["FIXED_TIME_ROUNDS"]:
+    if data["current_leader"] >= 0: #someone is in the lead
+      if leader.id != data["current_leader"]:
+        engine.state_end_time = 0
+        data["current_leader"] = -1
+    elif leader.score - runner_up.score > config["LEAD_THRESHOLD"]:
+      engine.state_end_time = time() + config["REQUIRED_LEAD_TIME"]
+      data["current_leader"] = leader.id
+
+
 
 def play_ontimeout():
   music["snekBattle"].fadeout(1000)

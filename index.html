@@ -31,7 +31,7 @@ body, #app, .main {
   position: relative;
 }
 
-#quit-button, #settings-button, #quit-vote-tally, #game-selection-menu, .main {
+#settings-button, #label, #quit-vote-tally, #game-selection-menu, .main {
   user-select: none;
   -webkit-user-select: none; /* Safari */
   -khtml-user-select: none; /* Konqueror HTML */
@@ -39,13 +39,22 @@ body, #app, .main {
   -ms-user-select: none; /* Internet Explorer/Edge */
 }
 
-#settings-button, #quit-button, #rules-button {
+#settings-button {
   position: fixed;
   right: 1rem;
-  top: 1rem;
+  top: 6rem;
   cursor: pointer;
   z-index: 2;
   height: 5rem;
+  width: 5rem;
+}
+
+#label {
+  font-size: 3.5rem;
+  position: fixed;
+  right: 1.4rem;
+  top: 1rem;
+  z-index: 2;
 }
 
 #settings, #game-selection-menu, #rules-splash, #vote-tooltip, #signup {
@@ -621,6 +630,7 @@ body, #app, .main {
     <img src="images/explosion.png" />
   </div> -->
 
+  <div id="label">{{gameLabel}}</div>
 
   <div id="header-buttons">
     <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
@@ -633,6 +643,7 @@ body, #app, .main {
   >
     <div class="joystick-nub" :style="joystickNubStyle"></div>
   </div>
+
 
   <div v-if="mode=='start'"
     class="main"
@@ -688,9 +699,9 @@ body, #app, .main {
 
   <div v-else-if="mode=='countdown'" class="main" :style="{ backgroundColor: self.color }">
     <div class="header">
-      <div class="banner" style="font-size: 3em">{{Math.round(state.timeRemaining)}}</div>
+      <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 3em">{{Math.round(state.timeRemaining)}}</div>
       <div v-if="SNEKTRON">The record longest snake wins</div>
-      <div v-if="COLORWAR">Highest score wins.</div>
+      <div v-if="COLORWAR">Be the leader for {{config.REQUIRED_LEAD_TIME}} seconds.</div>
       <div v-if="PACMAN">You all win if you reach score {{state.data.victory_score}}</div>
       <div v-if="BOMBERMAN && config.DEATHMATCH && !config.TEAM_MODE">First to {{config.TARGET_KILL_COUNT}} points wins</div>
       <div v-if="BOMBERMAN && !config.DEATHMATCH && !config.TEAM_MODE">Last one standing wins</div>
@@ -701,6 +712,7 @@ body, #app, .main {
 
   <div v-else class="main" :style="{ backgroundColor: self.color }">
     <div class="header card">
+      <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 3em">{{mode=='previctory' ? 0 : Math.round(state.timeRemaining)}}</div>
       <div v-if="mode=='victory'" @click="displaySignup">
         <div v-if="iAmVictorious">
           Victory!
@@ -932,6 +944,9 @@ var app = new Vue({
       {game: "snektron", name: "ROUND_TIME"},
       {game: "snektron", name: "SNAKE_MOVE_FREQ"},
       {game: "snektron", name: "INTERSECTION_PAUSE_FACTOR"},
+      {game: "snektron", name: "SNEK_FIXED_TIME_ROUNDS", boolean: true},
+      {game: "snektron", name: "SNEK_REQUIRED_LEAD_TIME"},
+      {game: "snektron", name: "SNEK_LEAD_THRESHOLD"},
 
       {game: "pacman", name: "PACMEN_LIVES"},
       {game: "pacman", name: "STARTING_POWER_PELLET_COUNT"},
@@ -970,6 +985,11 @@ var app = new Vue({
       {game: "bomberman", name: "NEWTONS_CRADLE", boolean: true},
       {game: "bomberman", name: "FIXED_OWNERSHIP", boolean: true},
       {game: "bomberman", name: "SUICIDE_STUN", boolean: true},
+
+      {game: "colorwar", name: "REQUIRED_LEAD_TIME"},
+      {game: "colorwar", name: "LEAD_THRESHOLD"},
+      {game: "colorwar", name: "FIXED_TIME_ROUNDS", boolean: true},
+      {game: "colorwar", name: "ROUND_TIME"},
 
       {game: "any", name: "STUN_TIME"},
       {game: "any", name: "INVULNERABILITY_TIME"},
@@ -1076,6 +1096,15 @@ var app = new Vue({
     PACMAN() { return this.state.game == 'pacman' },
     SNEKTRON() { return this.state.game == 'snektron' },
     COLORWAR() { return this.state.game == 'colorwar' },
+
+    gameLabel() {
+      for (let info of this.games) {
+        console.log(info)
+        if (info.game == this.state.game) {
+          return info.label
+        }
+      }
+    },
 
     mode() {
       return this.state.gameState

@@ -14,12 +14,15 @@ from engine import *
 
 name = "snektron"
 
-config["ROUND_TIME"] = 94.6
+config["SNEK_ROUND_TIME"] = 94.6
 config["START_LENGTH"] = 4
 config["SANDBOX_APPLES_PER_SNEK"] = 15
 config["ADDITIONAL_APPLES"] = 25
 config["INTERSECTION_PAUSE_FACTOR"] = 0.2
 config["SNAKE_MOVE_FREQ"] = 0.25
+config["SNEK_REQUIRED_LEAD_TIME"] = 10
+config["SNEK_LEAD_THRESHOLD"] = 10
+config["SNEK_FIXED_TIME_ROUNDS"] = True
 
 
 def setup():
@@ -65,7 +68,11 @@ def start_update():
 def countdown_ontimeout():
   for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
     spawn("apple")
-  engine.state_end_time = time() + config["ROUND_TIME"]
+  data["current_leader"] = -1
+  if config["SNEK_FIXED_TIME_ROUNDS"]:
+    engine.state_end_time = time() + config["SNEK_ROUND_TIME"]
+  else:
+    engine.state_end_time = 0
   engine.game_state = play_state
   music["snekBattle"].play()
 
@@ -73,6 +80,26 @@ def countdown_ontimeout():
 def play_update():
   for player in playing_players():
     player.move()
+
+
+  if not config["SNEK_FIXED_TIME_ROUNDS"]:
+    leader = None
+    runner_up = None
+    for player in playing_players():
+      if leader is None or len(leader.tail) < len(player.tail):
+        runner_up = leader
+        leader = player
+      elif runner_up is None or len(runner_up.tail) < len(player.tail):
+        runner_up = player
+
+    if data["current_leader"] >= 0: #someone is in the lead
+      if leader.id != data["current_leader"]:
+        engine.state_end_time = 0
+        data["current_leader"] = -1
+    elif len(leader.tail) - len(runner_up.tail)  > config["SNEK_LEAD_THRESHOLD"]:
+      engine.state_end_time = time() + config["SNEK_REQUIRED_LEAD_TIME"]
+      data["current_leader"] = leader.id
+
 
 def play_ontimeout():
   music["snekBattle"].fadeout(1000)

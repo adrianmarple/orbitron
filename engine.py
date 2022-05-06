@@ -666,6 +666,6 @@ def run_core_loop():
   while True:
     update()
     frame_time = time() - last_frame_time
-    print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
+    # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
 
