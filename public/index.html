@@ -117,7 +117,11 @@ html, body, #main {
 
 <script>
 let ip = "192.168.1.101"
-const name = location.pathname
+let name = location.pathname
+if (name == '/') {
+  name = "default"
+}
+console.log(name)
 const xhttp = new XMLHttpRequest()
 xhttp.onreadystatechange = function() {
   if (this.readyState == 4 && this.status == 200 && xhttp.responseText) {
