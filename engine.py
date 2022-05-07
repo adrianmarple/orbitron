@@ -140,7 +140,6 @@ def update():
   if not game_state:
     render_fluid()
     # render_snake()
-    # render_mana_experiments()
     return
   if len(claimed_players()) == 0:
     quit()
@@ -572,37 +571,50 @@ def render_countdown():
   for player in playing_players():
     player.render_ready()
 
-def render_mana_experiments():
+def render_victory():
+  global state_end_time
+  start_time = state_end_time - config["VICTORY_TIMEOUT"]
+  color = victor.color
   global pixels
   pixels *= 0
-  #direction = (sin(time()*6),cos(time()*6),0.5)
-  #direction = (sin(time()*6),cos(time()*6),0)
-  #direction = (sin(time()*6),1,cos(time()*6))
-  #direction = (0,sin(time()*6),cos(time()*6))
-  #direction = (0,sin(time()*6),cos(time()*6))
-  #direction = (sin(time()*6),cos(time()*6),abs(sin(time()*6)))
-  #direction = (sin(time()*6),cos(time()*5),sin(time()))
-  #direction = (sin(time()*6)+cos(time()*6),1,sin(time()))
-  direction = (cos(time()),sin(time()+10*sin(time())),0)
+  timer = (time() - start_time)
+  width = 2
+  if timer < 0.5:
+    render_ring((sin(timer*6),cos(timer*6),0.5),pixels,color,width)
+  elif timer < 1:
+    render_ring((cos(timer*6),sin(timer*6),0.5),pixels,color,width)
+  elif timer < 1.5:
+    render_ring((sin(timer*8),1,cos(timer*8)),pixels,color,width)
+    render_ring((cos(timer*8),0,sin(timer*8)),pixels,color,width)
+  elif timer < 2:
+    render_ring((0,sin(timer*6),cos(timer*6)),pixels,color,width)
+  elif timer < 2.5:
+    render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),pixels,color,width)
+  elif timer < 3:
+    render_ring((sin(timer*6),cos(timer*6),0),pixels,color,width)
+    render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color,width)
+  elif timer < 4.75: 
+    t = min((timer - 3)*2,pi/2)+pi/2
+    width = width + t - pi/2
+    render_ring((0,sin(t),cos(t)),pixels,color*0.28,width)
+    render_ring((sin(t),0,cos(t)),pixels,color*0.28,width)
+    render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
+    render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
+    #render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color)
+    #render_ring((sin(-timer*6),cos(-timer*5),sin(-timer)),pixels,color)
+    #render_ring((sin(timer*6)+cos(timer*6),1,sin(timer)),pixels,color)
+    #render_ring((cos(timer),sin(timer+10*sin(timer)),0),pixels,color)
+  else:
+    for (i, coord) in enumerate(unique_coords):
+      color_pixel(i, color * sin(coord[2] - 4*(timer - 0.4)))
+
+def render_ring(direction, pixels, color, width):
   direction /= np.linalg.norm(direction)
+  ds = direction * unique_coord_matrix / COORD_MAGNITUDE
+  ds = ds * 6 + width/2
+  ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
+  pixels += np.array(np.outer(ds, color), dtype="<u1")
 
-  ds = direction * unique_coord_matrix / COORD_MAGNITUDE / 2 + 0.5
-  ds = ds * 6 - 2.5
-  # ds = 6*(ds + 1) - 7*t
-  # ds *= -1
-  ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
-  pixels += np.array(np.outer(ds, np.array((0,55,55))), dtype="<u1")
-
-  pixels = np.minimum(pixels, 255)
-  pixels = np.maximum(pixels, 0)
-  raw_pixels = np.matmul(dupe_matrix,pixels)
-  raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
-  output=np.array(raw_pixels,dtype="<u1").tobytes()
-  neopixel_write(pin,output)
-
-def render_victory():
-  for (i, coord) in enumerate(unique_coords):
-    color_pixel(i, victor.color * sin(coord[2] - 4*time()))
 
 def start_ontimeout():
   for player in claimed_players():

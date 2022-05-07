@@ -181,6 +181,7 @@ def spawn_pellets():
 def previctory_ontimeout():
   engine.game_state = victory_state
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
+  music["victory"].play()
 
 
 def render_game():
@@ -213,7 +214,7 @@ def render_game():
 
 def gameover(winner):
   engine.game_state = previctory_state
-  engine.state_end_time = time() + 2
+  engine.state_end_time = time() + 1
   if winner == "pacmen":
     engine.victor = Team(team_id=0,
       name="Pacmen",
@@ -227,7 +228,6 @@ def gameover(winner):
       color_string="red",
       players=ghosts())
   music["battle1"].stop()
-  music["victory"].play(delay_ms=1000)
   broadcast_state()
 
 

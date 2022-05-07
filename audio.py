@@ -165,6 +165,9 @@ class MusicWrapper:
     mixer.music.stop()
     mixer.music.unload()
     self._close()
+    global currentMusic
+    if currentMusic == self.name:
+      currentMusic = ""
 
   def fadeout(self, duration=None):
     if duration is None:

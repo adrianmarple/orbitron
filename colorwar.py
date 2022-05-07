@@ -95,7 +95,6 @@ def play_update():
 
 def play_ontimeout():
   music["snekBattle"].fadeout(1000)
-  music["victory"].play()
   engine.game_state = previctory_state
   top_score = 0
   top_score_time = 0
@@ -104,11 +103,12 @@ def play_ontimeout():
       top_score = player.score
       top_score_time = player.score_timestamp
       engine.victor = player
-  engine.state_end_time = time() + 2
+  engine.state_end_time = time() + 1
 
 def previctory_ontimeout():
   engine.game_state = victory_state
   engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
+  music["victory"].play()
 
 def render_game():
   countdown_length = 7 if engine.game_state == play_state else 5
