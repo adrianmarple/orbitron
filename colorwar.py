@@ -79,9 +79,6 @@ def play_update():
     elif runner_up is None or runner_up.score < score:
       runner_up = inkling
 
-  print(leader.score, file=sys.stderr)
-  print(runner_up.score, file=sys.stderr)
-
   if not config["FIXED_TIME_ROUNDS"]:
     if data["current_leader"] >= 0: #someone is in the lead
       if leader.id != data["current_leader"]:
