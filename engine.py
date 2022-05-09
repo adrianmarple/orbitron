@@ -654,7 +654,7 @@ def broadcast_state():
   if time() - last_broadcast_time < 0.01:
     return
   message = {
-    "game": current_game.name if current_game else "",
+    "game": current_game.__name__ if current_game else "",
     "players": [player.to_json() for player in players],
     "teams": [team.to_json() for team in teams],
     "gameState": game_state.name if game_state else "none",

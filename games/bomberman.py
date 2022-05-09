@@ -2,17 +2,18 @@
 
 import numpy as np
 import numbers
+import os
+import sys
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
 from random import randrange, random
 from time import time, sleep
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from audio import sounds, music
 import engine
 from engine import *
-
-
-name = "bomberman"
 
 
 config["BOMB_FUSE_TIME"] = 3

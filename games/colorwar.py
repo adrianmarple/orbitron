@@ -1,18 +1,20 @@
 #!/usr/bin/env python
 
 import numpy as np
+import numbers
+import os
 import sys
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
-from random import randrange, random, choice
+from random import randrange, random
 from time import time, sleep
-import collections
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from audio import sounds, music
 import engine
 from engine import *
 
-name = "colorwar"
 
 config["REQUIRED_LEAD_TIME"] = 10
 config["LEAD_THRESHOLD"] = 20

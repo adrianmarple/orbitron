@@ -1,12 +1,11 @@
+#!/usr/bin/env python
 
 import engine
-import bomberman
-import pacman
-import snektron
-import colorwar
 
 import fileinput
 import json
+import pkgutil
+import os
 import sys
 import numpy as np
 from time import time
@@ -15,21 +14,16 @@ from threading import Thread
 game_module = None
 
 
+game_dir = os.path.join(os.path.dirname(__file__), 'games')
+for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
+  module = loader.find_module(module_name).load_module(module_name)
+  globals()[module_name] = module
+
 
 def start_game(game):
   global game_module
   engine.current_game = game
-
-  if engine.current_game == "bomberman":
-    game_module = bomberman
-  elif engine.current_game == "pacman":
-    game_module = pacman
-  elif engine.current_game == "snektron":
-    game_module = snektron
-  elif engine.current_game == "colorwar":
-    game_module = colorwar
-  else:
-    print("Error. Tried to start bad game: %s" % game, file=sys.stderr)
+  game_module = globals()[game]
 
   claimed = []
   for player in engine.players:
