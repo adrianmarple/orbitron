@@ -21,6 +21,9 @@ config["ROUND_TIME"] = 94.6
 # config["COLOR_MOVE_FREQ"] = 0.25
 
 
+leader = None
+runner_up = None
+
 def setup():
   Inkling(position=105,
     color=(0, 200, 0),
@@ -69,8 +72,9 @@ def play_update():
     if inkling != "blank":
       counts[inkling] = counts.get(inkling, 0) + 1
 
-  leader = None
-  runner_up = None
+
+  global leader, runner_up
+
   for (inkling, score) in counts.items():
     inkling.score = score
     if leader is None or leader.score < score:
@@ -91,16 +95,15 @@ def play_update():
 
 
 def play_ontimeout():
+  global leader, runner_up
+
   music["snekBattle"].fadeout(1000)
   engine.game_state = previctory_state
-  top_score = 0
-  top_score_time = 0
-  for player in playing_players():
-    if player.score > top_score or (player.score == top_score and player.score_timestamp < top_score_time):
-      top_score = player.score
-      top_score_time = player.score_timestamp
-      engine.victor = player
   engine.state_end_time = time() + 1
+  engine.victor = leader
+  leader = None
+  runner_up = None
+
 
 def previctory_ontimeout():
   engine.game_state = victory_state
@@ -120,7 +123,10 @@ def render_game():
 
   for i in range(SIZE):
     if statuses[i] != "blank":
-      color_pixel(i, statuses[i].color / 8)
+      color = statuses[i].color / 10
+      if statuses[i] == leader:
+        color *= 0.7 + 0.5 * sin(time() * 10)
+      color_pixel(i, color)
 
 
 
