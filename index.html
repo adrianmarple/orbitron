@@ -486,9 +486,6 @@ body, #app, .main {
     <div class="close" @click="dismissRules">
       <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
     </div>
-<!--     <div v-if="!localFlags.hasPlayedOnce">
-      <p>Welcome to Super Orbitron!</p>
-    </div> -->
     <p>Instructions:</p>
     <div class="carousel" :style="carouselStyle">
       <div v-if="gameInfo" v-for="rule in gameInfo.rules" class="slide">
@@ -615,7 +612,7 @@ body, #app, .main {
   <div v-else-if="mode=='countdown'" class="main" :style="{ backgroundColor: self.color }">
     <div class="header">
       <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 3em">{{Math.round(state.timeRemaining)}}</div>
-      <div>{{victoryString}}</div>
+      <div>{{victoryCondition}}</div>
 <!--       <div v-if="BOMBERMAN && config.DEATHMATCH && !config.TEAM_MODE">First to {{config.TARGET_KILL_COUNT}} points wins</div>
       <div v-if="BOMBERMAN && !config.DEATHMATCH && !config.TEAM_MODE">Last one standing wins</div>
       <div v-if="BOMBERMAN && config.DEATHMATCH && config.TEAM_MODE">First team to {{config.TARGET_KILL_COUNT}} points wins</div>
@@ -743,9 +740,7 @@ let GAMES_INFO = [
         ],
       },
     ],
-    victoryCondition: {
-      string: "Longest snake wins",
-    },
+    victoryCondition: "Record longest snake wins",
     statusDisplay: {
       type: "rankedscore",
       innerScore: true,
@@ -779,10 +774,7 @@ let GAMES_INFO = [
         ],
       },
     ],
-    victoryCondition: {
-      string: "Be the leader for SUB0 seconds",
-      substitutions: ["config.REQUIRED_LEAD_TIME"],
-    },
+    victoryCondition: "Be the leader for {{config.REQUIRED_LEAD_TIME}} seconds",
     statusDisplay: {
       type: "rankedscore",
     },
@@ -833,10 +825,7 @@ let GAMES_INFO = [
         ],
       },
     ],
-    victoryCondition: {
-      string: "You all win if you reach score SUB0",
-      substitutions: ["state.data.victory_score"],
-    },
+    victoryCondition: "You all win if you reach score {{state.data.victory_score}}",
     statusDisplay: {
       type: "cooperativescore",
       showLives: true,
@@ -904,9 +893,7 @@ let GAMES_INFO = [
       },
     ],
     tapInstructions: "Tap to Bomb",
-    victoryCondition: {
-      string: "Last one standing wins",
-    },
+    victoryCondition: "Last one standing wins",
     statusDisplay: {
       type: "battleroyale",
     },
@@ -1124,9 +1111,8 @@ var app = new Vue({
         }
       }
     },
-    victoryString() {
-      return this.substitute(this.gameInfo.victoryCondition.string,
-          this.gameInfo.victoryCondition.substitutions)
+    victoryCondition() {
+      return this.substitute(this.gameInfo.victoryCondition)
     },
 
     mode() {
@@ -1274,20 +1260,34 @@ var app = new Vue({
   },
 
   methods: {
-    substitute(string, substitutions) {
-      if (!substitutions) {
-        return string
-      }
-      for (let i = 0; i < substitutions.length; i++) {
-        let sub = substitutions[i]
+    substitute(string) {
+      let re = /\{\{(.*?)\}\}/
+      let match = re.exec(string)
+      while (match) {
+        let sub = match[1]
         let value = this
         for (let key of sub.split(".")) {
           value = value[key]
         }
-        string = string.replace("SUB" + i, value)
+        string = string.replace(re, value)
+        match = re.exec(string)
       }
       return string
     },
+    // substitute(string, substitutions) {
+    //   if (!substitutions) {
+    //     return string
+    //   }
+    //   for (let i = 0; i < substitutions.length; i++) {
+    //     let sub = substitutions[i]
+    //     let value = this
+    //     for (let key of sub.split(".")) {
+    //       value = value[key]
+    //     }
+    //     string = string.replace("SUB" + i, value)
+    //   }
+    //   return string
+    // },
 
     send(json) {
       if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
