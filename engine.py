@@ -596,11 +596,13 @@ def render_victory():
   elif timer < 4.65: 
     t = min((timer - 3)*2,pi/2)+pi/2
     #width = width + t - pi/2 + sin(timer*2)
-    width = width + 0.1 + 2*abs(cos(timer*1.9))
-    render_ring((0,sin(t),cos(t)),pixels,color*0.28,width)
-    render_ring((sin(t),0,cos(t)),pixels,color*0.28,width)
+    width = 1 + 3.1*abs(cos(timer*1.9))
+    render_ring((0,sin(t),cos(t)),pixels,color*0.028,width)
+    render_ring((sin(t),0,cos(t)),pixels,color*0.028,width)
     render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
     render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
+    #render_ring((0,cos(t*2-pi/2),sin(t*2-pi/2)),pixels,color*0.28,width)
+    #render_ring((cos(t*2-pi/2),0,sin(t*2-pi/2)),pixels,color*0.28,width)
     #render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color)
     #render_ring((sin(-timer*6),cos(-timer*5),sin(-timer)),pixels,color)
     #render_ring((sin(timer*6)+cos(timer*6),1,sin(timer)),pixels,color)
