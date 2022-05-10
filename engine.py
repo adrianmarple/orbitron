@@ -579,23 +579,24 @@ def render_victory():
   pixels *= 0
   timer = (time() - start_time)
   width = 2
-  if timer < 0.5:
+  if timer < 0.4:
     render_ring((sin(timer*6),cos(timer*6),0.5),pixels,color,width)
-  elif timer < 1:
+  elif timer < 0.9:
     render_ring((cos(timer*6),sin(timer*6),0.5),pixels,color,width)
-  elif timer < 1.5:
+  elif timer < 1.35:
     render_ring((sin(timer*8),1,cos(timer*8)),pixels,color,width)
     render_ring((cos(timer*8),0,sin(timer*8)),pixels,color,width)
-  elif timer < 2:
+  elif timer < 1.9:
     render_ring((0,sin(timer*6),cos(timer*6)),pixels,color,width)
-  elif timer < 2.5:
+  elif timer < 2.25:
     render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),pixels,color,width)
-  elif timer < 3:
+  elif timer < 2.75:
     render_ring((sin(timer*6),cos(timer*6),0),pixels,color,width)
     render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color,width)
-  elif timer < 4.75: 
+  elif timer < 4.65: 
     t = min((timer - 3)*2,pi/2)+pi/2
-    width = width + t - pi/2
+    #width = width + t - pi/2 + sin(timer*2)
+    width = width + 0.1 + 2*abs(cos(timer*1.9))
     render_ring((0,sin(t),cos(t)),pixels,color*0.28,width)
     render_ring((sin(t),0,cos(t)),pixels,color*0.28,width)
     render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
@@ -606,7 +607,7 @@ def render_victory():
     #render_ring((cos(timer),sin(timer+10*sin(timer)),0),pixels,color)
   else:
     for (i, coord) in enumerate(unique_coords):
-      color_pixel(i, color * sin(coord[2] - 4*(timer - 0.4)))
+      color_pixel(i, color * sin(coord[2] - 4*(timer - 0.3)))
 
 def render_ring(direction, pixels, color, width):
   direction /= np.linalg.norm(direction)
