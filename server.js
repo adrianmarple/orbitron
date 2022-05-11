@@ -33,8 +33,31 @@ config=require(__dirname + "/config.js")
 console.log(config)
 const NO_TIMEOUT = process.argv.includes('-t')
 
+// Dev Kit Websocket server
 
-// Websocket server
+var devServer = http.createServer(function(request, response) {
+  console.log(' Received request for ' + request.url)
+  response.writeHead(404)
+  response.end()
+})
+devServer.listen(8888, "0.0.0.0", function() {
+  console.log('Dev WebSocket Server is listening on port 8888')
+})
+
+var wsDevServer = new WebSocket.Server({ server: devServer, autoAcceptConnections: true })
+
+wsDevServer.on('connection', socket => {
+  console.log('Dev Connection accepted.')
+  devConnections[socket.id] = socket
+  socket.on('close', () => {
+    console.log("Dev connection closed")
+    delete devConnections[socket.id]
+  })
+})
+
+devConnections = {}
+
+// Client Websocket server
 
 var server = http.createServer(function(request, response) {
   console.log(' Received request for ' + request.url)
@@ -186,6 +209,13 @@ function broadcast(baseMessage) {
   }
 }
 
+function devBroadcast(message) {
+  for (let id in devConnections) {
+    devConnections[id].send(message)
+  }
+}
+
+
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}});
 python_process.stdout.on('data', data => {
   message = data.toString()
@@ -200,6 +230,13 @@ python_process.stdout.on('data', data => {
   } else if(message.startsWith("touchall")) {
     for (let id in connections) {
       connections[id].lastActivityTime = Date.now()
+    }
+  } else if(message.startsWith("raw_pixels=")) {
+    try {
+      devBroadcast(message.substr(11));
+    } catch(e) {
+      console.error(e);
+      console.error(message);
     }
   } else{
     message = message.trim()
@@ -227,6 +264,8 @@ http.createServer(function (request, response) {
 
   if (filePath == '/')
     filePath = `${__dirname}/index.html`
+  else if (filePath == '/dev')
+    filePath = `${__dirname}/dev.html`
   else
     filePath = `${__dirname}/${filePath}`
   //console.log(filePath);

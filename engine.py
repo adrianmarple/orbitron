@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
 import os
-import board
 import collections
 import json
-from orbpixel import neopixel_write
 import digitalio
 import numpy as np
 import sys
@@ -16,6 +14,17 @@ from random import randrange, random
 from time import sleep, time
 
 from audio import music, prewarm_audio
+
+if os.getenv("DEV_MODE"):
+  pin = 0
+  def neopixel_write(pin,data):
+    global raw_pixels, pixels
+    print("raw_pixels=%s" % json.dumps(raw_pixels.tolist()))
+else:
+  import board
+  from orbpixel import neopixel_write
+  pin = digitalio.DigitalInOut(board.D18)
+  pin.direction = digitalio.Direction.OUTPUT
 
 prewarm_audio()
 
@@ -61,8 +70,6 @@ for (i, dupes) in enumerate(unique_to_dupes):
   for dupe in dupes:
     dupe_matrix[dupe, i] = 1
 
-pin = digitalio.DigitalInOut(board.D18)
-pin.direction = digitalio.Direction.OUTPUT
 print("Running %s pixels" % pixel_info["RAW_SIZE"],file=sys.stderr)
 
 START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
@@ -134,7 +141,7 @@ def quit():
 
 def update():
   global game_state, state_end_time
-  global pixels
+  global pixels, raw_pixels
 
 
   if not game_state:
@@ -485,7 +492,7 @@ fluid_heads = [0]
 fluid_values = np.array([1.0] + [0.0] * (SIZE - 1))
 def render_fluid():
   sleep(0.03)
-  global fluid_heads, fluid_values
+  global fluid_heads, fluid_values, raw_pixels, pixels
   new_heads = []
   for head in fluid_heads:
     for n in neighbors[head]:
