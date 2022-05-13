@@ -6,6 +6,7 @@ const fs = require('fs')
 const path = require('path')
 const process = require('process')
 const { spawn, exec } = require('child_process')
+const pako = require('./pako.min.js')
 
 // Log to file and standard out
 const util = require('util')
@@ -44,9 +45,13 @@ devServer.listen(8888, "0.0.0.0", function() {
   console.log('Dev WebSocket Server is listening on port 8888')
 })
 
-var wsDevServer = new WebSocket.Server({ server: devServer, autoAcceptConnections: true })
+var wsDevServer = new WebSocket.Server({ 
+  server: devServer, 
+  autoAcceptConnections: true 
+})
 
 wsDevServer.on('connection', socket => {
+  socket.binaryType = "arraybuffer"
   console.log('Dev Connection accepted.')
   devConnections[socket.id] = socket
   socket.on('close', () => {
@@ -233,7 +238,8 @@ python_process.stdout.on('data', data => {
     }
   } else if(message.startsWith("raw_pixels=")) {
     try {
-      devBroadcast(message.substr(11));
+      //console.log(pako.inflate(pako.deflate(message.substr(11).trim()),{to:"string"}))
+      devBroadcast(pako.deflate(message.substr(11).trim()));
     } catch(e) {
       console.error(e);
       console.error(message);

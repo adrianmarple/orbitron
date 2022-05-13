@@ -7,6 +7,8 @@ import digitalio
 import numpy as np
 import sys
 import traceback
+import base64
+import gzip
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
@@ -19,7 +21,11 @@ if os.getenv("DEV_MODE"):
   pin = 0
   def neopixel_write(pin,data):
     global raw_pixels, pixels
-    print("raw_pixels=%s" % json.dumps(raw_pixels.tolist()))
+    print("raw_pixels=%s" % data.hex())
+    #print("raw_pixels=%s" % gzip.compress(data).hex())
+    #print(len(base64.a85encode(data)),file=sys.stderr)
+    #print(gzip.compress(data).hex(),file=sys.stderr)
+    #print(len(gzip.compress(data)),file=sys.stderr)
 else:
   import board
   from orbpixel import neopixel_write

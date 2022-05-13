@@ -1,4 +1,4 @@
-var data, camera, scene, renderer, group, pixels, ws;
+var data, camera, scene, renderer, group, pixels, ws, lastUpdate, raw_pixels;
 
 fetch("/pixels.json").then(function(response){
   return response.json()
@@ -74,10 +74,17 @@ function animate() {
 }
 
 function render() {
-
   group.rotation.set(clamp(yOffset/200,-0.65,0.65)-Math.PI/2,0,xOffset/200);
+  if(raw_pixels){
+    var rp = pako.inflate(raw_pixels, {to:'string'})
+    for(let i = 0; i < pixels.length; i++){
+      var pixel = pixels[i]
+      var j = i*6
+      var color = `#${rp.slice(j+3,j+4)}${rp.slice(j+1,j+2)}${rp.slice(j+5,j+6)}`
+      pixel.material.color.set(color)
+    }
+  }
   renderer.render(scene, camera);
-
 }
 
 var active = false;
@@ -142,18 +149,15 @@ function startWebsocket() {
     return // Already trying to establish a connection
   }
   ws = new WebSocket(`ws://${window.location.hostname}:8888`)
+  ws.binaryType = "arraybuffer"
   ws.onmessage = event => {
-    try {
-      var raw_pixels = JSON.parse(event.data)
-      //console.log("GOT WS MESSAGE",message)
-      for(let i = 0; i < raw_pixels.length; i++){
-        var color = raw_pixels[i]
-        var pixel = pixels[i]
-        pixel.material.color.setRGB(color[1], color[0], color[2])
-      }
-    } catch(e){
-      //console.log(e)
+    var t = Date.now()
+    if(lastUpdate){
+      var dt = t - lastUpdate
+      //console.log(1/(dt/1000))
     }
+    lastUpdate = t
+    raw_pixels = event.data
   }
   ws.onclose = event => {
     console.log("CLOSE")
