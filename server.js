@@ -228,6 +228,7 @@ python_process.stdout.on('data', data => {
     try {
       // console.log(JSON.parse(message))
       broadcast(JSON.parse(message));
+      devBroadcast(message);
     } catch(e) {
       console.error(e);
       console.error(message);

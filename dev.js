@@ -1,4 +1,4 @@
-var data, camera, scene, renderer, group, pixels, ws, lastUpdate, raw_pixels;
+var data, camera, scene, renderer, group, pixels, ws, rawPixels, gameState;
 
 fetch("/pixels.json").then(function(response){
   return response.json()
@@ -75,8 +75,8 @@ function animate() {
 
 function render() {
   group.rotation.set(clamp(yOffset/200,-0.65,0.65)-Math.PI/2,0,xOffset/200);
-  if(raw_pixels){
-    var rp = pako.inflate(raw_pixels, {to:'string'})
+  if(rawPixels){
+    var rp = pako.inflate(rawPixels, {to:'string'})
     for(let i = 0; i < pixels.length; i++){
       var pixel = pixels[i]
       var j = i*6
@@ -151,13 +151,17 @@ function startWebsocket() {
   ws = new WebSocket(`ws://${window.location.hostname}:8888`)
   ws.binaryType = "arraybuffer"
   ws.onmessage = event => {
-    var t = Date.now()
-    if(lastUpdate){
-      var dt = t - lastUpdate
-      //console.log(1/(dt/1000))
+    var data = event.data
+    if(typeof data === "string"){
+      try {
+        gameState = JSON.parse(data);
+        console.log(gameState)
+      } catch(e) {
+        console.log(e)
+      }
+    } else {
+      rawPixels = event.data
     }
-    lastUpdate = t
-    raw_pixels = event.data
   }
   ws.onclose = event => {
     console.log("CLOSE")
