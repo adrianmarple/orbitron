@@ -163,12 +163,9 @@ def update():
 
     if state_end_time <= time() and state_end_time > 0:
       game_state.ontimeout()
-      broadcast_state()
 
     # For countdown on phone
     remaining_time = state_end_time - time()
-    if remaining_time > 0 and remaining_time % 1 < 0.05:
-      broadcast_state()
 
     pixels *= 0
     game_state.render()
@@ -179,6 +176,7 @@ def update():
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
     output=np.array(raw_pixels,dtype="<u1").tobytes()
     neopixel_write(pin,output)
+    broadcast_state()
   except Exception:
     print(traceback.format_exc())
 
@@ -265,7 +263,6 @@ class Player:
 
   def set_ready(self):
     self.is_ready = True
-    broadcast_state()
 
   def setup_for_game(self):
     self.is_playing = True
@@ -274,16 +271,13 @@ class Player:
     self.position = self.initial_position
     self.score = 0
     self.score_timestamp = time()
-    broadcast_state()
 
   def set_unready(self):
     self.is_ready = False
     self.tap = 0
-    broadcast_state()
 
   def pulse(self):
     self.ready_time = time()
-    broadcast_state()
 
   def current_color(self):
     return self.team_color if config["TEAM_MODE"] else self.color
@@ -359,7 +353,6 @@ class Player:
       self.prev_pos = self.position
       self.position = new_pos
       self.last_move_time = time()
-      broadcast_state()
 
 
   def render_ghost_trail(self):
@@ -645,7 +638,6 @@ def start_ontimeout():
   game_state = current_game.countdown_state
   state_end_time = time() + 4
   music["waiting"].fadeout(3500)
-  broadcast_state()
 
 def victory_ontimeout():
   for player in players:
@@ -667,13 +659,9 @@ def broadcast_event(event):
   print(json.dumps(event))
 
 # import traceback
-last_broadcast_time = 0
 def broadcast_state():
   # for line in traceback.format_stack():
   #   print(line.strip(), file=sys.stderr)
-  global last_broadcast_time
-  if time() - last_broadcast_time < 0.01:
-    return
   message = {
     "game": current_game.__name__ if current_game else "",
     "players": [player.to_json() for player in players],
@@ -685,7 +673,6 @@ def broadcast_state():
     "data": data,
   }
   print(json.dumps(message))
-  last_broadcast_time = time()
 
 
 
@@ -697,8 +684,11 @@ def run_core_loop():
 
   last_frame_time = time()
   while True:
-    update()
+    time_to_wait = last_frame_time + 0.033 - time()
+    if time_to_wait > 0:
+      sleep(time_to_wait)
     frame_time = time() - last_frame_time
     # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
+    update()
 

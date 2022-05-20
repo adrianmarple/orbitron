@@ -96,11 +96,9 @@ def consume_input():
         # Always start with snektron when first player joins
         if len(engine.claimed_players()) == 1:
           start_game("snektron")
-        engine.broadcast_state()
       elif message["type"] == "release":
         player.is_claimed = False
         check_vote()
-        engine.broadcast_state()
       elif message["type"] == "vote":
         vote = message["vote"]
         vote_to_message[vote] = message
@@ -114,7 +112,6 @@ def consume_input():
           if election == "ready":
             player.set_ready()
         check_vote()
-        engine.broadcast_state()
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])
         player.last_move_input_time = time()
@@ -124,7 +121,6 @@ def consume_input():
         player.tap = time()
       elif message["type"] == "settings":
         engine.config.update(message["update"])
-        engine.broadcast_state()
       elif message["type"] == "advance":
         if engine.game_state:
           if not message.get("from", None) or message["from"] == engine.game_state.name:

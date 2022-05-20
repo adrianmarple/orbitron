@@ -240,8 +240,9 @@ function startWebsocket() {
     var data = event.data
     if(typeof data === "string"){
       try {
-        gameState = JSON.parse(data)
-        console.log(gameState)
+        console.log(data)
+        //gameState = JSON.parse(data)
+        //console.log(gameState)
       } catch(e) {
         console.log(e)
       }

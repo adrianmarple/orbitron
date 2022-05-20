@@ -228,9 +228,9 @@ python_process.stdout.on('data', data => {
   message = data.toString()
   if (data[0] == 123) { // check is first char is '{'
     try {
-      // console.log(JSON.parse(message))
+      //console.log(JSON.parse(message))
       broadcast(JSON.parse(message));
-      devBroadcast(message);
+      //devBroadcast(message);
     } catch(e) {
       console.error(e);
       console.error(message);

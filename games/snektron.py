@@ -263,7 +263,6 @@ class Snek(Player):
       self.tail.popleft()
       self.position = self.tail[0]
       self.prev_pos = self.tail[1]
-      broadcast_state()
 
     for player in current_players():
       if player == self:
@@ -301,7 +300,6 @@ class Snek(Player):
       statuses[self.position] = "blank"
       if engine.game_state != start_state:
         spawn("apple")
-      broadcast_state()
     else:
       self.tail.pop()
 
