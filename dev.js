@@ -1,4 +1,4 @@
-var data, camera, scene, renderer, group, pixels, ws, rawPixels, gameState;
+var data, camera, scene, renderer, group, pixels, ws, rawPixels, gameState, composer
 
 fetch("/pixels.json").then(function(response){
   return response.json()
@@ -13,10 +13,16 @@ function clamp(num, min, max){
   return Math.min(Math.max(num, min), max);
 } 
 
+
+
 function init() {
 
   group = new THREE.Group();
   scene = new THREE.Scene();
+  bgColor = new THREE.Color(0)
+  stripColor = new THREE.Color(0x444444)
+  standColor = new THREE.Color(0x111111)
+  scene.background = bgColor
 
   camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
   camera.position.z = 17;
@@ -24,7 +30,7 @@ function init() {
   var points = [];
   pixels = [];
   for (var point of data.coordinates) {
-    var cgeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    var cgeometry = new THREE.SphereGeometry(0.06, 8, 8);
     cgeometry.translate(point[0], point[1], point[2])
     var cmaterial = new THREE.MeshBasicMaterial({
       color: 0x999999
@@ -37,7 +43,7 @@ function init() {
   var start = data.coordinates[0]
   points.push(new THREE.Vector3(start[0], start[1], start[2]))
   var material = new THREE.LineBasicMaterial({
-    color: 0x0000ff,
+    color: stripColor,
   });
   var geometry = new THREE.BufferGeometry().setFromPoints(points);
   var line = new THREE.Line(geometry, material);
@@ -46,15 +52,15 @@ function init() {
   var cygeometry = new THREE.CylinderGeometry( 0.75, 0.75, 1.5, 32 );
   cygeometry.rotateX(Math.PI/2)
   cygeometry.translate(0,0,-5);
-  var cymaterial = new THREE.MeshBasicMaterial( {color: 0x000044} );
+  var cymaterial = new THREE.MeshBasicMaterial( {color: standColor} );
   var cylinder = new THREE.Mesh( cygeometry, cymaterial );
   group.add( cylinder );
 
   var sgeometry = new THREE.SphereGeometry( 4.25, 32, 16 );
-  var smaterial = new THREE.MeshBasicMaterial( { color: 0x000000 } );
+  var smaterial = new THREE.MeshBasicMaterial( { color: bgColor } );
   var sphere = new THREE.Mesh( sgeometry, smaterial );
   smaterial.transparent = true;
-  smaterial.opacity = 0.7;
+  smaterial.opacity = 0.8;
   group.add( sphere );
 
   scene.add(group);
@@ -62,7 +68,17 @@ function init() {
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(window.innerWidth-20, window.innerHeight-20);
 
+  composer = new THREE.EffectComposer(renderer)
+  composer.addPass(new THREE.RenderPass(scene, camera))
+
   document.body.appendChild(renderer.domElement);
+  const bloomPass = new THREE.UnrealBloomPass(
+      resolution=new THREE.Vector2(256, 256),
+      strength=3,
+      radius=0,
+      threshold=0.0
+  )
+  composer.addPass(bloomPass)
 
 }
 
@@ -80,11 +96,14 @@ function render() {
     for(let i = 0; i < pixels.length; i++){
       var pixel = pixels[i]
       var j = i*6
-      var color = `#${rp.slice(j+3,j+4)}${rp.slice(j+1,j+2)}${rp.slice(j+5,j+6)}`
-      pixel.material.color.set(color)
+      var color = `#${rp.slice(j+2,j+4)}${rp.slice(j+0,j+2)}${rp.slice(j+4,j+6)}`
+      // pixel.material.color.set(color)
+      pixel.material.color.set(new THREE.Color(color).multiplyScalar(5))
+      // pixel.material.color.set(new THREE.Color(color).multiply(new THREE.Color(6,6,0)))
     }
   }
-  renderer.render(scene, camera);
+  // renderer.render(scene, camera);
+  composer.render()
 }
 
 var active = false;

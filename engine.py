@@ -496,9 +496,14 @@ def clear():
 
 fluid_heads = [0]
 fluid_values = np.array([1.0] + [0.0] * (SIZE - 1))
+previous_fluid_time = 0
 def render_fluid():
-  sleep(0.03)
-  global fluid_heads, fluid_values, raw_pixels, pixels
+  global fluid_heads, fluid_values, raw_pixels, pixels, previous_fluid_time
+  time_to_wait = previous_fluid_time + 0.066 - time()
+  if time_to_wait > 0:
+    sleep(time_to_wait)
+
+  previous_fluid_time = time()
   new_heads = []
   for head in fluid_heads:
     for n in neighbors[head]:
