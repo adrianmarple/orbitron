@@ -697,8 +697,11 @@ def run_core_loop():
 
   last_frame_time = time()
   while True:
-    update()
+    time_to_wait = last_frame_time + 0.033 - time()
+    if time_to_wait > 0:
+      sleep(time_to_wait)
     frame_time = time() - last_frame_time
     # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
+    update()
 
