@@ -20,8 +20,8 @@ function init() {
   group = new THREE.Group()
   scene = new THREE.Scene()
   bgColor = new THREE.Color(0)
-  stripColor = new THREE.Color(0x444444)
-  standColor = new THREE.Color(0x111111)
+  stripColor = new THREE.Color(0x282828)
+  standColor = new THREE.Color(0x080808)
   scene.background = bgColor
 
   camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000)
@@ -76,7 +76,7 @@ function init() {
       resolution=new THREE.Vector2(256, 256),
       strength=3,
       radius=0,
-      threshold=0.0
+      threshold=0
   )
   composer.addPass(bloomPass)
 
@@ -102,8 +102,8 @@ function render() {
   if(west){
     moveVelocityX = moveVelocityX + acceleration
   }
-  moveVelocityX = clamp(moveVelocityX * exponentialFactor, -maxVelocity, maxVelocity)
-  moveVelocityY = clamp(moveVelocityY * exponentialFactor, -maxVelocity, maxVelocity)
+  moveVelocityX = clamp(moveVelocityX * exponentialFactor, -maxVelocityX, maxVelocityX)
+  moveVelocityY = clamp(moveVelocityY * exponentialFactor, -maxVelocityY, maxVelocityY)
   yOffset += moveVelocityY
   xOffset += moveVelocityX
   var maxYOffset = 0.65*200
@@ -124,21 +124,22 @@ function render() {
       var pixel = pixels[i]
       var j = i*6
       var color = `#${rp.slice(j+2,j+4)}${rp.slice(j+0,j+2)}${rp.slice(j+4,j+6)}`
-      // pixel.material.color.set(color)
-      pixel.material.color.setStyle(color, THREE.LinearSRGBColorSpace)
-      //pixel.material.color.set(new THREE.Color(color).multiplyScalar(5))
-      // pixel.material.color.set(new THREE.Color(color).multiply(new THREE.Color(6,6,0)))
+      let c = new THREE.Color()
+      c.setStyle(color, THREE.LinearSRGBColorSpace)
+      c.multiplyScalar(5)
+      pixel.material.color = c
     }
   }
-  // renderer.render(scene, camera)
+
   composer.render()
 }
 
 var moveVelocityX = 0
 var moveVelocityY = 0
-var maxVelocity = 10
-var acceleration = 5
-var exponentialFactor = 0.85
+var maxVelocityX = 10
+var maxVelocityY = 8
+var acceleration = 3
+var exponentialFactor = 0.7
 var west = false
 var east = false
 var north = false
@@ -149,7 +150,6 @@ document.addEventListener("keyup", moveEnd, false)
 
 function moveStart(e) {
   var k = e.key
-  console.log(k)
   if(k === "w" || k === "ArrowUp"){
     north = true
   }else if(k === "s" || k === "ArrowDown"){

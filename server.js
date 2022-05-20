@@ -53,14 +53,23 @@ var wsDevServer = new WebSocket.Server({
 wsDevServer.on('connection', socket => {
   socket.binaryType = "arraybuffer"
   console.log('Dev Connection accepted.')
-  devConnections[socket.id] = socket
+  let id = Math.floor(Math.random() * 1000000000)
+  devConnections[id] = socket
+  socket.id = id
   socket.on('close', () => {
     console.log("Dev connection closed")
-    delete devConnections[socket.id]
+    delete devConnections[id]
   })
 })
 
 devConnections = {}
+
+function devBroadcast(message) {
+  for (let id in devConnections) {
+    devConnections[id].send(message)
+  }
+}
+
 
 // Client Websocket server
 
@@ -213,13 +222,6 @@ function broadcast(baseMessage) {
     connectionQueue[i].send(JSON.stringify(baseMessage))
   }
 }
-
-function devBroadcast(message) {
-  for (let id in devConnections) {
-    devConnections[id].send(message)
-  }
-}
-
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}});
 python_process.stdout.on('data', data => {

@@ -32,7 +32,7 @@ def setup():
     color=(0, 200, 0),
     color_string="#4caf50") #green
   Snek(position=198,
-    color=(1, 12, 200),
+    color=(0, 0, 200),
     color_string="#1e88e5") #blue
   Snek(position=24,
     color=(200, 2, 20),
