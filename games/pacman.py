@@ -105,7 +105,6 @@ def handle_event(message, player):
       new_player = Ghost(template_player=player)
     else:
       new_player = Pacman(template_player=player)
-    broadcast_state()
 
 
 def start_update():
@@ -230,7 +229,6 @@ def gameover(winner):
       color_string="red",
       players=ghosts())
   music["battle1"].stop()
-  broadcast_state()
 
 
 def is_everyone_ready(minimum):
@@ -294,7 +292,6 @@ class Pacman(Player):
           ghost.hit_time = time()
           ghost.power_pellet_end_time = 0 # ghost no longer scared
           data["score"] += config["GHOST_KILL_SCORE"]
-          broadcast_state()
           break
         elif time() - self.hit_time > config["INVULNERABILITY_TIME"]:
           self.hit_time = time()
@@ -307,7 +304,6 @@ class Pacman(Player):
             self.is_alive = False
           else:
             sounds["hurt"].play()
-          broadcast_state()
           break
 
 

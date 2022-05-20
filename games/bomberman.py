@@ -253,7 +253,6 @@ def gameover(winner):
   else:
     music["battle1"].stop()
   touchall()
-  broadcast_state()
 
 
 # ================================ TEAM =========================================
@@ -410,7 +409,6 @@ class Bomberman(Player):
         sounds["death"].play()
 
       self.hit_time = time()
-      broadcast_state()
 
 
     # Try to place bomb if tapped
