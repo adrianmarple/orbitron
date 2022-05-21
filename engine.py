@@ -149,36 +149,31 @@ def update():
   global game_state, state_end_time
   global pixels, raw_pixels
 
-
-  if not game_state:
-    render_fluid()
-    # render_snake()
-    return
-  if len(claimed_players()) == 0:
+  if game_state and len(claimed_players()) == 0:
     quit()
-    return
-
-  try:
-    game_state.update()
-
-    if state_end_time <= time() and state_end_time > 0:
-      game_state.ontimeout()
-
-    # For countdown on phone
-    remaining_time = state_end_time - time()
-
-    pixels *= 0
-    game_state.render()
-
-    pixels = np.minimum(pixels, 255)
-    pixels = np.maximum(pixels, 0)
-    raw_pixels = np.matmul(dupe_matrix,pixels)
-    raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
-    output=np.array(raw_pixels,dtype="<u1").tobytes()
-    neopixel_write(pin,output)
-    broadcast_state()
-  except Exception:
-    print(traceback.format_exc())
+  else:
+    try:
+      if not game_state:
+        render_fluid()
+        # render_snake()
+      else:
+        game_state.update()
+        if state_end_time <= time() and state_end_time > 0:
+          game_state.ontimeout()
+        # For countdown on phone
+        remaining_time = state_end_time - time()
+        pixels *= 0
+        game_state.render()
+        
+      pixels = np.minimum(pixels, 255)
+      pixels = np.maximum(pixels, 0)
+      raw_pixels = np.matmul(dupe_matrix,pixels)
+      raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
+      output=np.array(raw_pixels,dtype="<u1").tobytes()
+      neopixel_write(pin,output)
+      broadcast_state()
+    except Exception:
+      print(traceback.format_exc())
 
 
 # ================================ TEAM =========================================
@@ -512,24 +507,20 @@ def render_fluid():
   fluid_values *= 0.86
   squares = np.multiply(fluid_values, fluid_values)
   pixels = np.outer(squares, phase_color() * 200)
-  raw_pixels = np.matmul(dupe_matrix,pixels)
-  raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
-  output=np.array(raw_pixels,dtype="<u1").tobytes()
-  neopixel_write(pin,output)
 
-indicies = np.arange(RAW_SIZE)
-def render_snake():
-  global raw_pixels
-
-  phases = indicies / 40 + time()/2
-  phases = np.minimum(1, np.mod(phases, 6))
-  phases = np.sin(pi * phases) * 50
-
-  raw_pixels = np.outer(phases, phase_color())
-  # raw_pixels = np.outer(phases, np.ones((1, 3)))
-
-  output = np.array(raw_pixels,dtype="<u1").tobytes()
-  neopixel_write(pin,output)
+#indicies = np.arange(RAW_SIZE)
+#def render_snake():
+#  global raw_pixels
+#
+#  phases = indicies / 40 + time()/2
+#  phases = np.minimum(1, np.mod(phases, 6))
+#  phases = np.sin(pi * phases) * 50
+#
+#  raw_pixels = np.outer(phases, phase_color())
+#  # raw_pixels = np.outer(phases, np.ones((1, 3)))
+#
+#  output = np.array(raw_pixels,dtype="<u1").tobytes()
+#  neopixel_write(pin,output)
 
 def phase_color():
   color_phase = (time()/10) % 1
