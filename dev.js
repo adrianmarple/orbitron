@@ -97,10 +97,10 @@ function render() {
     moveVelocityY = moveVelocityY - acceleration
   }
   if(east){
-    moveVelocityX = moveVelocityX - acceleration
+    moveVelocityX = moveVelocityX + acceleration
   }
   if(west){
-    moveVelocityX = moveVelocityX + acceleration
+    moveVelocityX = moveVelocityX - acceleration
   }
   moveVelocityX = clamp(moveVelocityX * exponentialFactor, -maxVelocityX, maxVelocityX)
   moveVelocityY = clamp(moveVelocityY * exponentialFactor, -maxVelocityY, maxVelocityY)
