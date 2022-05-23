@@ -22,9 +22,9 @@ config["SANDBOX_APPLES_PER_SNEK"] = 15
 config["ADDITIONAL_APPLES"] = 25
 config["INTERSECTION_PAUSE_FACTOR"] = 0.2
 config["SNAKE_MOVE_FREQ"] = 0.25
-config["SNEK_REQUIRED_LEAD_TIME"] = 10
-config["SNEK_LEAD_THRESHOLD"] = 10
-config["SNEK_FIXED_TIME_ROUNDS"] = True
+# config["SNEK_REQUIRED_LEAD_TIME"] = 10
+# config["SNEK_LEAD_THRESHOLD"] = 10
+# config["SNEK_FIXED_TIME_ROUNDS"] = True
 
 
 def setup():
@@ -71,10 +71,11 @@ def countdown_ontimeout():
   for i in range(len(playing_players()) + config["ADDITIONAL_APPLES"]):
     spawn("apple")
   data["current_leader"] = -1
-  if config["SNEK_FIXED_TIME_ROUNDS"]:
-    engine.state_end_time = time() + config["SNEK_ROUND_TIME"]
-  else:
-    engine.state_end_time = 0
+  engine.state_end_time = time() + config["SNEK_ROUND_TIME"]
+  # if config["SNEK_FIXED_TIME_ROUNDS"]:
+  #   engine.state_end_time = time() + config["SNEK_ROUND_TIME"]
+  # else:
+  #   engine.state_end_time = 0
   engine.game_state = play_state
   music["snekBattle"].play()
 
@@ -84,23 +85,23 @@ def play_update():
     player.move()
 
 
-  if not config["SNEK_FIXED_TIME_ROUNDS"]:
-    leader = None
-    runner_up = None
-    for player in playing_players():
-      if leader is None or len(leader.tail) < len(player.tail):
-        runner_up = leader
-        leader = player
-      elif runner_up is None or len(runner_up.tail) < len(player.tail):
-        runner_up = player
+  # if not config["SNEK_FIXED_TIME_ROUNDS"]:
+  #   leader = None
+  #   runner_up = None
+  #   for player in playing_players():
+  #     if leader is None or len(leader.tail) < len(player.tail):
+  #       runner_up = leader
+  #       leader = player
+  #     elif runner_up is None or len(runner_up.tail) < len(player.tail):
+  #       runner_up = player
 
-    if data["current_leader"] >= 0: #someone is in the lead
-      if leader.id != data["current_leader"]:
-        engine.state_end_time = 0
-        data["current_leader"] = -1
-    elif len(leader.tail) - len(runner_up.tail)  > config["SNEK_LEAD_THRESHOLD"]:
-      engine.state_end_time = time() + config["SNEK_REQUIRED_LEAD_TIME"]
-      data["current_leader"] = leader.id
+  #   if data["current_leader"] >= 0: #someone is in the lead
+  #     if leader.id != data["current_leader"]:
+  #       engine.state_end_time = 0
+  #       data["current_leader"] = -1
+  #   elif len(leader.tail) - len(runner_up.tail)  > config["SNEK_LEAD_THRESHOLD"]:
+  #     engine.state_end_time = time() + config["SNEK_REQUIRED_LEAD_TIME"]
+  #     data["current_leader"] = leader.id
 
 
 def play_ontimeout():
@@ -168,7 +169,7 @@ class Snek(Player):
     self.last_move_input_time = 0
     self.score = config["START_LENGTH"]
     self.tail.clear()
-    self.shrinking = False
+    self.shrinking = 0
     for i in range(config["START_LENGTH"]):
       self.tail.append(self.initial_position)
 
@@ -176,7 +177,7 @@ class Snek(Player):
     Player.setup_for_game(self)
     self.score = config["START_LENGTH"]
     self.tail.clear()
-    self.shrinking = False
+    self.shrinking = 0
     for i in range(config["START_LENGTH"]):
       self.tail.append(self.initial_position)
 
@@ -196,11 +197,7 @@ class Snek(Player):
     return False
 
   def die(self):
-    self.shrinking = True
-    # while len(self.tail)>config["START_LENGTH"]:
-    #   self.tail.popleft()
-    # self.position = self.tail[0]
-    # self.prev_pos = self.tail[1]
+    self.shrinking = time()
 
   def move_delay(self):
     speed = config["SNAKE_MOVE_FREQ"] * sqrt(config["START_LENGTH"]/len(self.tail))
@@ -258,11 +255,12 @@ class Snek(Player):
 
   def move(self):
     if len(self.tail) <= config["START_LENGTH"]:
-      self.shrinking = False
-    if self.shrinking:
+      self.shrinking = 0
+    if self.shrinking && time() - self.shrinking > config["SHRINK_FREQ"]:
       self.tail.popleft()
       self.position = self.tail[0]
       self.prev_pos = self.tail[1]
+      self.shrinking = time()
 
     for player in current_players():
       if player == self:
