@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 
 import numpy as np
-import numbers
 import os
 import sys
 
 from math import exp, ceil, floor, pi, cos, sin, sqrt
 from random import randrange, random, choice
-from time import time, sleep
+from time import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from audio import sounds, music
+from audio import sounds
 import engine
 from engine import *
 
@@ -40,195 +39,153 @@ data["victory_score"] = 0
 data["lives"] = config["PACMEN_LIVES"]
 power_pulses = []
 
-previous_pellet_generation_time = 0
-previous_power_pellet_generation_time = 0
+class PacMan(Game):
+  name = __name__
 
-ghost_colors = [
-  #np.array((1, 0.5, 0)),
-  np.array((1, 0, 0)),
-  #np.array((1, 0, 0.5)),
-  #np.array((1, 0, 1)),
-]
-ghost_color_strings = [
-  #"#ff7f00",
-  "#ff0000",
-  #"#ff007f",
-  #"#f0f",
-]
+  previous_pellet_generation_time = 0
+  previous_power_pellet_generation_time = 0
 
-def setup():
-  Pacman(
-    position=24,
-    color=(255, 255, 0),
-    color_string="#ffff00"
-  )
-  Pacman(
-    position=105,
-    color=(96, 255, 0),
-    color_string="#80ff00"
-  )
-  Pacman(
-    position=202,
-    color=(0, 255, 0),
-    color_string="#00ff00"
-  )
-  Pacman(
-    position=117,
-    color=(0, 255, 96),
-    color_string="#00ff80"
-  )
-  Pacman(
-    position=50,
-    color=(0, 255, 255),
-    color_string="#00ffff"
-  )
-  Pacman(
-    position=157,
-    color=(255, 128, 0),
-    color_string="#ff8000"
-  )
-  #North Pole Coords = 268-273 133-141 172
-  Ghost(position=133)
-  Ghost(position=137)
-  Ghost(position=141)
-  Ghost(position=172)
-  Ghost(position=135)
-  Ghost(position=139)
-  Ghost(position=269)
-  Ghost(position=272)
-  Ghost(position=134)
-  Ghost(position=138)
+  def setup(self):
+    Pacman(
+      position=24,
+      color=(255, 255, 0),
+      color_string="#ffff00"
+    )
+    Pacman(
+      position=105,
+      color=(96, 255, 0),
+      color_string="#80ff00"
+    )
+    Pacman(
+      position=202,
+      color=(0, 255, 0),
+      color_string="#00ff00"
+    )
+    Pacman(
+      position=117,
+      color=(0, 255, 96),
+      color_string="#00ff80"
+    )
+    Pacman(
+      position=50,
+      color=(0, 255, 255),
+      color_string="#00ffff"
+    )
+    Pacman(
+      position=157,
+      color=(255, 128, 0),
+      color_string="#ff8000"
+    )
+    #North Pole Coords = 268-273 133-141 172
+    Ghost(position=133)
+    Ghost(position=137)
+    Ghost(position=141)
+    Ghost(position=172)
+    Ghost(position=135)
+    Ghost(position=139)
+    Ghost(position=269)
+    Ghost(position=272)
+    Ghost(position=134)
+    Ghost(position=138)
 
-def handle_event(message, player):
-  if message["type"] == "roleChange":
-    if message["role"] == "ghost":
-      new_player = Ghost(template_player=player)
-    else:
-      new_player = Pacman(template_player=player)
+  def start_update(self):
+    for player in current_players():
+      player.move()
 
+    ghost_count = 0
+    num_ghosts = len(pacmen())
+    for ghost in ghosts():
+      ghost_count += 1
+      ghost.is_playing = ghost_count <= num_ghosts
 
-def start_update():
-  for player in current_players():
-    player.move()
+    self.spawn_pellets()
 
-  ghost_count = 0
-  num_ghosts = len(pacmen())
-  for ghost in ghosts():
-    ghost_count += 1
-    ghost.is_playing = ghost_count <= num_ghosts
+  def start_ontimeout(self):
+    # Suppliment with AI ghosts
+    ghost_count = 0
+    num_ghosts = config["NUM_GHOSTS"] + len(pacmen())
+    for ghost in ghosts():
+      ghost_count += 1
+      ghost.reset()
+      ghost.is_playing = ghost_count <= num_ghosts
 
-  spawn_pellets()
+    Game.start_ontimeout(self)
 
-def pac_start_ontimeout():
-  # Suppliment with AI ghosts
-  ghost_count = 0
-  num_ghosts = config["NUM_GHOSTS"] + len(pacmen())
-  for ghost in ghosts():
-    ghost_count += 1
-    ghost.reset()
-    ghost.is_playing = ghost_count <= num_ghosts
-
-  start_ontimeout()
-
-  data["lives"] = config["PACMEN_LIVES"]
-  data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
+    data["lives"] = config["PACMEN_LIVES"]
+    data["victory_score"] = config["VICTORY_SCORE"] + len(pacmen_playing()) * config["MARGINAL_PACMAN_VICTORY_SCORE"]
 
 
 
-def countdown_ontimeout():
-  for i in range(len(statuses)):
-    statuses[i] = "pellet"
+  def countdown_ontimeout(self):
+    for i in range(len(statuses)):
+      statuses[i] = "pellet"
+    for i in range(config["STARTING_POWER_PELLET_COUNT"]):
+      statuses[randrange(len(statuses))] = "power"
 
-  for i in range(config["STARTING_POWER_PELLET_COUNT"]):
-    statuses[randrange(len(statuses))] = "power"
-
-  global previous_pellet_generation_time, previous_power_pellet_generation_time
-  previous_pellet_generation_time = time()
-  previous_power_pellet_generation_time = time()
-  engine.game_state = play_state
-  music["battle1"].play()
-  data["score"] = 0
+    self.previous_pellet_generation_time = time()
+    self.previous_power_pellet_generation_time = time()
+    Game.countdown_ontimeout(self)
 
 
-def play_update():
-  for player in playing_players():
-    player.move()
+  def play_update(self):
+    for player in playing_players():
+      player.move()
 
-  ghosts_win = True
-  for player in playing_players():
-    if player.is_pacman and player.is_alive:
-      ghosts_win = False
-      break
+    ghosts_win = True
+    for player in playing_players():
+      if player.is_pacman and player.is_alive:
+        ghosts_win = False
+        break
 
-  if ghosts_win or data["lives"] <= 0:
-    gameover("ghosts")
+    if ghosts_win or data["lives"] <= 0:
+      self.play_ontimeout()
+      engine.victor = Dummy(team_id=0,
+        name="Ghosts",
+        color=(255, 0, 0),
+        color_string="red")
 
-  if data["score"] >= data["victory_score"]:
-    gameover("pacmen")
+    if data["score"] >= data["victory_score"]:
+      self.play_ontimeout()
+      engine.victor = Dummy(
+        name="Pacmen",
+        color=pacmen()[0].color,
+        color_string=pacmen()[0].color_string)
 
-  spawn_pellets()
-
-def spawn_pellets():
-  global previous_pellet_generation_time, previous_power_pellet_generation_time
-  if time() - previous_pellet_generation_time > config["PELLET_REGEN_FREQ"]:
-    spawn("pellet")
-    previous_pellet_generation_time = time()
-  if time() - previous_power_pellet_generation_time > config["POWER_PELLET_REGEN_FREQ"]:
-    spawn("power")
-    previous_power_pellet_generation_time = time()
-
+    self.spawn_pellets()
 
 
-def previctory_ontimeout():
-  engine.game_state = victory_state
-  engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
-  music["victory"].play()
+  def spawn_pellets(self):
+    if time() - self.previous_pellet_generation_time > config["PELLET_REGEN_FREQ"]:
+      spawn("pellet")
+      self.previous_pellet_generation_time = time()
+    if time() - self.previous_power_pellet_generation_time > config["POWER_PELLET_REGEN_FREQ"]:
+      spawn("power")
+      self.previous_power_pellet_generation_time = time()
 
 
-def render_game():
-  reversed_players = current_players()
-  reversed_players.reverse()
-  # for player in reversed_players:
-  #   player.render_ghost_trail()
+  def render_game(self):
+    reversed_players = current_players()
+    reversed_players.reverse()
 
-  power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 16))
-  for i in range(SIZE):
-    if statuses[i] == "blank":
-      # already handled
-      pass
-    elif statuses[i] == "pellet":
-      color_pixel(i, (10, 10, 10))
-    elif statuses[i] == "power":
-      color_pixel(i, power_color)
+    power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 16))
+    for i in range(SIZE):
+      if statuses[i] == "pellet":
+        color_pixel(i, (10, 10, 10))
+      elif statuses[i] == "power":
+        color_pixel(i, power_color)
 
-  for player in reversed_players:
-    player.render()
+    for player in reversed_players:
+      player.render()
 
-  global power_pulses
-  READY_PULSE_DURATION
-  power_pulses = [pulse for pulse in power_pulses if time() < pulse[1] + READY_PULSE_DURATION]
-  for (origin, start_time) in power_pulses:
-    render_pulse(direction=-origin,
-      color=(200,200,200),
-      start_time=start_time,
-      duration=READY_PULSE_DURATION)
+    global power_pulses
+    READY_PULSE_DURATION
+    power_pulses = [pulse for pulse in power_pulses if time() < pulse[1] + READY_PULSE_DURATION]
+    for (origin, start_time) in power_pulses:
+      render_pulse(direction=-origin,
+        color=(200,200,200),
+        start_time=start_time,
+        duration=READY_PULSE_DURATION)
 
-def gameover(winner):
-  engine.game_state = previctory_state
-  engine.state_end_time = time() + 1
-  if winner == "pacmen":
-    engine.victor = Team(team_id=0,
-      name="Pacmen",
-      color=pacmen()[0].color,
-      color_string=pacmen()[0].color_string,
-      players=pacmen())
-  else:
-    engine.victor = Team(team_id=0,
-      name="Ghosts",
-      color=(255, 0, 0),
-      color_string="red",
-      players=ghosts())
-  music["battle1"].stop()
 
 
 def is_everyone_ready(minimum):
@@ -240,13 +197,6 @@ def pacmen():
   return [player for player in players if player.is_pacman and player.is_claimed]
 def pacmen_playing():
   return [player for player in players if player.is_pacman and player.is_playing]
-
-
-start_state = State("start", start_update, pac_start_ontimeout, render_game)
-countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
-play_state = State("play", play_update, None, render_game)
-previctory_state = State("previctory", None, previctory_ontimeout, render_game)
-victory_state = State("victory", None, victory_ontimeout, render_victory)
 
 
 # ================================ PLAYER =========================================
@@ -273,7 +223,7 @@ class Pacman(Player):
       return config["PACMAN_MOVE_FREQ"]
 
   def is_occupied(self, position):
-    considered_players = claimed_players() if engine.game_state == start_state else playing_players()
+    considered_players = claimed_players() if game.state == "start" else playing_players()
     for player in considered_players:
       if player.is_alive and player.is_pacman == self.is_pacman and player.position == position:
         return True
@@ -346,10 +296,9 @@ class Ghost(Player):
     self.power_pellet_end_time = 0
 
   def set_color(self):
-    color_index = self.id % len(ghost_colors)
-    self.color = ghost_colors[color_index]
+    self.color = np.array((1, 0, 0))
     self.team_color = self.color
-    self.color_string = ghost_color_strings[color_index]
+    self.color_string = "#ff0000"
     return
 
   def is_scared(self):
@@ -426,3 +375,5 @@ class Ghost(Player):
 
     Player.render(self)
 
+
+game = PacMan()

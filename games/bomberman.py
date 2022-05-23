@@ -30,7 +30,6 @@ config["TARGET_KILL_COUNT"] = 5
 config["BATTLE_ROYALE_DURATION"] = 150
 config["DEATH_CREEP_DURATION"] = 60
 config["SUICIDE_STUN"] = True
-config["FRAG_SUICIDE"] = True
 config["EXPLODE_ON_IMPACT"] = False
 config["FIXED_OWNERSHIP"] = False
 config["TAP_TO_DETONATE"] = False
@@ -41,139 +40,65 @@ config["MAX_BOMBS"] = 3
 
 
 explosion_providence = [None] * SIZE
-previous_wall_generation_time = 0
 
-def setup():
-  Bomberman(
-    position=105,
-    color=(0, 200, 0),
-    color_string="#4caf50",
-    team_color=(220, 30, 0),
-    team_color_string="#fc9d03")
-  Bomberman(
-    position=198,
-    color=(1, 12, 200),
-    color_string="#1e88e5",
-    team_color=(0, 0, 250),
-    team_color_string="#00e")
-  Bomberman(
-    position=24,
-    color=(200, 2, 20),
-    color_string="#e91e63",
-    team_color=(250, 20, 10),
-    team_color_string="#ff2a12")
-  Bomberman(
-    position=54,
-    color=(100, 0, 250),
-    color_string="#9575cd",
-    team_color=(50, 0, 150),
-    team_color_string="#7d00f2")
-  Bomberman(
-    position=252,
-    color=(180, 200, 5),
-    color_string="#c0ca33",
-    team_color=(200, 70, 0),
-    team_color_string="#fcba03")
-  Bomberman(
-    position=168,
-    color=(200, 50, 0),
-    color_string="#ff9800",
-    team_color=(0, 120, 120),
-    team_color_string="#00b6f2")
-
-  global RED_TEAM, BLUE_TEAM
-
-  RED_TEAM = Team(
-    team_id=0,
-    color=np.array((220, 30, 0)),
-    color_string="orange",
-    name="Orange Team",
-    players=[players[0], players[2], players[4]]
-  )
-  BLUE_TEAM = Team(
-    team_id=1,
-    color=np.array((0, 0, 255)),
-    color_string="blue",
-    name="Blue Team",
-    players=[players[1], players[3], players[5]]
-  )
-  teams.clear()
-  teams.append(RED_TEAM)
-  teams.append(BLUE_TEAM)
+class Rhomberman(Game):
+  name = __name__
+  previous_wall_generation_time = 0
 
 
-def handle_event(message,player):
-  pass
+  def start_update(self):
+    for player in claimed_players():
+      player.move()
 
-def start_update():
-  wall_count = 0
-  for status in statuses:
-    if status == "wall":
-      wall_count += 1
-  for i in range(config["SANDBOX_WALL_NUM"] - wall_count):
-    spawn("wall")
-
-  for player in claimed_players():
-    player.move()
+    wall_count = 0
+    for status in statuses:
+      if status == "wall":
+        wall_count += 1
+    for i in range(config["SANDBOX_WALL_NUM"] - wall_count):
+      spawn("wall")
 
 
-def countdown_ontimeout():
-  for player in playing_players():
-    player.tap = 0 # Prevent bombs from being placed due to taps during countdown
 
-  for i in range(config["NUM_WALLS"]):
-    spawn("wall")
+  def countdown_ontimeout(self):
+    for player in playing_players():
+      player.tap = 0 # Prevent bombs from being placed due to taps during countdown
 
-  engine.game_state = play_state
-  engine.state_end_time = time() + config["BATTLE_ROYALE_DURATION"]
+    for i in range(config["NUM_WALLS"]):
+      spawn("wall")
 
-  global previous_wall_generation_time
-  previous_wall_generation_time = time()
-
-  if config["DEATHMATCH"]:
-    music["dm1"].play()
-  else:
-    music["battle1"].play()
-
-
-def play_update():
-  for player in playing_players():
-    player.move()
-
-  global previous_wall_generation_time
-  if time() - previous_wall_generation_time > config["WALL_SPAWN_TIME"]:
-    spawn("wall")
-    previous_wall_generation_time = time()
-
-  if config["DEATHMATCH"]:
-    if config["TEAM_MODE"]:
-      if BLUE_TEAM.kill_count() >= config["TARGET_KILL_COUNT"]:
-        gameover(BLUE_TEAM)
-      if RED_TEAM.kill_count() >= config["TARGET_KILL_COUNT"]:
-        gameover(RED_TEAM)
+    Game.countdown_ontimeout(self)
+    if config["DEATHMATCH"]:
+      self.end_time = 0
     else:
+      self.end_time = time() + config["BATTLE_ROYALE_DURATION"]
+    self.previous_wall_generation_time = time()
+
+
+  def play_update(self):
+    for player in playing_players():
+      player.move()
+
+    if time() - self.previous_wall_generation_time > config["WALL_SPAWN_TIME"]:
+      spawn("wall")
+      self.previous_wall_generation_time = time()
+
+    if config["DEATHMATCH"]:
       for player in playing_players():
         if player.kill_count >= config["TARGET_KILL_COUNT"]:
-          gameover(player)
+          Game.play_ontimeout(self)
+          engine.victor = player
           break
-  else:
-    # Timer death creep from south pole
-    phase = (engine.state_end_time - time()) / config["DEATH_CREEP_DURATION"]
-    threshold = COORD_MAGNITUDE * (1 - 2 * phase)
-    threshold = min(threshold, COORD_MAGNITUDE * 0.8)
-    for i in range(SIZE):
-      z = unique_coords[i][2]
-      if z < threshold:
-        statuses[i] = "death"
-        explosion_providence[i] = None
-
-
-    if config["TEAM_MODE"]:
-      if not BLUE_TEAM.is_alive():
-        gameover(RED_TEAM)
-      if not RED_TEAM.is_alive():
-        gameover(BLUE_TEAM)
     else:
+      # Timer death creep from south pole
+      phase = (self.end_time - time()) / config["DEATH_CREEP_DURATION"]
+      threshold = COORD_MAGNITUDE * (1 - 2 * phase)
+      threshold = min(threshold, COORD_MAGNITUDE * 0.8)
+      for i in range(SIZE):
+        z = unique_coords[i][2]
+        if z < threshold:
+          statuses[i] = "death"
+          explosion_providence[i] = None
+
       live_player_count = 0
       last_player_alive = players[0]
       for player in playing_players():
@@ -186,47 +111,31 @@ def play_update():
 
       # GAME OVER
       if live_player_count <= 1:
-        gameover(last_player_alive)
+        Game.play_ontimeout(self)
+        engine.victor = last_player_alive
 
 
-def previctory_ontimeout():
-  engine.game_state = victory_state
-  engine.state_end_time = time() + config["VICTORY_TIMEOUT"]
-  music["victory"].play()
+  def render_game(self):
+    for player in current_players():
+      player.render_ghost_trail()
 
-
-def render_game():
-  for player in current_players():
-    player.render_ghost_trail()
-
-  for i in range(SIZE):
-    if statuses[i] == "blank":
-      # already handled
-      pass
-    elif statuses[i] == "death":
-      color_pixel(i, (10, 0, 0))
-    elif statuses[i] == "wall":
-      color_pixel(i, (11, 9, 9))
-    elif statuses[i] == "power_pickup":
-      magnitude = 0.3 + 0.1 * sin(40*time() + i)
-      magnitude = magnitude * magnitude
-      color_pixel(i, np.array((180,100,140)) * magnitude)
-    elif statuses[i] < time():
-      statuses[i] = "blank"
-      color_pixel(i, (0, 0, 0))
-    else:
-      render_explosion(i)
-
-  for player in current_players():
-    player.render()
-
-
-
-start_state = State("start", start_update, start_ontimeout, render_game)
-countdown_state = State("countdown", None, countdown_ontimeout, render_countdown)
-play_state = State("play", play_update, None, render_game)
-previctory_state = State("previctory", None, previctory_ontimeout, render_game)
-victory_state = State("victory", None, victory_ontimeout, render_victory)
+    for i in range(SIZE):
+      if statuses[i] == "blank":
+        # already handled
+        pass
+      elif statuses[i] == "death":
+        color_pixel(i, (10, 0, 0))
+      elif statuses[i] == "wall":
+        color_pixel(i, (11, 9, 9))
+      elif statuses[i] == "power_pickup":
+        magnitude = 0.3 + 0.1 * sin(40*time() + i)
+        magnitude = magnitude * magnitude
+        color_pixel(i, np.array((180,100,140)) * magnitude)
+      elif statuses[i] < time():
+        statuses[i] = "blank"
+        color_pixel(i, (0, 0, 0))
+      else:
+        render_explosion(i)
 
 
 
@@ -241,78 +150,17 @@ def render_explosion(index):
 def is_pixel_blank(index):
   status = statuses[index]
   return status == "blank" 
-    #or (isinstance(status, numbers.Number) and status - time() > config["BOMB_EXPLOSION_TIME"])
 
-
-def gameover(winner):
-  engine.game_state = previctory_state
-  engine.state_end_time = time() + 1
-  engine.victor = winner
-  if config["DEATHMATCH"]:
-    music["dm1"].stop()
-  else:
-    music["battle1"].stop()
-  touchall()
-
-
-# ================================ TEAM =========================================
-
-# TODO inherit from engine.Team
-class Team:
-  def __init__(self, team_id, color, color_string, name, players):
-    self.id = team_id
-    self.color = color
-    self.color_string = color_string
-    self.name = name
-    self.players = players
-    for player in players:
-      player.team = self
-
-  def kill_count(self):
-    count = 0
-    for player in self.players:
-      count += player.kill_count
-    return count
-
-  def death_count(self):
-    count = 0
-    for player in self.players:
-      count += player.death_count
-    return count
-
-  def is_alive(self):
-    for player in self.players:
-      if player.is_playing and player.is_alive:
-        return True
-    return False
-
-
-  def to_json(self):
-    return {
-      "id": self.id,
-      "color": self.color_string,
-      "score": self.kill_count(),
-      "deathCount": self.death_count(),
-      "players": [player.id for player in self.players],
-    }
 
 # ================================ PLAYER =========================================
 
 class Bomberman(Player):
   def __init__(self, *args, **kwargs):
-    self.team_color_string = kwargs["team_color_string"]
-    kwargs.pop("team_color_string")
     Player.__init__(self, *args, **kwargs)
 
     self.explosion_color_sequence = [
       (0, self.color),
       (1, self.color/3),
-      (1, np.array((40,0,0))),
-      (1, np.array((10,0,0))),
-    ]
-    self.explosion_color_sequence_team = [
-      (0, self.team_color),
-      (1, self.team_color/3),
       (1, np.array((40,0,0))),
       (1, np.array((10,0,0))),
     ]
@@ -337,7 +185,7 @@ class Bomberman(Player):
     self.bomb_power = config["STARTING_BOMB_POWER"]
 
   def current_color_sequence(self):
-    return self.explosion_color_sequence_team if config["TEAM_MODE"] else self.explosion_color_sequence
+    return self.explosion_color_sequence
 
   def is_occupied(self, position):
     if Player.is_occupied(self, position):
@@ -381,15 +229,12 @@ class Bomberman(Player):
       # Hurt
       killer = explosion_providence[pos]
       suicide = killer == self
-      frag = killer and killer.team == self.team and config["TEAM_MODE"]
-      if frag and config["FRAG_SUICIDE"]:
-        suicide = True
       if suicide and config["SUICIDE_STUN"]:
         self.stunned = True
       else:
         self.stunned = False
 
-        if engine.game_state == start_state:
+        if game.state == "start":
           pass
         elif self.has_shield:
           self.has_shield = False
@@ -399,7 +244,7 @@ class Bomberman(Player):
             self.is_alive = False
           if suicide:
             self.kill_count -= 1
-          elif not frag and killer:
+          elif killer:
             killer.kill_count += 1
             killer.score_timestamp = time()
 
@@ -474,9 +319,6 @@ class Bomberman(Player):
     dictionary["bombPower"] = self.bomb_power
     dictionary["score"] = self.kill_count
     dictionary["deathCount"] = self.death_count
-    dictionary["team"] = self.team.id
-    if config["TEAM_MODE"]:
-      dictionary["color"] = self.team_color_string
 
     return dictionary
 
@@ -622,3 +464,4 @@ class Bomb:
       self.owner = new_owner
 
 
+game = Rhomberman(Bomberman)

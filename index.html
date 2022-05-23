@@ -613,10 +613,6 @@ body, #app, .main {
     <div class="header">
       <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 3em">{{Math.round(state.timeRemaining)}}</div>
       <div>{{victoryCondition}}</div>
-<!--       <div v-if="BOMBERMAN && config.DEATHMATCH && !config.TEAM_MODE">First to {{config.TARGET_KILL_COUNT}} points wins</div>
-      <div v-if="BOMBERMAN && !config.DEATHMATCH && !config.TEAM_MODE">Last one standing wins</div>
-      <div v-if="BOMBERMAN && config.DEATHMATCH && config.TEAM_MODE">First team to {{config.TARGET_KILL_COUNT}} points wins</div>
-      <div v-if="BOMBERMAN && !config.DEATHMATCH && config.TEAM_MODE">Last team standing wins</div> -->
     </div>
   </div>
 
@@ -638,14 +634,6 @@ body, #app, .main {
         <br/>
       </div>
 
-<!--       <div v-if="BOMBERMAN && config.DEATHMATCH && config.TEAM_MODE">
-        <div v-for="team in teamsByRanking" class="ranking">
-          <div class="player"
-            :style="{backgroundColor: team.color}"
-          ></div>
-          {{team.score}}
-        </div>
-      </div> -->
       <div v-if="gameInfo.statusDisplay.type == 'battleroyale'">
         Live players:
         <div class="players">
@@ -710,9 +698,6 @@ let GAMES_INFO = [
       {name: "ROUND_TIME"},
       {name: "SNAKE_MOVE_FREQ"},
       {name: "INTERSECTION_PAUSE_FACTOR"},
-      {name: "SNEK_FIXED_TIME_ROUNDS", boolean: true},
-      {name: "SNEK_REQUIRED_LEAD_TIME"},
-      {name: "SNEK_LEAD_THRESHOLD"},
     ],
     rules: [
       {
@@ -750,9 +735,6 @@ let GAMES_INFO = [
     name: "colorwar",
     label: "Color War",
     config: [
-      {name: "REQUIRED_LEAD_TIME"},
-      {name: "LEAD_THRESHOLD"},
-      {name: "FIXED_TIME_ROUNDS", boolean: true},
       {name: "ROUND_TIME"},
     ],
     rules: [
@@ -852,7 +834,6 @@ let GAMES_INFO = [
       {name: "BOMB_EXPLOSION_TIME"},
       {name: "BATTLE_ROYALE_DURATION"},
       {name: "DEATH_CREEP_DURATION"},
-      {name: "FRAG_SUICIDE", boolean: true},
       {name: "TAP_TO_DETONATE", boolean: true},
       {name: "EXPLODE_ON_IMPACT", boolean: true},
       {name: "NEWTONS_CRADLE", boolean: true},
@@ -1133,16 +1114,6 @@ var app = new Vue({
       else
         return {}
     },
-    myTeam() {
-      if(this.state.teams && this.self.team) {
-        return this.state.teams[this.self.team]
-      } else {
-        return []
-      }
-    },
-    teamColor() {
-      return (this.config.TEAM_MODE ? this.myTeam : this.self).color
-    },
 
     majorityCount() {
       return Math.ceil((this.claimedPlayers.length + 1) / 2)
@@ -1182,11 +1153,6 @@ var app = new Vue({
     playersByRanking() {
       return this.livePlayers.sort((p0, p1) => {
         return (p1.score * 1e12 - p1.scoreTimestamp) - (p0.score * 1e12 - p0.scoreTimestamp)
-      })
-    },
-    teamsByRanking() {
-      return this.state.teams.sort((p0, p1) => {
-        return p1.score - p0.score
       })
     },
     position() {

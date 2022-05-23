@@ -19,22 +19,10 @@ for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   module = loader.find_module(module_name).load_module(module_name)
   globals()[module_name] = module
 
-
 def start_game(game):
   global game_module
-  engine.current_game = game
   game_module = globals()[game]
-
-  claimed = []
-  for player in engine.players:
-    claimed.append(player.is_claimed)
-  engine.players.clear()
-  game_module.setup()
-  for (i, player) in enumerate(engine.players):
-    if i < len(claimed):
-      player.is_claimed = claimed[i]
-
-  engine.start(game_module)
+  engine.start(game_module.game)
 
 
 vote_to_message = {}
@@ -69,8 +57,8 @@ def check_vote():
       engine.quit()
     elif election == "skip":
       engine.clear_votes()
-      if engine.game_state:
-        engine.game_state.ontimeout()
+      if engine.current_game:
+        engine.current_game.ontimeout()
     elif election == "start":
       start_game(message["vote"])
     elif election == "ready":
@@ -95,6 +83,7 @@ def consume_input():
         player.is_claimed = True
         # Always start with snektron when first player joins
         if len(engine.claimed_players()) == 1:
+          # start_game("colorwar")
           start_game("snektron")
       elif message["type"] == "release":
         player.is_claimed = False
@@ -122,12 +111,10 @@ def consume_input():
       elif message["type"] == "settings":
         engine.config.update(message["update"])
       elif message["type"] == "advance":
-        if engine.game_state:
-          if not message.get("from", None) or message["from"] == engine.game_state.name:
-            engine.game_state.ontimeout()
+        if engine.current_game:
+          if not message.get("from", None) or message["from"] == engine.current_game.state:
+            engine.current_game.ontimeout()
             engine.clear_votes()
-      elif game_module:
-        game_module.handle_event(message, player)
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

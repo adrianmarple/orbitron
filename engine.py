@@ -44,9 +44,9 @@ config = {
   "MOVE_FREQ": 0.18,
   "ALLOW_CROSS_TIP_MOVE": False,
   "MOVE_BIAS": 0.5,
-  "TEAM_MODE": False,
   "VICTORY_TIMEOUT": 42,
   "STUN_SLOWDOWN": 0.3,
+  "ROUND_TIME": 94.6,
 }
 
 READY_PULSE_DURATION = 0.75
@@ -82,56 +82,41 @@ START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
 statuses = ["blank"] * SIZE
 
 current_game = None
-game_state = None
-state_end_time = 0
-states = {}
 victor = None
 
 data = {}
 players = []
-teams = []
 
 
-
-
-class State:
-  def __init__(self, name, update=None, ontimeout=None, render=None):
-    self.name = name
-    states[name] = self
-    if update:
-      self.update = update
-    if ontimeout:
-      self.ontimeout = ontimeout
-    if render:
-      self.render = render
-
-  def update(self):
-    pass
-
-  def ontimeout(self):
-    pass
-
-  def render(self):
-    pass
 
 
 # ================================ START =========================================
 
-def start(module):
-  global game_state, current_game
-  current_game = module
-  game_state = module.start_state
+def start(game):
+  global current_game
+  current_game = game
+  game.state = "start"
   clear_votes()
+
+  # TODO clean this up and have better player continuity between games (especially colors!)
+  claimed = []
+  for player in players:
+    claimed.append(player.is_claimed)
+  players.clear()
+  game.setup()
+  for (i, player) in enumerate(players):
+    if i < len(claimed):
+      player.is_claimed = claimed[i]
+
+
   if not music["waiting"].is_playing() and not music["waiting"].will_play():
     music["any"].fadeout(2000)
     music["waiting"].play()
   music["waiting"].set_volume(1.0)
 
 def quit():
-  global game_state, current_game, state_end_time, victor
+  global current_game
   current_game = None
-  game_state = None
-  state_end_time = 0
   clear()
   clear_votes()
   #Do this once we have an idle song
@@ -146,24 +131,21 @@ def quit():
 
 
 def update():
-  global game_state, state_end_time
   global pixels, raw_pixels
 
-  if game_state and len(claimed_players()) == 0:
+  if current_game and len(claimed_players()) == 0:
     quit()
   else:
     try:
-      if not game_state:
+      if not current_game:
         render_fluid()
         # render_snake()
       else:
-        game_state.update()
-        if state_end_time <= time() and state_end_time > 0:
-          game_state.ontimeout()
+        current_game.update()
+        if current_game.end_time <= time() and current_game.end_time > 0:
+          current_game.ontimeout()
         # For countdown on phone
-        remaining_time = state_end_time - time()
-        pixels *= 0
-        game_state.render()
+        current_game.render()
         
       pixels = np.minimum(pixels, 255)
       pixels = np.maximum(pixels, 0)
@@ -176,27 +158,22 @@ def update():
       print(traceback.format_exc())
 
 
-# ================================ TEAM =========================================
+# ================================ PLAYER =========================================
 
-class Team:
-  def __init__(self, team_id, color, color_string, name, players):
-    self.id = team_id
+class Dummy:
+  def __init__(self, color, color_string, name, players):
     self.color = np.array(color)
     self.color_string = color_string
     self.name = name
-    self.players = players
-    for player in players:
-      player.team = self
 
   def to_json(self):
     return {
-      "id": self.id,
+      "id": -1,
       "name": self.name,
       "color": self.color_string,
-      "players": [player.id for player in self.players],
     }
 
-# ================================ PLAYER =========================================
+
 GHOST_BUFFER_LEN = 20
 
 class Player:
@@ -204,15 +181,10 @@ class Player:
       position=0,
       color=(150,150,150),
       color_string="white",
-      team_color=None,
       template_player=None):
 
     self.initial_position = position
     self.color = np.array(color)
-    if team_color:
-      self.team_color = np.array(team_color)
-    else:
-      self.team_color = self.color
     self.color_string = color_string
     self.last_move_time = 0
     self.ready_time = 0
@@ -275,7 +247,7 @@ class Player:
     self.ready_time = time()
 
   def current_color(self):
-    return self.team_color if config["TEAM_MODE"] else self.color
+    return self.color
 
   def move_delay(self):
     if self.stunned:
@@ -394,10 +366,178 @@ class Player:
       "score": self.score,
       "scoreTimestamp": self.score_timestamp,
     }
-    if hasattr(self, "team"):
-      dictionary["team"] = self.team.id
 
     return dictionary
+
+
+
+# ================================ Game =========================================
+
+class Game:
+  def __init__(self, player_class=Player, waiting_music="waiting", battle_music="battle1"):
+    self.state = "start"
+    self.end_time = 0
+
+    self.waiting_music = waiting_music
+    self.battle_music = battle_music
+    self.player_class = player_class
+
+  def setup(self):
+    self.player_class(position=105,
+      color=(0, 200, 0),
+      color_string="#4caf50") #green
+    self.player_class(position=198,
+      color=(1, 12, 200),
+      color_string="#1e88e5") #blue
+    self.player_class(position=24,
+      color=(200, 2, 20),
+      color_string="#e91e63") #pink
+    self.player_class(position=252,
+      color=(100, 0, 250),
+      color_string="#9575cd") #deep purple
+    self.player_class(position=168,
+      color=(180, 200, 5),
+      color_string="#c0ca33") #lime
+    self.player_class(position=311,
+      color=(200, 50, 0),
+      color_string="#ff9800") #orange
+
+  def update(self):
+    if self.state == "start":
+      self.start_update()
+    elif self.state == "play":
+      self.play_update()
+
+  def start_update(self):
+    for player in claimed_players():
+      player.move()
+
+  def play_update(self):
+    for player in playing_players():
+      player.move()
+
+  def ontimeout(self):
+    if self.state == "start":
+      self.start_ontimeout()
+    elif self.state == "countdown":
+      self.countdown_ontimeout()
+    elif self.state == "play":
+      self.play_ontimeout()
+    elif self.state == "previctory":
+      self.previctory_ontimeout()
+    elif self.state == "victory":
+      self.victory_ontimeout()
+
+
+  def start_ontimeout(self):
+    for player in claimed_players():
+      player.setup_for_game()
+    clear()
+    self.state = "countdown"
+    self.end_time = time() + 4
+    music[self.waiting_music].fadeout(3500)
+
+  def countdown_ontimeout(self):
+    self.end_time = time() + config["ROUND_TIME"]
+    self.state = "play"
+    music[self.battle_music].play()
+
+  def play_ontimeout(self):
+    global victor
+    music[self.battle_music].fadeout(1000)
+    self.state = "previctory"
+    self.end_time = time() + 1
+    top_score = 0
+    top_score_time = 0
+    for player in playing_players():
+      if player.score > top_score or (player.score == top_score and player.score_timestamp < top_score_time):
+        top_score = player.score
+        top_score_time = player.score_timestamp
+        victor = player
+    touchall()
+
+  def previctory_ontimeout(self):
+    self.state = "victory"
+    self.end_time = time() + config["VICTORY_TIMEOUT"]
+    music["victory"].play()
+
+  def victory_ontimeout(self):
+    for player in players:
+      player.reset()
+    clear()
+    self.state = "start" # TODO choose a new random game
+    self.end_time = 0
+    music["victory"].fadeout(2000)
+    music[self.waiting_music].play()
+
+
+  def render(self):
+    global pixels
+    pixels *= 0
+
+    if self.state == "countdown":
+      countdown = ceil(self.end_time - time())
+      countup = 5 - countdown
+      render_pulse(
+        direction=(0,0,COORD_MAGNITUDE),
+        color=np.array((60,60,60)) * countup,
+        start_time=self.end_time - countdown,
+        duration=READY_PULSE_DURATION)
+
+      for player in playing_players():
+        player.render_ready()
+
+    elif self.state == "victory":
+      start_time = self.end_time - config["VICTORY_TIMEOUT"]
+      color = victor.color
+      timer = (time() - start_time)
+      width = 2
+      if timer < 0.4:
+        render_ring((sin(timer*6),cos(timer*6),0.5),pixels,color,width)
+      elif timer < 0.9:
+        render_ring((cos(timer*6),sin(timer*6),0.5),pixels,color,width)
+      elif timer < 1.35:
+        render_ring((sin(timer*8),1,cos(timer*8)),pixels,color,width)
+        render_ring((cos(timer*8),0,sin(timer*8)),pixels,color,width)
+      elif timer < 1.9:
+        render_ring((0,sin(timer*6),cos(timer*6)),pixels,color,width)
+      elif timer < 2.25:
+        render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),pixels,color,width)
+      elif timer < 2.75:
+        render_ring((sin(timer*6),cos(timer*6),0),pixels,color,width)
+        render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color,width)
+      elif timer < 4.65:
+        t = min((timer - 3)*2,pi/2)+pi/2
+        #width = width + t - pi/2 + sin(timer*2)
+        width = 1 + 3.1*abs(cos(timer*1.9))
+        render_ring((0,sin(t),cos(t)),pixels,color*0.028,width)
+        render_ring((sin(t),0,cos(t)),pixels,color*0.028,width)
+        render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
+        render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
+      else:
+        for (i, coord) in enumerate(unique_coords):
+          color_pixel(i, color * sin(coord[2] - 4*(timer - 0.3)))
+
+    else:
+      if self.state == "play" and self.end_time > 0 and self.end_time - time() < 7:
+        countdown = ceil(self.end_time - time())
+        countup = 7 - countdown
+        render_pulse(
+          direction=(0,0,COORD_MAGNITUDE),
+          color=np.array((60,60,60)) * countup,
+          start_time=self.end_time - countdown,
+          duration=READY_PULSE_DURATION)
+      self.render_game()
+      if self.state == "countdown":
+        for player in playing_players():
+          player.render_ready()
+      else:
+        for player in current_players():
+          player.render()
+
+  def render_game(self):
+    pass
+
 
 
 # ================================ MISC =========================================
@@ -409,7 +549,7 @@ def playing_players():
 
 def current_players():
   return [player for player in players if player.is_playing or
-      (player.is_claimed and game_state == current_game.start_state)]
+      (player.is_claimed and current_game.state == "start")]
 
 
 def color_pixel(index, color):
@@ -508,19 +648,6 @@ def render_fluid():
   squares = np.multiply(fluid_values, fluid_values)
   pixels = np.outer(squares, phase_color() * 200)
 
-#indicies = np.arange(RAW_SIZE)
-#def render_snake():
-#  global raw_pixels
-#
-#  phases = indicies / 40 + time()/2
-#  phases = np.minimum(1, np.mod(phases, 6))
-#  phases = np.sin(pi * phases) * 50
-#
-#  raw_pixels = np.outer(phases, phase_color())
-#  # raw_pixels = np.outer(phases, np.ones((1, 3)))
-#
-#  output = np.array(raw_pixels,dtype="<u1").tobytes()
-#  neopixel_write(pin,output)
 
 def phase_color():
   color_phase = (time()/10) % 1
@@ -561,84 +688,12 @@ def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
     ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
     pixels += np.array(np.outer(ds, color), dtype="<u1")
 
-def render_countdown():
-  countdown = ceil(state_end_time - time())
-  countup = 5 - countdown
-  render_pulse(
-    direction=(0,0,COORD_MAGNITUDE),
-    color=np.array((60,60,60)) * countup,
-    start_time=state_end_time - countdown,
-    duration=READY_PULSE_DURATION)
-
-  for player in playing_players():
-    player.render_ready()
-
-def render_victory():
-  global state_end_time
-  start_time = state_end_time - config["VICTORY_TIMEOUT"]
-  color = victor.color
-  global pixels
-  pixels *= 0
-  timer = (time() - start_time)
-  width = 2
-  if timer < 0.4:
-    render_ring((sin(timer*6),cos(timer*6),0.5),pixels,color,width)
-  elif timer < 0.9:
-    render_ring((cos(timer*6),sin(timer*6),0.5),pixels,color,width)
-  elif timer < 1.35:
-    render_ring((sin(timer*8),1,cos(timer*8)),pixels,color,width)
-    render_ring((cos(timer*8),0,sin(timer*8)),pixels,color,width)
-  elif timer < 1.9:
-    render_ring((0,sin(timer*6),cos(timer*6)),pixels,color,width)
-  elif timer < 2.25:
-    render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),pixels,color,width)
-  elif timer < 2.75:
-    render_ring((sin(timer*6),cos(timer*6),0),pixels,color,width)
-    render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color,width)
-  elif timer < 4.65: 
-    t = min((timer - 3)*2,pi/2)+pi/2
-    #width = width + t - pi/2 + sin(timer*2)
-    width = 1 + 3.1*abs(cos(timer*1.9))
-    render_ring((0,sin(t),cos(t)),pixels,color*0.028,width)
-    render_ring((sin(t),0,cos(t)),pixels,color*0.028,width)
-    render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
-    render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
-    #render_ring((0,cos(t*2-pi/2),sin(t*2-pi/2)),pixels,color*0.28,width)
-    #render_ring((cos(t*2-pi/2),0,sin(t*2-pi/2)),pixels,color*0.28,width)
-    #render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color)
-    #render_ring((sin(-timer*6),cos(-timer*5),sin(-timer)),pixels,color)
-    #render_ring((sin(timer*6)+cos(timer*6),1,sin(timer)),pixels,color)
-    #render_ring((cos(timer),sin(timer+10*sin(timer)),0),pixels,color)
-  else:
-    for (i, coord) in enumerate(unique_coords):
-      color_pixel(i, color * sin(coord[2] - 4*(timer - 0.3)))
-
 def render_ring(direction, pixels, color, width):
   direction /= np.linalg.norm(direction)
   ds = direction * unique_coord_matrix / COORD_MAGNITUDE
   ds = ds * 6 + width/2
   ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
   pixels += np.array(np.outer(ds, color), dtype="<u1")
-
-
-def start_ontimeout():
-  for player in claimed_players():
-    player.setup_for_game()
-  clear()
-  global game_state, state_end_time
-  game_state = current_game.countdown_state
-  state_end_time = time() + 4
-  music["waiting"].fadeout(3500)
-
-def victory_ontimeout():
-  for player in players:
-    player.reset()
-  clear()
-  global game_state, state_end_time
-  game_state = current_game.start_state
-  state_end_time = 0
-  music["victory"].fadeout(2000)
-  music["waiting"].play()
 
 
 # ================================ Communication with node.js =========================================
@@ -654,11 +709,10 @@ def broadcast_state():
   # for line in traceback.format_stack():
   #   print(line.strip(), file=sys.stderr)
   message = {
-    "game": current_game.__name__ if current_game else "",
+    "game": current_game.name if current_game else "",
     "players": [player.to_json() for player in players],
-    "teams": [team.to_json() for team in teams],
-    "gameState": game_state.name if game_state else "none",
-    "timeRemaining": state_end_time - time(),
+    "gameState": current_game.state if current_game else "none",
+    "timeRemaining": current_game.end_time - time() if current_game else 0,
     "victor": victor.to_json() if victor else {},
     "config": config,
     "data": data,
