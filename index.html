@@ -42,7 +42,7 @@ body, #app, .main {
 #settings-button {
   position: fixed;
   right: 1rem;
-  top: 6rem;
+  top: 1rem;
   cursor: pointer;
   z-index: 2;
   height: 5rem;
@@ -51,10 +51,6 @@ body, #app, .main {
 
 #label {
   font-size: 3.5rem;
-  position: fixed;
-  right: 1.4rem;
-  top: 1rem;
-  z-index: 2;
 }
 
 #settings, #game-selection-menu, #rules-splash, #vote-tooltip, #signup {
@@ -296,8 +292,11 @@ body, #app, .main {
 #header-buttons {
   position: fixed;
   left: 1rem;
-  top: 0;
+  top: 1rem;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 #header-buttons .button {
   margin-top: 1rem;
@@ -332,17 +331,9 @@ body, #app, .main {
   opacity: 0.5;
 }
 
-.dormant {
-  color:  white;
-  background: transparent;
-  border-color: white;
-}
 .selected {
   box-shadow: 0 0.4rem 1rem 0.25rem rgba(0, 0, 0, 0.5);
   border-color: #666;
-}
-.dormant.selected {
-  border-color: white;
 }
 
 .hide {
@@ -468,25 +459,12 @@ body, #app, .main {
     Position in queue: {{state.queuePosition}}
   </div>
 
-  <div v-else-if="BETWEEN_GAMES" id="game-selection-menu">
-    <div v-if="connectionStatus == 'CONNECTING'" class="header">
-      {{connectionStatus}}
-    </div>
-    <div v-else>
-      <span style="font-size: 4em; margin-bottom: 10vw;">Select a Game</span>
-      <div v-for="{name, label} in GAMES_INFO">
-        <TallyButton :label="label" election="start" :vote="name" />
-      </div>
-    </div>
-  </div>
-
   <div v-else-if="hasNotSeenGame || showRules"
       id="rules-splash"
   >
     <div class="close" @click="dismissRules">
       <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
     </div>
-    <p>Instructions:</p>
     <div class="carousel" :style="carouselStyle">
       <div v-if="gameInfo" v-for="rule in gameInfo.rules" class="slide">
         <p v-for="paragraph in rule.words">{{paragraph}}</p>
@@ -519,14 +497,14 @@ body, #app, .main {
           v-if="setting.boolean"
           type="checkbox"
           v-model.number="config[setting.name]"
-          @onchange="updateSettings"
+          @change="updateSettings(setting.name)"
         >
         <textarea
           v-else
           type="number"
           v-model.number="config[setting.name]"
           @keydown="settingsKeydown"
-          @change="updateSettings"
+          @change="updateSettings(setting.name)"
         ></textarea>
       </div>
     </div>
@@ -542,14 +520,12 @@ body, #app, .main {
     <img src="images/explosion.png" />
   </div> -->
 
-  <div id="label">{{gameInfo.label}}</div>
-
   <div id="header-buttons">
-    <TallyButton label="OTHER GAMES" election="quit" vote="yes"></TallyButton>
+    <div id="label">{{gameInfo.label}}</div>
     <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
   </div>
 
-  <div v-if="mode=='start' || (mode=='play' && self.isPlaying && self.isAlive)"
+  <div v-if="(mode=='start' && !self.isReady) || (mode=='play' && self.isPlaying && self.isAlive)"
     class="joystick-bg unselectable"
     :style="joystickBGStyle"
   >
@@ -572,37 +548,8 @@ body, #app, .main {
       <div v-else-if="claimedPlayers.length <= 1">Waiting for another player.</div>
     </div>
 
-
-    <div v-if="isReady" class="buttons">
-      <div class="button" @click.stop="advance('start')">Start</div>
-    </div>
-    <div v-else class="buttons">
-<!--       <div v-if="BOMBERMAN" class="choice">
-        <TallyButton label="Battle Royale"
-            :vote="false"
-            election="DEATHMATCH"
-            :settings="{ DEATHMATCH: false, USE_SHIELDS: true }">
-        </TallyButton>
-        <TallyButton label="Deathmatch"
-            :vote="true"
-            election="DEATHMATCH"
-            :settings="{ DEATHMATCH: true, USE_SHIELDS: false }">
-        </TallyButton>
-      </div>
-      <div v-if="BOMBERMAN" class="choice">
-        <TallyButton label="Free for all"
-            :vote="false"
-            election="TEAM_MODE"
-            :settings="{ TEAM_MODE: false }">
-        </TallyButton>
-        <TallyButton label="Team"
-            :vote="true"
-            election="TEAM_MODE"
-            :settings="{ TEAM_MODE: true }">
-        </TallyButton>
-      </div> -->
-
-      <!-- <div v-if="self.votes.ready" class="button" @click.stop="pulse">Pulse</div> -->
+    <div class="buttons">
+      <div v-if="self.votes.ready" class="button" @click.stop="pulse">Pulse</div>
       <TallyButton v-if="self.votes.ready" label="I'm not ready." election="ready" vote="yes"></TallyButton>
       <TallyButton v-else label="Ready" election="ready" vote="yes"></TallyButton>
     </div>
@@ -904,7 +851,8 @@ Vue.component('tallybutton', {
       let icons = this.$root.claimedPlayers
           .filter(player => player.votes[this.election] == this.vote)
           .map(player => player.color)
-      for (let i = icons.length; i < this.$root.majorityCount; i++) {
+      // for (let i = icons.length; i < this.$root.majorityCount; i++) {
+      for (let i = icons.length; i < this.$root.consensusCount; i++) {
         icons.push("")
       }
       return icons
@@ -914,12 +862,6 @@ Vue.component('tallybutton', {
         return false
       }
       return this.$root.self.votes[this.election] === this.vote
-    },
-    dormant() {
-      if (this.settings)
-        return this.$root.config[this.election] != this.vote
-      else
-        return false
     },
     style() {
       if (this.voteCount > 0) {
@@ -955,7 +897,7 @@ Vue.component('tallybutton', {
 <div style="position: relative">
   <div class="button"
       @click="sendVote"
-      :class="{ selected, dormant }"
+      :class="{ selected }"
       :style="style"
   >
     {{ label }}
@@ -974,7 +916,6 @@ var app = new Vue({
   data: {
     ws: null,
     connectionStatus: "CONNECTING",
-    oldConfig: null,
     state: {},
     localFlags: {},
     showSettings: false,
@@ -989,6 +930,7 @@ var app = new Vue({
     carouselPosition: 0,
     carouselCurrentX: 2 * innerWidth,
 
+    config: {},
     settingTypes: [
       {name: "STUN_TIME"},
       {name: "INVULNERABILITY_TIME"},
@@ -1035,35 +977,8 @@ var app = new Vue({
   },
 
   watch: {
-    config: {
-      handler: function (val) {
-        for (let key in val) {
-          if (typeof(val[key]) == "string") {
-            try {
-              val[key] = parseFloat(val[key])
-              if (isNaN(val[key])) {
-                val[key] = 0
-              }
-            } catch(err) {
-              // pass
-            }
-          }
-        }
-
-        if (this.oldConfig == null) {
-          this.oldConfig = { ...val }
-          return
-        }
-
-        for (let key in val) {
-          if (val[key] != this.oldConfig[key]) {
-            this.send({ type: "settings", update: val })
-            break
-          }
-        }
-        this.oldConfig = { ...val }
-      },
-      deep: true
+    "state.config": function(val) {
+      this.config = { ...val }
     },
     localFlags: {
       handler: function (val) {
@@ -1074,13 +989,6 @@ var app = new Vue({
     showRules() {
       this.carouselCurrentX = (this.carouselSize - 1) / 2 * innerWidth
     },
-    // "self.vibrating": value => {
-    //   if (value) {
-    //     navigator.vibrate(10000);
-    //   } else {
-    //     navigator.vibrate(0);
-    //   }
-    // }
   },
 
   computed: {
@@ -1102,9 +1010,6 @@ var app = new Vue({
     hasNotSeenGame() {
       return !this.localFlags[this.state.game]
     },
-    config() {
-      return this.state.config || {}
-    },
     hasClaimed() {
       return !isNothing(this.state.self)
     },
@@ -1117,6 +1022,9 @@ var app = new Vue({
 
     majorityCount() {
       return Math.ceil((this.claimedPlayers.length + 1) / 2)
+    },
+    consensusCount() {
+      return this.claimedPlayers.length
     },
     voteTally() {
       let tally = {}
@@ -1134,7 +1042,7 @@ var app = new Vue({
     isReady() {
       return this.voteTally.ready &&
           this.voteTally.ready.yes > 1 &&
-          this.voteTally.ready.yes >= this.majorityCount
+          this.voteTally.ready.yes >= this.consensusCount //this.majorityCount
     },
 
     claimedPlayers() {
@@ -1240,22 +1148,9 @@ var app = new Vue({
       }
       return string
     },
-    // substitute(string, substitutions) {
-    //   if (!substitutions) {
-    //     return string
-    //   }
-    //   for (let i = 0; i < substitutions.length; i++) {
-    //     let sub = substitutions[i]
-    //     let value = this
-    //     for (let key of sub.split(".")) {
-    //       value = value[key]
-    //     }
-    //     string = string.replace("SUB" + i, value)
-    //   }
-    //   return string
-    // },
 
     send(json) {
+      console.log(json)
       if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
         this.startWebsocket()
       } else if(this.ws.readyState === WebSocket.OPEN) {
@@ -1377,17 +1272,13 @@ var app = new Vue({
         this.carouselInterval = null
       }
     },
-    // dismissTooltip() {
-    //   this.$set(this.localFlags, 'hasSeenVote', true)
-    //   this.showVoteTooltip = false
+    // displaySignup() {
+    //   if (this.localFlags.hasSeenSignup) {
+    //     return
+    //   }
+    //   this.$set(this.localFlags, 'hasSeenSignup', true)
+    //   document.getElementById("signup").style.display = 'block'
     // },
-    displaySignup() {
-      if (this.localFlags.hasSeenSignup) {
-        return
-      }
-      this.$set(this.localFlags, 'hasSeenSignup', true)
-      document.getElementById("signup").style.display = 'block'
-    },
 
     settingsKeydown(event) {
       if(event.keyCode == 13) {
@@ -1395,8 +1286,8 @@ var app = new Vue({
         event.preventDefault()
       }
     },
-    updateSettings() {
-      // console.log(this.config)
+    updateSettings(settingsName) {
+      this.send({ type: "settings", update: {[settingsName]: this.config[settingsName] }})
     },
     prettifySettingName(name) {
       return name.toLowerCase().replaceAll("_", " ")

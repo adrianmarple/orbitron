@@ -31,8 +31,7 @@ class Snektron(Game):
     data["current_leader"] = -1
 
   def start_update(self):
-    for player in claimed_players():
-      player.move()
+    Game.start_update(self)
 
     apple_count = 0
     for status in statuses:
@@ -75,13 +74,14 @@ class Snek(Player):
     for i in range(config["START_LENGTH"]):
       self.tail.append(self.initial_position)
 
-  def setup_for_game(self):
-    Player.setup_for_game(self)
-    self.score = config["START_LENGTH"]
+  def set_ready(self):
+    Player.set_ready(self)
     self.tail.clear()
     self.shrinking = 0
     for i in range(config["START_LENGTH"]):
       self.tail.append(self.initial_position)
+
+    self.score = config["START_LENGTH"]
 
 
   def occupies(self, pos):

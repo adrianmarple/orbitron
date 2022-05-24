@@ -19,7 +19,7 @@ from engine import *
 config["BOMB_FUSE_TIME"] = 3
 config["BOMB_EXPLOSION_TIME"] = 0.9 # Should be less than INVUNERABILITY_TIME
 config["STARTING_BOMB_POWER"] = 4 # 2
-config["PICKUP_CHANCE"] = 0.3
+config["PICKUP_CHANCE"] = 0 #0.3
 config["NUM_WALLS"] = 60
 config["WALL_SPAWN_TIME"] = 5
 config["SANDBOX_WALL_NUM"] = 20
@@ -29,7 +29,7 @@ config["DEATHMATCH"] = False
 config["TARGET_KILL_COUNT"] = 5
 config["BATTLE_ROYALE_DURATION"] = 150
 config["DEATH_CREEP_DURATION"] = 60
-config["SUICIDE_STUN"] = True
+config["SUICIDE_STUN"] = False
 config["EXPLODE_ON_IMPACT"] = False
 config["FIXED_OWNERSHIP"] = False
 config["TAP_TO_DETONATE"] = False
@@ -47,8 +47,7 @@ class Rhomberman(Game):
 
 
   def start_update(self):
-    for player in claimed_players():
-      player.move()
+    Game.start_update(self)
 
     wall_count = 0
     for status in statuses:

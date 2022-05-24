@@ -90,7 +90,7 @@ players = []
 
 
 
-# ================================ START =========================================
+# ================================ START and END =========================================
 
 def start(game):
   global current_game
@@ -126,6 +126,13 @@ def quit():
     music["any"].fadeout(2000)
     music["waiting"].play()
   music["waiting"].set_volume(0.25)
+
+  for listener in quit_listeners:
+    listener()
+
+quit_listeners = []
+def add_quit_listener(listener):
+  quit_listeners.append(listener)
 
 # ================================ UPDATE =========================================
 
@@ -230,12 +237,12 @@ class Player:
 
   def set_ready(self):
     self.is_ready = True
-
-  def setup_for_game(self):
-    self.is_playing = True
-    self.is_ready = True
     self.ready_time = time()
     self.position = self.initial_position
+
+  def setup_for_game(self):
+    self.set_ready()
+    self.is_playing = True
     self.score = 0
     self.score_timestamp = time()
 
@@ -410,7 +417,8 @@ class Game:
 
   def start_update(self):
     for player in claimed_players():
-      player.move()
+      if not player.is_ready:
+        player.move()
 
   def play_update(self):
     for player in playing_players():
@@ -462,13 +470,15 @@ class Game:
     music["victory"].play()
 
   def victory_ontimeout(self):
-    for player in players:
-      player.reset()
-    clear()
-    self.state = "start" # TODO choose a new random game
-    self.end_time = 0
-    music["victory"].fadeout(2000)
-    music[self.waiting_music].play()
+    quit()
+
+    # for player in players:
+    #   player.reset()
+    # clear()
+    # self.state = "start"
+    # self.end_time = 0
+    # music["victory"].fadeout(2000)
+    # music[self.waiting_music].play()
 
 
   def render(self):
@@ -528,9 +538,12 @@ class Game:
           start_time=self.end_time - countdown,
           duration=READY_PULSE_DURATION)
       self.render_game()
-      if self.state == "countdown":
-        for player in playing_players():
-          player.render_ready()
+      if self.state != "play":
+        for player in claimed_players():
+          if player.is_ready:
+            player.render_ready()
+          else:
+            player.render()
       else:
         for player in current_players():
           player.render()

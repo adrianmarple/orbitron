@@ -89,8 +89,7 @@ class PacMan(Game):
     Ghost(position=138)
 
   def start_update(self):
-    for player in current_players():
-      player.move()
+    Game.start_update(self)
 
     ghost_count = 0
     num_ghosts = len(pacmen())

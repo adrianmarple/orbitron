@@ -8,27 +8,48 @@ import pkgutil
 import os
 import sys
 import numpy as np
+from random import random
 from time import time
 from threading import Thread
 
-game_module = None
+game_selection_weights = {}
+game_modules = {}
 
 
 game_dir = os.path.join(os.path.dirname(__file__), 'games')
 for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   module = loader.find_module(module_name).load_module(module_name)
-  globals()[module_name] = module
+  game_modules[module_name] = module
+  game_selection_weights[module_name] = 1
 
-def start_game(game):
-  global game_module
-  game_module = globals()[game]
-  engine.start(game_module.game)
+def start_game(selection):
+  for name in game_selection_weights.keys():
+    game_selection_weights[name] += 1.0 / len(game_selection_weights)
+  game_selection_weights[selection] = 0
+  engine.start(game_modules[selection].game)
+
+def start_random_game():
+  total_weight = 0
+  for weight in game_selection_weights.values():
+    total_weight += weight
+
+  x = random() * total_weight
+  selection = ""
+  for (name, weight) in game_selection_weights.items():
+    if x < weight:
+      selection = name
+      break
+
+    x -= weight
+
+  for name in game_selection_weights.keys():
+    game_selection_weights[name] += 1
+  game_selection_weights[selection] = 0
+  engine.start(game_modules[selection].game)
 
 
 vote_to_message = {}
 def check_vote():
-  global game_module
-
   all_votes = {}
   for player in engine.claimed_players():
     for (election, vote) in player.votes.items():
@@ -37,11 +58,16 @@ def check_vote():
       all_votes[election][vote] = all_votes[election].get(vote, 0) + 1
 
   majority_count = len(engine.claimed_players()) / 2.0
+  consensus_count = len(engine.claimed_players())
 
   for (election, votes) in all_votes.items():
+    if election == "ready" and consensus_count == 1:
+      continue
+
     final_vote = None
     for (vote, count) in votes.items():
-      if count > majority_count:
+      # if count > majority_count:
+      if count == consensus_count:
         final_vote = vote
         break
 
@@ -53,15 +79,15 @@ def check_vote():
       engine.config.update(message["settings"])
 
     if election == "quit":
-      game_module = None
       engine.quit()
     elif election == "skip":
       engine.clear_votes()
       if engine.current_game:
         engine.current_game.ontimeout()
     elif election == "start":
-      start_game(message["vote"])
+      engine.start(game_modules[message["vote"]].game)
     elif election == "ready":
+      engine.current_game.ontimeout()
       continue # Don't clear this particular election
 
     for player in engine.players:
@@ -122,4 +148,5 @@ def consume_input():
 thread = Thread(target=consume_input)
 thread.start()
 
+engine.add_quit_listener(start_random_game)
 engine.run_core_loop()
