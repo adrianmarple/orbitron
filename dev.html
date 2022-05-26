@@ -1,21 +1,53 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
 
-    <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
-    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+<meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
+<meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
 
-    <title>Super Orbitron Dev View</title>
-    <link rel="shortcut icon" href="/images/favicon.png" />
-    <script src="/three.js"></script>
-    <script src="/threejs/CopyShader.js"></script>
-    <script src="/threejs/ConvolutionShader.js"></script>
-    <script src="/threejs/LuminosityHighPassShader.js"></script>
-    <script src="/threejs/EffectComposer.js"></script>
-    <script src="/threejs/RenderPass.js"></script>
-    <script src="/threejs/ShaderPass.js"></script>
-    <script src="/threejs/UnrealBloomPass.js"></script>
-    <script src="/pako.min.js"></script>
-    <script src="/dev.js"></script>
-  </head>
+<title>Super Orbitron Dev View</title>
+<link rel="shortcut icon" href="/images/favicon.png" />
+
+<script src="/vue.js" type="text/javascript"></script>
+<script src="/three.js"></script>
+<script src="/threejs/CopyShader.js"></script>
+<script src="/threejs/ConvolutionShader.js"></script>
+<script src="/threejs/LuminosityHighPassShader.js"></script>
+<script src="/threejs/EffectComposer.js"></script>
+<script src="/threejs/RenderPass.js"></script>
+<script src="/threejs/ShaderPass.js"></script>
+<script src="/threejs/UnrealBloomPass.js"></script>
+<script src="/pako.min.js"></script>
+<style>
+#player-picker {
+  position: fixed;
+  bottom: 30px;
+  left: 30px;
+  width: 400px;
+}
+.dot {
+  height: 50px;
+  width: 50px;
+  background-color: #bbb;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  border-style: solid;
+}
+</style>
+</head>
+<body>
+  <div id=app>
+    <div id=player-picker>
+      <span
+          v-for="(player,index) in players"
+          v-if="player.isClaimed"
+          class="dot" 
+          :style="{ backgroundColor: player.color, borderColor: index == followingPlayer ? '#fff' : '#000'}"
+          @click="followPlayer(player,index)"
+          ></span>
+    </div>
+  </div>
+  <script src="/dev.js"></script>
+</body>
 </html>

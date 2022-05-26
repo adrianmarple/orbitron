@@ -1,9 +1,9 @@
-var data, camera, scene, renderer, group, pixels, ws, rawPixels, gameState, composer
+var pixelData, camera, renderer, orbitronGroup, pixels, rawPixels, composer, ws, gameState
 
 fetch("/pixels.json").then(function(response){
   return response.json()
 }).then(function(json){
-  data = json
+  pixelData = json
   init()
   startWebsocket()
   animate()
@@ -13,60 +13,68 @@ function clamp(num, min, max){
   return Math.min(Math.max(num, min), max)
 } 
 
-
-
 function init() {
-
-  group = new THREE.Group()
-  scene = new THREE.Scene()
-  bgColor = new THREE.Color(0)
-  stripColor = new THREE.Color(0x282828)
-  standColor = new THREE.Color(0x080808)
+  orbitronGroup = new THREE.Group()
+  var subGroup = new THREE.Group()
+  var bgColor = new THREE.Color(0)
+  var stripColor = new THREE.Color(0x282828)
+  var standColor = new THREE.Color(0x080808)
+  var scene = new THREE.Scene()
   scene.background = bgColor
 
-  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000)
+  camera = new THREE.PerspectiveCamera(50, 1, 1, 10000)
   camera.position.z = 17
   scene.add(camera)
+
   var points = []
   pixels = []
-  for (var point of data.coordinates) {
-    var cgeometry = new THREE.SphereGeometry(0.06, 8, 8)
-    cgeometry.translate(point[0], point[1], point[2])
-    var cmaterial = new THREE.MeshBasicMaterial({
+  for (var point of pixelData.coordinates) {
+    var pixelGeometry = new THREE.SphereGeometry(0.06, 8, 8)
+    var pixelMaterial = new THREE.MeshBasicMaterial({
       color: 0x999999
     })
-    var cube = new THREE.Mesh(cgeometry, cmaterial)
-    pixels.push(cube)
-    group.add(cube)
+    var pixel = new THREE.Mesh(pixelGeometry, pixelMaterial)
+    pixel.translateX(point[0])
+    pixel.translateY(point[1])
+    pixel.translateZ(point[2])
+    pixels.push(pixel)
+    subGroup.add(pixel)
     points.push(new THREE.Vector3(point[0], point[1], point[2]))
   }
-  var start = data.coordinates[0]
+  var start = pixelData.coordinates[0]
   points.push(new THREE.Vector3(start[0], start[1], start[2]))
-  var material = new THREE.LineBasicMaterial({
+  var lineMaterial = new THREE.LineBasicMaterial({
     color: stripColor,
   })
-  var geometry = new THREE.BufferGeometry().setFromPoints(points)
-  var line = new THREE.Line(geometry, material)
-  group.add(line)
+  var lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
+  var line = new THREE.Line(lineGeometry, lineMaterial)
+  subGroup.add(line)
 
-  var cygeometry = new THREE.CylinderGeometry( 0.75, 0.75, 1.5, 32 )
-  cygeometry.rotateX(Math.PI/2)
-  cygeometry.translate(0,0,-5)
-  var cymaterial = new THREE.MeshBasicMaterial( {color: standColor} )
-  var cylinder = new THREE.Mesh( cygeometry, cymaterial )
-  group.add( cylinder )
+  var innerSphereGeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
+  var innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
+  innerSphereMaterial.transparent = true
+  innerSphereMaterial.opacity = 0.8
+  var innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
+  subGroup.add(innerSphere)
+  subGroup.rotation.set(-Math.PI/2,0,0)
+  orbitronGroup.add(subGroup)
+  var axesHelper = new THREE.AxesHelper(5);
+  orbitronGroup.add(axesHelper)
 
-  var sgeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
-  var smaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
-  var sphere = new THREE.Mesh( sgeometry, smaterial )
-  smaterial.transparent = true
-  smaterial.opacity = 0.8
-  group.add( sphere )
+  var standGeometry = new THREE.CylinderGeometry( 0.75, 0.75, 1.5, 32 )
+  var standMaterial = new THREE.MeshBasicMaterial( {color: standColor} )
+  var stand = new THREE.Mesh( standGeometry, standMaterial )
+  stand.translateY(-5)
+  orbitronGroup.add(stand)
 
-  scene.add(group)
+
+  scene.add(orbitronGroup)
+
+  //var axesHelper = new THREE.AxesHelper(5);
+  //scene.add(axesHelper)
 
   renderer = new THREE.WebGLRenderer()
-  renderer.setSize(window.innerWidth-20, window.innerHeight-20)
+  onResize()
 
   composer = new THREE.EffectComposer(renderer)
   composer.addPass(new THREE.RenderPass(scene, camera))
@@ -79,45 +87,71 @@ function init() {
       threshold=0
   )
   composer.addPass(bloomPass)
-
 }
 
 function animate() {
-
   requestAnimationFrame(animate)
   render()
+}
 
+function latlong(coord){
+  return [Math.acos(coord.z), Math.atan2(coord.x, coord.y)]
 }
 
 function render() {
-  if(north){
-    moveVelocityY = moveVelocityY + acceleration
+  if(app.$data.followingPlayer >= 0){
+    var player = gameState.players[app.$data.followingPlayer]
+    var uniquePosition = pixelData.unique_to_dupes[player.position][0]
+    var targetPixel = pixels[uniquePosition]
+    var [lat,lon] = latlong(targetPixel.position.clone().normalize())
+    var maxXOffset = 0.65
+    var xRotation = clamp(-lat + Math.PI/2,-maxXOffset,maxXOffset)
+    var yRotation = lon + Math.PI
+    //TODO lerp rotation
+    orbitronGroup.rotation.set(xRotation,yRotation,0)
+    /*
+    var targetPos = new THREE.Vector3()
+    targetPixel.getWorldPosition(targetPos)
+    targetPos.normalize()
+    var cameraPos = new THREE.Vector3()
+    camera.getWorldPosition(cameraPos)
+    cameraPos.normalize()
+    var quat = new THREE.Quaternion()
+    quat.setFromUnitVectors(targetPos, cameraPos)
+    //quat.slerpQuaternions(new THREE.Quaternion().identity(), quat, 0.2)
+    var multipliedQuat = quat.multiply(orbQuat)
+    orbitronGroup.setRotationFromQuaternion()
+    */
+  } else {
+    if(north){
+      moveVelocityX = moveVelocityX + acceleration
+    }
+    if(south){
+      moveVelocityX = moveVelocityX - acceleration
+    }
+    if(east){
+      moveVelocityY = moveVelocityY + acceleration
+    }
+    if(west){
+      moveVelocityY = moveVelocityY - acceleration
+    }
+    moveVelocityX = clamp(moveVelocityX * exponentialFactor, -maxVelocityX, maxVelocityX)
+    moveVelocityY = clamp(moveVelocityY * exponentialFactor, -maxVelocityY, maxVelocityY)
+    yOffset += moveVelocityY
+    xOffset += moveVelocityX
+    var maxXOffset = 0.65*200
+    if(xOffset > maxXOffset){
+      moveVelocityX = 0
+      xOffset = maxXOffset
+    }else if(xOffset < -maxXOffset){
+      moveVelocityX = 0
+      xOffset = -maxXOffset
+    }
+    var rotationFactor = 200
+    var xRotation = clamp(xOffset/rotationFactor,-maxXOffset,maxXOffset)
+    var yRotation = yOffset/rotationFactor
+    orbitronGroup.rotation.set(xRotation,yRotation,0)
   }
-  if(south){
-    moveVelocityY = moveVelocityY - acceleration
-  }
-  if(east){
-    moveVelocityX = moveVelocityX + acceleration
-  }
-  if(west){
-    moveVelocityX = moveVelocityX - acceleration
-  }
-  moveVelocityX = clamp(moveVelocityX * exponentialFactor, -maxVelocityX, maxVelocityX)
-  moveVelocityY = clamp(moveVelocityY * exponentialFactor, -maxVelocityY, maxVelocityY)
-  yOffset += moveVelocityY
-  xOffset += moveVelocityX
-  var maxYOffset = 0.65*200
-  if(yOffset > maxYOffset){
-    moveVelocityY = 0
-    yOffset = maxYOffset
-  }else if(yOffset < -maxYOffset){
-    moveVelocityY = 0
-    yOffset = -maxYOffset
-  }
-  var rotationFactor = 200
-  var yRotation = clamp(yOffset/rotationFactor,-maxYOffset,maxYOffset)
-  var xRotation = xOffset/rotationFactor
-  group.rotation.set(yRotation-Math.PI/2,0,xRotation)
   if(rawPixels){
     var rp = pako.inflate(rawPixels, {to:'string'})
     for(let i = 0 ; i < pixels.length ; i++){
@@ -134,10 +168,20 @@ function render() {
   composer.render()
 }
 
+window.addEventListener("resize", onResize, false)
+
+function onResize(e) {
+  var w = window.innerWidth - 20
+  var h = window.innerHeight - 20
+  renderer.setSize(w, h)
+  camera.aspect = w/h
+  camera.updateProjectionMatrix()
+}
+
 var moveVelocityX = 0
 var moveVelocityY = 0
-var maxVelocityX = 10
-var maxVelocityY = 8
+var maxVelocityY = 10
+var maxVelocityX = 8
 var acceleration = 3
 var exponentialFactor = 0.7
 var west = false
@@ -162,7 +206,7 @@ function moveStart(e) {
 }
 
 function moveEnd(e) {
-   var k = e.key
+  var k = e.key
   if(k === "w" || k === "ArrowUp"){
     north = false
   }else if(k === "s" || k === "ArrowDown"){
@@ -189,11 +233,11 @@ document.addEventListener("wheel", wheel, true)
 
 function dragStart(e) {
   if (e.type === "touchstart") {
-    initialX = e.touches[0].clientX - xOffset
-    initialY = e.touches[0].clientY - yOffset
+    initialX = e.touches[0].clientX - yOffset
+    initialY = e.touches[0].clientY - xOffset
   } else {
-    initialX = e.clientX - xOffset
-    initialY = e.clientY - yOffset
+    initialX = e.clientX - yOffset
+    initialY = e.clientY - xOffset
   }
 
   active = true
@@ -219,14 +263,13 @@ function drag(e) {
       currentY = e.clientY - initialY
     }
 
-    xOffset = currentX
-    yOffset = currentY
+    xOffset = currentY
+    yOffset = currentX
 
   }
 }
 
 function wheel(e) {
-  e.preventDefault()
   camera.position.z = clamp(camera.position.z + e.deltaY * 0.02, 8, 100)
 }
 
@@ -240,9 +283,8 @@ function startWebsocket() {
     var data = event.data
     if(typeof data === "string"){
       try {
-        console.log(data)
-        //gameState = JSON.parse(data)
-        //console.log(gameState)
+        gameState = JSON.parse(data)
+        app.$data.players = gameState.players
       } catch(e) {
         console.log(e)
       }
@@ -260,3 +302,27 @@ function startWebsocket() {
   }
 }
 
+var app = new Vue({
+  el: "#app",
+  data: {
+    players:[],
+    followingPlayer:-1
+  },
+  watch: {
+    gameState:{
+      handler(val) {
+        console.log("GAME STATE", val)
+        this.players = val
+      },
+    }
+  },
+  methods: {
+    followPlayer(player, index) {
+      if(this.followingPlayer == index){
+        this.followingPlayer = -1
+      } else {
+        this.followingPlayer = index
+      }
+    }
+  },
+})
