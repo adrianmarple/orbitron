@@ -13,6 +13,9 @@ function clamp(num, min, max){
 } 
 
 function init() {
+  let w = window.innerWidth - 20
+  let h = window.innerHeight - 20
+
   orbitronGroup = new THREE.Group()
   let subGroup = new THREE.Group()
   let bgColor = new THREE.Color(0)
@@ -21,7 +24,7 @@ function init() {
   let scene = new THREE.Scene()
   scene.background = bgColor
 
-  camera = new THREE.PerspectiveCamera(50, 1, 1, 10000)
+  camera = new THREE.PerspectiveCamera(50, w/h, 1, 10000)
   camera.position.z = 17
   scene.add(camera)
 
@@ -73,7 +76,7 @@ function init() {
   //scene.add(axesHelper)
 
   renderer = new THREE.WebGLRenderer()
-  onResize()
+  renderer.setSize(w, h)
 
   composer = new THREE.EffectComposer(renderer)
   composer.addPass(new THREE.RenderPass(scene, camera))
@@ -100,15 +103,26 @@ function latlong(coord){
 
 function render() {
   if(app.$data.followingPlayer >= 0){
+    let rotation = orbitronGroup.rotation
     let player = gameState.players[app.$data.followingPlayer]
     let uniquePosition = pixelData.unique_to_dupes[player.position][0]
     let targetPixel = pixels[uniquePosition]
     let [lat,lon] = latlong(targetPixel.position.clone().normalize())
     let maxXOffset = 0.65
+    let lerpFactor = 0.0125
     let xRotation = clamp(-lat + Math.PI/2,-maxXOffset,maxXOffset)
-    let yRotation = lon + Math.PI
-    //TODO lerp rotation
-    orbitronGroup.rotation.set(xRotation,yRotation,0)
+    let yRotation = lon - Math.PI
+    let deltaX = (xRotation - rotation.x) * lerpFactor
+    let deltaY = yRotation - rotation.y
+    if(Math.abs(deltaY) > Math.PI){
+      if(deltaY < 0){
+        deltaY = deltaY + Math.PI*2
+      }else{
+        deltaY = deltaY - Math.PI*2
+      }
+    }
+    deltaY = deltaY * lerpFactor
+    orbitronGroup.rotation.set((rotation.x + deltaX) % (Math.PI*2),(rotation.y + deltaY) % (Math.PI*2),0)
     /*
     let targetPos = new THREE.Vector3()
     targetPixel.getWorldPosition(targetPos)
@@ -150,7 +164,7 @@ function render() {
     let rotationFactor = 200
     let xRotation = clamp(xOffset/rotationFactor,-maxXOffset,maxXOffset)
     let yRotation = yOffset/rotationFactor
-    orbitronGroup.rotation.set(xRotation,yRotation,0)
+    orbitronGroup.rotation.set(xRotation % (Math.PI*2),yRotation % (Math.PI*2),0)
   }
   if(rawPixels){
     let rp = pako.inflate(rawPixels, {to:'string'})
@@ -171,11 +185,7 @@ function render() {
 window.addEventListener("resize", onResize, false)
 
 function onResize(e) {
-  let w = window.innerWidth - 20
-  let h = window.innerHeight - 20
-  renderer.setSize(w, h)
-  camera.aspect = w/h
-  camera.updateProjectionMatrix()
+  window.location.reload()
 }
 
 var moveVelocityX = 0
