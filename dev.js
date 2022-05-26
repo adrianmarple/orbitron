@@ -15,25 +15,25 @@ function clamp(num, min, max){
 
 function init() {
   orbitronGroup = new THREE.Group()
-  var subGroup = new THREE.Group()
-  var bgColor = new THREE.Color(0)
-  var stripColor = new THREE.Color(0x282828)
-  var standColor = new THREE.Color(0x080808)
-  var scene = new THREE.Scene()
+  let subGroup = new THREE.Group()
+  let bgColor = new THREE.Color(0)
+  let stripColor = new THREE.Color(0x282828)
+  let standColor = new THREE.Color(0x080808)
+  let scene = new THREE.Scene()
   scene.background = bgColor
 
   camera = new THREE.PerspectiveCamera(50, 1, 1, 10000)
   camera.position.z = 17
   scene.add(camera)
 
-  var points = []
+  let points = []
   pixels = []
-  for (var point of pixelData.coordinates) {
-    var pixelGeometry = new THREE.SphereGeometry(0.06, 8, 8)
-    var pixelMaterial = new THREE.MeshBasicMaterial({
+  for (let point of pixelData.coordinates) {
+    let pixelGeometry = new THREE.SphereGeometry(0.06, 8, 8)
+    let pixelMaterial = new THREE.MeshBasicMaterial({
       color: 0x999999
     })
-    var pixel = new THREE.Mesh(pixelGeometry, pixelMaterial)
+    let pixel = new THREE.Mesh(pixelGeometry, pixelMaterial)
     pixel.translateX(point[0])
     pixel.translateY(point[1])
     pixel.translateZ(point[2])
@@ -41,36 +41,36 @@ function init() {
     subGroup.add(pixel)
     points.push(new THREE.Vector3(point[0], point[1], point[2]))
   }
-  var start = pixelData.coordinates[0]
+  let start = pixelData.coordinates[0]
   points.push(new THREE.Vector3(start[0], start[1], start[2]))
-  var lineMaterial = new THREE.LineBasicMaterial({
+  let lineMaterial = new THREE.LineBasicMaterial({
     color: stripColor,
   })
-  var lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
-  var line = new THREE.Line(lineGeometry, lineMaterial)
+  let lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
+  let line = new THREE.Line(lineGeometry, lineMaterial)
   subGroup.add(line)
 
-  var innerSphereGeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
-  var innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
+  let innerSphereGeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
+  let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
   innerSphereMaterial.transparent = true
   innerSphereMaterial.opacity = 0.8
-  var innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
+  let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
   subGroup.add(innerSphere)
   subGroup.rotation.set(-Math.PI/2,0,0)
   orbitronGroup.add(subGroup)
-  var axesHelper = new THREE.AxesHelper(5);
-  orbitronGroup.add(axesHelper)
+  //let axesHelper = new THREE.AxesHelper(5);
+  //orbitronGroup.add(axesHelper)
 
-  var standGeometry = new THREE.CylinderGeometry( 0.75, 0.75, 1.5, 32 )
-  var standMaterial = new THREE.MeshBasicMaterial( {color: standColor} )
-  var stand = new THREE.Mesh( standGeometry, standMaterial )
+  let standGeometry = new THREE.CylinderGeometry( 0.75, 0.75, 1.5, 32 )
+  let standMaterial = new THREE.MeshBasicMaterial( {color: standColor} )
+  let stand = new THREE.Mesh( standGeometry, standMaterial )
   stand.translateY(-5)
   orbitronGroup.add(stand)
 
 
   scene.add(orbitronGroup)
 
-  //var axesHelper = new THREE.AxesHelper(5);
+  //let axesHelper = new THREE.AxesHelper(5);
   //scene.add(axesHelper)
 
   renderer = new THREE.WebGLRenderer()
@@ -100,26 +100,26 @@ function latlong(coord){
 
 function render() {
   if(app.$data.followingPlayer >= 0){
-    var player = gameState.players[app.$data.followingPlayer]
-    var uniquePosition = pixelData.unique_to_dupes[player.position][0]
-    var targetPixel = pixels[uniquePosition]
-    var [lat,lon] = latlong(targetPixel.position.clone().normalize())
-    var maxXOffset = 0.65
-    var xRotation = clamp(-lat + Math.PI/2,-maxXOffset,maxXOffset)
-    var yRotation = lon + Math.PI
+    let player = gameState.players[app.$data.followingPlayer]
+    let uniquePosition = pixelData.unique_to_dupes[player.position][0]
+    let targetPixel = pixels[uniquePosition]
+    let [lat,lon] = latlong(targetPixel.position.clone().normalize())
+    let maxXOffset = 0.65
+    let xRotation = clamp(-lat + Math.PI/2,-maxXOffset,maxXOffset)
+    let yRotation = lon + Math.PI
     //TODO lerp rotation
     orbitronGroup.rotation.set(xRotation,yRotation,0)
     /*
-    var targetPos = new THREE.Vector3()
+    let targetPos = new THREE.Vector3()
     targetPixel.getWorldPosition(targetPos)
     targetPos.normalize()
-    var cameraPos = new THREE.Vector3()
+    let cameraPos = new THREE.Vector3()
     camera.getWorldPosition(cameraPos)
     cameraPos.normalize()
-    var quat = new THREE.Quaternion()
+    let quat = new THREE.Quaternion()
     quat.setFromUnitVectors(targetPos, cameraPos)
     //quat.slerpQuaternions(new THREE.Quaternion().identity(), quat, 0.2)
-    var multipliedQuat = quat.multiply(orbQuat)
+    let multipliedQuat = quat.multiply(orbQuat)
     orbitronGroup.setRotationFromQuaternion()
     */
   } else {
@@ -139,7 +139,7 @@ function render() {
     moveVelocityY = clamp(moveVelocityY * exponentialFactor, -maxVelocityY, maxVelocityY)
     yOffset += moveVelocityY
     xOffset += moveVelocityX
-    var maxXOffset = 0.65*200
+    let maxXOffset = 0.65*200
     if(xOffset > maxXOffset){
       moveVelocityX = 0
       xOffset = maxXOffset
@@ -147,17 +147,17 @@ function render() {
       moveVelocityX = 0
       xOffset = -maxXOffset
     }
-    var rotationFactor = 200
-    var xRotation = clamp(xOffset/rotationFactor,-maxXOffset,maxXOffset)
-    var yRotation = yOffset/rotationFactor
+    let rotationFactor = 200
+    let xRotation = clamp(xOffset/rotationFactor,-maxXOffset,maxXOffset)
+    let yRotation = yOffset/rotationFactor
     orbitronGroup.rotation.set(xRotation,yRotation,0)
   }
   if(rawPixels){
-    var rp = pako.inflate(rawPixels, {to:'string'})
+    let rp = pako.inflate(rawPixels, {to:'string'})
     for(let i = 0 ; i < pixels.length ; i++){
-      var pixel = pixels[i]
-      var j = i*6
-      var color = `#${rp.slice(j+2,j+4)}${rp.slice(j+0,j+2)}${rp.slice(j+4,j+6)}`
+      let pixel = pixels[i]
+      let j = i*6
+      let color = `#${rp.slice(j+2,j+4)}${rp.slice(j+0,j+2)}${rp.slice(j+4,j+6)}`
       let c = new THREE.Color()
       c.setStyle(color, THREE.LinearSRGBColorSpace)
       c.multiplyScalar(5)
@@ -171,8 +171,8 @@ function render() {
 window.addEventListener("resize", onResize, false)
 
 function onResize(e) {
-  var w = window.innerWidth - 20
-  var h = window.innerHeight - 20
+  let w = window.innerWidth - 20
+  let h = window.innerHeight - 20
   renderer.setSize(w, h)
   camera.aspect = w/h
   camera.updateProjectionMatrix()
@@ -193,7 +193,7 @@ document.addEventListener("keydown", moveStart, false)
 document.addEventListener("keyup", moveEnd, false)
 
 function moveStart(e) {
-  var k = e.key
+  let k = e.key
   if(k === "w" || k === "ArrowUp"){
     north = true
   }else if(k === "s" || k === "ArrowDown"){
@@ -206,7 +206,7 @@ function moveStart(e) {
 }
 
 function moveEnd(e) {
-  var k = e.key
+  let k = e.key
   if(k === "w" || k === "ArrowUp"){
     north = false
   }else if(k === "s" || k === "ArrowDown"){
@@ -280,7 +280,7 @@ function startWebsocket() {
   ws = new WebSocket(`ws://${window.location.hostname}:8888`)
   ws.binaryType = "arraybuffer"
   ws.onmessage = event => {
-    var data = event.data
+    let data = event.data
     if(typeof data === "string"){
       try {
         gameState = JSON.parse(data)
