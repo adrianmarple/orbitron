@@ -19,7 +19,8 @@ def consume_input():
   for line in fileinput.input():
     try:
       pixels = bytes.fromhex(line.strip())
-      #print("input:\n%s" % pixels, file=sys.stderr)
+      #print("input raw:\n%s" % len(line.strip()), file=sys.stderr)
+      #print("input:\n%s" % len(pixels), file=sys.stderr)
       neopixel_write(pin, pixels)
     except Exception as e:
       print("input error:\n%s" % e, file=sys.stderr)

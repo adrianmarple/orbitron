@@ -62,9 +62,11 @@ function loop() {
   let dt = Date.now() - loopTime
   if(dt >= frameTime) {
     loopTime = Date.now()
+    startWebsocket()
     if(rawPixels) {
-      let rawPixelsString = Buffer.from(pako.inflate(rawPixels)).toString('hex')
+      let rawPixelsString = pako.inflate(rawPixels, {to: 'string'})
       //console.log("RAW PIXELS AS HEX", rawPixelsString)
+      //console.log("RAW PIXELS INFLATED", rawPixelsInflated)
       try {
         python_process.stdin.write(rawPixelsString + "\n", "utf8")
       } catch(e) {
@@ -73,6 +75,5 @@ function loop() {
     }
   }
 }
-setInterval(loop, 1)
-startWebsocket()
+setInterval(loop, 2)
 
