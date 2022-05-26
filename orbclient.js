@@ -17,27 +17,31 @@ function startWebsocket() {
   if(ws) {
     return // Already trying to establish a connection
   }
-  ws = new WebSocket(`ws://165.227.0.44:8888`)
-  ws.binaryType = "arraybuffer"
-  ws.onmessage = event => {
-    let data = event.data
-    if(typeof data === "string"){
-      try {
-        gameState = JSON.parse(data)
-      } catch(e) {
-        console.log(e)
+  try {
+    ws = new WebSocket(`ws://165.227.0.44:8888`)
+    ws.binaryType = "arraybuffer"
+    ws.onmessage = event => {
+      let data = event.data
+      if(typeof data === "string"){
+        try {
+          gameState = JSON.parse(data)
+        } catch(e) {
+          console.log(e)
+        }
+      } else {
+        rawPixels = event.data
       }
-    } else {
-      rawPixels = event.data
     }
-  }
-  ws.onclose = event => {
-    console.log("CLOSE")
-    ws = null
-  }
-  ws.onerror = event => {
-    console.error("ERROR",event)
-    ws = null
+    ws.onclose = event => {
+      console.log("CLOSE")
+      ws = null
+    }
+    ws.onerror = event => {
+      console.error("ERROR",event)
+      ws = null
+    }
+  } catch(e) {
+    console.log(e)
   }
 }
 

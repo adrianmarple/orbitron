@@ -25,7 +25,8 @@ if os.getenv("DEV_MODE"):
     #print("raw_pixels=%s" % gzip.compress(data).hex())
     #print(len(base64.a85encode(data)),file=sys.stderr)
     #print(gzip.compress(data).hex(),file=sys.stderr)
-    #print(len(gzip.compress(data)),file=sys.stderr)
+    #print(len(data.hex()),file=sys.stderr)
+    print(data.hex(),file=sys.stderr)
 else:
   import board
   from orbpixel import neopixel_write
