@@ -37,10 +37,12 @@
 </style>
 </head>
 <body>
+  <div id=audio-root></div>
+  <div id=orb-canvas></div>
   <div id=app>
     <div id=player-picker>
       <span
-          v-for="(player,index) in players"
+          v-for="(player,index) in gameState.players"
           v-if="player.isClaimed"
           class="dot" 
           :style="{ backgroundColor: player.color, borderColor: index == followingPlayer ? '#fff' : '#000'}"
