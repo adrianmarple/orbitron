@@ -14,7 +14,14 @@ EMPTY_SOUND = None #Initialized to an empty bytes object after mixer init
 sounds = {}
 music = {}
 musicActions = []
+remoteMusicActions = []
+remoteSoundActions = []
 currentMusic = ""
+
+def addRemoteAction(queue,action):
+  queue.append(str(time()) + ";" + action)
+  while(len(queue) > 10):
+    queue.pop(0)
 
 class SoundWrapper:
   def __init__(self, file_name, loop=False, fade_ms=0, delay_ms=None):
@@ -63,15 +70,18 @@ class SoundWrapper:
         self.delay_fade_ms = None
 
   def _play(self, fade_ms=None):
+    addRemoteAction(remoteSoundActions,"_play;"+self.name)
     loop_count = -1 if self.loop else 0
     self.channel = self.sound.play(loops=loop_count, fade_ms=fade_ms)
 
   def stop(self):
+    addRemoteAction(remoteSoundActions,"_stop;"+self.name)
     if self.channel:
       self.channel.stop()
       self.channel = None
 
   def fadeout(self, duration):
+    addRemoteAction(remoteSoundActions,"_fadeout;"+self.name)
     if self.channel:
       self.channel.queue(EMPTY_SOUND)
       self.channel.fadeout(duration)
@@ -118,11 +128,15 @@ class MusicWrapper:
     if delay_ms is None:
       self.delay_time = None
       self.next_fade_ms = fade_ms
-      musicActions.append("_play;"+self.name)
+      action = "_play;"+self.name
+      addRemoteAction(remoteMusicActions,action)
+      musicActions.append(action)
     else:
       self.delay_time = time() + delay_ms/1000
       self.next_fade_ms = fade_ms
-      musicActions.append("_delayed_play;"+self.name)
+      action = "_delayed_play;"+self.name
+      addRemoteAction(remoteMusicActions,action+";"+str(delay_ms))
+      musicActions.append(action)
 
   def _delayed_play(self):
     if self.delay_time is None or self.delay_time <= time():
@@ -159,7 +173,9 @@ class MusicWrapper:
       return musicActions.count("_play;"+self.name)>0
 
   def stop(self):
-    musicActions.append("_stop;"+self.name)
+    action = "_stop;"+self.name
+    addRemoteAction(remoteMusicActions,action)
+    musicActions.append(action)
 
   def _stop(self):
     mixer.music.stop()
@@ -173,7 +189,9 @@ class MusicWrapper:
     if duration is None:
       duration = self.fade_ms
     self.next_fade_ms = duration
-    musicActions.append("_fadeout;"+self.name)
+    action = "_fadeout;"+self.name
+    addRemoteAction(remoteMusicActions,action+";"+str(duration))
+    musicActions.append(action)
 
   def _fadeout(self):
     mixer.music.fadeout(self.next_fade_ms)
@@ -182,10 +200,12 @@ class MusicWrapper:
 
   def set_volume(self, val, force=False):
     self.volume = val
+    action = "_set_volume;"+self.name
+    addRemoteAction(remoteMusicActions,action+";"+str(val))
     if force:
       mixer.music.set_volume(val)
     else:    
-      musicActions.append("_set_volume;"+self.name)
+      musicActions.append(action)
 
   def _set_volume(self):
     if abs(mixer.music.get_volume() - self.volume) <= self.volumeInc:

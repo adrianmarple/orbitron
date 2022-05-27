@@ -15,7 +15,7 @@ from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
 from time import sleep, time
 
-from audio import music, prewarm_audio
+from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
 
 if os.getenv("DEV_MODE"):
   pin = 0
@@ -730,6 +730,8 @@ def broadcast_state():
     "victor": victor.to_json() if victor else {},
     "config": config,
     "data": data,
+    "musicActions": remoteMusicActions,
+    "soundActions": remoteSoundActions,
   }
   print(json.dumps(message))
 

@@ -1,3 +1,5 @@
+var canPlayAudio = false
+
 function clamp(num, min, max){
   return Math.min(Math.max(num, min), max)
 } 
@@ -27,7 +29,7 @@ document.addEventListener("keydown", moveStart, false)
 document.addEventListener("keyup", moveEnd, false)
 
 function moveStart(e) {
-  app.startAudio()
+  canPlayAudio = true
   let k = e.key
   if(k === "w" || k === "ArrowUp"){
     north = true
@@ -67,7 +69,7 @@ document.addEventListener("mousemove", drag, false)
 document.addEventListener("wheel", wheel, true)
 
 function dragStart(e) {
-  app.startAudio()
+  canPlayAudio = true
   if (e.type === "touchstart") {
     initialX = e.touches[0].clientX - yOffset
     initialY = e.touches[0].clientY - xOffset
@@ -113,7 +115,6 @@ function wheel(e) {
 var app = new Vue({
   el: "#app",
   data: {
-    audioStarted:false,
     followingPlayer:-1,
     pixelData:{},
     camera:{},
@@ -123,6 +124,12 @@ var app = new Vue({
     composer:{},
     ws:null,
     gameState:{},
+    sounds:[],
+    music:[],
+    currentMusic:null,
+    lastSoundAction:0,
+    lastMusicAction:0,
+    audioInitialized:false,
   },
   created() {
     let self = this
@@ -131,7 +138,6 @@ var app = new Vue({
     }).then(function(json){
       self.pixelData = json
       self.init()
-      console.log(self)
       self.animate()
     })
   },
@@ -221,6 +227,7 @@ var app = new Vue({
     animate() {
       requestAnimationFrame(this.animate)
       this.startWebsocket()
+      this.processAudio()
       this.render()
     },
     render() {
@@ -330,51 +337,243 @@ var app = new Vue({
       }
     },
     warmUpAudio() {
-      let names = ["kick", "placeBomb", "hurt", "death", "explosion"]
+      let names = ["kick.wav", "placeBomb.wav", "hurt.wav", "death.wav", "explosion.wav"]
 
       for (let name of names) {
-        let audio = document.createElement('audio')
-        audio.src = "audio/" + name + ".wav"
-        audio.id = "audio-" + name
-        audio.clientWidth = 0
-        audio.clientHeight = 0
-        document.getElementById("audio-root").appendChild(audio)
+        let wrapper = new SoundWrapper(name)
+        this.sounds[wrapper.name] = wrapper
       }
     },
     warmUpMusic() {
-      let names = ["battle1", "dm1", "snekBattle", "waiting", "victory"]
+      let music = [
+        new MusicWrapper("battle1.ogg",false,"battle1Loop.ogg"),
+        new MusicWrapper("dm1.ogg",false,"dm1Loop.ogg"),
+        new MusicWrapper("snekBattle.ogg"), 
+        new MusicWrapper("waiting.ogg", true), 
+        new MusicWrapper("victory.ogg")
+      ]
 
-      for (let name of names) {
-        let audio = document.createElement('audio')
-        audio.src = "audio/" + name + ".ogg"
-        audio.id = "audio-" + name
-        audio.loop = true
-        audio.clientWidth = 0
-        audio.clientHeight = 0
-        document.getElementById("audio-root").appendChild(audio)
+      for (let m of music) {
+        this.music[m.name] = m
       }
     },
-    playAudio(name) {
-      console.log(name)
-      let audio = document.getElementById("audio-" + name)
-      audio.play()
-      // audio.addEventListener("ended",function() {
-      //   audio.remove()
-      //   audio = document.createElement('audio')
-      //   audio.src = "audio/" + name + ".wav"
-      //   audio.clientWidth = 0
-      //   audio.clientHeight = 0
-      //   document.getElementById("audio-root").appendChild(audio)
-      // });
-    },
-    startAudio() {
-      // doing this is necessary because chrome won't allow auto play unless the user has interacted with the page
-      if(!this.audioStarted){
-        this.audioStarted = true
-        this.playAudio("waiting")
+    processAudio() {
+      if(!canPlayAudio) return
+      let soundActions = this.gameState.soundActions
+      if(soundActions) {
+        for(actionString of soundActions){
+          let actionData = actionString.split(";")
+          let timestamp = parseFloat(actionData[0])
+          if(timestamp > this.lastSoundAction){
+            this.lastSoundAction = timestamp
+            if(this.audioInitialized){
+              let action = actionData[1]
+              let name = actionData[2]
+              if(action === "_play") {
+                this.sounds[name].play()
+              } else if(action === "_stop") {
+                this.sounds[name].stop()
+              }
+            }
+          }
+        }
       }
-    }
+
+      let musicActions = this.gameState.musicActions
+      if(musicActions) {
+        for(actionString of musicActions){
+          let actionData = actionString.split(";")
+          let timestamp = parseFloat(actionData[0])
+          if(timestamp > this.lastMusicAction){
+            this.lastMusicAction = timestamp
+            let action = actionData[1]
+            let name = actionData[2]
+            if(name == "any"){
+              name = this.currentMusic
+            }
+            if(action === "_play") {
+              if(this.currentMusic) {
+                let currentMusic = this.music[this.currentMusic]
+                if(this.audioInitialized && currentMusic.fadingOut){
+                  let self = this
+                  currentMusic.onFadeout = function() {
+                    self.music[name].play()
+                    self.currentMusic = name
+                  }
+                } else {
+                  currentMusic.stop()
+                  this.music[name].play()
+                  this.currentMusic = name
+                }
+              } else {
+                this.music[name].play()
+                this.currentMusic = name
+              }
+            } else if(action === "_delayed_play") {
+              let delay = actionData[3]
+              let self = this
+              setTimeout(function(){
+                if(self.currentMusic) {
+                  self.music[this.currentMusic].stop()
+                  self.currentMusic = null
+                }
+                self.music[name].play()
+                self.currentMusic = name
+              }, delay)
+            } else if(action === "_stop") {
+              this.music[name].stop()
+              if(this.currentMusic === name) {
+                this.currentMusic = null
+              }
+            } else if(action === "_fadeout") {
+              let duration = actionData[3]
+              let music = this.music[name]
+              music.fadeOut(duration)
+            } else if(action === "_set_volume") {
+              this.music[name].setVolume(actionData[3])
+            }
+          }
+        }
+      }
+      this.audioInitialized = musicActions && musicActions.length > 0
+    },
   }
 })
 
+class SoundWrapper {
+  constructor(file) {
+    let name = file.slice(0,-4)
+    let audio = document.createElement('audio')
+    audio.src = "audio/" + file
+    audio.id = "audio-" + name
+    //audio.clientWidth = 0
+    //audio.clientHeight = 0
+    document.getElementById("audio-root").appendChild(audio)
+    this.audio = audio
+    this.name = name
+    this.file = file
+  }
 
+  play(){
+    this.audio.pause()
+    this.audio.currentTime = 0
+    let self = this
+    this.audio.play().catch(function(e){
+      console.log(e,self)
+    })
+  }
+}
+
+class MusicWrapper {
+  constructor(file, loop, vampFile){
+    let name = file.slice(0,-4)
+    let audio = document.createElement('audio')
+    audio.src = "audio/" + file
+    audio.id = "audio-" + name
+    audio.loop = loop
+    //audio.clientWidth = 0
+    //audio.clientHeight = 0
+    document.getElementById("audio-root").appendChild(audio)
+    audio.addEventListener("ended", this._onEnd)
+    this.audio = audio
+    this.name = name
+    this.file = file
+    if(vampFile) {
+      this.vampFile = vampFile
+      let vampName = vampFile.slice(0,-4)
+      let vamp = document.createElement('audio')
+      vamp.src = "audio/" + vampFile
+      vamp.id = "audio-" + vampName
+      vamp.loop = true
+      //vamp.clientWidth = 0
+      //vamp.clientHeight = 0
+      document.getElementById("audio-root").appendChild(vamp)
+      this.vamp = vamp
+    }
+    this.playing = false
+    this.vampPlaying = false
+    this.fadingOut = false
+  }
+
+  play() {
+    this.stop()
+    this.audio.volume = 1.0
+    let self = this
+    this.audio.play().catch(function(e){
+      console.log(e,self)
+    })
+    this.playing = true
+    this.fadingOut = false
+    this.onFadeout = null
+  }
+
+  isPlaying() {
+    return this.playing || this.vampPlaying
+  }
+
+  stop() {
+    this.audio.pause()
+    this.audio.currentTime = 0
+    if(this.vamp) {
+      this.vamp.pause()
+      this.vamp.currentTime = 0
+    }
+    this.playing = false
+    this.vampPlaying = false
+    this.fadingOut = false
+    this.onFadeout = null
+  }
+
+  _onEnd() {
+    if(this.vamp){
+      this.vamp.volume = 1.0
+      this.vamp.play()
+      this.vampPlaying = true
+    } else {
+      this.playing = false
+    }
+  }
+
+  getVolume() {
+    if(this.vampPlaying) {
+      return this.vamp.volume
+    } else {
+      return this.audio.volume
+    }
+  }
+
+  setVolume(v) {
+    let val = clamp(v,0.0,1.0)
+    if(this.vampPlaying) {
+      this.vamp.volume = val
+    } else {
+      this.audio.volume = val
+    }
+  }
+
+  fadeOut(duration) {
+    if(this.isPlaying()) {
+      this.fadingOut = true
+      let self = this
+      let inc = 100
+      let t = duration / inc
+      let step = this.getVolume() / inc
+      let fadeout = function() {
+        if(self.fadingOut){
+          self.setVolume(self.getVolume() - step)
+          if(self.getVolume() > 0) {
+            setTimeout(fadeout,t)
+          } else {
+            if(self.onFadeout)  {
+              self.onFadeout()
+              self.onFadeout = null
+            }
+            self.stop()
+          }
+        }
+      }
+      setTimeout(fadeout,t)
+
+    }
+  }
+}
