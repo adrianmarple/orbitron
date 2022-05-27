@@ -6,7 +6,7 @@ const pako = require('./pako.min.js')
 var ws = null
 var rawPixels = ""
 var gameState = {}
-var loopTime = 0
+var loopTime = Date.now()
 var frameTime = 1/30 * 1000
 
 
@@ -65,7 +65,7 @@ python_process.on('uncaughtException', function(err) {
 function loop() {
   let dt = Date.now() - loopTime
   if(dt >= frameTime) {
-    loopTime = Date.now()
+    loopTime = loopTime + frameTime
     startWebsocket()
     if(rawPixels) {
       let rawPixelsString = pako.inflate(rawPixels, {to: 'string'})
@@ -79,5 +79,5 @@ function loop() {
     }
   }
 }
-setInterval(loop, 2)
+setInterval(loop, frameTime/4)
 
