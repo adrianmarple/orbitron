@@ -171,11 +171,11 @@ class MusicWrapper:
   def will_play(self):
     if self.name == "any":
       for action in musicActions:
-        if action.find("_play;")>=0:
+        if action.find("_play;")>=0 or action.find("_delayed_play;")>=0:
           return True
       return False
     else:
-      return musicActions.count("_play;"+self.name)>0
+      return musicActions.count("_play;"+self.name)>0 or musicActions.count("_delayed_play;"+self.name)>0
 
   def stop(self):
     action = "_stop;"+self.name
