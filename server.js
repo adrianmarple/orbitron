@@ -250,7 +250,7 @@ python_process.stdout.on('data', data => {
   } else{
     message = message.trim()
     if (message) {
-      console.log(message)
+      //console.log(message)
     }
   }
 });

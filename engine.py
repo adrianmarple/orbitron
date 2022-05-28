@@ -105,28 +105,17 @@ def start(game):
     claimed.append(player.is_claimed)
   players.clear()
   game.setup()
+  game.post_setup()
   for (i, player) in enumerate(players):
     if i < len(claimed):
       player.is_claimed = claimed[i]
 
-
-  if not music["waiting"].is_playing() and not music["waiting"].will_play():
-    music["any"].fadeout(2000)
-    music["waiting"].play()
-  music["waiting"].set_volume(1.0)
 
 def quit():
   global current_game
   current_game = None
   clear()
   clear_votes()
-  #Do this once we have an idle song
-  #music["waiting"].fadeout(2000)
-  #music["idle"].play()
-  if not music["waiting"].is_playing() and not music["waiting"].will_play():
-    music["any"].fadeout(2000)
-    music["waiting"].play()
-  music["waiting"].set_volume(0.25)
 
   for listener in quit_listeners:
     listener()
@@ -410,6 +399,9 @@ class Game:
       color=(200, 50, 0),
       color_string="#ff9800") #orange
 
+  def post_setup(self):
+    music[self.waiting_music].play(delay_ms=2000)
+
   def update(self):
     if self.state == "start":
       self.start_update()
@@ -471,6 +463,7 @@ class Game:
     music["victory"].play()
 
   def victory_ontimeout(self):
+    music["victory"].fadeout(2000)
     quit()
 
     # for player in players:

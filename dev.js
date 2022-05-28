@@ -388,7 +388,6 @@ var app = new Vue({
         this.musicReady = ready
       }
       let musicActions = this.gameState.musicActions
-      console.log(musicActions)
       if(this.musicReady && musicActions) {
         for(actionString of musicActions){
           let actionData = actionString.split(";")

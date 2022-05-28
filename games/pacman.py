@@ -138,7 +138,7 @@ class PacMan(Game):
 
     if ghosts_win or data["lives"] <= 0:
       self.play_ontimeout()
-      engine.victor = Dummy(team_id=0,
+      engine.victor = Dummy(
         name="Ghosts",
         color=(255, 0, 0),
         color_string="red")
