@@ -483,7 +483,7 @@ class Game:
 
 
   def render(self):
-    global pixels
+    global pixels, victor
     pixels *= 0
 
     if self.state == "countdown":

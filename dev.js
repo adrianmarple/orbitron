@@ -399,6 +399,9 @@ var app = new Vue({
             if(name === "any"){
               name = this.currentMusic
             }
+            if(!name){
+              continue
+            }
             if(action === "_play") {
               if(this.currentMusic) {
                 this.music[this.currentMusic].stop()

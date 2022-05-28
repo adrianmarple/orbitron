@@ -20,8 +20,13 @@ currentMusic = ""
 
 def addRemoteAction(queue,action):
   queue.append(str(time()) + ";" + action)
+  last_play = None
   while(len(queue) > 10):
-    queue.pop(0)
+    act = queue.pop(0)
+    if("_play" in act):
+      last_play = act
+  if(last_play and queue.count(last_play) <= 0):
+    queue.insert(0,last_play)
 
 class SoundWrapper:
   def __init__(self, file_name, loop=False, fade_ms=0, delay_ms=None):
