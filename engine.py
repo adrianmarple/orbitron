@@ -500,7 +500,7 @@ class Game:
 
     elif self.state == "victory":
       start_time = self.end_time - config["VICTORY_TIMEOUT"]
-      color = victor.color
+      color = victor.color if victor else np.array((60,60,60))
       timer = (time() - start_time)
       width = 2
       if timer < 0.4:
