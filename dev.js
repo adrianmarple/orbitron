@@ -388,37 +388,24 @@ var app = new Vue({
             this.lastMusicAction = timestamp
             let action = actionData[1]
             let name = actionData[2]
-            if(name == "any"){
+            if(name === "any"){
               name = this.currentMusic
             }
             if(action === "_play") {
               if(this.currentMusic) {
-                let currentMusic = this.music[this.currentMusic]
-                if(this.audioInitialized && currentMusic.fadingOut){
-                  let self = this
-                  currentMusic.onFadeout = function() {
-                    self.music[name].play()
-                    self.currentMusic = name
-                  }
-                } else {
-                  currentMusic.stop()
-                  this.music[name].play()
-                  this.currentMusic = name
-                }
-              } else {
-                this.music[name].play()
-                this.currentMusic = name
+                this.music[this.currentMusic].stop()
               }
+              this.currentMusic = name
+              this.music[name].play()
             } else if(action === "_delayed_play") {
               let delay = actionData[3]
               let self = this
               setTimeout(function(){
                 if(self.currentMusic) {
                   self.music[this.currentMusic].stop()
-                  self.currentMusic = null
                 }
-                self.music[name].play()
                 self.currentMusic = name
+                self.music[name].play()
               }, delay)
             } else if(action === "_stop") {
               this.music[name].stop()
@@ -426,9 +413,19 @@ var app = new Vue({
                 this.currentMusic = null
               }
             } else if(action === "_fadeout") {
-              let duration = actionData[3]
-              let music = this.music[name]
-              music.fadeOut(duration)
+              if(!this.audioInitialized){
+                this.music[name].stop()
+                if(this.currentMusic === name){
+                  this.currentMusic = null
+                }
+              } else {
+                let duration = actionData[3]
+                let music = this.music[name]
+                music.fadeOut(duration)
+                if(this.currentMusic === name) {
+                  this.currentMusic = null
+                }
+              }
             } else if(action === "_set_volume") {
               this.music[name].setVolume(actionData[3])
             }
@@ -555,14 +552,15 @@ class MusicWrapper {
     if(this.isPlaying()) {
       this.fadingOut = true
       let self = this
-      let inc = 100
-      let t = duration / inc
-      let step = this.getVolume() / inc
-      let fadeout = function() {
+      let startVol = this.getVolume()
+      let fadeOutStart = Date.now()
+      let tick = 16
+      let fadeOut = function() {
         if(self.fadingOut){
-          self.setVolume(self.getVolume() - step)
+          let vol = startVol - startVol*(Date.now() - fadeOutStart)/duration
+          self.setVolume(vol)
           if(self.getVolume() > 0) {
-            setTimeout(fadeout,t)
+            setTimeout(fadeOut,tick)
           } else {
             if(self.onFadeout)  {
               self.onFadeout()
@@ -572,7 +570,7 @@ class MusicWrapper {
           }
         }
       }
-      setTimeout(fadeout,t)
+      setTimeout(fadeOut,tick)
 
     }
   }
