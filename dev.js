@@ -130,6 +130,7 @@ var app = new Vue({
     lastSoundAction:0,
     lastMusicAction:0,
     audioInitialized:false,
+    musicReady:false,
   },
   created() {
     let self = this
@@ -379,8 +380,15 @@ var app = new Vue({
         }
       }
 
+      if(!this.musicReady) {
+        let ready = true
+        for(music of this.music) {
+          ready = ready && music.isReady()
+        }
+        this.musicReady = ready
+      }
       let musicActions = this.gameState.musicActions
-      if(musicActions) {
+      if(this.musicReady && musicActions) {
         for(actionString of musicActions){
           let actionData = actionString.split(";")
           let timestamp = parseFloat(actionData[0])
@@ -431,8 +439,8 @@ var app = new Vue({
             }
           }
         }
+        this.audioInitialized = musicActions.length > 0
       }
-      this.audioInitialized = musicActions && musicActions.length > 0
     },
   }
 })
@@ -472,6 +480,10 @@ class MusicWrapper {
     //audio.clientHeight = 0
     document.getElementById("audio-root").appendChild(audio)
     audio.addEventListener("ended", this._onEnd)
+    let self = this
+    audio.addEventListener('canplay', (event) => {
+      self.canPlay = true
+    });
     this.audio = audio
     this.name = name
     this.file = file
@@ -573,5 +585,9 @@ class MusicWrapper {
       setTimeout(fadeOut,tick)
 
     }
+  }
+
+  isReady() {
+    return this.canPlay
   }
 }
