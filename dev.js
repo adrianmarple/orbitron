@@ -509,12 +509,14 @@ class MusicWrapper {
   }
 
   play() {
-    this.stop()
     this.audio.volume = 1.0
-    let self = this
-    this.audio.play().catch(function(e){
-      console.log(e,self)
-    })
+    if(not this.isPlaying()){
+      this.stop()
+      let self = this
+      this.audio.play().catch(function(e){
+        console.log(e,self)
+      })
+    }
     this.playing = true
     this.fadingOut = false
     this.onFadeout = null

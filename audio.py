@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 import pygame._sdl2 as sdl2
 from threading import main_thread, Thread
@@ -44,7 +45,8 @@ class SoundWrapper:
     sounds[self.name] = self
 
   def init(self):
-    self.sound = mixer.Sound(MUSIC_DIRECTORY + self.file_name)
+    if not os.getenv("DEV_MODE"):
+      self.sound = mixer.Sound(MUSIC_DIRECTORY + self.file_name)
 
   def play(self, fade_ms=None, delay_ms=None):
     if fade_ms is None:
@@ -153,18 +155,22 @@ class MusicWrapper:
     self._stop()
     self._open()
     loop_count = -1 if self.loop else 0
-    mixer.music.load(self.song)
-    mixer.music.play(loops=loop_count, fade_ms=self.next_fade_ms)
-    if self.vamp:
-      mixer.music.queue(self.vamp, loops=-1)
+    if not os.getenv("DEV_MODE"):
+      mixer.music.load(self.song)
+      mixer.music.play(loops=loop_count, fade_ms=self.next_fade_ms)
+      if self.vamp:
+        mixer.music.queue(self.vamp, loops=-1)
     global currentMusic
     currentMusic = self.name
 
   def is_playing(self):
+    global currentMusic
     if self.name == "any":
-      return mixer.music.get_busy()
+      if os.getenv("DEV_MODE"):
+          return currentMusic
+      else:
+        return mixer.music.get_busy()
     else:
-      global currentMusic
       return currentMusic ==  self.name
 
   def will_play(self):
@@ -182,8 +188,9 @@ class MusicWrapper:
     musicActions.append(action)
 
   def _stop(self):
-    mixer.music.stop()
-    mixer.music.unload()
+    if not os.getenv("DEV_MODE"):
+      mixer.music.stop()
+      mixer.music.unload()
     self._close()
     global currentMusic
     if currentMusic == self.name:
@@ -198,20 +205,23 @@ class MusicWrapper:
     musicActions.append(action)
 
   def _fadeout(self):
-    mixer.music.fadeout(self.next_fade_ms)
-    mixer.music.unload()
+    if not os.getenv("DEV_MODE"):
+      mixer.music.fadeout(self.next_fade_ms)
+      mixer.music.unload()
     self._close()
 
   def set_volume(self, val, force=False):
     self.volume = val
     action = "_set_volume;"+self.name
     addRemoteAction(remoteMusicActions,action+";"+str(val))
-    if force:
+    if force and not os.getenv("DEV_MODE"):
       mixer.music.set_volume(val)
     else:    
       musicActions.append(action)
 
   def _set_volume(self):
+    if os.getenv("DEV_MODE"):
+      return None
     if abs(mixer.music.get_volume() - self.volume) <= self.volumeInc:
       mixer.music.set_volume(self.volume)
       return None
@@ -223,7 +233,10 @@ class MusicWrapper:
       return True
 
   def get_volume(self):
-    return mixer.music.get_volume()
+    if os.getenv("DEV_MODE"):
+      return 0
+    else:
+      return mixer.music.get_volume()
 
 
 def prewarm_audio():
@@ -241,17 +254,16 @@ def prewarm_audio():
 
   # Now run prewarm thread
   def thread_func():
-    mixer.init(devicename=os.getenv("ORB_AUDIO"), channels=1)
+    if not os.getenv("DEV_MODE"):
+      mixer.init(devicename=os.getenv("ORB_AUDIO"), channels=1)
 
-    global EMPTY_SOUND
-    EMPTY_SOUND = mixer.Sound(bytes(1))
+      global EMPTY_SOUND
+      EMPTY_SOUND = mixer.Sound(bytes(1))
 
-    for sound in sounds.values():
-      sound.init()
+      for sound in sounds.values():
+        sound.init()
 
-    music["waiting"].play()
     print("Finished prewarming audio.")
-
 
     # thread now to handle vamps
     while True:
