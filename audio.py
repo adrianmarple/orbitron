@@ -47,17 +47,6 @@ class SoundWrapper:
     self.sound = mixer.Sound(MUSIC_DIRECTORY + self.file_name)
 
   def play(self, fade_ms=None, delay_ms=None):
-    if not self.sound:
-      return
-    elif self.sound.get_num_channels() > 0:
-      if self.channel:
-        if not self.channel.get_busy():
-          self.sound.stop()
-        else:
-          return
-      else:
-        self.sound.stop()
-
     if fade_ms is None:
       fade_ms = self.fade_ms
 
@@ -76,6 +65,16 @@ class SoundWrapper:
 
   def _play(self, fade_ms=None):
     addRemoteAction(remoteSoundActions,"_play;"+self.name)
+    if not self.sound:
+      return
+    elif self.sound.get_num_channels() > 0:
+      if self.channel:
+        if not self.channel.get_busy():
+          self.sound.stop()
+        else:
+          return
+      else:
+        self.sound.stop()
     loop_count = -1 if self.loop else 0
     self.channel = self.sound.play(loops=loop_count, fade_ms=fade_ms)
 
