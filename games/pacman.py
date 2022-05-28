@@ -53,28 +53,28 @@ class PacMan(Game):
     )
     Pacman(
       position=105,
-      color=(96, 255, 0),
-      color_string="#80ff00"
-    )
-    Pacman(
-      position=202,
       color=(0, 255, 0),
       color_string="#00ff00"
     )
     Pacman(
-      position=117,
-      color=(0, 255, 96),
-      color_string="#00ff80"
-    )
-    Pacman(
-      position=50,
+      position=202,
       color=(0, 255, 255),
       color_string="#00ffff"
     )
     Pacman(
+      position=117,
+      color=(0, 0, 255),
+      color_string="#0000ff"
+    )
+    Pacman(
+      position=50,
+      color=(255, 127, 0),
+      color_string="#ff7f00"
+    )
+    Pacman(
       position=157,
-      color=(255, 128, 0),
-      color_string="#ff8000"
+      color=(127, 63, 255),
+      color_string="#7f3fff"
     )
     #North Pole Coords = 268-273 133-141 172
     Ghost(position=133)
@@ -170,6 +170,7 @@ class PacMan(Game):
     for i in range(SIZE):
       if statuses[i] == "pellet":
         color_pixel(i, (10, 10, 10))
+        #color_pixel(i, (50, 50, 50))
       elif statuses[i] == "power":
         color_pixel(i, power_color)
 
@@ -310,8 +311,9 @@ class Ghost(Player):
       if time_left < 3 and time_left % 0.5 > 0.25:
         base_color = np.array((0, 0, 0))
       else:
-        base_color = np.array((0,0,1.0))
+        base_color = np.array((1,0,1))
     return 255*np.power(base_color,2)
+    #return 255*base_color
 
   def cant_move(self):
     move_freq = config["GHOST_SCARED_MOVE_FREQ"] if self.is_scared() else config["GHOST_MOVE_FREQ"]

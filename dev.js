@@ -219,6 +219,7 @@ var app = new Vue({
       document.getElementById("orb-canvas").appendChild(renderer.domElement)
       const bloomPass = new THREE.UnrealBloomPass(
         resolution=new THREE.Vector2(256, 256),
+        //strength=5,
         strength=3,
         radius=0,
         threshold=0
