@@ -107,11 +107,6 @@ def consume_input():
 
       if message["type"] == "claim":
         player.is_claimed = True
-        # Always start with snektron when first player joins
-        if len(engine.claimed_players()) == 1:
-          # start_game("colorwar")
-          # start_game("pacman")
-          start_game("snektron")
       elif message["type"] == "release":
         player.is_claimed = False
         check_vote()

@@ -510,7 +510,7 @@ class MusicWrapper {
 
   play() {
     this.audio.volume = 1.0
-    if(not this.isPlaying()){
+    if(!this.isPlaying()){
       this.stop()
       let self = this
       this.audio.play().catch(function(e){

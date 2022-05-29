@@ -110,13 +110,8 @@ def start(game):
     if i < len(claimed):
       player.is_claimed = claimed[i]
 
-
+# quit should always result in a new game starting
 def quit():
-  global current_game
-  current_game = None
-  clear()
-  clear_votes()
-
   for listener in quit_listeners:
     listener()
 
@@ -126,33 +121,28 @@ def add_quit_listener(listener):
 
 # ================================ UPDATE =========================================
 
-
 def update():
-  global pixels, raw_pixels
+  global pixels, raw_pixels, current_game
+  try:
+    if len(claimed_players()) == 0 and current_game != idle:
+      start(idle)
+    if len(claimed_players()) > 0 and current_game == idle:
+      quit()
 
-  if current_game and len(claimed_players()) == 0:
-    quit()
-  else:
-    try:
-      if not current_game:
-        render_fluid()
-        # render_snake()
-      else:
-        current_game.update()
-        if current_game.end_time <= time() and current_game.end_time > 0:
-          current_game.ontimeout()
-        # For countdown on phone
-        current_game.render()
-        
-      pixels = np.minimum(pixels, 255)
-      pixels = np.maximum(pixels, 0)
-      raw_pixels = np.matmul(dupe_matrix,pixels)
-      raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
-      output=np.array(raw_pixels,dtype="<u1").tobytes()
-      neopixel_write(pin,output)
-      broadcast_state()
-    except Exception:
-      print(traceback.format_exc())
+    current_game.update()
+    if current_game.end_time <= time() and current_game.end_time > 0:
+      current_game.ontimeout()
+    current_game.render()
+
+    pixels = np.minimum(pixels, 255)
+    pixels = np.maximum(pixels, 0)
+    raw_pixels = np.matmul(dupe_matrix,pixels)
+    raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
+    output=np.array(raw_pixels,dtype="<u1").tobytes()
+    neopixel_write(pin,output)
+    broadcast_state()
+  except Exception:
+    print(traceback.format_exc())
 
 
 # ================================ PLAYER =========================================
@@ -547,6 +537,53 @@ class Game:
 
 
 
+# ================================ Idle Animation "Game" =========================================
+
+
+class Idle(Game):
+  name = "idle"
+  def post_setup(self):
+    music["any"].fadeout()
+    print(self.waiting_music, file=sys.stderr)
+    music[self.waiting_music].play(delay_ms=2000)
+
+  def update(self):
+    pass
+
+  def render(self):
+    self.render_fluid()
+
+  fluid_heads = [0]
+  fluid_values = np.array([1.0] + [0.0] * (SIZE - 1))
+  previous_fluid_time = 0
+  def render_fluid(self):
+    global pixels
+
+    time_to_wait = self.previous_fluid_time + 0.066 - time()
+    if time_to_wait > 0:
+      sleep(time_to_wait)
+
+    self.previous_fluid_time = time()
+    new_heads = []
+    for head in self.fluid_heads:
+      for n in neighbors[head]:
+        x = self.fluid_values[n] + 0.01
+        x *= (1 + len(self.fluid_heads)/3)
+        if x < random():
+          new_heads.append(n)
+          self.fluid_values[n] = 1
+
+    if len(new_heads) != 0:
+      self.fluid_heads = new_heads
+
+    self.fluid_values *= 0.86
+    squares = np.multiply(self.fluid_values, self.fluid_values)
+    pixels = np.outer(squares, phase_color() * 200)
+
+idle = Idle(waiting_music="waiting") #Idle(waiting_music="idle")
+
+
+
 # ================================ MISC =========================================
 
 def claimed_players():
@@ -626,34 +663,6 @@ def clear_votes():
 def clear():
   for i in range(len(statuses)):
     statuses[i] = "blank"
-
-
-
-fluid_heads = [0]
-fluid_values = np.array([1.0] + [0.0] * (SIZE - 1))
-previous_fluid_time = 0
-def render_fluid():
-  global fluid_heads, fluid_values, raw_pixels, pixels, previous_fluid_time
-  time_to_wait = previous_fluid_time + 0.066 - time()
-  if time_to_wait > 0:
-    sleep(time_to_wait)
-
-  previous_fluid_time = time()
-  new_heads = []
-  for head in fluid_heads:
-    for n in neighbors[head]:
-      x = fluid_values[n] + 0.01
-      x *= (1 + len(fluid_heads)/3)
-      if x < random():
-        new_heads.append(n)
-        fluid_values[n] = 1
-
-  if len(new_heads) != 0:
-    fluid_heads = new_heads
-
-  fluid_values *= 0.86
-  squares = np.multiply(fluid_values, fluid_values)
-  pixels = np.outer(squares, phase_color() * 200)
 
 
 def phase_color():
