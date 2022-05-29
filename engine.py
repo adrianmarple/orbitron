@@ -101,16 +101,12 @@ def start_random_game():
   for name in game_selection_weights.keys():
     game_selection_weights[name] += 1
   game_selection_weights[selection] = 0
-  game = games[selection]
-  print(game, file=sys.stderr)
-
   start(games[selection])
 
 
 def start(game):
   global current_game
   current_game = game
-  game.state = "start"
   clear_votes()
 
   # TODO clean this up and have better player continuity between games (especially colors!)
@@ -367,14 +363,13 @@ class Player:
 
 class Game:
   def __init__(self, player_class=Player, waiting_music="waiting", battle_music="battle1"):
-    self.state = "start"
-    self.end_time = 0
-
     self.waiting_music = waiting_music
     self.battle_music = battle_music
     self.player_class = player_class
 
   def setup(self):
+    self.state = "start"
+    self.end_time = 0
     self.clear()
     self.player_class(
       position=105,
