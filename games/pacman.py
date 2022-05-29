@@ -46,36 +46,7 @@ class PacMan(Game):
   previous_power_pellet_generation_time = 0
 
   def setup(self):
-    Pacman(
-      position=24,
-      color=(255, 255, 0),
-      color_string="#ffff00"
-    )
-    Pacman(
-      position=105,
-      color=(0, 255, 0),
-      color_string="#00ff00"
-    )
-    Pacman(
-      position=202,
-      color=(0, 255, 255),
-      color_string="#00ffff"
-    )
-    Pacman(
-      position=117,
-      color=(0, 0, 255),
-      color_string="#0000ff"
-    )
-    Pacman(
-      position=50,
-      color=(255, 80, 0),
-      color_string="#ff7f00"
-    )
-    Pacman(
-      position=157,
-      color=(127, 63, 255),
-      color_string="#7f3fff"
-    )
+    Game.setup(self)
     #North Pole Coords = 268-273 133-141 172
     Ghost(position=133)
     Ghost(position=137)
@@ -377,4 +348,4 @@ class Ghost(Player):
     Player.render(self)
 
 
-game = PacMan()
+game = PacMan(Pacman)

@@ -370,24 +370,37 @@ class Game:
     self.player_class = player_class
 
   def setup(self):
-    self.player_class(position=105,
-      color=(0, 200, 0),
-      color_string="#4caf50") #green
-    self.player_class(position=198,
-      color=(1, 12, 200),
-      color_string="#1e88e5") #blue
-    self.player_class(position=24,
-      color=(200, 2, 20),
-      color_string="#e91e63") #pink
-    self.player_class(position=252,
-      color=(100, 0, 250),
-      color_string="#9575cd") #deep purple
-    self.player_class(position=168,
-      color=(180, 200, 5),
-      color_string="#c0ca33") #lime
-    self.player_class(position=311,
-      color=(200, 50, 0),
-      color_string="#ff9800") #orange
+    self.player_class(
+      position=105,
+      color=(0, 255, 0),
+      color_string="#00ff00" #green
+    )
+    self.player_class(
+      position=117,
+      color=(0, 0, 255),
+      color_string="#0000ff" #blue
+    )
+    self.player_class(
+      position=50,
+      color=(255, 80, 0),
+      color_string="#ff7f00" #orange
+    )
+    self.player_class(
+      position=157,
+      color=(127, 63, 255),
+      color_string="#7f3fff" #violet
+    )
+    self.player_class(
+      position=24,
+      color=(255, 255, 0),
+      color_string="#ffff00" #yellow
+    )
+    self.player_class(
+      position=202,
+      color=(0, 255, 255),
+      color_string="#00ffff" #cyan
+    )
+
 
   def post_setup(self):
     music[self.waiting_music].play(delay_ms=2000)
