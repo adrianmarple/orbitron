@@ -20,13 +20,7 @@ from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
 if os.getenv("DEV_MODE"):
   pin = 0
   def neopixel_write(pin,data):
-    global raw_pixels, pixels
     print("raw_pixels=%s" % data.hex())
-    #print("raw_pixels=%s" % gzip.compress(data).hex())
-    #print(len(base64.a85encode(data)),file=sys.stderr)
-    #print(gzip.compress(data).hex(),file=sys.stderr)
-    #print(len(data.hex()),file=sys.stderr)
-    #print(data.hex(),file=sys.stderr)
 else:
   import board
   from orbpixel import neopixel_write
@@ -71,7 +65,6 @@ dupe_to_unique = pixel_info["dupe_to_unique"]
 unique_antipodes = pixel_info["unique_antipodes"]
 
 pixels = np.zeros((SIZE, 3),dtype="<u1")
-raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
 dupe_matrix = np.zeros((RAW_SIZE, SIZE),dtype="<u1")
 for (i, dupes) in enumerate(unique_to_dupes):
   for dupe in dupes:
@@ -134,7 +127,7 @@ def start(game):
 # ================================ UPDATE =========================================
 
 def update():
-  global pixels, raw_pixels
+  global pixels
   try:
     if len(claimed_players()) == 0 and current_game != idle:
       start(idle)
@@ -160,7 +153,7 @@ def update():
 # ================================ PLAYER =========================================
 
 class Dummy:
-  def __init__(self, color, color_string, name, players):
+  def __init__(self, color, color_string, name):
     self.color = np.array(color)
     self.color_string = color_string
     self.name = name
