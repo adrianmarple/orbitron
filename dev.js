@@ -1,4 +1,5 @@
 var canPlayAudio = false
+var volumeScale = 0.5
 
 function clamp(num, min, max){
   return Math.min(Math.max(num, min), max)
@@ -376,7 +377,7 @@ var app = new Vue({
               let action = actionData[1]
               let name = actionData[2]
               if(action === "_play") {
-                this.sounds[name].play(this.sfxVolume/100.0)
+                this.sounds[name].play(this.sfxVolume/100.0 * volumeScale)
               } else if(action === "_stop") {
                 this.sounds[name].stop()
               }
@@ -403,8 +404,6 @@ var app = new Vue({
             let name = actionData[2]
             if(name === "any"){
               name = this.currentMusic
-              console.log("ANY",name, action)
-              console.log(musicActions)
             }
             if(!name){
               continue
@@ -514,11 +513,11 @@ class MusicWrapper {
     this.playing = false
     this.vampPlaying = false
     this.fadingOut = false
-    this.maxVolume = 0.5
+    this.maxVolume = 0.5 * volumeScale
   }
 
   play() {
-    this.audio.volume = this.maxVolume
+    this.audio.volume = this.maxVolume * volumeScale
     if(!this.isPlaying()){
       this.stop()
       let self = this
@@ -550,7 +549,7 @@ class MusicWrapper {
 
   _onEnd() {
     if(this.vamp){
-      this.vamp.volume = this.maxVolume
+      this.vamp.volume = this.maxVolume * volumeScale
       this.vamp.play()
       this.vampPlaying = true
     } else {
@@ -567,7 +566,7 @@ class MusicWrapper {
   }
 
   setVolume(v) {
-    let val = clamp(v,0.0,this.maxVolume)
+    let val = clamp(v,0.0,this.maxVolume * volumeScale)
     if(this.vampPlaying) {
       this.vamp.volume = val
     } else {

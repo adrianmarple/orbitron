@@ -566,7 +566,7 @@ body, #app, .main {
   <div v-else class="main" :style="{ backgroundColor: self.color }">
     <div class="header card">
       <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 2em">{{mode=='previctory' ? 0 : Math.round(state.timeRemaining)}}</div>
-      <div v-if="mode=='victory'" @click="displaySignup">
+      <div v-if="mode=='victory'" >
         <div v-if="iAmVictorious">
           Victory!
         </div>
@@ -1150,7 +1150,7 @@ var app = new Vue({
     },
 
     send(json) {
-      console.log(json)
+      //console.log(json)
       if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
         this.startWebsocket()
       } else if(this.ws.readyState === WebSocket.OPEN) {
