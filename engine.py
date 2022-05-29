@@ -79,7 +79,6 @@ for (i, dupes) in enumerate(unique_to_dupes):
 
 print("Running %s pixels" % pixel_info["RAW_SIZE"],file=sys.stderr)
 
-START_POSITIONS = [54, 105, 198, 24, 125, 179, 168, 252]
 statuses = ["blank"] * SIZE
 
 current_game = None
@@ -109,6 +108,9 @@ def start_random_game():
   for name in game_selection_weights.keys():
     game_selection_weights[name] += 1
   game_selection_weights[selection] = 0
+  game = games[selection]
+  print(game, file=sys.stderr)
+
   start(games[selection])
 
 
@@ -380,6 +382,7 @@ class Game:
     self.player_class = player_class
 
   def setup(self):
+    self.clear()
     self.player_class(
       position=105,
       color=(0, 255, 0),
@@ -446,10 +449,14 @@ class Game:
   def start_ontimeout(self):
     for player in claimed_players():
       player.setup_for_game()
-    clear()
+    self.clear()
     self.state = "countdown"
     self.end_time = time() + 4
     music[self.waiting_music].fadeout(3500)
+
+  def clear():
+    for i in range(len(statuses)):
+      statuses[i] = "blank"
 
   def countdown_ontimeout(self):
     self.end_time = time() + config["ROUND_TIME"]
@@ -673,10 +680,6 @@ def spawn(status):
 def clear_votes():
   for player in players:
     player.votes = {}
-
-def clear():
-  for i in range(len(statuses)):
-    statuses[i] = "blank"
 
 
 def phase_color():

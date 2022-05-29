@@ -80,7 +80,6 @@ def check_vote():
       engine.start(game_modules[message["vote"]].game)
     elif election == "ready":
       engine.current_game.ontimeout()
-      continue # Don't clear this particular election
 
     for player in engine.players:
       if election in player.votes:
