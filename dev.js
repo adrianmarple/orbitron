@@ -190,7 +190,7 @@ var app = new Vue({
       let innerSphereGeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
       let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
       innerSphereMaterial.transparent = true
-      innerSphereMaterial.opacity = 0.92
+      innerSphereMaterial.opacity = 0.8
       let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
       subGroup.add(innerSphere)
       subGroup.rotation.set(-Math.PI/2,0,0)
@@ -212,7 +212,6 @@ var app = new Vue({
 
       let renderer = new THREE.WebGLRenderer()
       renderer.setSize(w, h)
-      renderer.gammaOutput = true
 
       this.composer = new THREE.EffectComposer(renderer)
       this.composer.addPass(new THREE.RenderPass(scene, this.camera))
