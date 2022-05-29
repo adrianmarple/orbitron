@@ -243,16 +243,15 @@ var app = new Vue({
         let xRotation = clamp(-lat + Math.PI/2,-maxXOffset,maxXOffset)
         let yRotation = lon - Math.PI
         let deltaX = (xRotation - rotation.x) * lerpFactor
-        let deltaY = yRotation - rotation.y
-        if(Math.abs(deltaY) > Math.PI){
-          if(deltaY < 0){
-            deltaY = deltaY + Math.PI*2
-          }else{
-            deltaY = deltaY - Math.PI*2
-          }
+        let deltaY = (yRotation - rotation.y) % (Math.PI*2)
+        if(deltaY < Math.PI) {
+          deltaY = deltaY + Math.PI*2
+        }
+        if(deltaY > Math.PI) {
+          deltaY = deltaY - Math.PI*2
         }
         deltaY = deltaY * lerpFactor
-        this.orbitronGroup.rotation.set((rotation.x + deltaX) % (Math.PI*2),(rotation.y + deltaY) % (Math.PI*2),0)
+        this.orbitronGroup.rotation.set(rotation.x + deltaX, rotation.y + deltaY,0)
       } else {
         if(north){
           moveVelocityX = moveVelocityX + acceleration

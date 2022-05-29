@@ -454,7 +454,7 @@ class Game:
     self.end_time = time() + 4
     music[self.waiting_music].fadeout(3500)
 
-  def clear():
+  def clear(self):
     for i in range(len(statuses)):
       statuses[i] = "blank"
 
