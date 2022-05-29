@@ -68,7 +68,7 @@ class PacMan(Game):
     )
     Pacman(
       position=50,
-      color=(255, 127, 0),
+      color=(255, 80, 0),
       color_string="#ff7f00"
     )
     Pacman(
