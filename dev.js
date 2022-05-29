@@ -190,7 +190,7 @@ var app = new Vue({
       let innerSphereGeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
       let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
       innerSphereMaterial.transparent = true
-      innerSphereMaterial.opacity = 0.8
+      innerSphereMaterial.opacity = 0.92
       let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
       subGroup.add(innerSphere)
       subGroup.rotation.set(-Math.PI/2,0,0)
@@ -212,6 +212,7 @@ var app = new Vue({
 
       let renderer = new THREE.WebGLRenderer()
       renderer.setSize(w, h)
+      renderer.gammaOutput = true
 
       this.composer = new THREE.EffectComposer(renderer)
       this.composer.addPass(new THREE.RenderPass(scene, this.camera))
@@ -219,8 +220,7 @@ var app = new Vue({
       document.getElementById("orb-canvas").appendChild(renderer.domElement)
       const bloomPass = new THREE.UnrealBloomPass(
         resolution=new THREE.Vector2(256, 256),
-        //strength=5,
-        strength=3,
+        strength=5,
         radius=0,
         threshold=0
       )
@@ -292,7 +292,7 @@ var app = new Vue({
           let color = `#${rp.slice(j+2,j+4)}${rp.slice(j+0,j+2)}${rp.slice(j+4,j+6)}`
           let c = new THREE.Color()
           c.setStyle(color, THREE.LinearSRGBColorSpace)
-          c.multiplyScalar(5)
+          c.setRGB(Math.pow(c.r,0.6), Math.pow(c.g, 0.6), Math.pow(c.b, 0.6))
           pixel.material.color = c
         }
       }
