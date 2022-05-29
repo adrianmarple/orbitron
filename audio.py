@@ -22,21 +22,12 @@ currentMusic = ""
 def addRemoteAction(queue,action):
   queue.append(str(time()) + ";" + action)
   last_play = None
-  while(len(queue) > 10):
+  while(len(queue) > 5):
     act = queue.pop(0)
-    if("_play" in act):
-      last_play = act
-  if(last_play and queue.count(last_play) <= 0):
-    queue.insert(0,last_play)
 
 class SoundWrapper:
-  def __init__(self, file_name, loop=False, fade_ms=0, delay_ms=None):
+  def __init__(self, file_name):
     self.file_name = file_name
-    self.loop = loop
-    self.fade_ms = fade_ms
-    self.delay_ms = delay_ms
-    self.delay_fade_ms = None
-    self.delay_time = None
 
     self.sound = None
     self.channel = None
@@ -48,24 +39,7 @@ class SoundWrapper:
     if not os.getenv("DEV_MODE"):
       self.sound = mixer.Sound(MUSIC_DIRECTORY + self.file_name)
 
-  def play(self, fade_ms=None, delay_ms=None):
-    if fade_ms is None:
-      fade_ms = self.fade_ms
-
-    if delay_ms is None:
-      delay_ms = self.delay_ms
-
-    if delay_ms is None:
-      self.delay_time = None
-      self._play(fade_ms=fade_ms)
-    else:
-      self.delay_time = time() + delay_ms/1000
-      if fade_ms is not None:
-        self.delay_fade_ms = fade_ms
-      else:
-        self.delay_fade_ms = None
-
-  def _play(self, fade_ms=None):
+  def play(self):
     addRemoteAction(remoteSoundActions,"_play;"+self.name)
     if not self.sound:
       return
@@ -77,8 +51,7 @@ class SoundWrapper:
           return
       else:
         self.sound.stop()
-    loop_count = -1 if self.loop else 0
-    self.channel = self.sound.play(loops=loop_count, fade_ms=fade_ms)
+    self.channel = self.sound.play()
 
   def stop(self):
     addRemoteAction(remoteSoundActions,"_stop;"+self.name)
@@ -94,14 +67,11 @@ class SoundWrapper:
       self.channel = None
 
 class MusicWrapper:
-  def __init__(self, file_name, vamp_file_name=None, loop=False, fade_ms=0, delay_ms=None):
+  def __init__(self, file_name, vamp_file_name=None, loop=False):
     self.file_name = file_name
     self.vamp_file_name = vamp_file_name
     self.loop = loop
-    self.fade_ms = fade_ms
-    self.delay_ms = delay_ms
     self.delay_time = None
-    self.next_fade_ms = None
     self.volume = 1.0
     self.volumeInc = 0.05
 
@@ -124,22 +94,14 @@ class MusicWrapper:
       self.vamp.close()
       self.vamp = None
 
-  def play(self, fade_ms=None, delay_ms=None):
-    if fade_ms is None:
-      fade_ms = self.fade_ms
-
-    if delay_ms is None:
-      delay_ms = self.delay_ms
-
+  def play(self, delay_ms=None):
     if delay_ms is None:
       self.delay_time = None
-      self.next_fade_ms = fade_ms
       action = "_play;"+self.name
       addRemoteAction(remoteMusicActions,action)
       musicActions.append(action)
     else:
       self.delay_time = time() + delay_ms/1000
-      self.next_fade_ms = fade_ms
       action = "_delayed_play;"+self.name
       addRemoteAction(remoteMusicActions,action+";"+str(delay_ms))
       musicActions.append(action)
@@ -151,29 +113,28 @@ class MusicWrapper:
     else:
       return True
 
-  def _play(self):
+  def _play(self, fade_ms=0):
     self._stop()
     self._open()
     loop_count = -1 if self.loop else 0
     if not os.getenv("DEV_MODE"):
       mixer.music.load(self.song)
-      mixer.music.play(loops=loop_count, fade_ms=self.next_fade_ms)
+      mixer.music.play(loops=loop_count, fade_ms=fade_ms)
       if self.vamp:
         mixer.music.queue(self.vamp, loops=-1)
     global currentMusic
     currentMusic = self.name
 
-  def is_playing(self):
+  def _is_playing(self):
+    if os.getenv("DEV_MODE"):
+      return False
     global currentMusic
     if self.name == "any":
-      if os.getenv("DEV_MODE"):
-          return currentMusic
-      else:
-        return mixer.music.get_busy()
+      return mixer.music.get_busy()
     else:
       return currentMusic ==  self.name
 
-  def will_play(self):
+  def _will_play(self):
     if self.name == "any":
       for action in musicActions:
         if action.find("_play;")>=0 or action.find("_delayed_play;")>=0:
@@ -195,56 +156,36 @@ class MusicWrapper:
     global currentMusic
     if currentMusic == self.name:
       currentMusic = ""
+    
+  def fadein(self, duration=None):
+    if duration is None:
+      duration = 0
+    action = "_fadein;"+self.name+";"+str(duration)
+    addRemoteAction(remoteMusicActions,action)
+    musicActions.append(action)
+  
+  def _fadein(self, duration=0):
+    self._play(duration)
 
   def fadeout(self, duration=None):
     if duration is None:
-      duration = self.fade_ms
-    self.next_fade_ms = duration
-    action = "_fadeout;"+self.name
-    addRemoteAction(remoteMusicActions,action+";"+str(duration))
+      duration = 0
+    action = "_fadeout;"+self.name+";"+str(duration)
+    addRemoteAction(remoteMusicActions,action)
     musicActions.append(action)
 
-  def _fadeout(self):
+  def _fadeout(self, duration=0):
     if not os.getenv("DEV_MODE"):
-      mixer.music.fadeout(self.next_fade_ms)
+      mixer.music.fadeout(duration)
       mixer.music.unload()
     self._close()
-
-  def set_volume(self, val, force=False):
-    self.volume = val
-    action = "_set_volume;"+self.name
-    addRemoteAction(remoteMusicActions,action+";"+str(val))
-    if force and not os.getenv("DEV_MODE"):
-      mixer.music.set_volume(val)
-    else:    
-      musicActions.append(action)
-
-  def _set_volume(self):
-    if os.getenv("DEV_MODE"):
-      return None
-    if abs(mixer.music.get_volume() - self.volume) <= self.volumeInc:
-      mixer.music.set_volume(self.volume)
-      return None
-    else:
-      inc = self.volumeInc
-      if mixer.music.get_volume() - self.volume > 0:
-        inc = -inc
-      mixer.music.set_volume(mixer.music.get_volume() + inc)
-      return True
-
-  def get_volume(self):
-    if os.getenv("DEV_MODE"):
-      return 0
-    else:
-      return mixer.music.get_volume()
-
 
 def prewarm_audio():
   MusicWrapper("any.ogg")# for checking general music state
   MusicWrapper("battle1.ogg", vamp_file_name="battle1Loop.ogg")
   MusicWrapper("dm1.ogg", vamp_file_name="dm1Loop.ogg")
   MusicWrapper("snekBattle.ogg")
-  MusicWrapper("waiting.ogg", loop=True, fade_ms=2000)
+  MusicWrapper("waiting.ogg", loop=True)
   MusicWrapper("victory.ogg", vamp_file_name="victoryLoop.ogg")
   SoundWrapper("kick.wav")
   SoundWrapper("placeBomb.wav")
@@ -265,24 +206,21 @@ def prewarm_audio():
 
     print("Finished prewarming audio.")
 
-    # thread now to handle vamps
+    # thread now to handle music
     while True:
       sleep(0.1)
       if not main_thread().is_alive():
         return
 
-      for sound in sounds.values():
-        if sound.delay_time is not None and sound.delay_time <= time():
-          sound.delay_time = None
-          sound._play(sound.delay_fade_ms)
       for i in range(len(musicActions)):
         action = musicActions.pop(0)
         asplit = action.split(";")
-        method=asplit[0]
-        song=music[asplit[1]]
+        method = asplit[0]
+        song = music[asplit[1]]
+        arg = asplit[2] if len(asplit) > 2 else None
         if method and song:
           todo=getattr(MusicWrapper, method)
-          notdone=todo(song)
+          notdone=todo(song, arg)
           if(notdone):
             musicActions.append(action)
 

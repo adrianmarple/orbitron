@@ -245,7 +245,6 @@ class Pacman(Player):
       statuses[self.position] = "blank"
       power_pulses.append((unique_coords[self.position], time()))
     elif statuses[self.position] == "pellet":
-      # sounds["placeBomb"].play(fade_ms=60)
       data["score"] += config["PELLET_SCORE"]
       statuses[self.position] = "blank"
 

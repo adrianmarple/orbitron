@@ -377,7 +377,7 @@ var app = new Vue({
               let action = actionData[1]
               let name = actionData[2]
               if(action === "_play") {
-                this.sounds[name].play(this.sfxVolume/100.0 * volumeScale)
+                this.sounds[name].play(this.sfxVolume/100.0 * volumeScale * volumeScale)
               } else if(action === "_stop") {
                 this.sounds[name].stop()
               }
@@ -438,14 +438,21 @@ var app = new Vue({
               } else {
                 let duration = actionData[3]
                 let music = this.music[name]
-                console.log(duration, music)
                 music.fadeOut(duration)
                 if(this.currentMusic === name) {
                   this.currentMusic = null
                 }
               }
-            } else if(action === "_set_volume") {
-              this.music[name].setVolume(actionData[3])
+            } else if(action === "_fadein") {
+              if(!this.audioInitialized){
+                this.music[name].play()
+                this.currentMusic = name
+              } else {
+                let duration = actionData[3]
+                let music = this.music[name]
+                music.fadeIn(duration)
+                this.currentMusic = name
+              }
             }
           }
         }
@@ -513,6 +520,7 @@ class MusicWrapper {
     this.playing = false
     this.vampPlaying = false
     this.fadingOut = false
+    this.fadingIn = false
     this.maxVolume = 0.5 * volumeScale
   }
 
@@ -527,7 +535,7 @@ class MusicWrapper {
     }
     this.playing = true
     this.fadingOut = false
-    this.onFadeout = null
+    this.fadingIn = false
   }
 
   isPlaying() {
@@ -544,7 +552,7 @@ class MusicWrapper {
     this.playing = false
     this.vampPlaying = false
     this.fadingOut = false
-    this.onFadeout = null
+    this.fadingIn = false
   }
 
   _onEnd() {
@@ -575,31 +583,58 @@ class MusicWrapper {
   }
 
   fadeOut(duration) {
-    if(this.isPlaying()) {
-      this.fadingOut = true
-      let self = this
-      let startVol = this.getVolume()
-      let fadeOutStart = Date.now()
-      let tick = 16
-      let fadeOut = function() {
-        if(self.fadingOut){
-          let vol = startVol - startVol*(Date.now() - fadeOutStart)/duration
-          self.setVolume(vol)
-          if(self.getVolume() > 0) {
-            setTimeout(fadeOut,tick)
-          } else {
-            if(self.onFadeout)  {
-              self.onFadeout()
-              self.onFadeout = null
-            }
-            self.stop()
-          }
+    if(!this.isPlaying()) {
+      return
+    }
+    this.fadingOut = true
+    this.fadingIn = false
+    let self = this
+    let startVol = this.getVolume()
+    let fadeOutStart = Date.now()
+    let tick = 16
+    let fadeOut = function() {
+      if(self.fadingOut){
+        let vol = startVol - startVol*(Date.now() - fadeOutStart)/duration
+        self.setVolume(vol)
+        if(self.getVolume() > 0) {
+          setTimeout(fadeOut,tick)
+        } else {
+          let willFadeIn = self.fadingIn
+          self.stop()
+          self.fadingIn = willFadeIn
         }
       }
-      setTimeout(fadeOut,tick)
-
     }
+    setTimeout(fadeOut,tick)
   }
+
+  fadeIn(duration) {
+    let startVol = this.getVolume()
+    if(!this.isPlaying()) {
+      this.play()
+      startVol = 0
+    }
+    this.fadingIn = true
+    this.fadingOut = false
+    let self = this
+    let fadeInStart = Date.now()
+    let tick = 16
+    let fadeIn = function() {
+      if(self.fadingIn){
+        let targetVol = self.maxVolume * volumeScale
+        let dv = Math.max(0,targetVol - startVol)
+        let vol = clamp(startVol + dv*(Date.now() - fadeInStart)/duration,0.0,targetVol)
+        self.setVolume(vol)
+        if(self.getVolume() < targetVol) {
+          setTimeout(fadeIn,tick)
+        } else {
+          self.fadingIn = false
+        }
+      }
+    }
+    setTimeout(fadeIn,tick)
+  }
+
 
   isReady() {
     return this.canPlay

@@ -113,8 +113,8 @@ def start(game):
     claimed.append(player.is_claimed)
   players.clear()
   game.setup()
-  music["any"].fadeout(2000)
-  music[game.waiting_music].play(delay_ms=2000)
+  music["any"].fadeout(duration=2000)
+  music[game.waiting_music].fadein(duration=4500)
   for (i, player) in enumerate(players):
     if i < len(claimed):
       player.is_claimed = claimed[i]
@@ -436,7 +436,7 @@ class Game:
     self.clear()
     self.state = "countdown"
     self.end_time = time() + 4
-    music[self.waiting_music].fadeout(3500)
+    music[self.waiting_music].fadeout(duration=3500)
 
   def clear(self):
     for i in range(len(statuses)):
@@ -449,7 +449,7 @@ class Game:
 
   def play_ontimeout(self):
     global victor
-    music[self.battle_music].fadeout(1000)
+    music[self.battle_music].fadeout(duration=1000)
     self.state = "previctory"
     self.end_time = time() + 1
     top_score = 0
