@@ -19,6 +19,39 @@
 <script src="/threejs/UnrealBloomPass.js"></script>
 <script src="/pako.min.js"></script>
 <style>
+.slider-container {
+  position: fixed;
+  top: 30px;
+  left: 30px;
+  width: 200px;
+}
+.slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 25px;
+  background: #d3d3d3;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+}
+.slider:hover {
+  opacity: 1;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  background: #04AA6D;
+  cursor: pointer;
+}
+.slider::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  background: #04AA6D;
+  cursor: pointer;
+}
 #player-picker {
   position: fixed;
   bottom: 30px;
@@ -37,12 +70,23 @@
 html {
   background-color: black;
 }
+p {
+  color: white;
+  user-select: none;
+  -moz-user-select: none;
+}
 </style>
 </head>
 <body>
   <div id=audio-root></div>
   <div id=orb-canvas></div>
   <div id=app>
+    <div class="slider-container">
+      <p>Music Volume: {{musicVolume}}</p>
+      <input @input="musicVolumeChanged" v-model="musicVolume" type="range" min="0" max="100" class="slider" id="music-slider">
+      <p>SFX Volume: {{sfxVolume}}</p>
+      <input v-model="sfxVolume" type="range" min="0" max="100" class="slider" id="sound-slider">
+    </div>
     <div id=player-picker>
       <span
           v-for="(player,index) in gameState.players"

@@ -91,8 +91,6 @@ function dragEnd(e) {
 function drag(e) {
   if (active) {
 
-    e.preventDefault()
-
     if (e.type === "touchmove") {
       currentX = e.touches[0].clientX - initialX
       currentY = e.touches[0].clientY - initialY
@@ -131,6 +129,8 @@ var app = new Vue({
     lastMusicAction:0,
     audioInitialized:false,
     musicReady:false,
+    musicVolume: 50,
+    sfxVolume: 50,
   },
   created() {
     let self = this
@@ -357,6 +357,12 @@ var app = new Vue({
         this.music[m.name] = m
       }
     },
+    musicVolumeChanged() {
+      for (let name in this.music) {
+        this.music[name].maxVolume = this.musicVolume/100.0
+        this.music[name].setVolume(this.musicVolume/100.0)
+      }
+    },
     processAudio() {
       if(!canPlayAudio) return
       let soundActions = this.gameState.soundActions
@@ -370,7 +376,7 @@ var app = new Vue({
               let action = actionData[1]
               let name = actionData[2]
               if(action === "_play") {
-                this.sounds[name].play()
+                this.sounds[name].play(this.sfxVolume/100.0)
               } else if(action === "_stop") {
                 this.sounds[name].stop()
               }
@@ -397,6 +403,8 @@ var app = new Vue({
             let name = actionData[2]
             if(name === "any"){
               name = this.currentMusic
+              console.log("ANY",name, action)
+              console.log(musicActions)
             }
             if(!name){
               continue
@@ -412,7 +420,7 @@ var app = new Vue({
               let self = this
               setTimeout(function(){
                 if(self.currentMusic) {
-                  self.music[this.currentMusic].stop()
+                  self.music[self.currentMusic].stop()
                 }
                 self.currentMusic = name
                 self.music[name].play()
@@ -431,6 +439,7 @@ var app = new Vue({
               } else {
                 let duration = actionData[3]
                 let music = this.music[name]
+                console.log(duration, music)
                 music.fadeOut(duration)
                 if(this.currentMusic === name) {
                   this.currentMusic = null
@@ -461,10 +470,11 @@ class SoundWrapper {
     this.file = file
   }
 
-  play(){
+  play(vol){
     this.audio.pause()
     this.audio.currentTime = 0
     let self = this
+    this.audio.volume = vol
     this.audio.play().catch(function(e){
       console.log(e,self)
     })
@@ -504,10 +514,11 @@ class MusicWrapper {
     this.playing = false
     this.vampPlaying = false
     this.fadingOut = false
+    this.maxVolume = 0.5
   }
 
   play() {
-    this.audio.volume = 1.0
+    this.audio.volume = this.maxVolume
     if(!this.isPlaying()){
       this.stop()
       let self = this
@@ -539,7 +550,7 @@ class MusicWrapper {
 
   _onEnd() {
     if(this.vamp){
-      this.vamp.volume = 1.0
+      this.vamp.volume = this.maxVolume
       this.vamp.play()
       this.vampPlaying = true
     } else {
@@ -556,7 +567,7 @@ class MusicWrapper {
   }
 
   setVolume(v) {
-    let val = clamp(v,0.0,1.0)
+    let val = clamp(v,0.0,this.maxVolume)
     if(this.vampPlaying) {
       this.vamp.volume = val
     } else {

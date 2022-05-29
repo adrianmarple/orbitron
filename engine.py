@@ -108,14 +108,13 @@ def start(game):
   global current_game
   current_game = game
   clear_votes()
-
-  # TODO clean this up and have better player continuity between games (especially colors!)
   claimed = []
   for player in players:
     claimed.append(player.is_claimed)
   players.clear()
   game.setup()
-  game.post_setup()
+  music["any"].fadeout(2000)
+  music[game.waiting_music].play(delay_ms=2000)
   for (i, player) in enumerate(players):
     if i < len(claimed):
       player.is_claimed = claimed[i]
@@ -143,7 +142,7 @@ def update():
     neopixel_write(pin,output)
     broadcast_state()
   except Exception:
-    print(traceback.format_exc())
+    print(traceback.format_exc(), file=sys.stderr)
 
 
 # ================================ PLAYER =========================================
@@ -403,9 +402,6 @@ class Game:
     )
 
 
-  def post_setup(self):
-    music[self.waiting_music].play(delay_ms=2000)
-
   def update(self):
     if self.state == "start":
       self.start_update()
@@ -471,7 +467,6 @@ class Game:
     music["victory"].play()
 
   def victory_ontimeout(self):
-    music["victory"].fadeout(2000)
     start_random_game()
 
 
@@ -552,9 +547,6 @@ class Game:
 
 class Idle(Game):
   name = "idle"
-  def post_setup(self):
-    music["any"].fadeout()
-    music[self.waiting_music].play(delay_ms=2000)
 
   def update(self):
     pass
