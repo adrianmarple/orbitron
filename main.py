@@ -19,14 +19,8 @@ game_modules = {}
 game_dir = os.path.join(os.path.dirname(__file__), 'games')
 for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   module = loader.find_module(module_name).load_module(module_name)
-  game_modules[module_name] = module
-  game_selection_weights[module_name] = 1
-
-def start_game(selection):
-  for name in game_selection_weights.keys():
-    game_selection_weights[name] += 1.0 / len(game_selection_weights)
-  game_selection_weights[selection] = 0
-  engine.start(game_modules[selection].game)
+  engine.games[module_name] = module.game
+  engine.game_selection_weights[module_name] = 1
 
 def start_random_game():
   total_weight = 0
@@ -78,9 +72,7 @@ def check_vote():
     if "settings" in message:
       engine.config.update(message["settings"])
 
-    if election == "quit":
-      engine.quit()
-    elif election == "skip":
+    if election == "skip":
       engine.clear_votes()
       if engine.current_game:
         engine.current_game.ontimeout()
@@ -144,5 +136,4 @@ def consume_input():
 thread = Thread(target=consume_input)
 thread.start()
 
-engine.add_quit_listener(start_random_game)
 engine.run_core_loop()

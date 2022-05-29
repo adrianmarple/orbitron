@@ -87,11 +87,30 @@ victor = None
 
 data = {}
 players = []
-
-
-
+games = {}
+game_selection_weights = {}
 
 # ================================ START and END =========================================
+
+def start_random_game():
+  total_weight = 0
+  for weight in game_selection_weights.values():
+    total_weight += weight
+
+  x = random() * total_weight
+  selection = ""
+  for (name, weight) in game_selection_weights.items():
+    if x < weight:
+      selection = name
+      break
+
+    x -= weight
+
+  for name in game_selection_weights.keys():
+    game_selection_weights[name] += 1
+  game_selection_weights[selection] = 0
+  start(games[selection])
+
 
 def start(game):
   global current_game
@@ -110,24 +129,15 @@ def start(game):
     if i < len(claimed):
       player.is_claimed = claimed[i]
 
-# quit should always result in a new game starting
-def quit():
-  for listener in quit_listeners:
-    listener()
-
-quit_listeners = []
-def add_quit_listener(listener):
-  quit_listeners.append(listener)
-
 # ================================ UPDATE =========================================
 
 def update():
-  global pixels, raw_pixels, current_game
+  global pixels, raw_pixels
   try:
     if len(claimed_players()) == 0 and current_game != idle:
       start(idle)
     if len(claimed_players()) > 0 and current_game == idle:
-      quit()
+      start_random_game()
 
     current_game.update()
     if current_game.end_time <= time() and current_game.end_time > 0:
@@ -454,15 +464,7 @@ class Game:
 
   def victory_ontimeout(self):
     music["victory"].fadeout(2000)
-    quit()
-
-    # for player in players:
-    #   player.reset()
-    # clear()
-    # self.state = "start"
-    # self.end_time = 0
-    # music["victory"].fadeout(2000)
-    # music[self.waiting_music].play()
+    start_random_game()
 
 
   def render(self):
@@ -544,7 +546,6 @@ class Idle(Game):
   name = "idle"
   def post_setup(self):
     music["any"].fadeout()
-    print(self.waiting_music, file=sys.stderr)
     music[self.waiting_music].play(delay_ms=2000)
 
   def update(self):
