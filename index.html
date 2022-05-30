@@ -79,7 +79,7 @@ body, #app, .main {
   color:  white;
   font-size: 4rem;
   background: linear-gradient(#444, #000);
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 #rules-splash p {
@@ -459,9 +459,7 @@ body, #app, .main {
     Position in queue: {{state.queuePosition}}
   </div>
 
-  <div v-else-if="hasNotSeenGame || showRules"
-      id="rules-splash"
-  >
+  <div v-else-if="hasNotSeenGame || showRules" id="rules-splash">
     <div class="close" @click="dismissRules">
       <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
     </div>
@@ -522,7 +520,7 @@ body, #app, .main {
 
   <div id="header-buttons">
     <div id="label">{{gameInfo.label}}</div>
-    <div class="button" style="width: 8rem" @click="showRules=true">RULES</div>
+    <div class="button" style="width: 8rem" @click="showRules = true">RULES</div>
   </div>
 
   <div v-if="(mode=='start' && !self.isReady) || (mode=='play' && self.isPlaying && self.isAlive)"
@@ -928,7 +926,7 @@ var app = new Vue({
 
     carouselInterval: null,
     carouselPosition: 0,
-    carouselCurrentX: 2 * innerWidth,
+    carouselCurrentX: 0,
 
     config: {},
     settingTypes: [
@@ -986,9 +984,6 @@ var app = new Vue({
       },
       deep: true
     },
-    showRules() {
-      this.carouselCurrentX = (this.carouselSize - 1) / 2 * innerWidth
-    },
   },
 
   computed: {
@@ -999,6 +994,7 @@ var app = new Vue({
           return info
         }
       }
+      return {rules: []}
     },
     victoryCondition() {
       return this.substitute(this.gameInfo.victoryCondition)
@@ -1129,6 +1125,7 @@ var app = new Vue({
       return {
         left: this.carouselCurrentX + "px",
         width: (this.carouselSize * innerWidth) + "px",
+        marginLeft: ((this.carouselSize - 1) * innerWidth) + "px",
       }
     }
   },
@@ -1195,7 +1192,6 @@ var app = new Vue({
         default:
           if (message.self != this.state.self) {
             window.parent.postMessage({self: message.self}, '*')
-            console.log("propagating")
           }
           self.state = message
           // console.log(message)
@@ -1271,6 +1267,7 @@ var app = new Vue({
       this.$set(this.localFlags, this.state.game, true)
       this.showRules = false
       this.carouselPosition = 0
+      this.carouselCurrentX = 0
       if (this.carouselInterval) {
         clearInterval(this.carouselInterval)
         this.carouselInterval = null
@@ -1336,7 +1333,7 @@ var app = new Vue({
         return
       }
       this.carouselInterval = setInterval(() => {
-        let targetX = innerWidth * ((this.carouselSize - 1)/2 - this.carouselPosition)
+        let targetX = innerWidth * -this.carouselPosition
         const alpha = 0.75
         this.carouselCurrentX = alpha * this.carouselCurrentX + (1 - alpha) * targetX
         this.$forceUpdate()

@@ -146,7 +146,6 @@ var app = new Vue({
 
     window.addEventListener('message', function (e) {
       if (e.data.self !== undefined) {
-        console.log(e.data.self)
         self.followingPlayer = e.data.self
         self.$forceUpdate()
       }
