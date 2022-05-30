@@ -114,6 +114,7 @@ function wheel(e) {
 var app = new Vue({
   el: "#app",
   data: {
+    showController: false,
     followingPlayer:-1,
     pixelData:{},
     camera:{},
@@ -142,6 +143,14 @@ var app = new Vue({
       self.init()
       self.animate()
     })
+
+    window.addEventListener('message', function (e) {
+      if (e.data.self !== undefined) {
+        console.log(e.data.self)
+        self.followingPlayer = e.data.self
+        self.$forceUpdate()
+      }
+    }, false);
   },
   watch: {
   },
@@ -233,6 +242,7 @@ var app = new Vue({
       this.render()
     },
     render() {
+      let rotationFactor = 200
       if(app.$data.followingPlayer >= 0){
         let rotation = this.orbitronGroup.rotation
         let player = this.gameState.players[this.followingPlayer]
@@ -240,10 +250,14 @@ var app = new Vue({
         let targetPixel = this.pixels[uniquePosition]
         let [lat,lon] = latlong(targetPixel.position.clone().normalize())
         let maxXOffset = 0.65
-        let lerpFactor = 0.0125
+        let lerpFactor = 0.0175
+
         let xRotation = clamp(-lat + Math.PI/2,-maxXOffset,maxXOffset)
-        let yRotation = lon - Math.PI
         let deltaX = (xRotation - rotation.x) * lerpFactor
+        xRotation = rotation.x + deltaX
+        xOffset = xRotation * rotationFactor // So rotation doesn't jump if you stop following
+
+        let yRotation = lon - Math.PI
         let deltaY = (yRotation - rotation.y) % (Math.PI*2)
         if(deltaY < Math.PI) {
           deltaY = deltaY + Math.PI*2
@@ -252,7 +266,10 @@ var app = new Vue({
           deltaY = deltaY - Math.PI*2
         }
         deltaY = deltaY * lerpFactor
-        this.orbitronGroup.rotation.set(rotation.x + deltaX, rotation.y + deltaY,0)
+        yRotation = rotation.y + deltaY
+        yOffset = yRotation * rotationFactor // So rotation doesn't jump if you stop following
+
+        this.orbitronGroup.rotation.set(xRotation, yRotation,0)
       } else {
         if(north){
           moveVelocityX = moveVelocityX + acceleration
@@ -278,7 +295,6 @@ var app = new Vue({
           moveVelocityX = 0
           xOffset = -maxXOffset
         }
-        let rotationFactor = 200
         let xRotation = clamp(xOffset/rotationFactor,-maxXOffset,maxXOffset)
         let yRotation = yOffset/rotationFactor
         this.orbitronGroup.rotation.set(xRotation % (Math.PI*2),yRotation % (Math.PI*2),0)

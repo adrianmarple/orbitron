@@ -1193,6 +1193,10 @@ var app = new Vue({
           }
           break
         default:
+          if (message.self != this.state.self) {
+            window.parent.postMessage({self: message.self}, '*')
+            console.log("propagating")
+          }
           self.state = message
           // console.log(message)
           self.$forceUpdate()
