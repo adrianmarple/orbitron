@@ -1,5 +1,4 @@
 var canPlayAudio = false
-var volumeScale = 0.5
 
 function clamp(num, min, max){
   return Math.min(Math.max(num, min), max)
@@ -374,9 +373,9 @@ var app = new Vue({
       }
     },
     musicVolumeChanged() {
+      let vol = this.musicVolume/100.0
       for (let name in this.music) {
-        let vol = this.musicVolume/100.0 * volumeScale
-        this.music[name].maxVolume = vol
+        this.music[name].setMaxVolume(vol)
         this.music[name].setVolume(vol)
       }
     },
@@ -393,7 +392,7 @@ var app = new Vue({
               let action = actionData[1]
               let name = actionData[2]
               if(action === "_play") {
-                this.sounds[name].play(this.sfxVolume/100.0 * volumeScale * volumeScale)
+                this.sounds[name].play(this.sfxVolume/100.0)
               } else if(action === "_stop") {
                 this.sounds[name].stop()
               }
@@ -490,13 +489,14 @@ class SoundWrapper {
     this.audio = audio
     this.name = name
     this.file = file
+    this.volumeScale = 0.4
   }
 
   play(vol){
     this.audio.pause()
     this.audio.currentTime = 0
     let self = this
-    this.audio.volume = vol
+    this.audio.volume = vol * this.volumeScale
     this.audio.play().catch(function(e){
       console.log(e,self)
     })
@@ -537,11 +537,14 @@ class MusicWrapper {
     this.vampPlaying = false
     this.fadingOut = false
     this.fadingIn = false
-    this.maxVolume = 0.5 * volumeScale
+    this.volumeScale = 0.5
+    this.maxVolume = 0.5
+    this.currentVolume = 0.5
   }
 
   play() {
-    this.audio.volume = this.maxVolume * volumeScale
+    this.currentVolume = this.maxVolume
+    this.audio.volume = this.currentVolume * this.volumeScale
     if(!this.isPlaying()){
       this.stop()
       let self = this
@@ -573,7 +576,8 @@ class MusicWrapper {
 
   _onEnd() {
     if(this.vamp){
-      this.vamp.volume = this.maxVolume * volumeScale
+      this.currentVolume = this.maxVolume
+      this.vamp.volume = this.currentVolume * this.volumeScale
       this.vamp.play()
       this.vampPlaying = true
     } else {
@@ -582,19 +586,20 @@ class MusicWrapper {
   }
 
   getVolume() {
-    if(this.vampPlaying) {
-      return this.vamp.volume
-    } else {
-      return this.audio.volume
-    }
+    return this.currentVolume
   }
 
-  setVolume(v) {
-    let val = clamp(v,0.0,this.maxVolume * volumeScale)
-    if(this.vampPlaying) {
-      this.vamp.volume = val
-    } else {
-      this.audio.volume = val
+  setMaxVolume(v) {
+    this.maxVolume = clamp(v,0.0,1.0)
+  }
+
+  setVolume(v, force) {
+    this.currentVolume = clamp(v,0.0,1.0)
+    if(force || !this.fadingIn && !this.fadingOut) {
+      if(this.vamp) {
+        this.vamp.volume = this.currentVolume * this.volumeScale
+      }
+      this.audio.volume = this.currentVolume * this.volumeScale
     }
   }
 
@@ -611,7 +616,7 @@ class MusicWrapper {
     let fadeOut = function() {
       if(self.fadingOut){
         let vol = startVol - startVol*(Date.now() - fadeOutStart)/duration
-        self.setVolume(vol)
+        self.setVolume(vol, true)
         if(self.getVolume() > 0) {
           setTimeout(fadeOut,tick)
         } else {
@@ -637,10 +642,10 @@ class MusicWrapper {
     let tick = 16
     let fadeIn = function() {
       if(self.fadingIn){
-        let targetVol = self.maxVolume * volumeScale
+        let targetVol = self.maxVolume
         let dv = Math.max(0,targetVol - startVol)
         let vol = clamp(startVol + dv*(Date.now() - fadeInStart)/duration,0.0,targetVol)
-        self.setVolume(vol)
+        self.setVolume(vol, true)
         if(self.getVolume() < targetVol) {
           setTimeout(fadeIn,tick)
         } else {
