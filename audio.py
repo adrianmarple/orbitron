@@ -15,6 +15,7 @@ EMPTY_SOUND = None #Initialized to an empty bytes object after mixer init
 sounds = {}
 music = {}
 musicActions = []
+soundActions = []
 remoteMusicActions = []
 remoteSoundActions = []
 currentMusic = ""
@@ -39,6 +40,9 @@ class SoundWrapper:
     if not os.getenv("DEV_MODE"):
       self.sound = mixer.Sound(MUSIC_DIRECTORY + self.file_name)
 
+  def _play(self):
+    self.play()
+
   def play(self):
     addRemoteAction(remoteSoundActions,"_play;"+self.name)
     if not self.sound:
@@ -53,11 +57,17 @@ class SoundWrapper:
         self.sound.stop()
     self.channel = self.sound.play()
 
+  def _stop(self):
+    self.stop()
+
   def stop(self):
     addRemoteAction(remoteSoundActions,"_stop;"+self.name)
     if self.channel:
       self.channel.stop()
       self.channel = None
+
+  def _fadeout(self,duration):
+    self.fadeout(self,duration)
 
   def fadeout(self, duration):
     addRemoteAction(remoteSoundActions,"_fadeout;"+self.name)
@@ -113,7 +123,11 @@ class MusicWrapper:
     else:
       return True
 
-  def _play(self, fade_ms=0):
+  def _play(self, fade_ms=None):
+    if fade_ms is None:
+      fade_ms = 0
+    else:
+      fade_ms = int(fade_ms)
     self._stop()
     self._open()
     loop_count = -1 if self.loop else 0
@@ -160,21 +174,29 @@ class MusicWrapper:
   def fadein(self, duration=None):
     if duration is None:
       duration = 0
+    else:
+      duration = int(duration)
     action = "_fadein;"+self.name+";"+str(duration)
     addRemoteAction(remoteMusicActions,action)
     musicActions.append(action)
   
-  def _fadein(self, duration=0):
-    self._play(duration)
+  def _fadein(self, duration=None):
+    self._play(fade_ms=duration)
 
   def fadeout(self, duration=None):
     if duration is None:
       duration = 0
+    else:
+      duration = int(duration)
     action = "_fadeout;"+self.name+";"+str(duration)
     addRemoteAction(remoteMusicActions,action)
     musicActions.append(action)
 
-  def _fadeout(self, duration=0):
+  def _fadeout(self, duration=None):
+    if duration is None:
+      duration = 0
+    else:
+      duration = int(duration)
     if not os.getenv("DEV_MODE"):
       mixer.music.fadeout(duration)
       mixer.music.unload()
@@ -207,20 +229,53 @@ def prewarm_audio():
     print("Finished prewarming audio.")
 
     # thread now to handle music
+    first_run = True
     while True:
       sleep(0.1)
       if not main_thread().is_alive():
         return
 
+      for i in range(len(soundActions)):
+        action = soundActions.pop(0)
+        if first_run:
+          continue
+        asplit = action.split(";")
+        method = asplit[0]
+        sound = sounds[asplit[1]]
+        arg = asplit[2] if len(asplit) > 2 else None
+        if arg == "":
+          arg = None
+        if method and sound:
+          todo=getattr(SoundWrapper, method)
+          notdone = False
+          if arg is None:
+            notdone = todo(sound)
+          else:
+            notdone = todo(sound, arg)
+          if(notdone):
+            soundActions.append(action)
+
+
       for i in range(len(musicActions)):
         action = musicActions.pop(0)
+        if first_run:
+          if i < len(musicActions) - 1:
+            continue
+          else:
+            first_run = False
         asplit = action.split(";")
         method = asplit[0]
         song = music[asplit[1]]
         arg = asplit[2] if len(asplit) > 2 else None
+        if arg == "":
+          arg = None
         if method and song:
           todo=getattr(MusicWrapper, method)
-          notdone=todo(song, arg)
+          notdone = False
+          if arg is None:
+            notdone = todo(song)
+          else:
+            notdone = todo(song, arg)
           if(notdone):
             musicActions.append(action)
 

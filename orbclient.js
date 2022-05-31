@@ -62,6 +62,24 @@ python_process.on('uncaughtException', function(err) {
   console.log('Caught python exception: ' + err);
 });
 
+const audio_process = spawn('python3', ['-u', `${__dirname}/orbclientaudio.py`],{env:{...process.env,...config}});
+audio_process.stdout.on('data', data => {
+  message = data.toString().trim()
+  if (message) {
+    console.log(message)
+  }
+});
+audio_process.stderr.on('data', data => {
+  message = data.toString().trim()
+  if(message){
+    console.log(message)
+  }
+});
+audio_process.on('uncaughtException', function(err) {
+  console.log('Caught python exception: ' + err);
+});
+
+
 function loop() {
   let dt = Date.now() - loopTime
   if(dt >= frameTime) {
@@ -73,6 +91,13 @@ function loop() {
       //console.log("RAW PIXELS INFLATED", rawPixelsInflated)
       try {
         python_process.stdin.write(rawPixelsString + "\n", "utf8")
+      } catch(e) {
+        console.log(e)
+      }
+    }
+    if(gameState) {
+      try {
+        audio_process.stdin.write(JSON.stringify(gameState) + "\n", "utf-8")
       } catch(e) {
         console.log(e)
       }
