@@ -375,8 +375,9 @@ var app = new Vue({
     },
     musicVolumeChanged() {
       for (let name in this.music) {
-        this.music[name].maxVolume = this.musicVolume/100.0
-        this.music[name].setVolume(this.musicVolume/100.0)
+        let vol = this.musicVolume/100.0 * volumeScale
+        this.music[name].maxVolume = vol
+        this.music[name].setVolume(vol)
       }
     },
     processAudio() {
