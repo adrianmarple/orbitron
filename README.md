@@ -1,4 +1,13 @@
-# Getting Set Up
+# Using the Emulator
+
+- Clone the repo somewhere for you to work from
+- Copy `config.js.template` to `config.js` and edit to have `DEV_MODE: true` and `ORB_ID: <your unique ID>`
+- Run `sudo node server.js`
+- Open `http://localhost:1337/dev` for the emulator
+- Open `http://<localhost or your IP address>:1337` to open one or more controllers on either your desktop or your phone
+- Edit, commit, create pull requests as you would for any Git project
+
+# Getting Pi Hardware Set Up
 
 - Download SD card image from https://www.dropbox.com/s/gg0u2rp2sr6uatj/Orbitron.img.zip?dl=0
 - Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
@@ -6,26 +15,25 @@
 - go to Download directory or wherever the SD image download is
 - `sudo dd if=Orbitron.img of=/dev/disk2 status=progress`
 
-
 ## SSHFS
 
 - Download sshfs from https://osxfuse.github.io/ and install
 - `mkdir ~/orbitron`
 
-# Editing
+# Editing on the Pi
 
 ## SSH
 
-- `ssh pi@orbitron.local` or: `ssh pi@192.168.1.101`
+- `ssh pi@orbitron.local` or get IP address from `avahi-browse -ar` and go to `ssh pi@<IP address>`
 - `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
 
-## Running locally
+## Running on PI hardware
 
 - ssh into the pi
-- `sudo killall python3 node`
 - `cd orbitron`
-- `node server.js`
-- Visit `http://orbitron.local:1337` or `http://192.168.1.101:1337`
+- `sudo pm2 restart <server or orbclient>`
+- Visit `http://orbitron.local:1337` or get IP address from `avahi-browse -ar` and go to `http://<IP address>:1337`
+- `sudo pm2 log` to tail logs. Log files are stored in `/root/.pm2/logs`
 
 ## Saving
 - Just use normal git commands with within directory `~/orbitron`
@@ -57,7 +65,7 @@
 - `sudo diskutil umount force ~/orbitron`
 - `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
 
-# OG/Fresh Setup
+# OG/Fresh Setup on Pi Hardware
 
 ## Basics
 
@@ -96,11 +104,13 @@
 - `curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -`
 - `sudo apt install nodejs`
 - `sudo npm install -g ws`
+- `sudo npm install -g pm2`
 
 ### Setup to run on startup
 
-- Edit cron `sudo crontab -e`
-- Add the line `@reboot /usr/bin/node /home/pi/orbitron/server.js`
+- `sudo pm2 start <server.js or orbclient.js>`
+- `sudo pm2 startup`
+- `sudo pm2 save`
 
 ### Static IP
 
