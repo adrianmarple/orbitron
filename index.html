@@ -489,20 +489,20 @@ body, #app, .main {
   <div v-else-if="showSettings" id="settings">
     <span style="font-size: 4em">Settings</span>
     <div id="settings-alignment-guide">
-      <div v-for="setting in relevantSettings" class="setting">
-        {{prettifySettingName(setting.name)}}
+      <div v-for="(item, key, index) in config" class="setting">
+        {{prettifySettingName(key)}}
         <input
-          v-if="setting.boolean"
+          v-if="typeof item == 'boolean'"
           type="checkbox"
-          v-model.number="config[setting.name]"
-          @change="updateSettings(setting.name)"
+          v-model.number="config[key]"
+          @change="updateSettings(key)"
         >
         <textarea
           v-else
           type="number"
-          v-model.number="config[setting.name]"
+          v-model.number="config[key]"
           @keydown="settingsKeydown"
-          @change="updateSettings(setting.name)"
+          @change="updateSettings(key)"
         ></textarea>
       </div>
     </div>
@@ -636,14 +636,6 @@ let GAMES_INFO = [
   {
     name: "snektron",
     label: "Snekton",
-    config: [
-      {name: "START_LENGTH"},
-      {name: "ADDITIONAL_APPLES"},
-      {name: "SANDBOX_APPLES_PER_SNEK"},
-      {name: "ROUND_TIME"},
-      {name: "SNAKE_MOVE_FREQ"},
-      {name: "INTERSECTION_PAUSE_FACTOR"},
-    ],
     rules: [
       {
         words: [
@@ -679,9 +671,6 @@ let GAMES_INFO = [
   {
     name: "colorwar",
     label: "Color War",
-    config: [
-      {name: "ROUND_TIME"},
-    ],
     rules: [
       {
         words: [
@@ -709,21 +698,6 @@ let GAMES_INFO = [
   {
     name: "pacman",
     label: "Co-op PacMan",
-    config: [
-      {name: "PACMEN_LIVES"},
-      {name: "STARTING_POWER_PELLET_COUNT"},
-      {name: "POWER_PELLET_DURATION"},
-      {name: "PELLET_REGEN_FREQ"},
-      {name: "POWER_PELLET_REGEN_FREQ"},
-      {name: "VICTORY_SCORE"},
-      {name: "MARGINAL_PACMAN_VICTORY_SCORE"},
-      {name: "GHOST_KILL_SCORE"},
-      {name: "PELLET_SCORE"},
-      {name: "POWER_PELLET_SCORE"},
-      {name: "NUM_GHOSTS"},
-      {name: "PACMAN_MOVE_FREQ"},
-      {name: "GHOST_MOVE_FREQ"},
-    ],
     rules: [
       {
         words: [
@@ -761,30 +735,6 @@ let GAMES_INFO = [
   {
     name: "bomberman",
     label: "Bomberman",
-    config: [
-      {name: "TAP_BOMB_KICK", boolean: true},
-      {name: "AUTO_KICK", boolean: true},
-      {name: "MAX_BOMBS"},
-      {name: "TEAM_MODE", boolean: true},
-      {name: "USE_SHIELDS", boolean: true},
-      {name: "DEATHMATCH", boolean: true},
-      {name: "TARGET_KILL_COUNT"},
-      {name: "STARTING_BOMB_POWER"},
-      {name: "BOMB_FUSE_TIME"},
-      {name: "BOMB_MOVE_FREQ"},
-      {name: "PICKUP_CHANCE"},
-      {name: "NUM_WALLS"},
-      {name: "SANDBOX_WALL_NUM"},
-      {name: "WALL_SPAWN_TIME"},
-      {name: "BOMB_EXPLOSION_TIME"},
-      {name: "BATTLE_ROYALE_DURATION"},
-      {name: "DEATH_CREEP_DURATION"},
-      {name: "TAP_TO_DETONATE", boolean: true},
-      {name: "EXPLODE_ON_IMPACT", boolean: true},
-      {name: "NEWTONS_CRADLE", boolean: true},
-      {name: "FIXED_OWNERSHIP", boolean: true},
-      {name: "SUICIDE_STUN", boolean: true},
-    ],
     rules: [
       {
         words: [
@@ -929,13 +879,6 @@ var app = new Vue({
     carouselCurrentX: 0,
 
     config: {},
-    settingTypes: [
-      {name: "STUN_TIME"},
-      {name: "INVULNERABILITY_TIME"},
-      {name: "ALLOW_CROSS_TIP_MOVE", boolean: true},
-      {name: "MOVE_BIAS"},
-      {name: "MOVE_FREQ"},
-    ],
     GAMES_INFO,
   },
 
@@ -975,8 +918,18 @@ var app = new Vue({
   },
 
   watch: {
-    "state.config": function(val) {
-      this.config = { ...val }
+    "state.config": function(val, oldValue) {
+      if (!oldValue) {
+        this.config = { ...val }
+        return
+      }
+      for (let key in val) {
+        if (val[key] != oldValue[key]) {
+          this.config = { ...val }
+          console.log("server config update")
+          return
+        }
+      }
     },
     localFlags: {
       handler: function (val) {
@@ -1094,10 +1047,6 @@ var app = new Vue({
         right: (25 * this.move[0]) + "%",
         bottom: (25 * this.move[1]) + "%",
       }
-    },
-
-    relevantSettings() {
-      return this.gameInfo.config.concat(this.settingTypes)
     },
 
     maxScore() {

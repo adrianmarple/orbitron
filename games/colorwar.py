@@ -9,7 +9,7 @@ from time import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from audio import sounds
-from engine import *
+from engine import Game, Player, color_pixel, SIZE
 
 
 class ColorWar(Game):
@@ -20,12 +20,12 @@ class ColorWar(Game):
     Game.countdown_ontimeout(self)
 
   def play_update(self):
-    for player in playing_players():
+    for player in self.playing_players():
       player.move()
 
     counts = {}
     for i in range(SIZE):
-      inkling = statuses[i]
+      inkling = self.statuses[i]
       if inkling != "blank":
         counts[inkling] = counts.get(inkling, 0) + 1
 
@@ -36,9 +36,9 @@ class ColorWar(Game):
 
   def render_game(self):
     for i in range(SIZE):
-      if statuses[i] != "blank":
-        color = statuses[i].color / 10
-        if statuses[i] == self.leader and self.state != "start":
+      if self.statuses[i] != "blank":
+        color = self.statuses[i].color / 10
+        if self.statuses[i] == self.leader and self.state != "start":
           color *= 0.7 + 0.5 * sin(time() * 10)
         color_pixel(i, color)
 
@@ -47,7 +47,8 @@ class ColorWar(Game):
 class Inkling(Player):
   def move(self):
     Player.move(self)
-    statuses[self.position] = self
+    game.statuses[self.position] = self
 
 
-game = ColorWar(Inkling)
+game = ColorWar()
+game.generate_players(Inkling)

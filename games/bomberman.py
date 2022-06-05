@@ -12,143 +12,119 @@ from time import time, sleep
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from audio import sounds, music
-import engine
-from engine import *
+from engine import Game, Player, color_pixel, render_pulse, next_pixel, unique_coords, neighbors, multi_lerp, SIZE,COORD_MAGNITUDE
 
-
-config["BOMB_FUSE_TIME"] = 3
-config["BOMB_EXPLOSION_TIME"] = 0.9 # Should be less than INVUNERABILITY_TIME
-config["STARTING_BOMB_POWER"] = 4 # 2
-config["PICKUP_CHANCE"] = 0 #0.3
-config["NUM_WALLS"] = 60
-config["WALL_SPAWN_TIME"] = 5
-config["SANDBOX_WALL_NUM"] = 20
-config["BOMB_MOVE_FREQ"] = 0.07
-config["USE_SHIELDS"] = True
-config["DEATHMATCH"] = False
-config["TARGET_KILL_COUNT"] = 5
-config["BATTLE_ROYALE_DURATION"] = 150
-config["DEATH_CREEP_DURATION"] = 60
-config["SUICIDE_STUN"] = False
-config["EXPLODE_ON_IMPACT"] = False
-config["FIXED_OWNERSHIP"] = False
-config["TAP_TO_DETONATE"] = False
-config["NEWTONS_CRADLE"] = True
-config["TAP_BOMB_KICK"] = True
-config["AUTO_KICK"] = False
-config["MAX_BOMBS"] = 3
-
-
-explosion_providence = [None] * SIZE
+additional_config = {
+  "BOMB_FUSE_TIME": 3,
+  "BOMB_EXPLOSION_TIME": 0.9, # Should be less than INVUNERABILITY_TIME
+  "STARTING_BOMB_POWER": 4,
+  "PICKUP_CHANCE": 0, #0.3
+  "NUM_WALLS": 60,
+  "WALL_SPAWN_TIME": 5,
+  "SANDBOX_WALL_NUM": 20,
+  "BOMB_MOVE_FREQ": 0.07,
+  "USE_SHIELDS": True,
+  "ROUND_TIME": 150,
+  "DEATH_CREEP_DURATION": 60,
+  "FIXED_OWNERSHIP": True,
+  "NEWTONS_CRADLE": True,
+  "TAP_BOMB_KICK": True,
+  "MAX_BOMBS": 3,
+  "SHOCKWAVE_DURATION": 0.5,
+}
 
 class Rhomberman(Game):
   name = __name__
   previous_wall_generation_time = 0
+  explosion_providence = [None] * SIZE
 
 
   def start_update(self):
     Game.start_update(self)
 
     wall_count = 0
-    for status in statuses:
+    for status in self.statuses:
       if status == "wall":
         wall_count += 1
-    for i in range(config["SANDBOX_WALL_NUM"] - wall_count):
-      spawn("wall")
+    for i in range(self.SANDBOX_WALL_NUM - wall_count):
+      self.spawn("wall")
 
 
 
   def countdown_ontimeout(self):
-    for player in playing_players():
+    for player in self.playing_players():
       player.tap = 0 # Prevent bombs from being placed due to taps during countdown
 
-    for i in range(config["NUM_WALLS"]):
-      spawn("wall")
+    for i in range(self.NUM_WALLS):
+      self.spawn("wall")
 
     Game.countdown_ontimeout(self)
-    if config["DEATHMATCH"]:
-      self.end_time = 0
-    else:
-      self.end_time = time() + config["BATTLE_ROYALE_DURATION"]
     self.previous_wall_generation_time = time()
 
 
   def play_update(self):
-    for player in playing_players():
+    for player in self.playing_players():
       player.move()
 
-    if time() - self.previous_wall_generation_time > config["WALL_SPAWN_TIME"]:
-      spawn("wall")
+    if time() - self.previous_wall_generation_time > self.WALL_SPAWN_TIME:
+      self.spawn("wall")
       self.previous_wall_generation_time = time()
 
-    if config["DEATHMATCH"]:
-      for player in playing_players():
-        if player.kill_count >= config["TARGET_KILL_COUNT"]:
-          Game.play_ontimeout(self)
-          engine.victor = player
-          break
-    else:
-      # Timer death creep from south pole
-      phase = (self.end_time - time()) / config["DEATH_CREEP_DURATION"]
-      threshold = COORD_MAGNITUDE * (1 - 2 * phase)
-      threshold = min(threshold, COORD_MAGNITUDE * 0.8)
-      for i in range(SIZE):
-        z = unique_coords[i][2]
-        if z < threshold:
-          statuses[i] = "death"
-          explosion_providence[i] = None
+    # Timer death creep from south pole
+    phase = (self.end_time - time()) / self.DEATH_CREEP_DURATION
+    threshold = COORD_MAGNITUDE * (1 - 2 * phase)
+    threshold = min(threshold, COORD_MAGNITUDE * 0.8)
+    for i in range(SIZE):
+      z = unique_coords[i][2]
+      if z < threshold:
+        self.statuses[i] = "death"
+        self.explosion_providence[i] = None
 
-      live_player_count = 0
-      last_player_alive = players[0]
-      for player in playing_players():
-        if player.is_alive:
-          live_player_count += 1
+    live_player_count = 0
+    last_player_alive = self.players[0]
+    for player in self.playing_players():
+      if player.is_alive:
+        live_player_count += 1
 
-        if player.is_alive or (not last_player_alive.is_alive and
-            player.hit_time > last_player_alive.hit_time):
-          last_player_alive = player
+      if player.is_alive or (not last_player_alive.is_alive and
+          player.hit_time > last_player_alive.hit_time):
+        last_player_alive = player
 
-      # GAME OVER
-      if live_player_count <= 1:
-        Game.play_ontimeout(self)
-        engine.victor = last_player_alive
+    # GAME OVER
+    if live_player_count <= 1:
+      Game.play_ontimeout(self)
+      self.victor = last_player_alive
 
 
   def render_game(self):
-    for player in current_players():
+    for player in self.current_players():
       player.render_ghost_trail()
 
     for i in range(SIZE):
-      if statuses[i] == "blank":
+      if self.statuses[i] == "blank":
         # already handled
         pass
-      elif statuses[i] == "death":
+      elif self.statuses[i] == "death":
         color_pixel(i, (10, 0, 0))
-      elif statuses[i] == "wall":
+      elif self.statuses[i] == "wall":
         color_pixel(i, (11, 9, 9))
-      elif statuses[i] == "power_pickup":
+      elif self.statuses[i] == "power_pickup":
         magnitude = 0.3 + 0.1 * sin(40*time() + i)
         magnitude = magnitude * magnitude
         color_pixel(i, np.array((180,100,140)) * magnitude)
-      elif statuses[i] < time():
-        statuses[i] = "blank"
+      elif self.statuses[i] < time():
+        self.statuses[i] = "blank"
         color_pixel(i, (0, 0, 0))
       else:
-        render_explosion(i)
+        x = 1 + (time() - self.statuses[i]) / self.BOMB_EXPLOSION_TIME
+        if (x >= 0):
+          sequence = self.explosion_providence[i].current_color_sequence()
+          x *= len(sequence) - 1
+          color_pixel(i, multi_lerp(x, sequence))
 
 
-
-def render_explosion(index):
-  x = 1 + (time() - statuses[index]) / config["BOMB_EXPLOSION_TIME"]
-  if (x >= 0):
-    sequence = explosion_providence[index].current_color_sequence()
-    x *= len(sequence) - 1
-    color_pixel(index, multi_lerp(x, sequence))
-
-
-def is_pixel_blank(index):
-  status = statuses[index]
-  return status == "blank" 
+  def is_pixel_blank(self, index):
+    return self.statuses[index] == "blank"
 
 
 # ================================ PLAYER =========================================
@@ -167,10 +143,8 @@ class Bomberman(Player):
 
   def reset(self):
     self.bombs = []
-    self.bomb_power = config["STARTING_BOMB_POWER"]
-    self.kill_count = 0
-    self.death_count = 0
-    self.has_shield = config["USE_SHIELDS"]
+    self.bomb_power = game.STARTING_BOMB_POWER
+    self.has_shield = game.USE_SHIELDS
     Player.reset(self)
 
   def set_ready(self):
@@ -180,8 +154,8 @@ class Bomberman(Player):
   def setup_for_game(self):
     Player.setup_for_game(self)
     self.bombs = []
-    self.has_shield = config["USE_SHIELDS"]
-    self.bomb_power = config["STARTING_BOMB_POWER"]
+    self.has_shield = game.USE_SHIELDS
+    self.bomb_power = game.STARTING_BOMB_POWER
 
   def current_color_sequence(self):
     return self.explosion_color_sequence
@@ -190,15 +164,12 @@ class Bomberman(Player):
     if Player.is_occupied(self, position):
       return True
 
-    for player in current_players():
+    for player in game.current_players():
       for bomb in player.bombs:
         if bomb.position == position:
           if bomb.move(self.position):
             # Successful bomb kick!
             sounds["kick"].play()
-            if not config["FIXED_OWNERSHIP"]:
-              # Transfer owenership on bomb kick
-              bomb.bump_owner(self)
           else:
             return True
 
@@ -211,41 +182,25 @@ class Bomberman(Player):
     for bomb in self.bombs.copy():
       bomb.resolve()
 
-      if bomb.has_exploded and time() - bomb.explosion_time > SHOCKWAVE_DURATION:
+      if bomb.has_exploded and time() - bomb.explosion_time > game.SHOCKWAVE_DURATION:
         self.bombs.remove(bomb)
 
 
 
-    if self.is_alive and statuses[pos] == "death":
+    if self.is_alive and game.statuses[pos] == "death":
       sounds["death"].play()
-      self.death_count += 1
       self.is_alive = False
       return
 
     # non-blank status means either explosion or death
-    if not is_pixel_blank(pos) and time() - self.hit_time > config["INVULNERABILITY_TIME"]:
-
+    if not game.is_pixel_blank(pos) and time() - self.hit_time > game.INVULNERABILITY_TIME:
       # Hurt
-      killer = explosion_providence[pos]
-      suicide = killer == self
-      if suicide and config["SUICIDE_STUN"]:
-        self.stunned = True
+      if game.state == "start":
+        pass
+      elif self.has_shield:
+        self.has_shield = False
       else:
-        self.stunned = False
-
-        if game.state == "start":
-          pass
-        elif self.has_shield:
-          self.has_shield = False
-        else:
-          self.death_count += 1
-          if not config["DEATHMATCH"]:
-            self.is_alive = False
-          if suicide:
-            self.kill_count -= 1
-          elif killer:
-            killer.kill_count += 1
-            killer.score_timestamp = time()
+        self.is_alive = False
 
       if self.is_alive:
         sounds["hurt"].play()
@@ -260,34 +215,28 @@ class Bomberman(Player):
     self.tap = 0 # consume tap signal
 
     if time() - tap < 0.1 and not self.stunned:
-      if config["TAP_TO_DETONATE"] and len(self.bombs) > 0:
-        for bomb in self.bombs:
-          bomb.explode()
-      else:
-        can_place_bomb = self.is_alive and not self.stunned and len(self.bombs) < config["MAX_BOMBS"]
-        for bomb in self.bombs:
-          if pos == bomb.position:
-            can_place_bomb = False
-            if config["TAP_BOMB_KICK"] and bomb.move(self.prev_pos):
-              sounds["kick"].play()
+      can_place_bomb = self.is_alive and not self.stunned and len(self.bombs) < game.MAX_BOMBS
+      for bomb in self.bombs:
+        if pos == bomb.position:
+          can_place_bomb = False
+          if game.TAP_BOMB_KICK and bomb.move(self.prev_pos):
+            sounds["kick"].play()
 
-        if can_place_bomb:
-          sounds["placeBomb"].play()
-          bomb = Bomb(self)
-          self.bombs.append(bomb)
-          if config["AUTO_KICK"]:
-            bomb.move(self.prev_pos)
+      if can_place_bomb:
+        sounds["placeBomb"].play()
+        bomb = Bomb(self)
+        self.bombs.append(bomb)
 
 
     Player.move(self)
     # self.position is likely to have updated
 
     # Player clears away explosions when walking on them
-    if not is_pixel_blank(self.position):
-      statuses[pos] = "blank"
-    if statuses[self.position] == "power_pickup":
+    if not game.is_pixel_blank(self.position):
+      game.statuses[pos] = "blank"
+    if game.statuses[self.position] == "power_pickup":
       self.bomb_power += 1
-      statuses[self.position] = "blank"
+      game.statuses[self.position] = "blank"
 
 
   def render(self):
@@ -297,10 +246,10 @@ class Bomberman(Player):
       if bomb.position == self.position:
         color = color * (0.1 + bomb_factor * 1.2)
 
-    if config["USE_SHIELDS"] and not self.has_shield:
+    if game.USE_SHIELDS and not self.has_shield:
       color = color / 12;
 
-    flash_time = config["STUN_TIME"] if self.stunned else config["INVULNERABILITY_TIME"]
+    flash_time = game.STUN_TIME if self.stunned else game.INVULNERABILITY_TIME
     if time() - self.hit_time < flash_time:
       factor = (time() * 2) % 1
       if self.stunned:
@@ -316,8 +265,6 @@ class Bomberman(Player):
   def to_json(self):
     dictionary = Player.to_json(self)
     dictionary["bombPower"] = self.bomb_power
-    dictionary["score"] = self.kill_count
-    dictionary["deathCount"] = self.death_count
 
     return dictionary
 
@@ -345,7 +292,6 @@ EXPLOSION_COLOR_SEQUENCE = [
 
 
 class Bomb:
-
   def __init__(self, player):
     self.owner = player
     self.position = player.position
@@ -361,9 +307,9 @@ class Bomb:
     if new_pos is None:
       return True
 
-    occupied = statuses[new_pos] == "wall"
+    occupied = game.statuses[new_pos] == "wall"
 
-    for player in current_players():
+    for player in game.current_players():
       if not player.is_alive:
         continue
 
@@ -373,7 +319,7 @@ class Bomb:
 
       for bomb in player.bombs:
         if bomb.position == new_pos:
-          if config["NEWTONS_CRADLE"]:
+          if game.NEWTONS_CRADLE:
             bomb_next = next_pixel.get(str((bomb.prev_pos, bomb.position)), None)
             if bomb_next == self.position:
               bomb.prev_pos = bomb.position
@@ -399,10 +345,10 @@ class Bomb:
         direction=-unique_coords[self.position],
         color=(16, 16, 16),
         start_time=self.explosion_time,
-        duration=SHOCKWAVE_DURATION)
+        duration=game.SHOCKWAVE_DURATION)
       return 0
 
-    x = config["BOMB_FUSE_TIME"] + self.timestamp - time()
+    x = game.BOMB_FUSE_TIME + self.timestamp - time()
     x += 4
     x = (300 / x)
     factor = (sin(x)+1.4) * 0.3
@@ -416,43 +362,38 @@ class Bomb:
       return
 
     impacted = False
-    if self.position != self.prev_pos and time() - self.last_move_time > config["BOMB_MOVE_FREQ"]:
+    if self.position != self.prev_pos and time() - self.last_move_time > game.BOMB_MOVE_FREQ:
       impacted = not self.move(self.prev_pos)
 
     # Fuse has run out or hit by an explosion
-    if time() - self.timestamp >= config["BOMB_FUSE_TIME"] or \
-        not is_pixel_blank(self.position) or \
-        (impacted and config["EXPLODE_ON_IMPACT"]):
+    if time() - self.timestamp >= game.BOMB_FUSE_TIME or \
+        not game.is_pixel_blank(self.position):
       self.explode()
 
   def explode(self):
     if self.has_exploded:
       return
 
-    # Propagate ownership if triggered by other bomb
-    #if not is_pixel_blank(self.position) and statuses[self.position] != "death":
-    #  self.bump_owner(explosion_providence[self.position])
-
     sounds["explosion"].play()
-    finish_time = time() + config["BOMB_EXPLOSION_TIME"]
+    finish_time = time() + game.BOMB_EXPLOSION_TIME
 
-    statuses[self.position] = finish_time
-    explosion_providence[self.position] = self.owner
+    game.statuses[self.position] = finish_time
+    game.explosion_providence[self.position] = self.owner
     for neighbor in neighbors[self.position]:
       direction = (self.position, neighbor)
       for i in range(self.power):
         next_pos = direction[1]
 
-        if statuses[next_pos] == "wall":
-          if random() < config["PICKUP_CHANCE"]:
-            statuses[next_pos] = "power_pickup"
+        if game.statuses[next_pos] == "wall":
+          if random() < game.PICKUP_CHANCE:
+            game.statuses[next_pos] = "power_pickup"
           else:
-            statuses[next_pos] = "blank"
+            game.statuses[next_pos] = "blank"
           break
 
-        finish_time = time() + config["BOMB_EXPLOSION_TIME"] + (i+1)/32
-        statuses[next_pos] = finish_time
-        explosion_providence[next_pos] = self.owner
+        finish_time = time() + game.BOMB_EXPLOSION_TIME + (i+1)/32
+        game.statuses[next_pos] = finish_time
+        game.explosion_providence[next_pos] = self.owner
         direction = (next_pos, next_pixel[str(direction)])
 
     self.has_exploded = True
@@ -463,4 +404,5 @@ class Bomb:
       self.owner = new_owner
 
 
-game = Rhomberman(Bomberman)
+game = Rhomberman(additional_config)
+game.generate_players(Bomberman)
