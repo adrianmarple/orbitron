@@ -4,7 +4,7 @@ import fileinput
 import os
 import sys
 import json
-import time
+from time import time
 import math
 
 from audio import soundActions, prewarm_audio, musicActions
@@ -13,8 +13,13 @@ last_music_action = 0
 last_sound_action = 0
 min_delta = math.inf
 max_delta = -math.inf
-avg_delta = 0
 num_delta = 0
+start_time = time()
+over_01 = 0
+over_02 = 0
+over_03 = 0
+over_04 = 0
+over_05 = 0
 
 def run_core_loop():
   prewarm_audio()
@@ -24,17 +29,28 @@ def run_core_loop():
 def consume_input():
   for line in fileinput.input():
     try:
-      global last_music_action, last_sound_action, min_delta, max_delta, avg_delta, num_delta
+      global last_music_action, last_sound_action, min_delta, max_delta, num_delta, over_01, over_02, over_03, over_04, over_05
       game_state = json.loads(line)
       if game_state["timestamp"]:
         t = float(game_state["timestamp"])
         ct = time()
         dt = ct - t
         num_delta = num_delta + 1
-        min_delta = min(dt,min_delta)
-        max_delta = max(dt,max_delta)
-        avg_delta = (avg_delta * (num_delta - 1) + dt)/num_delta
-        print("deltas: min = %s; max = %s; mean = %s; num: %s" % (min_delta, max_delta, avg_delta, num_delta), file=sys.stderr)
+        if num_delta > 20:
+          min_delta = min(dt,min_delta)
+          max_delta = max(dt,max_delta)
+          print("min = %s; max = %s; num: %s; delta = %s; time = %s" % (min_delta, max_delta, num_delta, dt, time()-start_time), file=sys.stderr)
+          if dt > 0.5:
+            over_01 = over_05 + 1
+          elif dt > 0.4:
+            over_01 = over_04 + 1
+          elif dt > 0.3:
+            over_01 = over_03 + 1
+          elif dt > 0.2:
+            over_01 = over_02 + 1
+          elif dt > 0.1:
+            over_01 = over_01 + 1
+          print("over 0.1: %s; 0.2: %s; 0.3: %s; 0.4: %s; 0.5: %s; total: %s" % (over_01, over_02, over_03, over_04, over_05,over_01+over_02+over_03+over_04+over_05), file=sys.stderr)
       for action in game_state["soundActions"]:
         asplit = action.split(";")
         t = float(asplit[0])
