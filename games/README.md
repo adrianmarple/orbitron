@@ -1,5 +1,11 @@
 # How to make a new game
 
+## TL:DR
+
+- Copy `colorwar.py` and rename to your game's name.
+- Edit this file to make a new game.
+- Look to `engine.py` for reference.
+
 ## Understanding the Super Orbitron architecture
 
 What you mainly need to understand is in engine.py. The engine works by running a core loop (each with a minimum 30fps frame time) where it calls the function `update()` every frame.
