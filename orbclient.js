@@ -4,11 +4,6 @@ const { spawn, exec } = require('child_process')
 const pako = require('./pako.min.js')
 
 var ws = null
-var rawPixels = ""
-var gameState = {}
-var loopTime = Date.now()
-var frameTime = 1/30 * 1000
-
 
 var config=require(__dirname + "/config.js")
 console.log(config)
@@ -24,12 +19,18 @@ function startWebsocket() {
       let data = event.data
       if(typeof data === "string"){
         try {
-          gameState = JSON.parse(data)
+          audio_process.stdin.write(data + "\n", "utf-8")
         } catch(e) {
           console.log(e)
         }
       } else {
-        rawPixels = event.data
+        try {
+          let rawPixelsString = pako.inflate(data, {to: 'string'})
+          python_process.stdin.write(rawPixelsString + "\n", "utf8")
+        } catch(e) {
+          console.log(e)
+        }
+
       }
     }
     ws.onclose = event => {
@@ -81,28 +82,7 @@ audio_process.on('uncaughtException', function(err) {
 
 
 function loop() {
-  let dt = Date.now() - loopTime
-  if(dt >= frameTime) {
-    loopTime = loopTime + frameTime
-    startWebsocket()
-    if(rawPixels) {
-      let rawPixelsString = pako.inflate(rawPixels, {to: 'string'})
-      //console.log("RAW PIXELS AS HEX", rawPixelsString)
-      //console.log("RAW PIXELS INFLATED", rawPixelsInflated)
-      try {
-        python_process.stdin.write(rawPixelsString + "\n", "utf8")
-      } catch(e) {
-        console.log(e)
-      }
-    }
-    if(gameState) {
-      try {
-        audio_process.stdin.write(JSON.stringify(gameState) + "\n", "utf-8")
-      } catch(e) {
-        console.log(e)
-      }
-    }
-  }
+  startWebsocket()
 }
-setInterval(loop, frameTime/4)
+setInterval(loop, 1000)
 
