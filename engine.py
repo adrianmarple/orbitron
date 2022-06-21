@@ -35,12 +35,10 @@ COORD_SQ_MAGNITUDE = 19.94427190999916
 
 base_config = {
   "INVULNERABILITY_TIME": 3,
-  "STUN_TIME": 5,
   "MOVE_FREQ": 0.18,
   "ALLOW_CROSS_TIP_MOVE": False,
   "MOVE_BIAS": 0.5,
   "VICTORY_TIMEOUT": 42,
-  "STUN_SLOWDOWN": 0.3,
   "ROUND_TIME": 94.6,
 }
 
@@ -192,7 +190,6 @@ class Player:
     self.is_playing = False
     self.position = self.initial_position
     self.prev_pos = self.position
-    self.stunned = False
     self.hit_time = 0
     self.score = 0
     self.score_timestamp = time()
@@ -201,12 +198,12 @@ class Player:
     self.is_ready = True
     self.ready_time = time()
     self.position = self.initial_position
+    self.score = 0
 
   def setup_for_game(self):
-    self.set_ready()
     self.is_playing = True
-    self.score = 0
     self.score_timestamp = time()
+    self.set_ready()
 
   def set_unready(self):
     self.is_ready = False
@@ -219,10 +216,7 @@ class Player:
     return self.color
 
   def move_delay(self):
-    if self.stunned:
-      return current_game.MOVE_FREQ / current_game.STUN_SLOWDOWN
-    else:
-      return current_game.MOVE_FREQ
+    return current_game.MOVE_FREQ
 
   def cant_move(self):
     return (not self.is_alive or
@@ -275,9 +269,6 @@ class Player:
 
 
   def move(self):
-    if self.stunned and time() - self.hit_time > current_game.STUN_TIME:
-      self.stunned = False
-
     if self.cant_move():
       return
 
@@ -302,10 +293,10 @@ class Player:
       return
     color = self.current_color()
 
-    flash_time = current_game.STUN_TIME if self.stunned else current_game.INVULNERABILITY_TIME
-    flash_speed = 16 if self.stunned else 30
-    if time() - self.hit_time < flash_time:
-      color = color * sin(time() * flash_speed)
+    if time() - self.hit_time < current_game.INVULNERABILITY_TIME:
+      factor = (time() * 1.8) % 1
+      color = color * (0.05 + 0.95 * factor * factor)
+      # color = color * sin(time() * 30)
 
     color_pixel(self.position, color)
 
@@ -344,14 +335,14 @@ class Player:
 
 class Game:
   players = []
+  waiting_music = "waiting"
+  battle_music = "battle1"
+
+  victor = None
+  data = {}
+  statuses = ["blank"] * SIZE
 
   def __init__(self, additional_config=None):
-    self.waiting_music = "waiting"
-    self.battle_music = "battle1"
-
-    self.victor = None
-    self.data = {}
-    self.statuses = ["blank"] * SIZE
 
     self.config = {}
     for (key, value) in base_config.items():

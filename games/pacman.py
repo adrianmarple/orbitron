@@ -32,6 +32,7 @@ additional_config = {
   "POWER_PELLET_REGEN_FREQ": 30,
   "SHARED_LIVES": True,
   "PULSE_DURATION": 0.75,
+  "GHOST_STUN_TIME": 5,
 }
 
 
@@ -176,8 +177,6 @@ class PacMan(Game):
 
 class Pacman(Player):
   def __init__(self, *args, **kwargs):
-    #kwargs["color"] = (190, 195, 5)
-    #kwargs["color_string"] = "#e7e023"
     Player.__init__(self, *args, **kwargs)
     self.is_pacman = True
 
@@ -203,7 +202,6 @@ class Pacman(Player):
       if ghost.is_playing and ghost.position == self.position:
         if ghost.is_scared():
           sounds["kick"].play()
-          ghost.stunned = True
           ghost.position = unique_antipodes[ghost.position]
           ghost.hit_time = time()
           ghost.power_pellet_end_time = 0 # ghost no longer scared
@@ -282,7 +280,7 @@ class Ghost(Player):
 
   def cant_move(self):
     move_freq = game.GHOST_SCARED_MOVE_FREQ if self.is_scared() else game.GHOST_MOVE_FREQ
-    return (self.stunned or
+    return (time() - self.hit_time < game.GHOST_STUN_TIME or
       time() - self.last_move_time < move_freq or # just moved
       (self.is_claimed and (self.move_direction == ZERO_2D).all())
     )
@@ -332,7 +330,7 @@ class Ghost(Player):
     self.render()
 
   def render(self):
-    if self.stunned:
+    if time() - self.hit_time < game.GHOST_STUN_TIME:
       render_pulse(
         direction=unique_coords[self.position],
         color=self.current_color(),

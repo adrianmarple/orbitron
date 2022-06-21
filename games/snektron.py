@@ -25,6 +25,7 @@ additional_config = {
 
 class Snektron(Game):
   name = __name__
+  battle_music = "snekBattle"
 
   def countdown_ontimeout(self):
     Game.countdown_ontimeout(self)

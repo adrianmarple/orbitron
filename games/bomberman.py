@@ -20,7 +20,7 @@ additional_config = {
   "STARTING_BOMB_POWER": 4,
   "PICKUP_CHANCE": 0, #0.3
   "NUM_WALLS": 60,
-  "WALL_SPAWN_TIME": 5,
+  "WALL_SPAWN_TIME": 10,
   "SANDBOX_WALL_NUM": 20,
   "BOMB_MOVE_FREQ": 0.07,
   "USE_SHIELDS": True,
@@ -109,16 +109,16 @@ class Rhomberman(Game):
       elif self.statuses[i] == "wall":
         color_pixel(i, (11, 9, 9))
       elif self.statuses[i] == "power_pickup":
-        magnitude = 0.3 + 0.1 * sin(40*time() + i)
+        magnitude = 0.3 + 0.1 * sin(20*time() + i)
         magnitude = magnitude * magnitude
-        color_pixel(i, np.array((180,100,140)) * magnitude)
+        color_pixel(i, np.array((200,0,200)) * magnitude)
       elif self.statuses[i] < time():
         self.statuses[i] = "blank"
         color_pixel(i, (0, 0, 0))
       else:
         x = 1 + (time() - self.statuses[i]) / self.BOMB_EXPLOSION_TIME
         if (x >= 0):
-          sequence = self.explosion_providence[i].current_color_sequence()
+          sequence = self.explosion_providence[i].explosion_color_sequence
           x *= len(sequence) - 1
           color_pixel(i, multi_lerp(x, sequence))
 
@@ -145,6 +145,7 @@ class Bomberman(Player):
     self.bombs = []
     self.bomb_power = game.STARTING_BOMB_POWER
     self.has_shield = game.USE_SHIELDS
+    self.opacity = 1
     Player.reset(self)
 
   def set_ready(self):
@@ -157,8 +158,12 @@ class Bomberman(Player):
     self.has_shield = game.USE_SHIELDS
     self.bomb_power = game.STARTING_BOMB_POWER
 
-  def current_color_sequence(self):
-    return self.explosion_color_sequence
+  def current_color(self):
+    color = self.color * self.opacity
+    if game.USE_SHIELDS and not self.has_shield:
+      return color / 12
+    else:
+      return color
 
   def is_occupied(self, position):
     if Player.is_occupied(self, position):
@@ -214,8 +219,8 @@ class Bomberman(Player):
     tap = self.tap
     self.tap = 0 # consume tap signal
 
-    if time() - tap < 0.1 and not self.stunned:
-      can_place_bomb = self.is_alive and not self.stunned and len(self.bombs) < game.MAX_BOMBS
+    if time() - tap < 0.1:
+      can_place_bomb = self.is_alive and len(self.bombs) < game.MAX_BOMBS
       for bomb in self.bombs:
         if pos == bomb.position:
           can_place_bomb = False
@@ -240,27 +245,13 @@ class Bomberman(Player):
 
 
   def render(self):
-    color = self.current_color()
+    self.opacity = 1
     for bomb in self.bombs:
       bomb_factor = bomb.render()
       if bomb.position == self.position:
-        color = color * (0.1 + bomb_factor * 1.2)
+        self.opacity =  (0.1 + bomb_factor * 1.2)
 
-    if game.USE_SHIELDS and not self.has_shield:
-      color = color / 12;
-
-    flash_time = game.STUN_TIME if self.stunned else game.INVULNERABILITY_TIME
-    if time() - self.hit_time < flash_time:
-      factor = (time() * 2) % 1
-      if self.stunned:
-        factor = 1 - factor
-        factor *= 0.7
-      else:
-        factor *= 1.3
-      color = color * factor * factor
-
-    if self.is_alive:
-      color_pixel(self.position, color)
+    Player.render(self)
 
   def to_json(self):
     dictionary = Player.to_json(self)

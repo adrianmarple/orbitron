@@ -49,6 +49,13 @@ class Inkling(Player):
     Player.move(self)
     game.statuses[self.position] = self
 
+  def set_ready(self):
+    for i in range(SIZE):
+      if game.statuses[i] == self:
+        game.statuses[i] = "blank"
+
+    Player.set_ready(self)
+
 
 game = ColorWar()
 game.generate_players(Inkling)
