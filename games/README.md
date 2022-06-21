@@ -36,6 +36,7 @@ And some helper methods attacted the base `Game` class:
  - `playing_players()`: All players with `is_playing` set to true.
  - `current_players()`: Same as `playing_players` unless `state` is "start" in which case it's the union of `playing_players` and  `claimed_players`.
  - `spawn(status)`: Adds a status (passed in as a parameter) to a random "blank" pixel that is not occupied by a player.
+ - `clear()`: set all statuses to "blank"
 
 ### The Player class
 
@@ -44,9 +45,6 @@ The `Player` class (also defined in engine.py) is probably the most complex thin
 The most important thing you'll have to understand is the function `move()`, which called during the default `start_update` and `play_update` functions for every player. Here is the code duplicated here for your convenience:
 ```
   def move(self):
-    if self.stunned and time() - self.hit_time > current_game.STUN_TIME:
-      self.stunned = False
-
     if self.cant_move():
       return
 
@@ -59,11 +57,11 @@ The most important thing you'll have to understand is the function `move()`, whi
       self.position = new_pos
       self.last_move_time = time()
 ```
-You can ignore the stuff about ghosts and stunning, but the remaining functions are important to understand:
+You can ignore the stuff about ghosts, but the remaining functions are good to understand:
  - `cant_move()`: Is the player unable to move? (i.e. not enough time has passed, they aren't alive, or no controller movement has been registered recently)
- - `move_delay()`: How long the player must wait between moves, used in the above function.
- - `get_next_position()`: Based on controller movement, where would the player go next.
- - `is_occupied(pos)`: Is a particular position invalid for the player to move to.
+ - `move_delay()`: How long the player must wait between moves, used in `cant_move()`.
+ - `get_next_position()`: Based on controller movement, returns where would the player go next
+ - `is_occupied(pos)`: Is a particular position invalid for the player to move to?
 
 In order for your game to use a new class that inherits from player, you must call the `generate_players` function on a `Game` instance passing the class name as a parameter. E.g.
 ```
@@ -154,8 +152,8 @@ The contents of these dictionaries will be turned into attributes and so can be 
 ### Colors
 
 The six colors used for the six players are fixed, but there are two colors dedicated to other meaningful things within your game:
- - Red: For bad things (e.g. PacMan ghosts, death creep, etc.)
- - Violet: For good things (e.g. scared ghosts, pickups, etc.)
+ - Red (#f00): For bad things (e.g. PacMan ghosts, death creep, etc.)
+ - Magenta (#f0f): For good things (e.g. scared ghosts, pickups, etc.)
 Everything else should be grayscale.
 
 ### Final thoughts

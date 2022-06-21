@@ -148,7 +148,16 @@ var app = new Vue({
         self.followingPlayer = e.data.self
         self.$forceUpdate()
       }
-    }, false);
+    }, false)
+
+    let volume = localStorage.getItem('musicVolume')
+    if (volume) {
+      this.musicVolume = parseInt(volume)
+    }
+    volume = localStorage.getItem('sfxVolume')
+    if (volume) {
+      this.sfxVolume = parseInt(volume)
+    }
   },
   watch: {
   },
@@ -369,6 +378,7 @@ var app = new Vue({
       ]
 
       for (let m of music) {
+        m.setMaxVolume(this.musicVolume/100.0)
         this.music[m.name] = m
       }
     },
@@ -378,6 +388,10 @@ var app = new Vue({
         this.music[name].setMaxVolume(vol)
         this.music[name].setVolume(vol)
       }
+      localStorage.setItem("musicVolume", this.musicVolume)
+    },
+    sfxVolumeChanged() {
+      localStorage.setItem("sfxVolume", this.sfxVolume)
     },
     processAudio() {
       if(!canPlayAudio) return

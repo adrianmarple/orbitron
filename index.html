@@ -690,7 +690,7 @@ let GAMES_INFO = [
         ],
       },
     ],
-    victoryCondition: "Be the leader for {{config.REQUIRED_LEAD_TIME}} seconds",
+    victoryCondition: "Have the top score at the end of the round.",
     statusDisplay: {
       type: "rankedscore",
     },
@@ -711,8 +711,13 @@ let GAMES_INFO = [
       {
         words: [
           "Eating a normal pellet earns you 10 points.",
-          "Eating a flashing POWER PELLET earns you 50 points and makes the ghosts scared (blue).",
-          "Eating a BLUE scared ghost earns you 200 points!",
+          "Eating a flashing POWER PELLET earns you 50 points.",
+        ]
+      },
+      {
+        words: [
+          "Eating a POWER PELLET also makes the ghosts scared (pink).",
+          "Eating a PINK scared ghost earns you 200 points!",
         ],
       },
       {
@@ -1168,7 +1173,7 @@ var app = new Vue({
       this.timestamp = Date.now()
     },
     handleEnd(location) {
-      if (this.showSettings) {
+      if (this.showSettings || this.showRules) {
         return
       }
       if (Date.now() - this.timestamp > 10 &&

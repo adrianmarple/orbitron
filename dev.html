@@ -115,7 +115,7 @@ p {
       <p>Music Volume: {{musicVolume}}</p>
       <input @input="musicVolumeChanged" v-model="musicVolume" type="range" min="0" max="100" class="slider" id="music-slider">
       <p>SFX Volume: {{sfxVolume}}</p>
-      <input v-model="sfxVolume" type="range" min="0" max="100" class="slider" id="sound-slider">
+      <input @input="sfxVolumeChanged" v-model="sfxVolume" type="range" min="0" max="100" class="slider" id="sound-slider">
     </div>
     <div id=player-picker>
       <span
