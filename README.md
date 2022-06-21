@@ -14,6 +14,8 @@
 - `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
 - go to Download directory or wherever the SD image download is
 - `sudo dd if=Orbitron.img of=/dev/disk2 status=progress`
+- On MacOS use `gdd` instead (installation instructions [here](https://apple.stackexchange.com/questions/234167/how-can-i-track-progress-of-dd))
+  - `sudo gdd if=Orbitron.img of=/dev/disk2 status=progress`
 
 ## SSHFS
 
@@ -42,6 +44,21 @@
 - `sudo dd if=/dev/disk2 of=Orbitron.img bs=1M count=14500 status=progress`
 - On MacOS use `gdd` instead (installation instructions [here](https://apple.stackexchange.com/questions/234167/how-can-i-track-progress-of-dd))
   - `sudo gdd if=/dev/disk2 of=Orbitron.img bs=1M count=14500 status=progress`
+
+## Adding WiFi network to Pi for auto connect
+- Edit `/etc/wpa_supplicant/wpa_supplicant.conf` with your editor of choice
+- Insert an entry at the bottom of the following format:
+```
+network={
+	ssid="SSID"
+	psk="PASSWORD"
+	key_mgmt=WPA-PSK
+	scan_ssid=1
+	id_str="UNIQUE_ID"
+	priority=1
+}
+```
+- Save the file and restart, it should auto connect to the network (provided it doesn't find another one in the list)
 
 # Other useful things
 
