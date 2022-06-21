@@ -33,7 +33,7 @@ prewarm_audio()
 COORD_MAGNITUDE = 4.46590101883
 COORD_SQ_MAGNITUDE = 19.94427190999916
 
-config = {
+base_config = {
   "INVULNERABILITY_TIME": 3,
   "STUN_TIME": 5,
   "MOVE_FREQ": 0.18,
@@ -45,7 +45,6 @@ config = {
 }
 
 READY_PULSE_DURATION = 0.75
-SHOCKWAVE_DURATION = 0.5
 ZERO_2D = np.array((0, 0))
 
 f = open(os.path.dirname(__file__) + "/pixels.json", "r")
@@ -72,13 +71,7 @@ for (i, dupes) in enumerate(unique_to_dupes):
 
 print("Running %s pixels" % pixel_info["RAW_SIZE"],file=sys.stderr)
 
-statuses = ["blank"] * SIZE
-
 current_game = None
-victor = None
-
-data = {}
-players = []
 games = {}
 game_selection_weights = {}
 
@@ -106,16 +99,16 @@ def start_random_game():
 
 def start(game):
   global current_game
-  current_game = game
-  clear_votes()
   claimed = []
-  for player in players:
-    claimed.append(player.is_claimed)
-  players.clear()
-  game.setup()
+  if current_game:
+    for player in current_game.players:
+      claimed.append(player.is_claimed)
+
+  current_game = game
+  game.restart()
   music["any"].fadeout(duration=2000)
   music[game.waiting_music].fadein(duration=4500)
-  for (i, player) in enumerate(players):
+  for (i, player) in enumerate(game.players):
     if i < len(claimed):
       player.is_claimed = claimed[i]
 
@@ -124,9 +117,11 @@ def start(game):
 def update():
   global pixels
   try:
-    if len(claimed_players()) == 0 and current_game != idle:
+    if current_game is None:
       start(idle)
-    if len(claimed_players()) > 0 and current_game == idle:
+    elif len(current_game.claimed_players()) == 0 and current_game != idle:
+      start(idle)
+    elif len(current_game.claimed_players()) > 0 and current_game == idle:
       start_random_game()
 
     current_game.update()
@@ -167,8 +162,7 @@ class Player:
   def __init__(self,
       position=0,
       color=(150,150,150),
-      color_string="white",
-      template_player=None):
+      color_string="white"):
 
     self.initial_position = position
     self.color = np.array(color)
@@ -181,8 +175,6 @@ class Player:
     self.move_direction = np.array((0, 0))
     self.prev_pos = 0
     self.tap = 0
-    self.votes = {}
-
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
     self.ghost_timestamps = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -192,19 +184,9 @@ class Player:
 
     self.reset()
 
-    if template_player:
-      self.initial_position = template_player.initial_position
-      self.position = template_player.position
-      self.is_claimed = template_player.is_claimed
-      self.is_ready = template_player.is_ready
-      self.is_playing = template_player.is_playing
-      self.id = template_player.id
-      players[self.id] = self
-    else:
-      self.id = len(players)
-      players.append(self)
 
   def reset(self):
+    self.votes = {}
     self.is_ready = False
     self.is_alive = True
     self.is_playing = False
@@ -238,9 +220,9 @@ class Player:
 
   def move_delay(self):
     if self.stunned:
-      return config["MOVE_FREQ"] / config["STUN_SLOWDOWN"]
+      return current_game.MOVE_FREQ / current_game.STUN_SLOWDOWN
     else:
-      return config["MOVE_FREQ"]
+      return current_game.MOVE_FREQ
 
   def cant_move(self):
     return (not self.is_alive or
@@ -266,10 +248,10 @@ class Player:
 
     max_dot = 0
     new_pos = pos
-    local_neighbors = (expanded_neighbors if config["ALLOW_CROSS_TIP_MOVE"] else neighbors)[pos]
+    local_neighbors = (expanded_neighbors if current_game.ALLOW_CROSS_TIP_MOVE else neighbors)[pos]
     for n in local_neighbors:
       delta = unique_coords[pos] - unique_coords[n]
-      delta += config["MOVE_BIAS"] * (unique_coords[self.prev_pos] - unique_coords[pos]) # Bias towards turning or moving backwards
+      delta += current_game.MOVE_BIAS * (unique_coords[self.prev_pos] - unique_coords[pos]) # Bias towards turning or moving backwards
       delta /= np.linalg.norm(delta)  # normalize
       rectified_delta = -np.matmul(basis, delta)[0:2]
       dot = np.dot(rectified_delta, self.move_direction)
@@ -282,10 +264,10 @@ class Player:
 
 
   def is_occupied(self, position):
-    if statuses[position] == "wall":
+    if current_game.statuses[position] == "wall":
       return True
 
-    for player in current_players():
+    for player in current_game.current_players():
       if player.is_alive and player.position == position:
         return True
 
@@ -293,7 +275,7 @@ class Player:
 
 
   def move(self):
-    if self.stunned and time() - self.hit_time > config["STUN_TIME"]:
+    if self.stunned and time() - self.hit_time > current_game.STUN_TIME:
       self.stunned = False
 
     if self.cant_move():
@@ -320,7 +302,7 @@ class Player:
       return
     color = self.current_color()
 
-    flash_time = config["STUN_TIME"] if self.stunned else config["INVULNERABILITY_TIME"]
+    flash_time = current_game.STUN_TIME if self.stunned else current_game.INVULNERABILITY_TIME
     flash_speed = 16 if self.stunned else 30
     if time() - self.hit_time < flash_time:
       color = color * sin(time() * flash_speed)
@@ -361,45 +343,68 @@ class Player:
 # ================================ Game =========================================
 
 class Game:
-  def __init__(self, player_class=Player, waiting_music="waiting", battle_music="battle1"):
-    self.waiting_music = waiting_music
-    self.battle_music = battle_music
-    self.player_class = player_class
+  players = []
 
-  def setup(self):
+  def __init__(self, additional_config=None):
+    self.waiting_music = "waiting"
+    self.battle_music = "battle1"
+
+    self.victor = None
+    self.data = {}
+    self.statuses = ["blank"] * SIZE
+
+    self.config = {}
+    for (key, value) in base_config.items():
+      self.config[key] = value
+      setattr(self, key, value)
+    if additional_config:
+      for (key, value) in additional_config.items():
+        self.config[key] = value
+        setattr(self, key, value)
+
+  # Doing this so players can have global reference to "game" in various game modules
+  def generate_players(self, player_class):
+    self.players = [
+      player_class(
+        position=105,
+        color=(0, 255, 0),
+        color_string="#00ff00" #green
+      ),
+      player_class(
+        position=117,
+        color=(0, 0, 255),
+        color_string="#0000ff" #blue
+      ),
+      player_class(
+        position=50,
+        color=(255, 80, 0),
+        color_string="#ff7f00" #orange
+      ),
+      player_class(
+        position=157,
+        color=(127, 63, 255),
+        color_string="#7f3fff" #violet
+      ),
+      player_class(
+        position=24,
+        color=(255, 255, 0),
+        color_string="#ffff00" #yellow
+      ),
+      player_class(
+        position=202,
+        color=(0, 255, 255),
+        color_string="#00ffff" #cyan
+      ),
+    ]
+    self.restart()
+
+
+  def restart(self):
+    for player in self.players:
+      player.reset()
     self.state = "start"
     self.end_time = 0
     self.clear()
-    self.player_class(
-      position=105,
-      color=(0, 255, 0),
-      color_string="#00ff00" #green
-    )
-    self.player_class(
-      position=117,
-      color=(0, 0, 255),
-      color_string="#0000ff" #blue
-    )
-    self.player_class(
-      position=50,
-      color=(255, 80, 0),
-      color_string="#ff7f00" #orange
-    )
-    self.player_class(
-      position=157,
-      color=(127, 63, 255),
-      color_string="#7f3fff" #violet
-    )
-    self.player_class(
-      position=24,
-      color=(255, 255, 0),
-      color_string="#ffff00" #yellow
-    )
-    self.player_class(
-      position=202,
-      color=(0, 255, 255),
-      color_string="#00ffff" #cyan
-    )
 
 
   def update(self):
@@ -409,12 +414,12 @@ class Game:
       self.play_update()
 
   def start_update(self):
-    for player in claimed_players():
+    for player in self.claimed_players():
       if not player.is_ready:
         player.move()
 
   def play_update(self):
-    for player in playing_players():
+    for player in self.playing_players():
       player.move()
 
   def ontimeout(self):
@@ -431,7 +436,7 @@ class Game:
 
 
   def start_ontimeout(self):
-    for player in claimed_players():
+    for player in self.claimed_players():
       player.setup_for_game()
     self.clear()
     self.state = "countdown"
@@ -439,31 +444,30 @@ class Game:
     music[self.waiting_music].fadeout(duration=3500)
 
   def clear(self):
-    for i in range(len(statuses)):
-      statuses[i] = "blank"
+    for i in range(len(self.statuses)):
+      self.statuses[i] = "blank"
 
   def countdown_ontimeout(self):
-    self.end_time = time() + config["ROUND_TIME"]
+    self.end_time = time() + self.ROUND_TIME
     self.state = "play"
     music[self.battle_music].play()
 
   def play_ontimeout(self):
-    global victor
     music[self.battle_music].fadeout(duration=1000)
     self.state = "previctory"
     self.end_time = time() + 1
     top_score = 0
     top_score_time = 0
-    for player in playing_players():
+    for player in self.playing_players():
       if player.score > top_score or (player.score == top_score and player.score_timestamp < top_score_time):
         top_score = player.score
         top_score_time = player.score_timestamp
-        victor = player
+        self.victor = player
     touchall()
 
   def previctory_ontimeout(self):
     self.state = "victory"
-    self.end_time = time() + config["VICTORY_TIMEOUT"]
+    self.end_time = time() + self.VICTORY_TIMEOUT
     music["victory"].play()
 
   def victory_ontimeout(self):
@@ -471,7 +475,7 @@ class Game:
 
 
   def render(self):
-    global pixels, victor
+    global pixels
     pixels *= 0
 
     if self.state == "countdown":
@@ -483,12 +487,12 @@ class Game:
         start_time=self.end_time - countdown,
         duration=READY_PULSE_DURATION)
 
-      for player in playing_players():
+      for player in self.playing_players():
         player.render_ready()
 
     elif self.state == "victory":
-      start_time = self.end_time - config["VICTORY_TIMEOUT"]
-      color = victor.color if victor else np.array((60,60,60))
+      start_time = self.end_time - self.VICTORY_TIMEOUT
+      color = self.victor.color if self.victor else np.array((60,60,60))
       timer = (time() - start_time)
       width = 2
       if timer < 0.4:
@@ -528,25 +532,58 @@ class Game:
           duration=READY_PULSE_DURATION)
       self.render_game()
       if self.state != "play":
-        for player in claimed_players():
+        for player in self.claimed_players():
           if player.is_ready:
             player.render_ready()
           else:
             player.render()
       else:
-        for player in current_players():
+        for player in self.current_players():
           player.render()
 
   def render_game(self):
     pass
 
 
+  # Game utils
+
+  def update_config(self, update):
+    for (key, value) in update.items():
+      self.config[key] = value
+      setattr(self, key, value)
+
+  def claimed_players(self):
+    return [player for player in self.players if player.is_claimed]
+  def playing_players(self):
+    return [player for player in self.players if player.is_playing]
+
+  def current_players(self):
+    return [player for player in self.players if player.is_playing or
+        (player.is_claimed and self.state == "start")]
+
+  def spawn(self, status):
+    for i in range(10):
+      pos = randrange(SIZE)
+      if self.statuses[pos] != "blank":
+        continue
+      occupied = False
+      for player in self.current_players():
+        if player.occupies(pos):
+          occupies = True
+          break
+      if not occupied:
+        self.statuses[pos] = status
+        return
 
 # ================================ Idle Animation "Game" =========================================
 
 
 class Idle(Game):
   name = "idle"
+
+  # def __init__(self):
+  #   Game.__init__(self)
+  #   self.waiting_music = "idle"
 
   def update(self):
     pass
@@ -581,21 +618,11 @@ class Idle(Game):
     squares = np.multiply(self.fluid_values, self.fluid_values)
     pixels = np.outer(squares, phase_color() * 200)
 
-idle = Idle(waiting_music="waiting") #Idle(waiting_music="idle")
-
+idle = Idle()
+idle.generate_players(Player)
 
 
 # ================================ MISC =========================================
-
-def claimed_players():
-  return [player for player in players if player.is_claimed]
-def playing_players():
-  return [player for player in players if player.is_playing]
-
-def current_players():
-  return [player for player in players if player.is_playing or
-      (player.is_claimed and current_game.state == "start")]
-
 
 def color_pixel(index, color):
   pixels[index] = color
@@ -641,27 +668,6 @@ def projection(u, v): # assume v is normalized
 def ortho_proj(u, v):
   return u - projection(u,v)
 
-
-def spawn(status):
-  for i in range(10):
-    pos = randrange(SIZE)
-    if statuses[pos] != "blank":
-      continue
-    occupied = False
-    for player in current_players():
-      if player.occupies(pos):
-        occupies = True
-        break
-    if occupied:
-      continue
-    statuses[pos] = status
-    return
-
-def clear_votes():
-  for player in players:
-    player.votes = {}
-
-
 def phase_color():
   color_phase = (time()/10) % 1
   if color_phase < 0.333:
@@ -680,7 +686,7 @@ def phase_color():
 
 def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
     from_direction=None,
-    color=(200,200,200), start_time=0, duration=1):
+    color=(200,200,200), start_time=0, duration=READY_PULSE_DURATION):
 
   global pixels
   t = (time() - start_time) / duration
@@ -723,12 +729,12 @@ def broadcast_state():
   #   print(line.strip(), file=sys.stderr)
   message = {
     "game": current_game.name if current_game else "",
-    "players": [player.to_json() for player in players],
+    "players": [player.to_json() for player in current_game.players],
     "gameState": current_game.state if current_game else "none",
     "timeRemaining": current_game.end_time - time() if current_game else 0,
-    "victor": victor.to_json() if victor else {},
-    "config": config,
-    "data": data,
+    "victor": current_game.victor.to_json() if current_game.victor else {},
+    "config": current_game.config,
+    "data": current_game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
   }

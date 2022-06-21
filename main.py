@@ -45,14 +45,14 @@ def start_random_game():
 vote_to_message = {}
 def check_vote():
   all_votes = {}
-  for player in engine.claimed_players():
+  for player in engine.current_game.claimed_players():
     for (election, vote) in player.votes.items():
       if election not in all_votes:
         all_votes[election] = {}
       all_votes[election][vote] = all_votes[election].get(vote, 0) + 1
 
-  majority_count = len(engine.claimed_players()) / 2.0
-  consensus_count = len(engine.claimed_players())
+  majority_count = len(engine.current_game.claimed_players()) / 2.0
+  consensus_count = len(engine.current_game.claimed_players())
 
   for (election, votes) in all_votes.items():
     if election == "ready" and consensus_count == 1:
@@ -73,7 +73,6 @@ def check_vote():
       engine.config.update(message["settings"])
 
     if election == "skip":
-      engine.clear_votes()
       if engine.current_game:
         engine.current_game.ontimeout()
     elif election == "start":
@@ -81,7 +80,7 @@ def check_vote():
     elif election == "ready":
       engine.current_game.ontimeout()
 
-    for player in engine.players:
+    for player in engine.current_game.players:
       if election in player.votes:
         del player.votes[election]
 
@@ -93,8 +92,8 @@ def consume_input():
 
       if "self" not in message:
         continue
-      
-      player = engine.players[message["self"]]
+
+      player = engine.current_game.players[message["self"]]
 
       if message["type"] == "claim":
         player.is_claimed = True
@@ -122,12 +121,11 @@ def consume_input():
       elif message["type"] == "tap":
         player.tap = time()
       elif message["type"] == "settings":
-        engine.config.update(message["update"])
+        engine.current_game.update_config(message["update"])
       elif message["type"] == "advance":
         if engine.current_game:
           if not message.get("from", None) or message["from"] == engine.current_game.state:
             engine.current_game.ontimeout()
-            engine.clear_votes()
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 
