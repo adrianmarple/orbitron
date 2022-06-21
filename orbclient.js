@@ -18,7 +18,7 @@ function startWebsocket() {
     return // Already trying to establish a connection
   }
   try {
-    ws = new WebSocket(`ws://165.227.0.44:8888`)
+    ws = new WebSocket(`ws://orbitron.games:8888`)
     ws.binaryType = "arraybuffer"
     ws.onmessage = event => {
       let data = event.data
