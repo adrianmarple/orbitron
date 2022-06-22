@@ -8,14 +8,19 @@ var ws = null
 var config=require(__dirname + "/config.js")
 console.log(config)
 
+var lastMessage = Date.now()
+
 function startWebsocket() {
-  if(ws) {
+  if(ws && Date.now() - lastMessage < 10000) {
     return // Already trying to establish a connection
   }
   try {
+    console.log("trying to connect to server...")
+    lastMessage = Date.now()
     ws = new WebSocket(`ws://orbitron.games:8888`)
     ws.binaryType = "arraybuffer"
     ws.onmessage = event => {
+      lastMessage = Date.now()
       let data = event.data
       if(typeof data === "string"){
         try {
@@ -40,6 +45,9 @@ function startWebsocket() {
     ws.onerror = event => {
       console.error("ERROR",event)
       ws = null
+    }
+    ws.onopen = event => {
+      console.log("Connected to server")
     }
   } catch(e) {
     console.log(e)
