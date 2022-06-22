@@ -17,14 +17,15 @@ dirty = False
 
 def consume_input():
   global pixels, dirty
-  for line in fileinput.input():
-    try:
-      pixels = bytes.fromhex(line.strip())
-      dirty = True
-      #print("input raw:\n%s" % len(line.strip()), file=sys.stderr)
-      #print("input:\n%s" % len(pixels), file=sys.stderr)
-    except Exception as e:
-      print("input error:\n%s" % e, file=sys.stderr)
+  while True:
+    for line in fileinput.input():
+      try:
+        pixels = bytes.fromhex(line.strip())
+        dirty = True
+        #print("input raw:\n%s" % len(line.strip()), file=sys.stderr)
+        #print("input:\n%s" % len(pixels), file=sys.stderr)
+      except Exception as e:
+        print("input error:\n%s" % e, file=sys.stderr)
 
 def run_core_loop():
   global dirty

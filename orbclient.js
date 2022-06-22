@@ -43,6 +43,7 @@ function startWebsocket() {
     }
   } catch(e) {
     console.log(e)
+    ws = null
   }
 }
 

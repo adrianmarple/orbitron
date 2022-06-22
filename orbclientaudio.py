@@ -36,18 +36,18 @@ def consume_input():
         ct = time()
         dt = ct - t
         num_delta = num_delta + 1
-        if num_delta > 20:
+        if num_delta > 20 and dt > 0.0:
           min_delta = min(dt,min_delta)
           max_delta = max(dt,max_delta)
           print("min = %s; max = %s; num: %s; delta = %s; time = %s" % (min_delta, max_delta, num_delta, dt, time()-start_time), file=sys.stderr)
           if dt > 0.5:
-            over_01 = over_05 + 1
+            over_05 = over_05 + 1
           elif dt > 0.4:
-            over_01 = over_04 + 1
+            over_04 = over_04 + 1
           elif dt > 0.3:
-            over_01 = over_03 + 1
+            over_03 = over_03 + 1
           elif dt > 0.2:
-            over_01 = over_02 + 1
+            over_02 = over_02 + 1
           elif dt > 0.1:
             over_01 = over_01 + 1
           print("over 0.1: %s; 0.2: %s; 0.3: %s; 0.4: %s; 0.5: %s; total: %s" % (over_01, over_02, over_03, over_04, over_05,over_01+over_02+over_03+over_04+over_05), file=sys.stderr)
