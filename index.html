@@ -24,6 +24,7 @@ body, #app, .main {
   width: 100vw;
   height: 100vh;
   margin: 0;
+  background-color: var(--self-color);
 }
 .main {
   overscroll-behavior-y: contain;
@@ -152,7 +153,7 @@ body, #app, .main {
   position: fixed;
   left: 5rem;
   right: 5rem;
-  top: 10vh;
+  top: 15vh;
   padding: 2.5rem;
   text-align: center;
   font-size: 4em;
@@ -289,17 +290,21 @@ body, #app, .main {
   position: relative;
 }
 
-#header-buttons {
+#header {
   position: fixed;
-  left: 1rem;
-  top: 1rem;
   z-index: 2;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+#header-buttons {
+  display: flex;
+}
 #header-buttons .button {
-  margin-top: 1rem;
+  margin: 1rem;
   font-size: 2.5rem;
 }
 
@@ -440,7 +445,7 @@ body, #app, .main {
   </script>
 </div>
 -->
-<div id=app>
+<div id=app :style="{ '--self-color': self.color }">
   <div v-if="connectionStatus == 'CONNECTING'" class="header">
     {{connectionStatus}}
   </div>
@@ -518,9 +523,12 @@ body, #app, .main {
     <img src="images/explosion.png" />
   </div> -->
 
-  <div id="header-buttons">
+  <div id="header">
     <div id="label">{{gameInfo.label}}</div>
-    <div class="button" style="width: 8rem" @click="showRules = true">RULES</div>
+    <div id="header-buttons">
+      <div class="button" style="width: 8rem" @click="showRules = true">RULES</div>
+      <TallyButton label="SKIP GAME" election="quit" vote="quit"></TallyButton>
+    </div>
   </div>
 
   <div v-if="(mode=='start' && !self.isReady) || (mode=='play' && self.isPlaying && self.isAlive)"
@@ -531,10 +539,7 @@ body, #app, .main {
   </div>
 
 
-  <div v-if="mode=='start'"
-    class="main"
-    :style="{ backgroundColor: self.color }"
-  >
+  <div v-if="mode=='start'" class="main">
     <div class="header">
       <div v-if="!self.isReady">
         Drag to Move
@@ -554,14 +559,14 @@ body, #app, .main {
 
   </div>
 
-  <div v-else-if="mode=='countdown'" class="main" :style="{ backgroundColor: self.color }">
+  <div v-else-if="mode=='countdown'" class="main">
     <div class="header">
       <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 3em">{{Math.round(state.timeRemaining)}}</div>
       <div>{{victoryCondition}}</div>
     </div>
   </div>
 
-  <div v-else class="main" :style="{ backgroundColor: self.color }">
+  <div v-else class="main">
     <div class="header card">
       <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 2em">{{mode=='previctory' ? 0 : Math.round(state.timeRemaining)}}</div>
       <div v-if="mode=='victory'" >
@@ -826,18 +831,8 @@ Vue.component('tallybutton', {
       }
     },
   },
-  // watch: {
-  //   voteCount(value) {
-  //     if (value > 0) {
-  //       this.$root.showVoteTooltip = true;
-  //     }
-  //   },
-  // },
   methods: {
     sendVote() {
-      // if (this.$root.showVoteTooltip) {
-      //   this.$root.dismissTooltip()
-      // }
       this.$root.send({
         type: 'vote',
         election: this.election,

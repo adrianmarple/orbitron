@@ -75,8 +75,10 @@ def check_vote():
     if election == "skip":
       if engine.current_game:
         engine.current_game.ontimeout()
-    elif election == "start":
-      engine.start(game_modules[message["vote"]].game)
+    # elif election == "start":
+    #   engine.start(game_modules[message["vote"]].game)
+    elif election == "quit":
+      engine.start_random_game()
     elif election == "ready":
       engine.current_game.ontimeout()
 

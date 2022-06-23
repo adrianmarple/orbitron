@@ -434,14 +434,13 @@ class Game:
     self.end_time = time() + 4
     music[self.waiting_music].fadeout(duration=3500)
 
-  def clear(self):
-    for i in range(len(self.statuses)):
-      self.statuses[i] = "blank"
-
   def countdown_ontimeout(self):
     self.end_time = time() + self.ROUND_TIME
     self.state = "play"
     music[self.battle_music].play()
+    for player in self.playing_players():
+      player.tap = 0 # Prevent bombs from being placed due to taps during countdown
+
 
   def play_ontimeout(self):
     music[self.battle_music].fadeout(duration=1000)
@@ -537,6 +536,10 @@ class Game:
 
 
   # Game utils
+
+  def clear(self):
+    for i in range(len(self.statuses)):
+      self.statuses[i] = "blank"
 
   def update_config(self, update):
     for (key, value) in update.items():
@@ -728,7 +731,6 @@ def broadcast_state():
     "data": current_game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
-    "timestamp": time(),
   }
   print(json.dumps(message))
 
