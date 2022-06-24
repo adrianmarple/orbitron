@@ -32,6 +32,8 @@ prewarm_audio()
 # Actual constants
 COORD_MAGNITUDE = 4.46590101883
 COORD_SQ_MAGNITUDE = 19.94427190999916
+GOOD_COLOR = np.array((255, 0, 255))
+BAD_COLOR = np.array((255, 0, 0))
 
 base_config = {
   "INVULNERABILITY_TIME": 3,
@@ -60,6 +62,13 @@ unique_coord_matrix = np.matrix(unique_coords).transpose()
 unique_to_dupes = pixel_info["unique_to_dupes"]
 dupe_to_unique = pixel_info["dupe_to_unique"]
 unique_antipodes = pixel_info["unique_antipodes"]
+north_pole = []
+south_pole = []
+for (i, coord) in enumerate(unique_coords):
+  if coord[2] > 0.92 * COORD_MAGNITUDE:
+    north_pole.append(i)
+  if coord[2] < -0.92 * COORD_MAGNITUDE:
+    south_pole.append(i)
 
 pixels = np.zeros((SIZE, 3),dtype="<u1")
 dupe_matrix = np.zeros((RAW_SIZE, SIZE),dtype="<u1")
@@ -163,6 +172,7 @@ class Player:
       color_string="white"):
 
     self.initial_position = position
+    self.prev_pos = position
     self.color = np.array(color)
     self.color_string = color_string
     self.last_move_time = 0
@@ -171,7 +181,6 @@ class Player:
     self.is_playing = False
     self.last_move_input_time = 0
     self.move_direction = np.array((0, 0))
-    self.prev_pos = 0
     self.tap = 0
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -198,6 +207,7 @@ class Player:
     self.is_ready = True
     self.ready_time = time()
     self.position = self.initial_position
+    self.prev_pos = self.position
     self.score = 0
 
   def setup_for_game(self):
@@ -333,6 +343,8 @@ class Player:
 
 # ================================ Game =========================================
 
+INITIAL_POSITIONS = [105, 117, 50, 157, 24, 202]
+
 class Game:
   players = []
   waiting_music = "waiting"
@@ -354,35 +366,35 @@ class Game:
         setattr(self, key, value)
 
   # Doing this so players can have global reference to "game" in various game modules
-  def generate_players(self, player_class):
+  def generate_players(self, player_class, positions=INITIAL_POSITIONS):
     self.players = [
       player_class(
-        position=105,
+        position=positions[0],
         color=(0, 255, 0),
         color_string="#00ff00" #green
       ),
       player_class(
-        position=117,
+        position=positions[1],
         color=(0, 0, 255),
         color_string="#0000ff" #blue
       ),
       player_class(
-        position=50,
+        position=positions[2],
         color=(255, 80, 0),
         color_string="#ff7f00" #orange
       ),
       player_class(
-        position=157,
+        position=positions[3],
         color=(127, 63, 255),
         color_string="#7f3fff" #violet
       ),
       player_class(
-        position=24,
+        position=positions[4],
         color=(255, 255, 0),
         color_string="#ffff00" #yellow
       ),
       player_class(
-        position=202,
+        position=positions[5],
         color=(0, 255, 255),
         color_string="#00ffff" #cyan
       ),
@@ -678,7 +690,7 @@ def phase_color():
     b = 3 - 3 * color_phase
   return np.array((r,g,b))
 
-def render_pulse(direction=np.array((COORD_MAGNITUDE,0,0)),
+def render_pulse(direction=np.array((0,0,1), dtype=float),
     from_direction=None,
     color=(200,200,200), start_time=0, duration=READY_PULSE_DURATION):
 

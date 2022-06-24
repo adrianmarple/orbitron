@@ -16,9 +16,6 @@ class ColorWar(Game):
   name = __name__
   leader = None
 
-  def countdown_ontimeout(self):
-    Game.countdown_ontimeout(self)
-
   def play_update(self):
     for player in self.playing_players():
       player.move()

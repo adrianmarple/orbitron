@@ -684,10 +684,6 @@ let GAMES_INFO = [
         ],
       },
       {
-        words: ["Drag to move."],
-        image: "/images/snektronMovementTutorial.gif",
-      },
-      {
         words: [
           "Wherever you go, it turns your color.",
           "Your score is the number of pixels turned your color.",
@@ -726,10 +722,6 @@ let GAMES_INFO = [
         ],
       },
       {
-        words: ["Drag to move."],
-        image: "/images/snektronMovementTutorial.gif",
-      },
-      {
         words: [
           "You all win if you achieve the required victory score!",
           `Hit "Ready" when you want to start a game.`,
@@ -751,10 +743,6 @@ let GAMES_INFO = [
           "Welcome!",
           "You are currently playing Bomberman in sandbox mode.",
         ],
-      },
-      {
-        words: ["Drag to move."],
-        image: "/images/snektronMovementTutorial.gif",
       },
       {
         words: ["Tap to place a bomb."],
@@ -782,6 +770,30 @@ let GAMES_INFO = [
     victoryCondition: "Last one standing wins",
     statusDisplay: {
       type: "battleroyale",
+    },
+  },
+  {
+    name: "redlightgreenlight",
+    label: "Red Light Pink Light",
+    rules: [
+      {
+        words: [
+          "Welcome!",
+          "You are currently playing Red Light Pink Light in sandbox mode.",
+        ],
+      },
+      {
+        words: ["You can only move when the north pole glows pink."],
+      },
+      {
+        words: [
+          "You'll get sent back to the start if you try to move when the north pole is red.",
+        ],
+      },
+    ],
+    victoryCondition: "Whoever reaches the top the most times wins!",
+    statusDisplay: {
+      type: "rankedscore",
     },
   },
 ]
