@@ -2,6 +2,7 @@
 
 - Clone the repo somewhere for you to work from
 - Copy `config.js.template` to `config.js` and edit to have `DEV_MODE: true` and `ORB_ID: <your unique ID>`
+- Run `npm install`
 - Run `sudo node server.js`
 - Open `http://localhost:1337/dev` for the emulator
 - Open `http://<localhost or your IP address>:1337` to open one or more controllers on either your desktop or your phone
