@@ -231,8 +231,8 @@ class Player:
   def cant_move(self):
     return (not self.is_alive or
       time() - self.last_move_time < self.move_delay() or # just moved
-      (self.move_direction == ZERO_2D).all() or
-      time() - self.last_move_input_time > 0.5 # no recent updates, probably missed a "stop" update
+      (self.move_direction == ZERO_2D).all()
+      # or time() - self.last_move_input_time > 0.5 # no recent updates, probably missed a "stop" update
     )
 
   def occupies(self, pos):
