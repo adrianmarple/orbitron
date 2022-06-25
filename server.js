@@ -325,4 +325,4 @@ http.createServer(function (request, response) {
     }
   });
 
-}).listen(1337, "0.0.0.0")
+}).listen(config.HTTP_SERVER_PORT || 1337, "0.0.0.0")
