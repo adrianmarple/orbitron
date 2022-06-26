@@ -49,10 +49,22 @@ SUBMITTED = `
 `
 
 function submitSSID(formData) {
-    var ssid = formData.ssid.replace(/'/g, "\\'")
-    var password = formData.password.replace(/'/g, "\\'")
-    var priority = formData.priority == 'low' ? 1 : 2
-    var append = `
+  var ssid = formData.ssid.replace(/'/g, "\\'")
+  var password = formData.password.replace(/'/g, "\\'")
+  var priority = formData.priority == 'low' ? 1 : 2
+  var append = ""
+  if(password.trim() == ""){
+    append = `
+network={
+    ssid="${ssid}"
+    key_mgmt=NONE
+    scan_ssid=1
+    id_str="${ssid}"
+    priority=${priority}
+}
+`
+  } else {
+    append = `
 network={
     ssid="${ssid}"
     psk="${password}"
@@ -62,33 +74,34 @@ network={
     priority=${priority}
 }
 `
-    var toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
-    exec(toExec)
-    exec("sudo wpa_cli reconfigure")
+  }
+  var toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
+  exec(toExec)
+  exec("sudo wpa_cli reconfigure")
 }
 
 let server = http.createServer(function (req, res) {
-    if (req.method === 'GET') { 
-        res.writeHead(200, { 'Content-Type': 'text/html' }) 
-        res.write(FORM)
-        res.end()
-    } else if (req.method === 'POST') {
-        var body = ""
-        req.on('data', function(data) {
-            body += data
-        })
-        req.on('end', function() {
-            var formData = qs.parse(body)
-            console.log(formData)
-            res.writeHead(200, {'Content-Type': 'text/html'})
-            res.write(SUBMITTED)
-            res.end()
-            submitSSID(formData)
-        })
-    }
+  if (req.method === 'GET') { 
+    res.writeHead(200, { 'Content-Type': 'text/html' }) 
+    res.write(FORM)
+    res.end()
+  } else if (req.method === 'POST') {
+    var body = ""
+    req.on('data', function(data) {
+      body += data
+    })
+    req.on('end', function() {
+      var formData = qs.parse(body)
+      console.log(formData)
+      res.writeHead(200, {'Content-Type': 'text/html'})
+      res.write(SUBMITTED)
+      res.end()
+      submitSSID(formData)
+    })
+  }
 })
 
 server.listen(PORT,function(err){
-    console.log("Listening on " + PORT,err)
+  console.log("Listening on " + PORT,err)
 })
 
