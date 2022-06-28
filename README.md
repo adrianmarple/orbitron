@@ -100,6 +100,17 @@ network={
 - Login with username `pi` password `raspberry`
 - Change password with `passwd`
 
+### Change hostname
+
+- Edit `/etc/hostname` and change `raspberrypi` to `orbitron`
+
+### Connect to WiFi
+
+- Run `sudo raspi-config`
+- Select `System Options` and `Wireless LAN`
+- Select the appropriate country from the list
+- Enter SSID and password of wifi network
+
 ### Configure SSH
 
 - Run `sudo raspi-config`
@@ -107,32 +118,31 @@ network={
 - Ensure Bonjour is running `sudo apt-get install avahi-daemon`
 - `ssh pi@orbitron.local`
 
-## Raspberry PI stuff
+### Install Python
 
-### Python
-
-- `sudo apt-get -y install python3-pip`
-- `sudo apt install python3-numpy`
-- `sudo pip3 install adafruit-circuitpython-neopixel websockets`
 - `sudo apt-get update`
-- `sudo apt install libsdl2-2.0`
+- `sudo apt-get install python3-pip`
+- `sudo apt-get install python3-numpy`
+- `sudo pip3 install adafruit-circuitpython-neopixel websockets`
+- `sudo apt-get install libsdl2-2.0`
 - `sudo apt-get install libsdl2-mixer-2.0-0`
 - `sudo pip3 install pygame`
 
-### Node
+### Install Node
 
-- `curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -`
-- `sudo apt install nodejs`
-- `sudo npm install -g ws`
+- `sudo apt-get install nodejs`
+- `sudo apt-get install npm`
 - `sudo npm install -g pm2`
 
-### Setup to run on startup
+### Clone Repo
 
+- `git clone https://github.com/adrianmarple/orbitron`
+
+### Setup to run on startup on Pi
+
+- `cd orbitron`
 - `sudo pm2 start <server.js or orbclient.js>`
+- `sudo pm2 start wifisetup.js`
 - `sudo pm2 startup`
 - `sudo pm2 save`
 
-### Static IP
-
-- Follow this guide: https://linuxhint.com/raspberry_pi_static_ip_address/
-- Basically, edit `/etc/dhcpcd.conf` and uncomment and edit the lines about a static IP on eth0 to use `192.168.1.101`
