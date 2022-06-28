@@ -133,6 +133,7 @@ network={
 - `sudo apt-get install nodejs`
 - `sudo apt-get install npm`
 - `sudo npm install -g pm2`
+- `sudo pm2 install pm2-logrotate`
 
 ### Clone Repo
 
