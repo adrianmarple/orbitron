@@ -226,7 +226,7 @@ def prewarm_audio():
       for sound in sounds.values():
         sound.init()
 
-    print("Finished prewarming audio.")
+    print("Finished prewarming audio.", file=sys.stderr)
 
     # thread now to handle music
     first_run = True
@@ -293,6 +293,6 @@ def list_devices():
   is_capture = 0  # zero to request playback devices, non-zero to request recording devices
   num = sdl2.get_num_audio_devices(is_capture)
   names = [str(sdl2.get_audio_device_name(i, is_capture), encoding="utf-8") for i in range(num)]
-  print("\n".join(names))
+  print("\n".join(names), file=sys.stderr)
   pygame.quit()
 

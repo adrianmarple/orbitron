@@ -724,7 +724,7 @@ def render_ring(direction, pixels, color, width):
 # ================================ Communication with node.js =========================================
 
 def touchall():
-  print("touchall\n")
+  print("touchall")
 
 def broadcast_event(event):
   print(json.dumps(event))

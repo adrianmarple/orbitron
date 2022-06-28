@@ -13,17 +13,7 @@ const util = require('util')
 const log_file = __dirname + '/debug.log'
 const log_stdout = process.stdout
 const log_stderr = process.stderr
-/*
-console.log = function(d) {
-  fs.appendFileSync(log_file,'---' + new Date().toJSON() + '---\n' + util.format(d) + '\n', { encoding: "utf8", mode: 0o777, flag: "a"})
-  log_stdout.write(util.format(d) + '\n')
-};
 
-console.error = function(d) {
-  fs.appendFileSync(log_file,'---' + new Date().toJSON() + '---\n' + util.format(d) + '\n', { encoding: "utf8", mode: 0o777, flag: "a"})
-  log_stderr.write(util.format(d) + '\n')
-};
-*/
 process.on('uncaughtException', function(err) {
   console.log('Caught exception: ' + err)
 });
@@ -225,8 +215,9 @@ function broadcast(baseMessage) {
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}});
 python_process.stdout.on('data', data => {
-  message = data.toString()
-  if (data[0] == 123) { // check is first char is '{'
+  message = data.toString().trim()
+  if(!message) return
+  if (message.charAt(0) == "{") { // check is first char is '{'
     try {
       //console.log(JSON.parse(message))
       broadcast(JSON.parse(message));
@@ -248,10 +239,7 @@ python_process.stdout.on('data', data => {
       console.error(message);
     }
   } else{
-    message = message.trim()
-    if (message) {
-      //console.log(message)
-    }
+    console.log("UNHANDLED STDOUT MESSAGE: `" + message + "`")
   }
 });
 python_process.stderr.on('data', data => {
