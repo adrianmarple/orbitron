@@ -215,31 +215,34 @@ function broadcast(baseMessage) {
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}});
 python_process.stdout.on('data', data => {
-  message = data.toString().trim()
-  if(!message) return
-  if (message.charAt(0) == "{") { // check is first char is '{'
-    try {
-      //console.log(JSON.parse(message))
-      broadcast(JSON.parse(message));
-      devBroadcast(message);
-    } catch(e) {
-      console.error(e);
-      console.error(message);
+  messages = data.toString().trim().split("\n")
+  for(message of messages){
+    message = message.trim()
+    if(!message) continue
+    if (message.charAt(0) == "{") { // check is first char is '{'
+      try {
+        //console.log(JSON.parse(message))
+        broadcast(JSON.parse(message));
+        devBroadcast(message);
+      } catch(e) {
+        console.error(e);
+        console.error(message);
+      }
+    } else if(message.startsWith("touchall")) {
+      for (let id in connections) {
+        connections[id].lastActivityTime = Date.now()
+      }
+    } else if(message.startsWith("raw_pixels=")) {
+      try {
+        //console.log(pako.inflate(pako.deflate(message.substr(11).trim()),{to:"string"}))
+        devBroadcast(pako.deflate(message.substr(11).trim()));
+      } catch(e) {
+        console.error(e);
+        console.error(message);
+      }
+    } else{
+      console.log("UNHANDLED STDOUT MESSAGE: `" + message + "`")
     }
-  } else if(message.startsWith("touchall")) {
-    for (let id in connections) {
-      connections[id].lastActivityTime = Date.now()
-    }
-  } else if(message.startsWith("raw_pixels=")) {
-    try {
-      //console.log(pako.inflate(pako.deflate(message.substr(11).trim()),{to:"string"}))
-      devBroadcast(pako.deflate(message.substr(11).trim()));
-    } catch(e) {
-      console.error(e);
-      console.error(message);
-    }
-  } else{
-    console.log("UNHANDLED STDOUT MESSAGE: `" + message + "`")
   }
 });
 python_process.stderr.on('data', data => {
