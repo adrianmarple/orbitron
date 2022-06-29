@@ -75,8 +75,8 @@ def check_vote():
     if election == "skip":
       if engine.current_game:
         engine.current_game.ontimeout()
-    # elif election == "start":
-    #   engine.start(game_modules[message["vote"]].game)
+    elif election == "playagain":
+      engine.start(engine.current_game)
     elif election == "quit":
       engine.start_random_game()
     elif election == "ready":
@@ -91,6 +91,9 @@ def consume_input():
   for line in fileinput.input():
     try:
       message = json.loads(line)
+
+      if message["type"] == "start":
+        engine.start(engine.games[message["game"]])
 
       if "self" not in message:
         continue

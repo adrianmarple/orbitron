@@ -11,15 +11,15 @@ from time import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from audio import sounds
-from engine import Game, Player, color_pixel, render_pulse, SIZE, GOOD_COLOR, BAD_COLOR, north_pole
+from engine import Game, Player, color_pixel, render_pulse, unique_coords, SIZE, GOOD_COLOR, BAD_COLOR, north_pole
 
 additional_config = {
   "MIN_RED_LIGHT_TIME": 2,
   "MAX_RED_LIGHT_TIME": 4,
-  "MIN_GREEN_LIGHT_TIME": 2,
-  "MAX_GREEN_LIGHT_TIME": 8,
-  "MIN_PULSE_DURATION": 0.3,
-  "MAX_PULSE_DURATION": 1,
+  "MIN_GREEN_LIGHT_TIME": 1.5,
+  "MAX_GREEN_LIGHT_TIME": 6,
+  "MIN_PULSE_DURATION": 0.2,
+  "MAX_PULSE_DURATION": 0.6,
 }
 
 
@@ -66,18 +66,31 @@ class RLGL(Game):
 
 
 class Runner(Player):
+  previous_success_time = 0
+
   def move(self):
+    starting_position = self.position
     Player.move(self)
     if game.red_light and time() - self.last_move_time < 0.01:
       self.position = self.initial_position
       self.prev_pos = self.position
+      if starting_position != self.initial_position:
+        sounds["hurt"].play()
 
     if self.position in north_pole:
       self.score += 1
       self.score_timestamp = time()
       self.position = self.initial_position
       self.prev_pos = self.position
+      self.previous_success_time = time()
 
+  def render(self):
+    Player.render(self)
+    render_pulse(
+      direction=unique_coords[self.initial_position],
+      color=self.current_color(),
+      start_time=self.previous_success_time,
+      duration=0.5)
 
 
 game = RLGL(additional_config)

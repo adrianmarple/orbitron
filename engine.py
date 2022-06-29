@@ -105,6 +105,9 @@ def start_random_game():
 
 
 def start(game):
+  if not game:
+    return
+
   global current_game
   claimed = []
   if current_game:

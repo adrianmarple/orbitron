@@ -23,6 +23,12 @@ process.on('uncaughtException', function(err) {
 config=require(__dirname + "/config.js")
 console.log(config)
 const NO_TIMEOUT = process.argv.includes('-t')
+let starting_game = null
+game_index = process.argv.indexOf('-g') + 1
+if (game_index) {
+  starting_game = process.argv[game_index]
+  console.log("Starting with game: " + starting_game)
+}
 
 // Dev Kit Websocket server
 
@@ -42,12 +48,12 @@ var wsDevServer = new WebSocket.Server({
 
 wsDevServer.on('connection', socket => {
   socket.binaryType = "arraybuffer"
-  console.log('Dev Connection accepted.')
+  console.log('Dev connection accepted.')
   let id = Math.floor(Math.random() * 1000000000)
   devConnections[id] = socket
   socket.id = id
   socket.on('close', () => {
-    console.log("Dev connection closed")
+    console.log("Dev connection closed.")
     delete devConnections[id]
   })
 })
@@ -79,6 +85,12 @@ wsServer.on('connection', socket => {
   connectionQueue.push(socket)
   bindDataEvents(socket)
   upkeep() // Will claim player if available
+
+  if (starting_game) {
+    let message = {type: 'start', game: starting_game}
+    python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
+    starting_game = null
+  }
 })
 
 function bindDataEvents(peer) {
@@ -92,6 +104,7 @@ function bindDataEvents(peer) {
     peer.lastActivityTime = Date.now()
     // console.log("DATA CONTENT",content)
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
+
   })
 
   peer.on('close', () => {
@@ -213,7 +226,7 @@ function broadcast(baseMessage) {
   }
 }
 
-const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}});
+const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
 python_process.stdout.on('data', data => {
   messages = data.toString().trim().split("\n")
   for(message of messages){

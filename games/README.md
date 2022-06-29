@@ -142,6 +142,20 @@ The contents of these dictionaries will be turned into attributes and so can be 
 
 ## Other stuff your should know
 
+### Command line args for server.js
+
+- `-t`: no timeout. Controllers will not disconnect after 60 seconds nor when they loose focus and the normally do. Important for testing multiple controllers at once with one browser.
+- `-g [game name]`: always choose this particular game first (presumably do this for the game you're creating)
+
+### Audio
+
+There are two arrys to import from `audio.py`, `sounds` and `music`. If you want to do something speical with `music` talk to Adrian or Mana first (the default behaviour is handled by the engine and this is subject to change in the near future). For SFX you have a bank of sounds to work from which you involve simply by calling the `play()` method on one of them (i.e. ). The full list is as follows:
+- 'hurt': Use for conveying a negative state change.
+- 'death': Basically as a stronger version of 'hurt'.
+- 'kick': A low key sound used for simple feedback that something relatively neutral happened.
+- 'explosion': Something happened that might negatively affect players.
+- 'placeBomb': Use it if you feel like it.
+
 ### engine.py helper functions
 
  - `color_pixel`: Set a pixel to a specific color.
