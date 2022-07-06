@@ -31,7 +31,7 @@ def consume_input():
     try:
       global last_music_action, last_sound_action, min_delta, max_delta, num_delta, over_01, over_02, over_03, over_04, over_05
       game_state = json.loads(line)
-      if "timestamp" in game_state:
+      if os.getenv("LOG_LATENCY") and "timestamp" in game_state:
         t = float(game_state["timestamp"])
         ct = time()
         dt = ct - t
