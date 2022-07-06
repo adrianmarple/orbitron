@@ -50,7 +50,7 @@ def consume_input():
             over_02 = over_02 + 1
           elif dt > 0.1:
             over_01 = over_01 + 1
-          print("over 0.1: %s; 0.2: %s; 0.3: %s; 0.4: %s; 0.5: %s; total: %s" % (over_01, over_02, over_03, over_04, over_05,over_01+over_02+over_03+over_04+over_05), file=sys.stderr)
+          print("over .1:%s--.2:%s--.3:%s--.4:%s--.5:%s--total:%s" % (over_01, over_02, over_03, over_04, over_05,over_01+over_02+over_03+over_04+over_05), file=sys.stderr)
       for action in game_state["soundActions"]:
         asplit = action.split(";")
         t = float(asplit[0])
