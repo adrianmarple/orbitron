@@ -746,6 +746,7 @@ def broadcast_state():
     "data": current_game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
+    "timestamp": time(),
   }
   print(json.dumps(message))
 
