@@ -20,6 +20,8 @@ over_02 = 0
 over_03 = 0
 over_04 = 0
 over_05 = 0
+ds_counts = [0] * 6
+ms_counts = [0] * 20
 
 def run_core_loop():
   prewarm_audio()
@@ -40,17 +42,16 @@ def consume_input():
           min_delta = min(dt,min_delta)
           max_delta = max(dt,max_delta)
           print("min = %s; max = %s; num: %s; delta = %s; time = %s" % (min_delta, max_delta, num_delta, dt, time()-start_time), file=sys.stderr)
-          if dt > 0.5:
-            over_05 = over_05 + 1
-          elif dt > 0.4:
-            over_04 = over_04 + 1
-          elif dt > 0.3:
-            over_03 = over_03 + 1
-          elif dt > 0.2:
-            over_02 = over_02 + 1
-          elif dt > 0.1:
-            over_01 = over_01 + 1
-          print("over .1:%s--.2:%s--.3:%s--.4:%s--.5:%s--total:%s" % (over_01, over_02, over_03, over_04, over_05,over_01+over_02+over_03+over_04+over_05), file=sys.stderr)
+
+          if dt < 0.02:
+            ms_counts[math.floor(dt * 1000)] += 1
+          print([math.floor(1000 * count / num_delta) for count in ms_counts], file=sys.stderr)
+
+          if dt < 0.5:
+            ds_counts[math.floor(dt * 10)] += 1
+          else:
+            ds_counts[5] += 1
+          print("over .1:%s--.2:%s--.3:%s--.4:%s--.5:%s" % (ds_counts[1], ds_counts[2], ds_counts[3], ds_counts[4], ds_counts[5]), file=sys.stderr)
       for action in game_state["soundActions"]:
         asplit = action.split(";")
         t = float(asplit[0])
