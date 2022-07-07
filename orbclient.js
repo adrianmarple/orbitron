@@ -3,6 +3,20 @@ const process = require('process')
 const { spawn, exec } = require('child_process')
 const pako = require('./pako.min.js')
 
+function handleKill(signal){
+  console.log("GOT KILL SIGNAL")
+  if(audio_process){
+    audio_process.kill()
+  }
+  if(python_process){
+    python_process.kill()
+  }
+}
+
+process.on('SIGINT', handleKill);
+process.on('SIGTERM', handleKill);
+process.on('SIGHUP', handleKill);
+
 var ws = null
 
 var config=require(__dirname + "/config.js")

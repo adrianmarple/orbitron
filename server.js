@@ -14,6 +14,17 @@ const log_file = __dirname + '/debug.log'
 const log_stdout = process.stdout
 const log_stderr = process.stderr
 
+function handleKill(signal){
+  console.log("GOT KILL SIGNAL")
+  if(python_process){
+    python_process.kill()
+  }
+}
+
+process.on('SIGINT', handleKill);
+process.on('SIGTERM', handleKill);
+process.on('SIGHUP', handleKill);
+
 process.on('uncaughtException', function(err) {
   console.log('Caught exception: ' + err)
 });
