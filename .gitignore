@@ -69,3 +69,6 @@ config.js
 __pycache__
 package-lock.json
 debug.log
+
+# 3d printing files
+*.gcode

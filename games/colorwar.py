@@ -9,8 +9,13 @@ from time import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from audio import sounds
-from engine import Game, Player, color_pixel, SIZE
+import engine
+Game = engine.Game
+Player = engine.Player
 
+additional_config = {
+  "CONTINUOUS_MOVEMENT": True,
+}
 
 class ColorWar(Game):
   name = __name__
@@ -21,7 +26,7 @@ class ColorWar(Game):
       player.move()
 
     counts = {}
-    for i in range(SIZE):
+    for i in range(len(self.statuses)):
       inkling = self.statuses[i]
       if inkling != "blank":
         counts[inkling] = counts.get(inkling, 0) + 1
@@ -32,12 +37,12 @@ class ColorWar(Game):
         self.leader = inkling
 
   def render_game(self):
-    for i in range(SIZE):
+    for i in range(len(self.statuses)):
       if self.statuses[i] != "blank":
         color = self.statuses[i].color / 10
         if self.statuses[i] == self.leader and self.state != "start":
           color *= 0.7 + 0.5 * sin(time() * 10)
-        color_pixel(i, color)
+        engine.color_pixel(i, color)
 
 
 
@@ -47,12 +52,12 @@ class Inkling(Player):
     game.statuses[self.position] = self
 
   def set_ready(self):
-    for i in range(SIZE):
+    for i in range(len(game.statuses)):
       if game.statuses[i] == self:
         game.statuses[i] = "blank"
 
     Player.set_ready(self)
 
 
-game = ColorWar()
+game = ColorWar(additional_config)
 game.generate_players(Inkling)

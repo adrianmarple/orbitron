@@ -11,15 +11,17 @@ from time import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from audio import sounds
-from engine import Game, Player, neighbors, color_pixel, add_color_to_pixel, next_pixel, unique_coords, ortho_proj, SIZE, ZERO_2D
+import engine
+Game = engine.Game
+Player = engine.Player
 
 additional_config = {
+  "CONTINUOUS_MOVEMENT": True,
   "SNEK_ROUND_TIME": 94.6,
   "START_LENGTH": 4,
   "SANDBOX_APPLES_PER_SNEK": 15,
   "ADDITIONAL_APPLES": 25,
-  "INTERSECTION_PAUSE_FACTOR": 0.2,
-  "SNAKE_MOVE_FREQ": 0.25,
+  "MOVE_FREQ": 0.25,
   "SHRINK_FREQ": 0.03,
 }
 
@@ -51,9 +53,9 @@ class Snektron(Game):
       self.spawn("apple")
 
   def render_game(self):
-    for i in range(SIZE):
+    for i in range(len(self.statuses)):
       if self.statuses[i] == "apple":
-        color_pixel(i, (10, 10, 10))
+        engine.color_pixel(i, engine.GOOD_COLOR/4)
 
 
 
@@ -62,12 +64,12 @@ class Snektron(Game):
 
 class Snek(Player):
   def __init__(self, *args, **kwargs):
-    self.tail = collections.deque(maxlen=SIZE)
+    self.tail = collections.deque(maxlen=engine.SIZE)
     Player.__init__(self, *args, **kwargs)
 
   def reset(self):
     Player.reset(self)
-    self.buffered_move = ZERO_2D
+    self.buffered_move = engine.ZERO_2D
     self.last_move_input_time = 0
     self.score = game.START_LENGTH
     self.tail.clear()
@@ -105,57 +107,11 @@ class Snek(Player):
       sounds["hurt"].play()
 
   def move_delay(self):
-    speed = game.SNAKE_MOVE_FREQ * sqrt(game.START_LENGTH/len(self.tail))
-    if len(neighbors[self.position]) == 4:
-      speed *= 1 + game.INTERSECTION_PAUSE_FACTOR
-    if len(neighbors[self.prev_pos]) == 4:
-      speed *= 1 / (1 + game.INTERSECTION_PAUSE_FACTOR/2)
-    return speed
+    # Speed up the longer your snake gets
+    return Player.move_delay(self) * sqrt(game.START_LENGTH/len(self.tail))
 
   def cant_move(self):
     return time() - self.last_move_time < self.move_delay() # just moved
-
-  def get_next_position(self):
-    pos = self.position
-
-    direction_string = str((self.prev_pos, pos))
-    if direction_string in next_pixel:
-      continuation_pos = next_pixel[direction_string]
-    else:
-      continuation_pos = pos
-
-    if continuation_pos != pos and len(neighbors) <= 2:
-      return continuation_pos
-
-    up = unique_coords[pos]
-    up = up / np.linalg.norm(up)
-    north = np.array((0, 0, 1))
-    north = ortho_proj(north, up)
-    north /= np.linalg.norm(north) # normalize
-    east = np.cross(up, north)
-
-    basis = np.array((east, north, up))
-
-    max_dot = 0
-    new_pos = pos
-    for n in neighbors[pos]:
-      delta = unique_coords[pos] - unique_coords[n]
-      delta /= np.linalg.norm(delta)  # normalize
-      rectified_delta = -np.matmul(basis, delta)[0:2]
-      dot = np.dot(rectified_delta, self.buffered_move)
-      if n == continuation_pos:
-        dot *= 1 - game.MOVE_BIAS
-      if n == self.prev_pos:
-        dot *= 0.1
-
-      if dot > max_dot:
-        max_dot = dot
-        new_pos = n
-
-    if new_pos == self.position or new_pos == self.tail[1]:
-      return continuation_pos
-    else:
-      return new_pos
 
   def move(self):
     if len(self.tail) <= game.START_LENGTH:
@@ -175,23 +131,8 @@ class Snek(Player):
         if player.position==self.position:
           player.die()
 
-    if not (self.move_direction == ZERO_2D).all():
-      self.buffered_move = self.move_direction
-      self.last_move_input_time = time()
-    elif time() - self.last_move_input_time > game.MOVE_FREQ * 2:
-      self.buffered_move = ZERO_2D
-
-    if self.cant_move():
+    if not Player.move(self):
       return
-
-    new_pos = self.get_next_position()
-
-    self.prev_pos = self.position
-    self.position = new_pos
-
-    move_freq = self.move_delay()
-    self.last_move_time += move_freq
-    self.last_move_time = max(self.last_move_time, time() - move_freq)
 
     self.tail.appendleft(self.position)
     if game.statuses[self.position] == "apple":
@@ -217,8 +158,8 @@ class Snek(Player):
       return
     for position in self.tail:
       if position != self.position:
-        add_color_to_pixel(position, self.current_color()/8)
-    add_color_to_pixel(self.position, self.current_color())
+        engine.add_color_to_pixel(position, self.current_color()/8)
+    engine.add_color_to_pixel(self.position, self.current_color())
 
 
 game = Snektron(additional_config)

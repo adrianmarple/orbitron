@@ -11,7 +11,9 @@ from time import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from audio import sounds
-from engine import Game, Dummy, Player, color_pixel, render_pulse, unique_coords, unique_antipodes, neighbors, SIZE
+import engine
+Game = engine.Game
+Player = engine.Player
 
 additional_config = {
   "PACMEN_LIVES": 5,
@@ -44,7 +46,7 @@ class PacMan(Game):
   previous_power_pellet_generation_time = 0
 
   def generate_players(self, player_class):
-    Game.generate_players(self, player_class)
+    engine.Game.generate_players(self, player_class)
     #North Pole Coords = 268-273 133-141 172
     self.players += [
       Ghost(position=133),
@@ -126,14 +128,14 @@ class PacMan(Game):
 
     if ghosts_win or self.data["lives"] <= 0:
       self.play_ontimeout()
-      self.victor = Dummy(
+      self.victor = engine.Dummy(
         name="Ghosts",
         color=(255, 0, 0),
         color_string="red")
 
     if self.data["score"] >= self.data["victory_score"]:
       self.play_ontimeout()
-      self.victor = Dummy(
+      self.victor = engine.Dummy(
         name="Pacmen",
         color=self.pacmen()[0].color,
         color_string=self.pacmen()[0].color_string)
@@ -155,19 +157,19 @@ class PacMan(Game):
     reversed_players.reverse()
 
     power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 16))
-    for i in range(SIZE):
+    for i in range(len(self.statuses)):
       if self.statuses[i] == "pellet":
-        color_pixel(i, (10, 10, 10))
-        #color_pixel(i, (50, 50, 50))
+        engine.color_pixel(i, (10, 10, 10))
+        #engine.color_pixel(i, (50, 50, 50))
       elif self.statuses[i] == "power":
-        color_pixel(i, power_color)
+        engine.color_pixel(i, power_color)
 
     for player in reversed_players:
       player.render()
 
     self.power_pulses = [pulse for pulse in self.power_pulses if time() < pulse[1] + self.PULSE_DURATION]
     for (origin, start_time) in self.power_pulses:
-      render_pulse(direction=-origin,
+      engine.render_pulse(direction=-origin,
         color=(200,200,200),
         start_time=start_time,
         duration=self.PULSE_DURATION)
@@ -202,7 +204,7 @@ class Pacman(Player):
       if ghost.is_playing and ghost.position == self.position:
         if ghost.is_scared():
           sounds["kick"].play()
-          ghost.position = unique_antipodes[ghost.position]
+          ghost.position = engine.unique_antipodes[ghost.position]
           ghost.hit_time = time()
           ghost.power_pellet_end_time = 0 # ghost no longer scared
           game.data["score"] += game.GHOST_KILL_SCORE
@@ -236,7 +238,7 @@ class Pacman(Player):
         player.power_pellet_end_time = power_pellet_end_time
       game.data["score"] += game.POWER_PELLET_SCORE
       game.statuses[self.position] = "blank"
-      game.power_pulses.append((unique_coords[self.position], time()))
+      game.power_pulses.append((engine.unique_coords[self.position], time()))
     elif game.statuses[self.position] == "pellet":
       game.data["score"] += game.PELLET_SCORE
       game.statuses[self.position] = "blank"
@@ -268,15 +270,13 @@ class Ghost(Player):
     return time() < self.power_pellet_end_time
 
   def current_color(self):
-    base_color = self.color
     time_left = self.power_pellet_end_time - time()
-    if time_left > 0:
-      if time_left < 3 and time_left % 0.5 > 0.25:
-        base_color = np.array((0, 0, 0))
-      else:
-        base_color = np.array((1,0,1))
-    return 255*np.power(base_color,2)
-    #return 255*base_color
+    if time_left > 0 and time_left < 3 and time_left % 0.5 > 0.25:
+      return np.array((0, 0, 0))
+    elif time_left > 0:
+      return engine.GOOD_COLOR
+    else:
+      return engine.BAD_COLOR
 
   def cant_move(self):
     move_freq = game.GHOST_SCARED_MOVE_FREQ if self.is_scared() else game.GHOST_MOVE_FREQ
@@ -287,18 +287,18 @@ class Ghost(Player):
 
   def get_next_position(self):
     pos = self.position
-    my_coord = unique_coords[self.position]
+    my_coord = engine.unique_coords[self.position]
 
     if random() < game.GHOST_RANDOMNESS:
-      goto = choice(neighbors[pos])
+      goto = choice(engine.neighbors[pos])
       while goto == self.prev_pos:
-        goto = choice(neighbors[pos])
+        goto = choice(engine.neighbors[pos])
       return goto
 
     best_dist_sq = 1000
     closest_pacman_coord = my_coord
     for pacman in game.pacmen():
-      pacman_coord = unique_coords[pacman.position]
+      pacman_coord = engine.unique_coords[pacman.position]
       delta = pacman_coord - my_coord
       dist_sq = np.dot(delta, delta)
       if dist_sq < best_dist_sq:
@@ -307,8 +307,8 @@ class Ghost(Player):
 
     new_pos = 0
     best_dist_sq = 0 if self.is_scared() else 1000
-    for neighbor in neighbors[pos]:
-      delta = unique_coords[neighbor] - closest_pacman_coord
+    for neighbor in engine.neighbors[pos]:
+      delta = engine.unique_coords[neighbor] - closest_pacman_coord
       dist_sq = np.dot(delta, delta)
 
       if self.is_scared():
@@ -331,8 +331,8 @@ class Ghost(Player):
 
   def render(self):
     if time() - self.hit_time < game.GHOST_STUN_TIME:
-      render_pulse(
-        direction=unique_coords[self.position],
+      engine.render_pulse(
+        direction=engine.unique_coords[self.position],
         color=self.current_color(),
         start_time=self.hit_time,
         duration=game.PULSE_DURATION)

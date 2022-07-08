@@ -38,10 +38,11 @@ BAD_COLOR = np.array((255, 0, 0))
 base_config = {
   "INVULNERABILITY_TIME": 3,
   "MOVE_FREQ": 0.18,
-  "ALLOW_CROSS_TIP_MOVE": False,
   "MOVE_BIAS": 0.5,
   "VICTORY_TIMEOUT": 42,
   "ROUND_TIME": 94.6,
+  "CONTINUOUS_MOVEMENT": False,
+  "INTERSECTION_PAUSE_FACTOR": 0.2,
 }
 
 READY_PULSE_DURATION = 0.75
@@ -78,7 +79,7 @@ for (i, dupes) in enumerate(unique_to_dupes):
 
 print("Running %s pixels" % pixel_info["RAW_SIZE"],file=sys.stderr)
 
-current_game = None
+game = None
 games = {}
 game_selection_weights = {}
 
@@ -104,17 +105,17 @@ def start_random_game():
   start(games[selection])
 
 
-def start(game):
-  if not game:
+def start(new_game):
+  if not new_game:
     return
 
-  global current_game
+  global game
   claimed = []
-  if current_game:
-    for player in current_game.players:
+  if game:
+    for player in game.players:
       claimed.append(player.is_claimed)
 
-  current_game = game
+  game = new_game
   game.restart()
   music["any"].fadeout(duration=2000)
   music[game.waiting_music].fadein(duration=4500)
@@ -127,17 +128,17 @@ def start(game):
 def update():
   global pixels
   try:
-    if current_game is None:
+    if game is None:
       start(idle)
-    elif len(current_game.claimed_players()) == 0 and current_game != idle:
+    elif len(game.claimed_players()) == 0 and game != idle:
       start(idle)
-    elif len(current_game.claimed_players()) > 0 and current_game == idle:
+    elif len(game.claimed_players()) > 0 and game == idle:
       start_random_game()
 
-    current_game.update()
-    if current_game.end_time <= time() and current_game.end_time > 0:
-      current_game.ontimeout()
-    current_game.render()
+    game.update()
+    if game.end_time <= time() and game.end_time > 0:
+      game.ontimeout()
+    game.render()
 
     pixels = np.minimum(pixels, 255)
     pixels = np.maximum(pixels, 0)
@@ -184,6 +185,7 @@ class Player:
     self.is_playing = False
     self.last_move_input_time = 0
     self.move_direction = np.array((0, 0))
+    self.buffered_move = self.move_direction
     self.tap = 0
 
     self.ghost_positions = collections.deque(maxlen=GHOST_BUFFER_LEN)
@@ -229,13 +231,19 @@ class Player:
     return self.color
 
   def move_delay(self):
-    return current_game.MOVE_FREQ
+    speed = game.MOVE_FREQ
+    if game.CONTINUOUS_MOVEMENT:
+      if len(neighbors[self.position]) == 4:
+        speed *= 1 + game.INTERSECTION_PAUSE_FACTOR
+      if len(neighbors[self.prev_pos]) == 4:
+        speed *= 1 / (1 + game.INTERSECTION_PAUSE_FACTOR/2)
+
+    return speed
 
   def cant_move(self):
     return (not self.is_alive or
       time() - self.last_move_time < self.move_delay() or # just moved
-      (self.move_direction == ZERO_2D).all()
-      # or time() - self.last_move_input_time > 0.5 # no recent updates, probably missed a "stop" update
+      not game.CONTINUOUS_MOVEMENT and (self.move_direction == ZERO_2D).all()
     )
 
   def occupies(self, pos):
@@ -243,6 +251,17 @@ class Player:
 
   def get_next_position(self):
     pos = self.position
+
+    direction_string = str((self.prev_pos, pos))
+    if direction_string in next_pixel:
+      continuation_pos = next_pixel[direction_string]
+    else:
+      continuation_pos = pos
+
+    if (game.CONTINUOUS_MOVEMENT and
+        continuation_pos != pos and
+        len(neighbors) <= 2):
+      return continuation_pos
 
     up = unique_coords[pos]
     up = up / np.linalg.norm(up)
@@ -255,26 +274,36 @@ class Player:
 
     max_dot = 0
     new_pos = pos
-    local_neighbors = (expanded_neighbors if current_game.ALLOW_CROSS_TIP_MOVE else neighbors)[pos]
-    for n in local_neighbors:
+    for n in neighbors[pos]:
       delta = unique_coords[pos] - unique_coords[n]
-      delta += current_game.MOVE_BIAS * (unique_coords[self.prev_pos] - unique_coords[pos]) # Bias towards turning or moving backwards
+      delta += game.MOVE_BIAS * (unique_coords[self.prev_pos] - unique_coords[pos]) # Bias towards turning or moving backwards
       delta /= np.linalg.norm(delta)  # normalize
       rectified_delta = -np.matmul(basis, delta)[0:2]
-      dot = np.dot(rectified_delta, self.move_direction)
+      dot = np.dot(rectified_delta, self.buffered_move)
+      if game.CONTINUOUS_MOVEMENT:
+        if n == continuation_pos:
+          dot *= 1 - game.MOVE_BIAS
+        if n == self.prev_pos:
+          dot *= 0.1
 
       if dot > max_dot:
         max_dot = dot
         new_pos = n
 
-    return new_pos
-
+    if (game.CONTINUOUS_MOVEMENT and
+        (new_pos == self.position or new_pos == self.prev_pos)):
+      return continuation_pos
+    else:
+      return new_pos
 
   def is_occupied(self, position):
-    if current_game.statuses[position] == "wall":
+    if game.CONTINUOUS_MOVEMENT:
+      return False
+
+    if game.statuses[position] == "wall":
       return True
 
-    for player in current_game.current_players():
+    for player in game.current_players():
       if player.is_alive and player.position == position:
         return True
 
@@ -283,7 +312,13 @@ class Player:
 
   def move(self):
     if self.cant_move():
-      return
+      return False
+
+    if not (self.move_direction == ZERO_2D).all():
+      self.buffered_move = self.move_direction
+      self.last_move_input_time = time()
+    elif time() - self.last_move_input_time > game.MOVE_FREQ * 2:
+      self.buffered_move = ZERO_2D
 
     new_pos = self.get_next_position()
 
@@ -293,7 +328,9 @@ class Player:
       self.prev_pos = self.position
       self.position = new_pos
       self.last_move_time = time()
-
+      return True
+    else:
+      return False
 
   def render_ghost_trail(self):
     for i in range(GHOST_BUFFER_LEN):
@@ -306,7 +343,7 @@ class Player:
       return
     color = self.current_color()
 
-    if time() - self.hit_time < current_game.INVULNERABILITY_TIME:
+    if time() - self.hit_time < game.INVULNERABILITY_TIME:
       factor = (time() * 1.8) % 1
       color = color * (0.05 + 0.95 * factor * factor)
       # color = color * sin(time() * 30)
@@ -737,13 +774,13 @@ def broadcast_state():
   # for line in traceback.format_stack():
   #   print(line.strip(), file=sys.stderr)
   message = {
-    "game": current_game.name if current_game else "",
-    "players": [player.to_json() for player in current_game.players],
-    "gameState": current_game.state if current_game else "none",
-    "timeRemaining": current_game.end_time - time() if current_game else 0,
-    "victor": current_game.victor.to_json() if current_game.victor else {},
-    "config": current_game.config,
-    "data": current_game.data,
+    "game": game.name if game else "",
+    "players": [player.to_json() for player in game.players],
+    "gameState": game.state if game else "none",
+    "timeRemaining": game.end_time - time() if game else 0,
+    "victor": game.victor.to_json() if game.victor else {},
+    "config": game.config,
+    "data": game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
     "timestamp": time(),

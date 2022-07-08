@@ -45,14 +45,14 @@ def start_random_game():
 vote_to_message = {}
 def check_vote():
   all_votes = {}
-  for player in engine.current_game.claimed_players():
+  for player in engine.game.claimed_players():
     for (election, vote) in player.votes.items():
       if election not in all_votes:
         all_votes[election] = {}
       all_votes[election][vote] = all_votes[election].get(vote, 0) + 1
 
-  majority_count = len(engine.current_game.claimed_players()) / 2.0
-  consensus_count = len(engine.current_game.claimed_players())
+  majority_count = len(engine.game.claimed_players()) / 2.0
+  consensus_count = len(engine.game.claimed_players())
 
   for (election, votes) in all_votes.items():
     if election == "ready" and consensus_count == 1:
@@ -73,16 +73,16 @@ def check_vote():
       engine.config.update(message["settings"])
 
     if election == "skip":
-      if engine.current_game:
-        engine.current_game.ontimeout()
+      if engine.game:
+        engine.game.ontimeout()
     elif election == "playagain":
-      engine.start(engine.current_game)
+      engine.start(engine.game)
     elif election == "quit":
       engine.start_random_game()
     elif election == "ready":
-      engine.current_game.ontimeout()
+      engine.game.ontimeout()
 
-    for player in engine.current_game.players:
+    for player in engine.game.players:
       if election in player.votes:
         del player.votes[election]
 
@@ -98,7 +98,7 @@ def consume_input():
       if "self" not in message:
         continue
 
-      player = engine.current_game.players[message["self"]]
+      player = engine.game.players[message["self"]]
 
       if message["type"] == "claim":
         player.is_claimed = True
@@ -126,11 +126,11 @@ def consume_input():
       elif message["type"] == "tap":
         player.tap = time()
       elif message["type"] == "settings":
-        engine.current_game.update_config(message["update"])
+        engine.game.update_config(message["update"])
       elif message["type"] == "advance":
-        if engine.current_game:
-          if not message.get("from", None) or message["from"] == engine.current_game.state:
-            engine.current_game.ontimeout()
+        if engine.game:
+          if not message.get("from", None) or message["from"] == engine.game.state:
+            engine.game.ontimeout()
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

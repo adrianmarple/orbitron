@@ -12,7 +12,9 @@ from time import time, sleep
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from audio import sounds, music
-from engine import Game, Player, color_pixel, render_pulse, next_pixel, unique_coords, neighbors, multi_lerp, SIZE,COORD_MAGNITUDE
+import engine
+Game = engine.Game
+Player = engine.Player
 
 additional_config = {
   "BOMB_FUSE_TIME": 3,
@@ -36,7 +38,7 @@ additional_config = {
 class Rhomberman(Game):
   name = __name__
   previous_wall_generation_time = 0
-  explosion_providence = [None] * SIZE
+  explosion_providence = [None] * engine.SIZE
 
 
   def start_update(self):
@@ -72,10 +74,10 @@ class Rhomberman(Game):
 
     # Timer death creep from south pole
     phase = (self.end_time - time()) / self.DEATH_CREEP_DURATION
-    threshold = COORD_MAGNITUDE * (1 - 2 * phase)
-    threshold = min(threshold, COORD_MAGNITUDE * 0.8)
-    for i in range(SIZE):
-      z = unique_coords[i][2]
+    threshold = engine.COORD_MAGNITUDE * (1 - 2 * phase)
+    threshold = min(threshold, engine.COORD_MAGNITUDE * 0.8)
+    for i in range(engine.SIZE):
+      z = engine.unique_coords[i][2]
       if z < threshold:
         self.statuses[i] = "death"
         self.explosion_providence[i] = None
@@ -100,27 +102,27 @@ class Rhomberman(Game):
     for player in self.current_players():
       player.render_ghost_trail()
 
-    for i in range(SIZE):
+    for i in range(len(self.statuses)):
       if self.statuses[i] == "blank":
         # already handled
         pass
       elif self.statuses[i] == "death":
-        color_pixel(i, (10, 0, 0))
+        engine.color_pixel(i, engine.BAD_COLOR / 16)
       elif self.statuses[i] == "wall":
-        color_pixel(i, (11, 9, 9))
+        engine.color_pixel(i, (11, 9, 9))
       elif self.statuses[i] == "power_pickup":
         magnitude = 0.3 + 0.1 * sin(20*time() + i)
         magnitude = magnitude * magnitude
-        color_pixel(i, np.array((200,0,200)) * magnitude)
+        engine.color_pixel(i, engine.GOOD_COLOR * magnitude)
       elif self.statuses[i] < time():
         self.statuses[i] = "blank"
-        color_pixel(i, (0, 0, 0))
+        engine.color_pixel(i, (0, 0, 0))
       else:
         x = 1 + (time() - self.statuses[i]) / self.BOMB_EXPLOSION_TIME
         if (x >= 0):
           sequence = self.explosion_providence[i].explosion_color_sequence
           x *= len(sequence) - 1
-          color_pixel(i, multi_lerp(x, sequence))
+          engine.color_pixel(i, engine.multi_lerp(x, sequence))
 
 
   def is_pixel_blank(self, index):
@@ -294,7 +296,7 @@ class Bomb:
     self.explosion_time = 0
 
   def move(self, prev_pos):
-    new_pos = next_pixel.get(str((prev_pos, self.position)), None)
+    new_pos = engine.next_pixel.get(str((prev_pos, self.position)), None)
     if new_pos is None:
       return True
 
@@ -311,7 +313,7 @@ class Bomb:
       for bomb in player.bombs:
         if bomb.position == new_pos:
           if game.NEWTONS_CRADLE:
-            bomb_next = next_pixel.get(str((bomb.prev_pos, bomb.position)), None)
+            bomb_next = engine.next_pixel.get(str((bomb.prev_pos, bomb.position)), None)
             if bomb_next == self.position:
               bomb.prev_pos = bomb.position
             else:
@@ -332,8 +334,8 @@ class Bomb:
 
   def render(self):
     if self.has_exploded:
-      render_pulse(
-        direction=-unique_coords[self.position],
+      engine.render_pulse(
+        direction=-engine.unique_coords[self.position],
         color=(16, 16, 16),
         start_time=self.explosion_time,
         duration=game.SHOCKWAVE_DURATION)
@@ -345,7 +347,7 @@ class Bomb:
     factor = (sin(x)+1.4) * 0.3
     factor *= factor
     color = self.owner.current_color() * factor
-    color_pixel(self.position, color)
+    engine.color_pixel(self.position, color)
     return factor
 
   def resolve(self):
@@ -370,7 +372,7 @@ class Bomb:
 
     game.statuses[self.position] = finish_time
     game.explosion_providence[self.position] = self.owner
-    for neighbor in neighbors[self.position]:
+    for neighbor in engine.neighbors[self.position]:
       direction = (self.position, neighbor)
       for i in range(self.power):
         next_pos = direction[1]
@@ -385,7 +387,7 @@ class Bomb:
         finish_time = time() + game.BOMB_EXPLOSION_TIME + (i+1)/32
         game.statuses[next_pos] = finish_time
         game.explosion_providence[next_pos] = self.owner
-        direction = (next_pos, next_pixel[str(direction)])
+        direction = (next_pos, engine.next_pixel[str(direction)])
 
     self.has_exploded = True
     self.explosion_time = time()

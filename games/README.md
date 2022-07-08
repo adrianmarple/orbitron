@@ -12,9 +12,9 @@ What you mainly need to understand is in engine.py. The engine works by running 
 
 ### The Game class
 
-The first thing to be aware of is the `Game` class (still within engine.py). The engine has a global `current_game` (if it's none it choose a random one) and within the `update()` function it calls three relevant methods of this `Game` class:
+The first thing to be aware of is the `Game` class (still within engine.py). The engine has a global `game` (if it's none it choose a random one) and within the `update()` function it calls three relevant methods of this `Game` class:
  - `update()` this intended for changes of internal state within the game based on player input
- - `ontimeout()` which triggers whenever `current_game.end_time` has elapsed and is non-zero
+ - `ontimeout()` which triggers whenever `game.end_time` has elapsed and is non-zero
  - `render()` which is intended as a function without mutation that writes information to the engine global `pixels`
 
 Now the default `Game` in engine.py works by advancing a series of states: "start", "countdown", "play", "previctory", and "victory". After "victory" the game should quit itself and start a new game (this is handled in the default `Game`). You should continue to use this structure.
@@ -46,7 +46,7 @@ The most important thing you'll have to understand is the function `move()`, whi
 ```
   def move(self):
     if self.cant_move():
-      return
+      return False
 
     new_pos = self.get_next_position()
 
@@ -56,12 +56,16 @@ The most important thing you'll have to understand is the function `move()`, whi
       self.prev_pos = self.position
       self.position = new_pos
       self.last_move_time = time()
+      return True
+    else:
+      return False
 ```
 You can ignore the stuff about ghosts, but the remaining functions are good to understand:
  - `cant_move()`: Is the player unable to move? (i.e. not enough time has passed, they aren't alive, or no controller movement has been registered recently)
  - `move_delay()`: How long the player must wait between moves, used in `cant_move()`.
  - `get_next_position()`: Based on controller movement, returns where would the player go next
  - `is_occupied(pos)`: Is a particular position invalid for the player to move to?
+Note that `move()` returns whether the player actually moved as a result of this call.
 
 In order for your game to use a new class that inherits from player, you must call the `generate_players` function on a `Game` instance passing the class name as a parameter. E.g.
 ```
@@ -167,7 +171,7 @@ There are two arrys to import from `audio.py`, `sounds` and `music`. If you want
 
 The six colors used for the six players are fixed, but there are two colors dedicated to other meaningful things within your game:
  - Red (#f00): For bad things (e.g. PacMan ghosts, death creep, etc.)
- - Magenta (#f0f): For good things (e.g. scared ghosts, pickups, etc.)
+ - Magenta (#f0f): For good things (e.g. scared ghosts, pickups, apples, etc.)
 Everything else should be grayscale.
 
 ### Final thoughts
