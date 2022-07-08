@@ -425,8 +425,8 @@ class Game:
       ),
       player_class(
         position=positions[3],
-        color=(80, 0, 255),
-        color_string="#7f0ff" #violet
+        color=(40, 0, 255),
+        color_string="#5f0ff" #violet
       ),
       player_class(
         position=positions[4],
