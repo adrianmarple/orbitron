@@ -249,6 +249,13 @@ class Pacman(Player):
     dictionary["livesLeft"] = game.data["lives"] if game.SHARED_LIVES else self.lives_left
     return dictionary
 
+  def is_occupied(self, position):
+    for player in game.pacmen():
+      if player.is_alive and player.position == position:
+        return True
+
+    return False
+
 
 class Ghost(Player):
   def __init__(self, *args, **kwargs):
