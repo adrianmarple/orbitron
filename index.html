@@ -553,8 +553,10 @@ body, #app, .main {
 
     <div class="buttons">
       <div v-if="self.votes.ready" class="button" @click.stop="pulse">Pulse</div>
+      <!--
       <TallyButton v-if="self.votes.ready" label="I'm not ready." election="ready" vote="yes"></TallyButton>
       <TallyButton v-else label="Ready" election="ready" vote="yes"></TallyButton>
+      -->
     </div>
 
   </div>
@@ -930,7 +932,7 @@ var app = new Vue({
       this.handleChange(event.changedTouches[0])
     }
     // Do this just in case localStorage is inaccessible and errors
-    this.localFlags = JSON.parse(localStorage.getItem('flags')) || {}
+    // this.localFlags = JSON.parse(localStorage.getItem('flags')) || {}
   },
 
   watch: {
@@ -1230,6 +1232,11 @@ var app = new Vue({
     dismissRules() {
       this.$set(this.localFlags, 'hasPlayedOnce', true)
       this.$set(this.localFlags, this.state.game, true)
+      this.send({
+        type: 'vote',
+        election: 'ready',
+        vote: 'yes',
+      })
       this.showRules = false
       this.carouselPosition = 0
       this.carouselCurrentX = 0
