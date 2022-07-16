@@ -6,7 +6,7 @@ const fs = require('fs')
 const path = require('path')
 const process = require('process')
 const { spawn, exec } = require('child_process')
-const pako = require('./pako.min.js')
+const pako = require('./thirdparty/pako.min.js')
 
 // Log to file and standard out
 const util = require('util')
@@ -19,11 +19,12 @@ function handleKill(signal){
   if(python_process){
     python_process.kill()
   }
+  process.exit()
 }
 
-process.on('SIGINT', handleKill);
-process.on('SIGTERM', handleKill);
-process.on('SIGHUP', handleKill);
+process.on('SIGINT', handleKill)
+process.on('SIGTERM', handleKill)
+process.on('SIGHUP', handleKill)
 
 process.on('uncaughtException', function(err) {
   console.log('Caught exception: ' + err)
@@ -177,45 +178,45 @@ MAX_PLAYERS = 6
 connections = {}
 connectionQueue = []
 
-setInterval(ipUpdate, 10000)
-function ipUpdate(){
-  exec("ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/'", (error, stdout, stderr) => {
-    var ip=stdout.trim()
-    if(ip !== localIP){
-      console.log(`Sending IP '${config.ORB_ID}':${ip}`)
-      var options = {
-        hostname: 'super-orbitron-default-rtdb.firebaseio.com',
-        path: `/ips/${config.ORB_ID}.json`,
-        method: 'PUT',
-        port: 443,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-      var req = https.request(options, res => {
-        let rawData = '';
+// setInterval(ipUpdate, 10000)
+// function ipUpdate(){
+//   exec("ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/'", (error, stdout, stderr) => {
+//     var ip=stdout.trim()
+//     if(ip !== localIP){
+//       console.log(`Sending IP '${config.ORB_ID}':${ip}`)
+//       var options = {
+//         hostname: 'super-orbitron-default-rtdb.firebaseio.com',
+//         path: `/ips/${config.ORB_ID}.json`,
+//         method: 'PUT',
+//         port: 443,
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//       }
+//       var req = https.request(options, res => {
+//         let rawData = '';
 
-        res.on('data', chunk => {
-          rawData += chunk;
-        });
+//         res.on('data', chunk => {
+//           rawData += chunk;
+//         });
 
-        res.on('end', () => {
-          localIP = ip
-          console.log(`IP Send Response: ${rawData}`)
-          console.log("Sending IP completed")
-        });
-      });
-      req.on('error', err => {
-        console.error(`IP Send Error: ${err}`)
-        console.error("Sending IP failed")
-      });
-      req.write(JSON.stringify(`${ip}`));
-      req.end();
-    }
-  })
-}
-localIP = ""
-ipUpdate()
+//         res.on('end', () => {
+//           localIP = ip
+//           console.log(`IP Send Response: ${rawData}`)
+//           console.log("Sending IP completed")
+//         });
+//       });
+//       req.on('error', err => {
+//         console.error(`IP Send Error: ${err}`)
+//         console.error("Sending IP failed")
+//       });
+//       req.write(JSON.stringify(`${ip}`));
+//       req.end();
+//     }
+//   })
+// }
+// localIP = ""
+// ipUpdate()
 
 
 // Communications with python script
@@ -238,6 +239,8 @@ function broadcast(baseMessage) {
 }
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
+python_process.stdin.write(JSON.stringify({ type: "config", config }))
+
 python_process.stdout.on('data', data => {
   messages = data.toString().trim().split("\n")
   for(message of messages){
@@ -287,11 +290,13 @@ http.createServer(function (request, response) {
   var filePath = request.url
 
   if (filePath == '/')
-    filePath = `${__dirname}/index.html`
-  else if (filePath == '/dev')
-    filePath = `${__dirname}/dev.html`
-  else
-    filePath = `${__dirname}/${filePath}`
+    filePath = "/index.html"
+  else if (filePath == '/dev' || filePath == '/view')
+    filePath = "/dev.html"
+  else if (filePath == '/pixels.json')
+    filePath = config.PIXELS || "/pixels-rhomb.json"
+
+  filePath = `${__dirname}/${filePath}`
   //console.log(filePath);
 
   var extname = path.extname(filePath)

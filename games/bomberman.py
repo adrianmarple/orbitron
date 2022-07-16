@@ -77,7 +77,7 @@ class Rhomberman(Game):
     threshold = engine.COORD_MAGNITUDE * (1 - 2 * phase)
     threshold = min(threshold, engine.COORD_MAGNITUDE * 0.8)
     for i in range(engine.SIZE):
-      z = engine.unique_coords[i][2]
+      z = engine.coords[i][2]
       if z < threshold:
         self.statuses[i] = "death"
         self.explosion_providence[i] = None
@@ -335,7 +335,7 @@ class Bomb:
   def render(self):
     if self.has_exploded:
       engine.render_pulse(
-        direction=-engine.unique_coords[self.position],
+        direction=-engine.coords[self.position],
         color=(16, 16, 16),
         start_time=self.explosion_time,
         duration=game.SHOCKWAVE_DURATION)

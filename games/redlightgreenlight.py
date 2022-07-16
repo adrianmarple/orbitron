@@ -90,7 +90,7 @@ class Runner(Player):
   def render(self):
     Player.render(self)
     engine.render_pulse(
-      direction=engine.unique_coords[self.initial_position],
+      direction=engine.coords[self.initial_position],
       color=self.current_color(),
       start_time=self.previous_success_time,
       duration=0.5)

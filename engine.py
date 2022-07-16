@@ -48,42 +48,40 @@ base_config = {
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
 
-f = open(os.path.dirname(__file__) + "/pixels.json", "r")
+file_name = os.environ.get("PIXELS", "/pixels-rhomb.json")
+if file_name[0] != "/":
+  file_name = "/" + file_name
+f = open(os.path.dirname(__file__) + file_name, "r")
 pixel_info = json.loads(f.read())
 f.close()
+
 SIZE = pixel_info["SIZE"]
-RAW_SIZE = pixel_info["RAW_SIZE"]
 neighbors = pixel_info["neighbors"]
-expanded_neighbors = pixel_info["expanded_neighbors"]
-next_pixel = pixel_info["next_pixel"]
-coordinates = [np.array(coord) for coord in pixel_info["coordinates"]]
-coordinate_matrix = np.matrix(coordinates).transpose()
-unique_coords = [np.array(coord) for coord in pixel_info["unique_coords"]]
-unique_coord_matrix = np.matrix(unique_coords).transpose()
-unique_to_dupes = pixel_info["unique_to_dupes"]
-dupe_to_unique = pixel_info["dupe_to_unique"]
-unique_antipodes = pixel_info["unique_antipodes"]
+next_pixel = pixel_info["nextPixel"]
+coords = [np.array(coord) for coord in pixel_info["coords"]]
+coord_matrix = np.matrix(coords).transpose()
+unique_to_dupe = pixel_info["uniqueToDupe"]
+antipodes = pixel_info["antipodes"]
 north_pole = []
 south_pole = []
-for (i, coord) in enumerate(unique_coords):
+for (i, coord) in enumerate(coords):
   if coord[2] > 0.92 * COORD_MAGNITUDE:
     north_pole.append(i)
   if coord[2] < -0.92 * COORD_MAGNITUDE:
     south_pole.append(i)
 
-pixels = np.zeros((SIZE, 3),dtype="<u1")
-dupe_matrix = np.zeros((RAW_SIZE, SIZE),dtype="<u1")
-for (i, dupes) in enumerate(unique_to_dupes):
-  for dupe in dupes:
-    dupe_matrix[dupe, i] = 1
+dupe_matrix = np.zeros((len(unique_to_dupe), SIZE),dtype="<u1")
+for (i, dupe) in enumerate(unique_to_dupe):
+  dupe_matrix[i, dupe] = 1
 
-print("Running %s pixels" % pixel_info["RAW_SIZE"],file=sys.stderr)
+pixels = np.zeros((SIZE, 3),dtype="<u1")
+print("Running %s pixels" % len(unique_to_dupe), file=sys.stderr)
 
 game = None
 games = {}
 game_selection_weights = {}
 
-# ================================ START and END =========================================
+# ================================ START =========================================
 
 def start_random_game():
   total_weight = 0
@@ -263,7 +261,7 @@ class Player:
         len(neighbors) <= 2):
       return continuation_pos
 
-    up = unique_coords[pos]
+    up = coords[pos]
     up = up / np.linalg.norm(up)
     north = np.array((0, 0, 1))
     north = ortho_proj(north, up)
@@ -275,8 +273,8 @@ class Player:
     max_dot = 0
     new_pos = pos
     for n in neighbors[pos]:
-      delta = unique_coords[pos] - unique_coords[n]
-      delta += game.MOVE_BIAS * (unique_coords[self.prev_pos] - unique_coords[pos]) # Bias towards turning or moving backwards
+      delta = coords[pos] - coords[n]
+      delta += game.MOVE_BIAS * (coords[self.prev_pos] - coords[pos]) # Bias towards turning or moving backwards
       delta /= np.linalg.norm(delta)  # normalize
       rectified_delta = -np.matmul(basis, delta)[0:2]
       dot = np.dot(rectified_delta, self.buffered_move)
@@ -358,7 +356,7 @@ class Player:
       color_pixel(n, color / 32 * (1 + sin(time()*2)))
 
     render_pulse(
-      direction=unique_coords[self.position],
+      direction=coords[self.position],
       color=self.current_color(),
       start_time=self.ready_time,
       duration=READY_PULSE_DURATION)
@@ -560,7 +558,7 @@ class Game:
         render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
         render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
       else:
-        for (i, coord) in enumerate(unique_coords):
+        for (i, coord) in enumerate(coords):
           color_pixel(i, color * sin(coord[2] - 4*(timer - 0.3)))
 
     else:
@@ -746,7 +744,7 @@ def render_pulse(direction=np.array((0,0,1), dtype=float),
 
     direction /= np.linalg.norm(direction)
 
-    ds = direction * unique_coord_matrix / COORD_MAGNITUDE / 2 + 0.5
+    ds = direction * coord_matrix / COORD_MAGNITUDE / 2 + 0.5
     ds = ds * 6 - (t * 7 - 1)
     # ds = 6*(ds + 1) - 7*t
     # ds *= -1
@@ -755,7 +753,7 @@ def render_pulse(direction=np.array((0,0,1), dtype=float),
 
 def render_ring(direction, pixels, color, width):
   direction /= np.linalg.norm(direction)
-  ds = direction * unique_coord_matrix / COORD_MAGNITUDE
+  ds = direction * coord_matrix / COORD_MAGNITUDE
   ds = ds * 6 + width/2
   ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
   pixels += np.array(np.outer(ds, color), dtype="<u1")
@@ -792,9 +790,6 @@ def broadcast_state():
 # ================================ Core loop =========================================
 
 def run_core_loop():
-  for i in range(6):
-    Player()
-
   last_frame_time = time()
   while True:
     time_to_wait = last_frame_time + 0.033 - time()

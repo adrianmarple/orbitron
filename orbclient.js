@@ -1,7 +1,7 @@
 const WebSocket = require('ws')
 const process = require('process')
 const { spawn, exec } = require('child_process')
-const pako = require('./pako.min.js')
+const pako = require('./thirdparty/pako.min.js')
 
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")
@@ -11,6 +11,7 @@ function handleKill(signal){
   if(python_process){
     python_process.kill()
   }
+  process.exit()
 }
 
 process.on('SIGINT', handleKill);

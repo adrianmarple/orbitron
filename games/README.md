@@ -109,8 +109,8 @@ Information about pixels resides in a handful of data structures at the root lev
 
 The pixel info you might need are:
  - `SIZE`: 420, the number of unique pixels.
- - `unique_coords`: A list of np.arrays with the 3D coordinates of each.
- - `unique_coord_matrix`: Same as `unique_coords`, but in matrix form.
+ - `coords`: A list of np.arrays with the 3D coordinates of each.
+ - `coord_matrix`: Same as `coords`, but in matrix form.
  - `neightbors`: A list of lists each with the index of adjacent pixels. All of these list are of length 2 or 4.
  - `extended_neightbors`: Same as neighbors but pixels across the tip of a triangle also count as adjacent (they are the same distance). All of these list are of length 2, 3, or 4.
  - `next_pixel`: A map from tuples of adjacent pixels turned into strings (i.e. `(2,3)`) to next adjacent index that would come next in the series (i.e. `4`). This is used for continuous movement, like in snektron or kicked bombs.

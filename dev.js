@@ -133,7 +133,7 @@ var app = new Vue({
     musicVolume: 50,
     sfxVolume: 50,
   },
-  created() {
+  async created() {
     let self = this
     fetch("/pixels.json").then(function(response){
       return response.json()
@@ -182,7 +182,8 @@ var app = new Vue({
 
       let points = []
       this.pixels = []
-      for (let point of this.pixelData.coordinates) {
+      for (let index of this.pixelData.uniqueToDupe) {
+        let point = this.pixelData.coords[index]
         let pixelGeometry = new THREE.SphereGeometry(0.06, 8, 8)
         let pixelMaterial = new THREE.MeshBasicMaterial({
           color: 0x999999
@@ -195,7 +196,7 @@ var app = new Vue({
         subGroup.add(pixel)
         points.push(new THREE.Vector3(point[0], point[1], point[2]))
       }
-      let start = this.pixelData.coordinates[0]
+      let start = this.pixelData.coords[0]
       points.push(new THREE.Vector3(start[0], start[1], start[2]))
       let lineMaterial = new THREE.LineBasicMaterial({
         color: stripColor,
@@ -204,23 +205,24 @@ var app = new Vue({
       let line = new THREE.Line(lineGeometry, lineMaterial)
       subGroup.add(line)
 
-      let innerSphereGeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
-      let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
-      innerSphereMaterial.transparent = true
-      innerSphereMaterial.opacity = 0.8
-      let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
-      subGroup.add(innerSphere)
+      if (!this.pixelData.isWall) {
+        let standGeometry = new THREE.CylinderGeometry( 0.75, 0.75, 1.5, 32 )
+        let standMaterial = new THREE.MeshBasicMaterial( {color: standColor} )
+        let stand = new THREE.Mesh( standGeometry, standMaterial )
+        stand.translateY(-5)
+        this.orbitronGroup.add(stand)
+
+        let innerSphereGeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
+        let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
+        innerSphereMaterial.transparent = true
+        innerSphereMaterial.opacity = 0.8
+        let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
+        subGroup.add(innerSphere)
+      }
       subGroup.rotation.set(-Math.PI/2,0,0)
       this.orbitronGroup.add(subGroup)
       //let axesHelper = new THREE.AxesHelper(5);
       //this.orbitronGroup.add(axesHelper)
-
-      let standGeometry = new THREE.CylinderGeometry( 0.75, 0.75, 1.5, 32 )
-      let standMaterial = new THREE.MeshBasicMaterial( {color: standColor} )
-      let stand = new THREE.Mesh( standGeometry, standMaterial )
-      stand.translateY(-5)
-      this.orbitronGroup.add(stand)
-
 
       scene.add(this.orbitronGroup)
 
@@ -253,7 +255,7 @@ var app = new Vue({
       if(app.$data.followingPlayer >= 0){
         let rotation = this.orbitronGroup.rotation
         let player = this.gameState.players[this.followingPlayer]
-        let uniquePosition = this.pixelData.unique_to_dupes[player.position][0]
+        let uniquePosition = this.pixelData.dupeToUniques[player.position][0]
         let targetPixel = this.pixels[uniquePosition]
         let [lat,lon] = latlong(targetPixel.position.clone().normalize())
         let maxXOffset = 0.65

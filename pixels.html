@@ -17,10 +17,37 @@ canvas {
   max-height: 100vw;
   margin: 0;
 }
+.button {
+  z-index: 1;
+  padding: 12px 24px;
+  margin: 12px;
+  font-size: 24px;
+  border: 1px solid black;
+  border-radius: 12px;
+  background-color: white;
+  cursor: pointer;
+}
+#type-buttons {
+  position: absolute;
+  right:  24px;
+  top: 24px;
+}
+#download {
+  position: absolute;
+  right:  24px;
+  bottom: 24px;
+}
 </style>
 <head>
 <body>
 <canvas width="1000" height="1000"></canvas>
+
+<div id="type-buttons">
+  <div class="button" id="rhomb">Rhombicosidodecahedron</div>
+  <div class="button" id="wall">Wall Tiling</div>
+</div>
+
+<div class="button" id="download">Download</div>
 
 <script>
   
@@ -32,6 +59,7 @@ let path = []
 let isWall = false
 
 function createRhombicosidodecahedron() {
+  isWall = false
   verticies = []
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
@@ -48,7 +76,7 @@ function createRhombicosidodecahedron() {
   edges = []
   for (let i = 0; i < verticies.length; i++) {
     for (let j = i + 1; j < verticies.length; j++) {
-      if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2, 0.1)) {
+      if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2)) {
         addEdge(verticies[i], verticies[j])
       }
     }
@@ -59,6 +87,7 @@ function createRhombicosidodecahedron() {
 Y_GAP = 4.8
 X_GAP = 2.75
 function createWallTiling() {
+  isWall = true
   verticies = []
   edges = []
   addDodecagon([-2*X_GAP,0,0])
@@ -107,7 +136,7 @@ function addPlusMinusVertex(vertex) {
 
 function addVertex(coordinates) {
   for (let existingVertex of verticies) {
-    if (epsilonEquals(d(existingVertex.coordinates, coordinates), 0, 0.1)) {
+    if (epsilonEquals(d(existingVertex.coordinates, coordinates), 0)) {
       return existingVertex
     }
   }
@@ -147,7 +176,7 @@ function EulerianPath(path, currentVertex) {
       let previousVertex = otherVertex(edges[path[path.length - 1]], currentVertex)
       let nextVertex = otherVertex(edge, currentVertex)
       let distance = d(previousVertex.coordinates, nextVertex.coordinates)
-      if (!isWall && (epsilonEquals(distance, 2, 0.1) || epsilonEquals(distance, 3.236, 0.1))) {
+      if (!isWall && (epsilonEquals(distance, 2) || epsilonEquals(distance, 3.236))) {
         continue
       }
 
@@ -165,67 +194,99 @@ function EulerianPath(path, currentVertex) {
 function otherVertex(edge, vertex) {
   let otherVertex = edge.verticies[0]
   if (otherVertex.index === vertex.index) {
-    otherVertex = edge.verticies[1];
+    otherVertex = edge.verticies[1]
   }
-  return otherVertex;
+  return otherVertex
 }
 
-function outputPythonCoordinates() {
-  let outputString = "[";
-  let previousVertex = verticies[2];
-  let count = 0;
-  for (let index of path) {
-    let edge = edges[index];
-    let nextVertex = otherVertex(edge, previousVertex);
-    let v1 = previousVertex.coordinates;
-    let v2 = nextVertex.coordinates;
-    outputString += "(" + linearCombo(v2, v1, 0/4) + "),";
-    outputString += "(" + linearCombo(v2, v1, 1/4) + "),";
-    outputString += "(" + linearCombo(v2, v1, 2/4) + "),";
-    outputString += "(" + linearCombo(v2, v1, 3/4) + "),";
+function generatePixelInfo() {
+  let neighbors = []
+  let coords = []
+  let nextPixel = {}
+  let antipodes = []
+  let uniqueToDupe = []
+  let dupeToUniques = []
 
-    previousVertex = nextVertex;
+  let vertIndexToCoordIndex = {}
+  console.log(edges[0])
+  console.log(verticies[2])
+  let previousVertex = edges[0].verticies[1]
+  for (let edgeIndex of path) {
+    let edge = edges[edgeIndex]
+    let nextVertex = otherVertex(edge, previousVertex)
+    let v1 = previousVertex.coordinates
+    let v2 = nextVertex.coordinates
+
+    if (typeof(vertIndexToCoordIndex[previousVertex.index]) != 'undefined') {
+      uniqueToDupe.push(vertIndexToCoordIndex[previousVertex.index])
+    } else {
+      vertIndexToCoordIndex[previousVertex.index] = coords.length
+      uniqueToDupe.push(coords.length)
+      coords.push(v1)
+    }
+    uniqueToDupe.push(coords.length)
+    coords.push(linearCombo(v2, v1, 1/4))
+    uniqueToDupe.push(coords.length)
+    coords.push(linearCombo(v2, v1, 2/4))
+    uniqueToDupe.push(coords.length)
+    coords.push(linearCombo(v2, v1, 3/4))
+
+    previousVertex = nextVertex
   }
-  outputString += "]";
-  return outputString;
+
+  let SIZE = coords.length
+  for (let i = 0; i < SIZE; i++) {
+    neighbors.push([])
+    dupeToUniques.push([])
+  }
+  let previousIndex = coords.length - 1
+  for (let i = 0; i < uniqueToDupe.length; i++) {
+    let index = uniqueToDupe[i]
+    neighbors[index].push(previousIndex)
+    neighbors[previousIndex].push(index)
+    previousIndex = index
+
+    dupeToUniques[index].push(i)
+  }
+
+  for (let i = 0; i < coords.length; i++) {
+    let local_neighbors = neighbors[i]
+    for (let n of local_neighbors) {
+      expected_n2_coords = delta(scale(coords[n], 2), coords[i])
+      for (let n2 of neighbors[n]) {
+        if (d(coords[n2], expected_n2_coords) < 0.4) {
+          nextPixel[`(${i}, ${n})`] = n2
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i < coords.length; i++) {
+    let coord = coords[i]
+    for (let j = 0; j < coords.length; j++) {
+      let coord2 = coords[j]
+      if (epsilonEquals(d(coord, scale(coord2, -1)), 0)) {
+        antipodes.push(j)
+        break
+      }
+    }
+  }
+
+  return {
+    SIZE: coords.length,
+    isWall,
+    coords,
+    uniqueToDupe,
+    dupeToUniques,
+    neighbors,
+    nextPixel,
+    antipodes,
+    // northPole,
+    // southPole,
+  }
 }
 
-function outputArduinoCoordinates() {
-  let outputString = "switch(index){"
-  let previousVertex = verticies[2];
-  let count = 0;
-  for (let index of path) {
-    let edge = edges[index];
-    let nextVertex = otherVertex(edge, previousVertex);
-    let v1 = previousVertex.coordinates;
-    let v2 = nextVertex.coordinates;
-    outputString += vectorToString(linearCombo(v2, v1, 1/8));
-    outputString += vectorToString(linearCombo(v2, v1, 3/8));
-    outputString += vectorToString(linearCombo(v2, v1, 5/8));
-    outputString += vectorToString(linearCombo(v2, v1, 7/8));
 
-    previousVertex = nextVertex;
-  }
-  outputString += "};"
-  return outputString;
-
-  function vectorToString(v) {
-
-    v = scale(v, 1/d(v, [0,0,0]));
-    // const SCALE = 1000;
-    // let value = SCALE/2 + Math.floor(SCALE/2 * v[0]);
-    // value *= SCALE;
-    // value += SCALE/2 + Math.floor(SCALE/2 * v[1]);
-    // value *= SCALE;
-    // value += SCALE/2 + Math.floor(SCALE/2 * v[2]);
-
-    // let outputString = `case ${count}: return ${value};`;
-    // count += 1;
-    // return outputString;
-    return `case ${count++}:c[0]=${v[0].toFixed(2)};c[1]=${v[1].toFixed(2)};c[2]=${v[2].toFixed(2)};return;`;
-  }
-}
-// console.log(outputArduinoCoordinates())
 
 
 const ROTATION_SCALE = 0.01
@@ -257,6 +318,30 @@ document.onkeydown = e => {
     pathIndex -= 1
   }
 }
+
+document.getElementById("rhomb").addEventListener('click', function() {
+  createRhombicosidodecahedron()
+})
+document.getElementById("wall").addEventListener('click', function() {
+  createWallTiling()
+})
+
+document.getElementById("download").addEventListener('click', function() {
+  let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
+  let blob = new Blob([fileContent], { type: 'text/plain' })
+  let a = document.createElement('a')
+  if (isWall) {
+    a.download = 'pixels-wall.json'
+  } else {
+    a.download = 'pixels-rhomb.json'
+  }
+  a.href = window.URL.createObjectURL(blob)
+  a.textContent = 'Download ready';
+  a.style='display:none';
+  a.click()
+})
+
+
 
 
 let c = document.querySelector("canvas")
@@ -295,7 +380,7 @@ function render() {
 }
 
 
-function epsilonEquals(a, b, epsilon) {
+function epsilonEquals(a, b, epsilon=0.1) {
   return a - b < epsilon && b - a < epsilon
 }
 
@@ -310,8 +395,8 @@ function delta(v1, v2) {
 }
 
 function project(v) {
-  const SCALE = 800;
-  let z = v[2] + 15;
+  const SCALE = 800
+  let z = v[2] + 15
   return [500 + v[0] * SCALE / z, 500 + v[1] * SCALE / z]
 }
 
@@ -344,7 +429,7 @@ function linearCombo(v1, v2, alpha) {
     v1[0] * alpha + v2[0] * (1 - alpha),
     v1[1] * alpha + v2[1] * (1 - alpha),
     v1[2] * alpha + v2[2] * (1 - alpha),
-  ];
+  ]
 }
 
 function random() {
@@ -368,8 +453,6 @@ if (isWall) {
 } else {
   createRhombicosidodecahedron()
 }
-
-console.log(outputPythonCoordinates());
 
 </script>
 </body>

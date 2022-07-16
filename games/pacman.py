@@ -238,7 +238,7 @@ class Pacman(Player):
         player.power_pellet_end_time = power_pellet_end_time
       game.data["score"] += game.POWER_PELLET_SCORE
       game.statuses[self.position] = "blank"
-      game.power_pulses.append((engine.unique_coords[self.position], time()))
+      game.power_pulses.append((engine.coords[self.position], time()))
     elif game.statuses[self.position] == "pellet":
       game.data["score"] += game.PELLET_SCORE
       game.statuses[self.position] = "blank"
@@ -294,7 +294,7 @@ class Ghost(Player):
 
   def get_next_position(self):
     pos = self.position
-    my_coord = engine.unique_coords[self.position]
+    my_coord = engine.coords[self.position]
 
     if random() < game.GHOST_RANDOMNESS:
       goto = choice(engine.neighbors[pos])
@@ -305,7 +305,7 @@ class Ghost(Player):
     best_dist_sq = 1000
     closest_pacman_coord = my_coord
     for pacman in game.pacmen():
-      pacman_coord = engine.unique_coords[pacman.position]
+      pacman_coord = engine.coords[pacman.position]
       delta = pacman_coord - my_coord
       dist_sq = np.dot(delta, delta)
       if dist_sq < best_dist_sq:
@@ -315,7 +315,7 @@ class Ghost(Player):
     new_pos = 0
     best_dist_sq = 0 if self.is_scared() else 1000
     for neighbor in engine.neighbors[pos]:
-      delta = engine.unique_coords[neighbor] - closest_pacman_coord
+      delta = engine.coords[neighbor] - closest_pacman_coord
       dist_sq = np.dot(delta, delta)
 
       if self.is_scared():
@@ -339,7 +339,7 @@ class Ghost(Player):
   def render(self):
     if time() - self.hit_time < game.GHOST_STUN_TIME:
       engine.render_pulse(
-        direction=engine.unique_coords[self.position],
+        direction=engine.coords[self.position],
         color=self.current_color(),
         start_time=self.hit_time,
         duration=game.PULSE_DURATION)
