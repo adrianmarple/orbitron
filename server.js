@@ -78,6 +78,12 @@ function devBroadcast(message) {
   }
 }
 
+// Orb management
+const connectedOrbs = {}
+const connectedOrbRelays = {}
+const connectedOrbClients = {}
+const relayClientPairs = {}
+const clientRelayPairs = {}
 
 // Client Websocket server
 
@@ -92,18 +98,119 @@ server.listen(7777, "0.0.0.0", function() {
 
 wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
 
-wsServer.on('connection', socket => {
-  console.log('Connection accepted.')
+wsServer.on('connection', (socket, request) => {
+  socket.uid = Date.now()
+  let url = request.url.trim()
+  console.log('Connection accepted to',request.url)
+  if(url.includes("relay")){
+    let orbID = url.split("/")[2]
+    if(!connectedOrbs[orbID]){
+      bindOrbServer(socket, orbID)
+    } else {
+      bindOrbRelay(socket, orbID)
+    }
+  } else {
+    if(url == "/") {
+      bindRemotePlayer(socket)
+    } else { // relay client
+      let orbID = url.substr(1)
+      bindOrbClient(socket, orbID)
+    }
+  }
+})
+
+function bindOrbServer(socket, orbID) {
+  console.log("Binding orb server",orbID)
+  connectedOrbs[orbID] = socket
+  socket.on('message', data => {
+    console.log("Got Message from Orb Server: ", data)
+  })
+  socket.on('close', () => {
+    delete connectedOrbs[orbID]
+  })
+}
+
+function bindOrbRelay(socket, orbID){
+  console.log("Binding orb relay",orbID)
+  if(!connectedOrbRelays[orbID]) {
+    connectedOrbRelays[orbID] = {}
+  }
+  connectedOrbRelays[orbID][socket.uid] = socket
+  socket.on('message', (data,isBinary) => {
+    if(!isBinary){
+      data = data.toString()
+    }
+    let client = relayClientPairs[socket.uid]
+    if(client) {
+      try {
+        client.send(data)
+      } catch(e) {
+        console.log("Orb to Client error:", e)
+      }
+    } else {
+      console.log("Client not connected:", orbID, relayClientPairs)
+    }
+  })
+  socket.on('close', () => {
+    delete connectedOrbRelays[orbID][socket.uid]
+    let client = relayClientPairs[socket.uid]
+    delete relayClientPairs[socket.uid]
+    if(client){
+      try {
+        client.close()
+      } catch(e) {
+        console.log("Error closing client from relay:",orbID)
+      }
+    }
+  })
+}
+
+function bindOrbClient(socket, orbID) {
+  console.log("Binding orb client",orbID)
+  if(!connectedOrbClients[orbID]){
+    connectedOrbClients[orbID] = {}
+  }
+  connectedOrbClients[orbID][socket.uid] = socket
+  socket.on('message', (data, isBinary) => {
+    if(!isBinary){
+      data = data.toString()
+    }
+    let orb = clientRelayPairs[socket.uid]
+    if(orb){
+      try {
+        orb.send(data)
+      } catch(e) {
+        console.log("Client to Orb error:", e)
+      }
+    } else {
+      console.log("Orb not connected:", orbID, clientRelayPairs)
+    }
+  })
+  socket.on('close', () => {
+    delete connectedOrbClients[orbID][socket.uid]
+    relay = clientRelayPairs[socket.uid]
+    delete clientRelayPairs[socket.uid]
+    if(relay) {
+      try {
+        relay.close()
+      } catch(e) {
+        console.log("Error closing relay from client:",e)
+      }
+    }
+  })
+}
+
+function bindRemotePlayer(socket) {
+  console.log("Binding remote player")
   connectionQueue.push(socket)
   bindDataEvents(socket)
   upkeep() // Will claim player if available
-
   if (starting_game) {
     let message = {type: 'start', game: starting_game}
     python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
     starting_game = null
   }
-})
+}
 
 function bindDataEvents(peer) {
   peer.on('message', data => {
@@ -133,6 +240,57 @@ function bindDataEvents(peer) {
   //  console.error("ERROR",peer.pid,err)
   //})
 }
+
+// Relay Connection
+var relayRequestSocket = null
+function relayUpkeep() {
+  if(config.CONNECT_TO_RELAY) {
+    if(!relayRequestSocket){
+      try {
+        console.log("Initializing relay request socket")
+        relayRequestSocket = new WebSocket.WebSocket(config.CONNECT_TO_RELAY)
+        relayRequestSocket.on('message', data => {
+          let message = data.toString().trim()
+          console.log("Got relay request",message)
+          if(message == "GET"){
+            let socket = new WebSocket.WebSocket(config.CONNECT_TO_RELAY)
+            socket.on('open', () => {
+              bindRemotePlayer(socket)
+            })
+          }
+        })
+        relayRequestSocket.on('close', () => {
+          relayRequestSocket = null
+        })
+      } catch(e) {
+        console.log("Error connecting to relay:", e)
+      }
+    }
+  }
+  if(config.ACT_AS_RELAY){
+    for(orbID of Object.keys(connectedOrbs)){
+      let orbSocket = connectedOrbs[orbID]
+      for(client of Object.keys(connectedOrbClients[orbID] || {})){
+        if(!clientRelayPairs[client]){
+          let found = false
+          for(relay of Object.keys(connectedOrbRelays[orbID] || {})){
+            if(!relayClientPairs[relay]){
+              clientRelayPairs[client]=connectedOrbRelays[orbID][relay]
+              relayClientPairs[relay]=connectedOrbClients[orbID][client]
+              found = true
+              break
+            }
+          }
+          if(!found && orbSocket){
+            orbSocket.send("GET")
+          }
+        }
+      }
+    }
+  }
+}
+
+setInterval(relayUpkeep, 500)
 
 setInterval(upkeep, 1000)
 
@@ -295,6 +453,8 @@ http.createServer(function (request, response) {
     filePath = "/dev.html"
   else if (filePath == '/pixels.json')
     filePath = config.PIXELS || "/pixels-rhomb.json"
+  else if (Object.keys(connectedOrbs).includes(filePath.substr(1)))
+    filePath = "/index.html"
 
   filePath = `${__dirname}/${filePath}`
   //console.log(filePath);

@@ -1144,7 +1144,7 @@ var app = new Vue({
         return // Already trying to establish a connection
       }
       this.connectionStatus = "CONNECTING"
-      this.ws = new WebSocket(`ws://${window.location.hostname}:7777`)
+      this.ws = new WebSocket(`ws://${window.location.hostname}:7777${window.location.pathname}`)
       this.ws.onmessage = event => {
         self.connectionStatus = "CONNECTED"
         message = JSON.parse(event.data)

@@ -3,4 +3,5 @@ module.exports={
   //DEV_MODE: true,
   ORB_AUDIO:"USB Audio Device, USB Audio",
   //ORB_AUDIO:"USB PnP Sound Device, USB Audio",
+  CONNECT_TO_RELAY: false,
 }
