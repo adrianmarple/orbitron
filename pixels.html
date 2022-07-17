@@ -51,7 +51,8 @@ canvas {
 
 <script>
   
-let seed = 3
+const initialSeed = 3
+let seed = initialSeed
 const PHI = (1 + Math.sqrt(5))/ 2
 let verticies = []
 let edges = []
@@ -59,6 +60,7 @@ let path = []
 let isWall = false
 
 function createRhombicosidodecahedron() {
+  seed = initialSeed
   isWall = false
   verticies = []
   baseVerticies = [
@@ -87,6 +89,7 @@ function createRhombicosidodecahedron() {
 Y_GAP = 4.8
 X_GAP = 2.75
 function createWallTiling() {
+  seed = initialSeed
   isWall = true
   verticies = []
   edges = []
