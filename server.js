@@ -270,6 +270,7 @@ function relayUpkeep() {
   if(config.ACT_AS_RELAY){
     for(orbID of Object.keys(connectedOrbs)){
       let orbSocket = connectedOrbs[orbID]
+      // Connect clients to available relays
       for(client of Object.keys(connectedOrbClients[orbID] || {})){
         if(!clientRelayPairs[client]){
           let found = false
@@ -281,9 +282,16 @@ function relayUpkeep() {
               break
             }
           }
+          // No available relay sockets, request one
           if(!found && orbSocket){
             orbSocket.send("GET")
           }
+        }
+      }
+      // Remove excess relays, if any
+      for(relay of Object.keys(connectedOrbRelays[orbID] || {}){
+        if(!relayClientPairs[relay]){
+          connectedOrbRelays[orbID][relay].close()
         }
       }
     }
