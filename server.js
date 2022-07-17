@@ -289,7 +289,7 @@ function relayUpkeep() {
         }
       }
       // Remove excess relays, if any
-      for(relay of Object.keys(connectedOrbRelays[orbID] || {}){
+      for(relay of Object.keys(connectedOrbRelays[orbID] || {})){
         if(!relayClientPairs[relay]){
           connectedOrbRelays[orbID][relay].close()
         }
