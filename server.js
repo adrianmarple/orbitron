@@ -397,7 +397,6 @@ function broadcast(baseMessage) {
 }
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
-python_process.stdin.write(JSON.stringify({ type: "config", config }))
 
 python_process.stdout.on('data', data => {
   messages = data.toString().trim().split("\n")
