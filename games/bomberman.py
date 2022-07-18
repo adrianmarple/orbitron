@@ -23,7 +23,6 @@ additional_config = {
   "PICKUP_CHANCE": 0, #0.3
   "NUM_WALLS": 60,
   "WALL_SPAWN_TIME": 10,
-  "SANDBOX_WALL_NUM": 20,
   "BOMB_MOVE_FREQ": 0.07,
   "USE_SHIELDS": True,
   "ROUND_TIME": 150,
@@ -40,21 +39,8 @@ class Rhomberman(Game):
   previous_wall_generation_time = 0
   explosion_providence = [None] * engine.SIZE
 
-
-  def start_update(self):
-    Game.start_update(self)
-
-    wall_count = 0
-    for status in self.statuses:
-      if status == "wall":
-        wall_count += 1
-    for i in range(self.SANDBOX_WALL_NUM - wall_count):
-      self.spawn("wall")
-
-
-
   def countdown_ontimeout(self):
-    for player in self.playing_players():
+    for player in self.claimed_players():
       player.tap = 0 # Prevent bombs from being placed due to taps during countdown
 
     for i in range(self.NUM_WALLS):
@@ -65,7 +51,7 @@ class Rhomberman(Game):
 
 
   def play_update(self):
-    for player in self.playing_players():
+    for player in self.claimed_players():
       player.move()
 
     if time() - self.previous_wall_generation_time > self.WALL_SPAWN_TIME:
@@ -84,7 +70,7 @@ class Rhomberman(Game):
 
     live_player_count = 0
     last_player_alive = self.players[0]
-    for player in self.playing_players():
+    for player in self.claimed_players():
       if player.is_alive:
         live_player_count += 1
 
@@ -99,7 +85,7 @@ class Rhomberman(Game):
 
 
   def render_game(self):
-    for player in self.current_players():
+    for player in self.claimed_players():
       player.render_ghost_trail()
 
     for i in range(len(self.statuses)):
@@ -171,7 +157,7 @@ class Bomberman(Player):
     if Player.is_occupied(self, position):
       return True
 
-    for player in game.current_players():
+    for player in game.claimed_players():
       for bomb in player.bombs:
         if bomb.position == position:
           if bomb.move(self.position):
@@ -302,7 +288,7 @@ class Bomb:
 
     occupied = game.statuses[new_pos] == "wall"
 
-    for player in game.current_players():
+    for player in game.claimed_players():
       if not player.is_alive:
         continue
 

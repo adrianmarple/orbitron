@@ -35,6 +35,7 @@ additional_config = {
   "SHARED_LIVES": True,
   "PULSE_DURATION": 0.75,
   "GHOST_STUN_TIME": 5,
+  "SELECTION_WEIGHTS": [0, 0.1, 0.1, 0.1, 0.1, 0],
 }
 
 
@@ -76,19 +77,6 @@ class PacMan(Game):
       return [player for player in self.players if player.is_pacman and player.is_playing]
 
 
-  def start_update(self):
-    Game.start_update(self)
-
-    ghost_count = 0
-    num_ghosts = len(self.pacmen())
-    for ghost in self.ghosts():
-      ghost_count += 1
-      ghost.is_playing = ghost_count <= num_ghosts
-      if ghost.is_playing:
-        ghost.move()
-
-    self.spawn_pellets()
-
   def start_ontimeout(self):
     # Suppliment with AI ghosts
     ghost_count = 0
@@ -117,16 +105,10 @@ class PacMan(Game):
 
 
   def play_update(self):
-    for player in self.playing_players():
+    for player in self.claimed_players():
       player.move()
 
-    ghosts_win = True
-    for player in self.playing_players():
-      if player.is_pacman and player.is_alive:
-        ghosts_win = False
-        break
-
-    if ghosts_win or self.data["lives"] <= 0:
+    if self.data["lives"] <= 0:
       self.play_ontimeout()
       self.victor = engine.Dummy(
         name="Ghosts",
@@ -153,7 +135,7 @@ class PacMan(Game):
 
 
   def render_game(self):
-    reversed_players = self.current_players()
+    reversed_players = self.claimed_players()
     reversed_players.reverse()
 
     power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 16))
@@ -234,7 +216,7 @@ class Pacman(Player):
     if game.statuses[self.position] == "power":
       sounds["explosion"].play()
       power_pellet_end_time = time() + game.POWER_PELLET_DURATION
-      for player in game.playing_players():
+      for player in game.claimed_players():
         player.power_pellet_end_time = power_pellet_end_time
       game.data["score"] += game.POWER_PELLET_SCORE
       game.statuses[self.position] = "blank"

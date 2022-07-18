@@ -23,6 +23,7 @@ additional_config = {
   "ADDITIONAL_APPLES": 25,
   "MOVE_FREQ": 0.25,
   "SHRINK_FREQ": 0.03,
+  "SELECTION_WEIGHTS": [1, 1, 1, 1, 1, 1],
 }
 
 class Snektron(Game):
@@ -31,25 +32,7 @@ class Snektron(Game):
 
   def countdown_ontimeout(self):
     Game.countdown_ontimeout(self)
-    data["current_leader"] = -1
-
-  def start_update(self):
-    Game.start_update(self)
-
-    apple_count = 0
-    for status in self.statuses:
-      if status == "apple":
-        apple_count += 1
-    total_snek_length = 0
-    for snek in self.claimed_players():
-      total_snek_length += len(snek.tail)
-    max_total_length = self.SANDBOX_APPLES_PER_SNEK * len(self.claimed_players())
-    for i in range(max_total_length - total_snek_length - apple_count):
-      self.spawn("apple")
-
-  def countdown_ontimeout(self):
-    Game.countdown_ontimeout(self)
-    for i in range(len(self.playing_players()) + self.ADDITIONAL_APPLES):
+    for i in range(len(self.claimed_players()) + self.ADDITIONAL_APPLES):
       self.spawn("apple")
 
   def render_game(self):
@@ -122,7 +105,7 @@ class Snek(Player):
       self.prev_pos = self.tail[1]
       self.shrinking = time()
 
-    for player in game.current_players():
+    for player in game.claimed_players():
       if player == self:
         if player.tail_occupies(self.position):
           self.die()

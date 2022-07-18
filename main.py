@@ -79,13 +79,18 @@ def check_vote():
       engine.start(engine.game)
     elif election == "quit":
       engine.start_random_game()
-    elif election == "ready":
-      engine.game.ontimeout()
 
     for player in engine.game.players:
       if election in player.votes:
         del player.votes[election]
 
+def are_all_ready():
+  if len(engine.game.claimed_players()) <= 1:
+    return False
+  for player in engine.game.claimed_players():
+    if not player.is_ready:
+      return False
+  return True
 
 def consume_input():
   for line in fileinput.input():
@@ -105,18 +110,20 @@ def consume_input():
       elif message["type"] == "release":
         player.is_claimed = False
         check_vote()
+      elif message["type"] == "ready":
+        player.set_ready()
+        if engine.game.state == "start" and are_all_ready():
+          engine.game.ontimeout()
+      elif message["type"] == "unready":
+        player.set_unready()
       elif message["type"] == "vote":
         vote = message["vote"]
         vote_to_message[vote] = message
         election = message["election"]
         if player.votes.get(election, None) == vote:
           player.votes[election] = ""
-          if election == "ready":
-            player.set_unready()
         else:
           player.votes[election] = vote
-          if election == "ready":
-            player.set_ready()
         check_vote()
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])

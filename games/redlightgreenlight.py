@@ -20,7 +20,7 @@ additional_config = {
   "MAX_RED_LIGHT_TIME": 4,
   "MIN_GREEN_LIGHT_TIME": 1.5,
   "MAX_GREEN_LIGHT_TIME": 6,
-  "MIN_PULSE_DURATION": 0.2,
+  "MIN_PULSE_DURATION": 0.25,
   "MAX_PULSE_DURATION": 0.6,
 }
 
@@ -31,15 +31,10 @@ class RLGL(Game):
   light_change_time = 0
   pulse_duration = 0
 
-  def start_update(self):
-    Game.start_update(self)
-    self.update_lights()
 
   def play_update(self):
     Game.play_update(self)
-    self.update_lights()
 
-  def update_lights(self):
     if self.light_change_time < time():
       self.red_light = not self.red_light
       min_wait = 0

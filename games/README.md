@@ -33,8 +33,6 @@ Here are the relevant fields that a game has:
 
 And some helper methods attacted the base `Game` class:
  - `claimed_players()`: All players with `is_claimed` set to true.
- - `playing_players()`: All players with `is_playing` set to true.
- - `current_players()`: Same as `playing_players` unless `state` is "start" in which case it's the union of `playing_players` and  `claimed_players`.
  - `spawn(status)`: Adds a status (passed in as a parameter) to a random "blank" pixel that is not occupied by a player.
  - `clear()`: set all statuses to "blank"
 

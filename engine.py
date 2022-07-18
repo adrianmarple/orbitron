@@ -36,6 +36,7 @@ GOOD_COLOR = np.array((255, 0, 255))
 BAD_COLOR = np.array((255, 0, 0))
 
 base_config = {
+  "SELECTION_WEIGHTS": [0, 1, 1, 1, 1, 1],
   "INVULNERABILITY_TIME": 3,
   "MOVE_FREQ": 0.18,
   "MOVE_BIAS": 0.5,
@@ -84,13 +85,19 @@ game_selection_weights = {}
 # ================================ START =========================================
 
 def start_random_game():
+  player_count = 1
+  if game:
+    player_count = len(game.claimed_players())
+
   total_weight = 0
-  for weight in game_selection_weights.values():
+  for (name, weight) in game_selection_weights.items():
+    weight *= games[name].SELECTION_WEIGHTS[player_count-1]
     total_weight += weight
 
   x = random() * total_weight
   selection = ""
   for (name, weight) in game_selection_weights.items():
+    weight *= games[name].SELECTION_WEIGHTS[player_count-1]
     if x < weight:
       selection = name
       break
@@ -301,7 +308,7 @@ class Player:
     if game.statuses[position] == "wall":
       return True
 
-    for player in game.current_players():
+    for player in game.claimed_players():
       if player.is_alive and player.position == position:
         return True
 
@@ -449,18 +456,11 @@ class Game:
 
 
   def update(self):
-    if self.state == "start":
-      self.start_update()
-    elif self.state == "play":
+    if self.state == "play":
       self.play_update()
 
-  def start_update(self):
-    for player in self.claimed_players():
-      if not player.is_ready:
-        player.move()
-
   def play_update(self):
-    for player in self.playing_players():
+    for player in self.claimed_players():
       player.move()
 
   def ontimeout(self):
@@ -488,7 +488,7 @@ class Game:
     self.end_time = time() + self.ROUND_TIME
     self.state = "play"
     music[self.battle_music].play()
-    for player in self.playing_players():
+    for player in self.claimed_players():
       player.tap = 0 # Prevent bombs from being placed due to taps during countdown
 
 
@@ -498,7 +498,7 @@ class Game:
     self.end_time = time() + 1
     top_score = 0
     top_score_time = 0
-    for player in self.playing_players():
+    for player in self.claimed_players():
       if player.score > top_score or (player.score == top_score and player.score_timestamp < top_score_time):
         top_score = player.score
         top_score_time = player.score_timestamp
@@ -518,7 +518,11 @@ class Game:
     global pixels
     pixels *= 0
 
-    if self.state == "countdown":
+    if self.state == "start":
+      for player in self.claimed_players():
+        player.render_ready()
+
+    elif self.state == "countdown":
       countdown = ceil(self.end_time - time())
       countup = 5 - countdown
       render_pulse(
@@ -527,8 +531,27 @@ class Game:
         start_time=self.end_time - countdown,
         duration=READY_PULSE_DURATION)
 
-      for player in self.playing_players():
+      for player in self.claimed_players():
         player.render_ready()
+
+    elif self.state == "play":
+      if self.end_time > 0 and self.end_time - time() < 7:
+        countdown = ceil(self.end_time - time())
+        countup = 7 - countdown
+        render_pulse(
+          direction=(0,0,COORD_MAGNITUDE),
+          color=np.array((60,60,60)) * countup,
+          start_time=self.end_time - countdown,
+          duration=READY_PULSE_DURATION)
+
+      self.render_game()
+      for player in self.claimed_players():
+          player.render()
+
+    elif self.state == "previctory":
+      self.render_game()
+      for player in self.claimed_players():
+          player.render()
 
     elif self.state == "victory":
       start_time = self.end_time - self.VICTORY_TIMEOUT
@@ -561,25 +584,6 @@ class Game:
         for (i, coord) in enumerate(coords):
           color_pixel(i, color * sin(coord[2] - 4*(timer - 0.3)))
 
-    else:
-      if self.state == "play" and self.end_time > 0 and self.end_time - time() < 7:
-        countdown = ceil(self.end_time - time())
-        countup = 7 - countdown
-        render_pulse(
-          direction=(0,0,COORD_MAGNITUDE),
-          color=np.array((60,60,60)) * countup,
-          start_time=self.end_time - countdown,
-          duration=READY_PULSE_DURATION)
-      self.render_game()
-      if self.state != "play":
-        for player in self.claimed_players():
-          if player.is_ready:
-            player.render_ready()
-          else:
-            player.render()
-      else:
-        for player in self.current_players():
-          player.render()
 
   def render_game(self):
     pass
@@ -598,12 +602,6 @@ class Game:
 
   def claimed_players(self):
     return [player for player in self.players if player.is_claimed]
-  def playing_players(self):
-    return [player for player in self.players if player.is_playing]
-
-  def current_players(self):
-    return [player for player in self.players if player.is_playing or
-        (player.is_claimed and self.state == "start")]
 
   def spawn(self, status):
     for i in range(10):
@@ -611,7 +609,7 @@ class Game:
       if self.statuses[pos] != "blank":
         continue
       occupied = False
-      for player in self.current_players():
+      for player in self.claimed_players():
         if player.occupies(pos):
           occupies = True
           break

@@ -15,6 +15,8 @@ Player = engine.Player
 
 additional_config = {
   "CONTINUOUS_MOVEMENT": True,
+  "MOVE_FREQ": 0.28,
+  "SELECTION_WEIGHTS": [1, 0, 1, 1, 1, 1],
 }
 
 class ColorWar(Game):
@@ -22,7 +24,7 @@ class ColorWar(Game):
   leader = None
 
   def play_update(self):
-    for player in self.playing_players():
+    for player in self.claimed_players():
       player.move()
 
     counts = {}
@@ -39,9 +41,9 @@ class ColorWar(Game):
   def render_game(self):
     for i in range(len(self.statuses)):
       if self.statuses[i] != "blank":
-        color = self.statuses[i].color / 10
+        color = self.statuses[i].color / 16
         if self.statuses[i] == self.leader and self.state != "start":
-          color *= 0.7 + 0.5 * sin(time() * 10)
+          color *= 0.7 + 0.5 * sin(time() * 8)
         engine.color_pixel(i, color)
 
 
@@ -58,6 +60,8 @@ class Inkling(Player):
 
     Player.set_ready(self)
 
+  def current_color(self):
+    return self.color * (0.55 + 0.45 * sin(time() * 13))
 
 game = ColorWar(additional_config)
 game.generate_players(Inkling)
