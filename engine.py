@@ -611,7 +611,7 @@ class Game:
       occupied = False
       for player in self.claimed_players():
         if player.occupies(pos):
-          occupies = True
+          occupied = True
           break
       if not occupied:
         self.statuses[pos] = status

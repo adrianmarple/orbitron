@@ -43,6 +43,7 @@ class Rhomberman(Game):
     for player in self.claimed_players():
       player.tap = 0 # Prevent bombs from being placed due to taps during countdown
 
+    self.clear()
     for i in range(self.NUM_WALLS):
       self.spawn("wall")
 
