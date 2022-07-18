@@ -51,9 +51,13 @@ class RLGL(Game):
       self.light_change_time = time() + uniform(min_wait, max_wait)
 
   def render_game(self):
+    if self.red_light:
+      pole_color = engine.BAD_COLOR
+    else:
+      pole_color = engine.GOOD_COLOR * (0.5 + 0.5 * sin(time() * 15))
+
     for pos in engine.north_pole:
-      engine.color_pixel(pos,
-          engine.BAD_COLOR if self.red_light else engine.GOOD_COLOR)
+      engine.color_pixel(pos, pole_color)
 
     if not self.red_light:
       engine.render_pulse(
@@ -92,4 +96,4 @@ class Runner(Player):
 
 
 game = RLGL(additional_config)
-game.generate_players(Runner, positions=[75,85,62,8,338,91])
+game.generate_players(Runner, positions=[79,39,12,113,352,401])
