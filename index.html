@@ -794,6 +794,12 @@ document.addEventListener("click", event => {
   }
 })
 
+function uuid() {
+  let url = URL.createObjectURL(new Blob());
+  URL.revokeObjectURL(url);
+  return url.split("/")[3];
+};
+
 Vue.component('tallybutton', {
   props: ['label', 'election', 'vote', 'settings'],
   computed: {
@@ -878,6 +884,7 @@ var app = new Vue({
 
     config: {},
     GAMES_INFO,
+    uuid: uuid(),
   },
 
   created() {
@@ -1122,7 +1129,7 @@ var app = new Vue({
         return // Already trying to establish a connection
       }
       this.connectionStatus = "CONNECTING"
-      this.ws = new WebSocket(`ws://${window.location.hostname}:7777${window.location.pathname}`)
+        this.ws = new WebSocket(`ws://${window.location.hostname}:7777${window.location.pathname}/${this.uuid}`)
       this.ws.onmessage = event => {
         self.connectionStatus = "CONNECTED"
         message = JSON.parse(event.data)
@@ -1328,7 +1335,6 @@ function playExplosion(event) {
 function isNothing(val) {
   return val === undefined || val === null
 }
-
 
 </script>
 </body>

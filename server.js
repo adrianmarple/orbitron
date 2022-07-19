@@ -78,12 +78,68 @@ function devBroadcast(message) {
   }
 }
 
-// Orb management
+// Orb relay management
 const connectedOrbs = {}
 const connectedOrbRelays = {}
 const connectedOrbClients = {}
 const relayClientPairs = {}
 const clientRelayPairs = {}
+
+// Class that handles mutliple redundant connections between client and orb
+class ClientConnection {
+  constructor(id) {
+    this.id = id
+    this.sockets = []
+    this.callbacks = {}
+    this.latestMessage = Date.now()
+    // used by business logic
+    this.pid = null
+    this.lastActivityTime = null
+  }
+
+  getID() {
+    return this.id
+  }
+
+  bindWebSocket(socket) {
+    let self = this
+    this.sockets.push(socket)
+    socket.on("message", (data) => {
+      //TODO check message timestamp
+      if(self.callbacks.message){
+        self.callbacks.message(data)
+      }
+    })
+    socket.on("close", () => {
+      let index = self.sockets.indexOf(socket)
+      self.sockets.splice(index)
+      if(self.sockets.length <= 0){
+        if(self.callbacks.close){
+          self.callbacks.close()
+        }
+      }
+    })
+  }
+
+  // functions used by business logic
+  on(e, callback) {
+    this.callbacks[e] = callback
+  }
+
+  send(message) {
+    for(const socket of this.sockets){
+      socket.send(message)
+    }
+  }
+  
+  close() {
+    for(const socket of this.sockets){
+      socket.close()
+    }
+  }
+}
+
+const clientConnections = {}
 
 // Client Websocket server
 
@@ -99,23 +155,29 @@ server.listen(7777, "0.0.0.0", function() {
 wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
 
 wsServer.on('connection', (socket, request) => {
-  socket.uid = Date.now()
+  socket.rid = Date.now()
   let url = request.url.trim()
-  console.log('Connection accepted to',request.url)
-  if(url.includes("relay")){
-    let orbID = url.split("/")[2]
+  console.log('WS connection request made to',request.url)
+  let meta = url.split("/")
+  let orbID = meta[1]
+  let clientID = meta[2]
+  if(orbID == "") { // direct client
+    if(!clientConnections[clientID]){
+      clientConnections[clientID] = new ClientConnection(clientID)
+    }
+    let clientConnection = clientConnections[clientID]
+    clientConnection.bindWebSocket(socket)
+    bindRemotePlayer(clientConnection)
+  } else if(orbID == "relay") { // relay server
+    orbID = clientID
     if(!connectedOrbs[orbID]){
       bindOrbServer(socket, orbID)
     } else {
       bindOrbRelay(socket, orbID)
     }
-  } else {
-    if(url == "/") {
-      bindRemotePlayer(socket)
-    } else { // relay client
-      let orbID = url.substr(1)
-      bindOrbClient(socket, orbID)
-    }
+  } else { //relay client
+    socket.clientID = clientID
+    bindOrbClient(socket, orbID, clientID)
   }
 })
 
@@ -135,12 +197,12 @@ function bindOrbRelay(socket, orbID){
   if(!connectedOrbRelays[orbID]) {
     connectedOrbRelays[orbID] = {}
   }
-  connectedOrbRelays[orbID][socket.uid] = socket
+  connectedOrbRelays[orbID][socket.rid] = socket
   socket.on('message', (data,isBinary) => {
     if(!isBinary){
       data = data.toString()
     }
-    let client = relayClientPairs[socket.uid]
+    let client = relayClientPairs[socket.rid]
     if(client) {
       try {
         client.send(data)
@@ -152,9 +214,9 @@ function bindOrbRelay(socket, orbID){
     }
   })
   socket.on('close', () => {
-    delete connectedOrbRelays[orbID][socket.uid]
-    let client = relayClientPairs[socket.uid]
-    delete relayClientPairs[socket.uid]
+    delete connectedOrbRelays[orbID][socket.rid]
+    let client = relayClientPairs[socket.rid]
+    delete relayClientPairs[socket.rid]
     if(client){
       try {
         client.close()
@@ -170,12 +232,12 @@ function bindOrbClient(socket, orbID) {
   if(!connectedOrbClients[orbID]){
     connectedOrbClients[orbID] = {}
   }
-  connectedOrbClients[orbID][socket.uid] = socket
+  connectedOrbClients[orbID][socket.rid] = socket
   socket.on('message', (data, isBinary) => {
     if(!isBinary){
       data = data.toString()
     }
-    let orb = clientRelayPairs[socket.uid]
+    let orb = clientRelayPairs[socket.rid]
     if(orb){
       try {
         orb.send(data)
@@ -187,9 +249,9 @@ function bindOrbClient(socket, orbID) {
     }
   })
   socket.on('close', () => {
-    delete connectedOrbClients[orbID][socket.uid]
-    relay = clientRelayPairs[socket.uid]
-    delete clientRelayPairs[socket.uid]
+    delete connectedOrbClients[orbID][socket.rid]
+    relay = clientRelayPairs[socket.rid]
+    delete clientRelayPairs[socket.rid]
     if(relay) {
       try {
         relay.close()
@@ -201,7 +263,6 @@ function bindOrbClient(socket, orbID) {
 }
 
 function bindRemotePlayer(socket) {
-  console.log("Binding remote player")
   connectionQueue.push(socket)
   bindDataEvents(socket)
   upkeep() // Will claim player if available
@@ -247,17 +308,21 @@ function relayUpkeep() {
   if(config.CONNECT_TO_RELAY) {
     if(!relayRequestSocket){
       try {
+        let relayURL = `ws://${config.CONNECT_TO_RELAY}/relay/${config.ORB_ID}`
         console.log("Initializing relay request socket")
-        relayRequestSocket = new WebSocket.WebSocket(config.CONNECT_TO_RELAY)
+        relayRequestSocket = new WebSocket.WebSocket(relayURL)
         relayRequestSocket.on('message', data => {
-          let message = data.toString().trim()
-          console.log("Got relay request",message)
-          if(message == "GET"){
-            let socket = new WebSocket.WebSocket(config.CONNECT_TO_RELAY)
-            socket.on('open', () => {
-              bindRemotePlayer(socket)
-            })
-          }
+          let clientID = data.toString().trim()
+          console.log("Got relay request",clientID)
+          let socket = new WebSocket.WebSocket(relayURL)
+          socket.on('open', () => {
+            if(!clientConnections[clientID]){
+              clientConnections[clientID] = new ClientConnection(clientID)
+            }
+            let clientConnection = clientConnections[clientID]
+            clientConnection.bindWebSocket(socket)
+            bindRemotePlayer(clientConnection)
+          })
         })
         relayRequestSocket.on('close', () => {
           relayRequestSocket = null
@@ -284,7 +349,7 @@ function relayUpkeep() {
           }
           // No available relay sockets, request one
           if(!found && orbSocket){
-            orbSocket.send("GET")
+            orbSocket.send(connectedOrbClients[orbID][client].clientID)
           }
         }
       }
