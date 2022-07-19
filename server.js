@@ -7,6 +7,11 @@ const path = require('path')
 const process = require('process')
 const { spawn, exec } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
+const SimpleSignalClient = require('simple-signal-client')
+const wrtc = require('wrtc')
+const { io } = require("socket.io-client")
+const SimplePeerServer = require('simple-peer-server');
+const { Server } = require("socket.io");
 
 // Log to file and standard out
 const util = require('util')
@@ -27,7 +32,7 @@ process.on('SIGTERM', handleKill)
 process.on('SIGHUP', handleKill)
 
 process.on('uncaughtException', function(err) {
-  console.log('Caught exception: ' + err)
+  console.log('Uncaught exception: ' + err)
 });
 
 //load and process config and environment variables
@@ -45,7 +50,7 @@ if (game_index) {
 // Dev Kit Websocket server
 
 var devServer = http.createServer(function(request, response) {
-  console.log(' Received request for ' + request.url)
+  console.log('Dev Server Received request for ' + request.url)
   response.writeHead(404)
   response.end()
 })
@@ -127,6 +132,34 @@ class ClientConnection {
     })
   }
 
+  bindWebRTCSocket(socket) {
+    let self = this
+    this.sockets.push(socket)
+    socket.on("data", (data) => {
+      try {
+        let content = JSON.parse(data)
+        if(content.timestamp > self.latestMessage){
+          if(self.callbacks.message){
+            self.callbacks.message(content)
+          }
+        }
+      } catch(e) {
+        console.log("Error processing webRTC socket message", e)
+      }
+    })
+    socket.on("close", () => {
+      let index = self.sockets.indexOf(socket)
+      self.sockets.splice(index)
+      if(self.sockets.length <= 0){
+        if(self.callbacks.close){
+          self.callbacks.close()
+        }
+      }
+    })
+    console.log("SOCKET CLOSE?", socket.close)
+    socket.close = socket.destroy
+  }
+
   // functions used by business logic
   on(e, callback) {
     this.callbacks[e] = callback
@@ -150,7 +183,7 @@ const clientConnections = {}
 // Client Websocket server
 
 var server = http.createServer(function(request, response) {
-  console.log(' Received request for ' + request.url)
+  console.log('Websocket Server received request for ' + request.url)
   response.writeHead(404)
   response.end()
 })
@@ -168,10 +201,7 @@ wsServer.on('connection', (socket, request) => {
   let orbID = meta[1]
   let clientID = meta[2]
   if(orbID == "") { // direct client
-    if(!clientConnections[clientID]){
-      clientConnections[clientID] = new ClientConnection(clientID)
-    }
-    let clientConnection = clientConnections[clientID]
+    let clientConnection = getClientConnection(clientID)
     clientConnection.bindWebSocket(socket)
     bindRemotePlayer(clientConnection)
   } else if(orbID == "relay") { // relay server
@@ -186,6 +216,13 @@ wsServer.on('connection', (socket, request) => {
     bindOrbClient(socket, orbID, clientID)
   }
 })
+
+function getClientConnection(clientID) {
+  if(!clientConnections[clientID]){
+    clientConnections[clientID] = new ClientConnection(clientID)
+  }
+  return clientConnections[clientID]
+}
 
 function bindOrbServer(socket, orbID) {
   console.log("Binding orb server",orbID)
@@ -269,6 +306,9 @@ function bindOrbClient(socket, orbID) {
 }
 
 function bindRemotePlayer(socket) {
+  if(connectionQueue.includes(socket) || Object.values(connections).includes(socket)){
+    return
+  }
   connectionQueue.push(socket)
   bindDataEvents(socket)
   upkeep() // Will claim player if available
@@ -281,19 +321,16 @@ function bindRemotePlayer(socket) {
 
 function bindDataEvents(peer) {
   peer.on('message', content => {
-    //console.log("DATA",peer.pid,peer._id,!peer.pid,!connections[peer.pid])
     if (!typeof(peer.pid)==="number" || !connections[peer.pid]) {
       return
     }
     content.self = peer.pid
     peer.lastActivityTime = Date.now()
-    // console.log("DATA CONTENT",content)
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
 
   })
 
   peer.on('close', () => {
-    //console.log("CLOSE "+ peer.pid)
     release = { self: peer.pid, type: "release" }
     python_process.stdin.write(JSON.stringify(release) + "\n", "utf8")
     if (typeof(peer.pid)==="number" && connections[peer.pid]) {
@@ -321,10 +358,7 @@ function relayUpkeep() {
           console.log("Got relay request",clientID)
           let socket = new WebSocket.WebSocket(relayURL)
           socket.on('open', () => {
-            if(!clientConnections[clientID]){
-              clientConnections[clientID] = new ClientConnection(clientID)
-            }
-            let clientConnection = clientConnections[clientID]
+            let clientConnection = getClientConnection(clientID)
             clientConnection.bindWebSocket(socket)
             bindRemotePlayer(clientConnection)
           })
@@ -370,8 +404,6 @@ function relayUpkeep() {
 
 setInterval(relayUpkeep, 500)
 
-setInterval(upkeep, 1000)
-
 function upkeep() {
   // Check for stale players
   if (gameState.players && !NO_TIMEOUT) {
@@ -409,6 +441,8 @@ function upkeep() {
     }
   }
 }
+
+setInterval(upkeep, 1000)
 
 MAX_PLAYERS = 6
 connections = {}
@@ -520,7 +554,7 @@ python_process.on('uncaughtException', function(err) {
 
 // Simple HTTP server
 
-http.createServer(function (request, response) {
+const rootServer = http.createServer(function (request, response) {
   var filePath = request.url
 
   if (filePath == '/')
@@ -581,4 +615,70 @@ http.createServer(function (request, response) {
     }
   });
 
-}).listen(config.HTTP_SERVER_PORT || 1337, "0.0.0.0")
+})
+
+//WebRTC switchboard
+const switchboard = new Server(rootServer);
+signalServer = require('simple-signal-server')(switchboard)
+
+connectedWebRTCOrbs = {}
+
+signalServer.on('discover', (request) => {
+  console.log("WEBRTC DISCOVER",request.discoveryData)
+  let orbID = request.discoveryData.orbID
+  let clientID = request.socket.id // clients are uniquely identified by socket.id
+  if(orbID){
+    if(request.discoveryData.isOrb) {
+      connectedWebRTCOrbs[orbID] = clientID
+    }
+    request.discover([connectedWebRTCOrbs[orbID]]) // respond with id of connected orb
+  }
+})
+
+signalServer.on('disconnect', (socket) => {
+  console.log("WEBRTC DISCONNECT",socket.id)
+  let clientID = socket.id
+  let orbID = null
+  for(id in connectedWebRTCOrbs){
+    if(connectedWebRTCOrbs[id] == clientID){
+      orbID = id
+      break
+    }
+  }
+  if(orbID){
+    delete connectedWebRTCOrbs[orbID]
+  }
+})
+
+signalServer.on('request', (request) => {
+  console.log("WEBRTC REQUEST FORWARDED",request.metadata)
+  request.forward() // forward all requests to connect
+})
+const rootServerPort = config.HTTP_SERVER_PORT || 1337
+rootServer.listen(rootServerPort, "0.0.0.0")
+
+//WebRTC connection to switchboard
+const socket = io(config.SWITCHBOARD || `http://localhost:${rootServerPort}`);
+const signalClient = new SimpleSignalClient(socket)
+signalClient.on('discover', (ids) => {
+  console.log("WEBRTC DISCOVER RESPONSE",ids)
+})
+
+signalClient.on('request', async (request) => {
+  try {
+    const { peer, metadata } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
+    console.log("WEBRTC REQUEST ACCEPTED",metadata)
+    let clientConnection = getClientConnection(metadata.clientID)
+    clientConnections.bindWebRTCSocket(peer)
+    bindRemotePlayer(clientConnection)
+  } catch (e) {
+    console.error("Error establishing WebRTC connection", e)
+  }
+})
+
+function webRTCUpkeep() {
+  signalClient.discover({orbID:config.ORB_ID,isOrb:true})
+}
+
+setInterval(webRTCUpkeep, 5000)
+

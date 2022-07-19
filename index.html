@@ -9,6 +9,8 @@
 <link rel="shortcut icon" href="/images/favicon.png" />
 <script src="/thirdparty/vue.js" type="text/javascript"></script>
 <!-- <script src="/thirdparty/math.js" type="text/javascript"></script> -->
+<script src="/thirdparty/simple-signal-client.min.js" type="text/javascript"></script>
+<script src="/thirdparty/socket.io.min.js" type="text/javascript"></script>
 
 <style type="text/css">
 
@@ -868,6 +870,9 @@ var app = new Vue({
   el: '#app',
   data: {
     ws: null,
+    wrtcs: null,
+    signalSocket: null,
+    signalClient: null,
     connectionStatus: "CONNECTING",
     state: {},
     localFlags: {},
@@ -890,16 +895,22 @@ var app = new Vue({
   created() {
 
     this.startWebsocket()
+    this.startWebRTCSocket()
     this.warmUpAudio()
     onfocus = () => {
       if (!this.ws) {
-          let self=this
-          setTimeout(function(){self.startWebsocket();},10)
+        let self=this
+        setTimeout(function(){self.startWebsocket();},10)
+      }
+      if (!this.wrtcs) {
+        let self = this
+        setTimeout(function(){self.startWebRTCSocket();},10)
       }
     };
     onblur = () => {
       if (!this.state.notimeout) {
         this.destroyWebsocket()
+        this.destroyWebRTCSocket()
         this.connectionStatus = "LOST FOCUS"
       }
     };
@@ -1099,14 +1110,31 @@ var app = new Vue({
     send(json) {
       //console.log(json)
       json.timestamp = Date.now()
+      let message = null
+      try {
+        message = JSON.stringify(json)
+      } catch(e) {
+        console.log("Error stringifying JSON", e)
+        return
+      }
       if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
         this.startWebsocket()
       } else if(this.ws.readyState === WebSocket.OPEN) {
         try {
-          this.ws.send(JSON.stringify(json))
+          this.ws.send(message)
         } catch (error) {
           this.destroyWebsocket()
           this.startWebsocket()
+        }
+      }
+      if(!this.wrtcs) {
+        this.startWebRTCSocket()
+      } else {
+        try {
+          this.wrtcs.send(message)
+        } catch(e) {
+          this.destroyWebRTCSocket()
+          this.startWebRTCSocket()
         }
       }
     },
@@ -1130,24 +1158,10 @@ var app = new Vue({
         return // Already trying to establish a connection
       }
       this.connectionStatus = "CONNECTING"
-        this.ws = new WebSocket(`ws://${window.location.hostname}:7777${window.location.pathname}/${this.uuid}`)
+      this.ws = new WebSocket(`ws://${window.location.hostname}:7777${window.location.pathname}/${this.uuid}`)
       this.ws.onmessage = event => {
         self.connectionStatus = "CONNECTED"
-        message = JSON.parse(event.data)
-        switch(message.event) {
-        case "sound":
-          if (message.playerId < 0 || message.playerId == message.self) {
-            self.playSound(message.type)
-          }
-          break
-        default:
-          if (message.self != this.state.self) {
-            window.parent.postMessage({self: message.self}, '*')
-          }
-          self.state = message
-          // console.log(message)
-          self.$forceUpdate()
-        }
+        self.handleMessage(event.data)
       }
       this.ws.onclose = event => {
         console.log("CLOSE")
@@ -1158,6 +1172,74 @@ var app = new Vue({
         console.error("ERROR",event)
         self.connectionStatus = "ERROR"
         setTimeout(function(){ self.destroyWebsocket(); })
+      }
+    },
+
+    destroyWebRTCSocket() {
+      if(this.wrtcs) {
+        this.wrtcs.destroy()
+        this.wrtcs = null
+      }
+      if(this.signalSocket) {
+        this.signalSocket.close()
+        this.signalSocket = null
+      }
+      this.signalClient = null
+    },
+
+    startWebRTCSocket() {
+      let self=this
+      if(self.signalClient) {
+        return // Already trying to establish a connection
+      }
+      // this.connectionStatus = "CONNECTING"
+      self.signalSocket = io(location.origin)
+      self.signalClient = new SimpleSignalClient(self.signalSocket)
+      self.signalClient.on('discover', async (allIDs) => {
+        allIDs.forEach(async function(id){
+          try {
+            const { peer } = await self.signalClient.connect(id,{clientID:self.uuid})
+          } catch(e) {
+            console.log("WebRTC Connection error",e)
+            self.destroyWebRTCSocket()
+            return
+          }
+          // self.connectionStatus = "CONNECTED"
+          self.wrtcs = peer
+          peer.on('data', function(data){
+            self.handleMessage(data)
+          })
+          peer.on('close',function(){
+            // self.connectionStatus = "TIMED OUT"
+            setTimeout(function(){ self.destroyWebRTCSocket(); })
+          })
+          peer.on('error', (err) => {
+            console.error("ERROR",err)
+            self.connectionStatus = "ERROR"
+            setTimeout(function(){ self.destroyWebRTCSocket(); })
+          })
+        })
+      })
+      self.signalClient.discover({orbID:window.location.pathname})
+    },
+
+    handleMessage(data) {
+      //TODO check and handle timestamp of data
+      let self = this
+      message = JSON.parse(event.data)
+      switch(message.event) {
+      case "sound":
+        if (message.playerId < 0 || message.playerId == message.self) {
+          self.playSound(message.type)
+        }
+        break
+      default:
+        if (message.self != this.state.self) {
+          window.parent.postMessage({self: message.self}, '*')
+        }
+        self.state = message
+        // console.log(message)
+        self.$forceUpdate()
       }
     },
 
