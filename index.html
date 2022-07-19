@@ -1098,6 +1098,7 @@ var app = new Vue({
 
     send(json) {
       //console.log(json)
+      json.timestamp = Date.now()
       if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
         this.startWebsocket()
       } else if(this.ws.readyState === WebSocket.OPEN) {

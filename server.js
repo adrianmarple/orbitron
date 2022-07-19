@@ -105,9 +105,15 @@ class ClientConnection {
     let self = this
     this.sockets.push(socket)
     socket.on("message", (data) => {
-      //TODO check message timestamp
-      if(self.callbacks.message){
-        self.callbacks.message(data)
+      try {
+        let content = JSON.parse(data)
+        if(content.timestamp > self.latestMessage){
+          if(self.callbacks.message){
+            self.callbacks.message(content)
+          }
+        }
+      } catch(e) {
+        console.log("Error processing web socket message", e)
       }
     })
     socket.on("close", () => {
@@ -131,7 +137,7 @@ class ClientConnection {
       socket.send(message)
     }
   }
-  
+
   close() {
     for(const socket of this.sockets){
       socket.close()
@@ -274,12 +280,11 @@ function bindRemotePlayer(socket) {
 }
 
 function bindDataEvents(peer) {
-  peer.on('message', data => {
+  peer.on('message', content => {
     //console.log("DATA",peer.pid,peer._id,!peer.pid,!connections[peer.pid])
     if (!typeof(peer.pid)==="number" || !connections[peer.pid]) {
       return
     }
-    content = JSON.parse(data)
     content.self = peer.pid
     peer.lastActivityTime = Date.now()
     // console.log("DATA CONTENT",content)
@@ -478,7 +483,6 @@ python_process.stdout.on('data', data => {
     if(!message) continue
     if (message.charAt(0) == "{") { // check is first char is '{'
       try {
-        //console.log(JSON.parse(message))
         broadcast(JSON.parse(message));
         devBroadcast(message);
       } catch(e) {
