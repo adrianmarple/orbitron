@@ -1,3 +1,7 @@
+# Making a new Game
+
+See [the games folder README](games)
+
 # Using the Emulator
 
 - Clone the repo somewhere for you to work from
