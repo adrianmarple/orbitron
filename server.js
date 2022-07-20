@@ -113,6 +113,7 @@ class ClientConnection {
       try {
         let content = JSON.parse(data)
         if(content.timestamp > self.latestMessage){
+          self.latestMessage = content.timestamp
           if(self.callbacks.message){
             self.callbacks.message(content)
           }
@@ -139,6 +140,7 @@ class ClientConnection {
       try {
         let content = JSON.parse(data)
         if(content.timestamp > self.latestMessage){
+          self.latestMessage = content.timestamp
           if(self.callbacks.message){
             self.callbacks.message(content)
           }
@@ -260,7 +262,7 @@ function bindOrbRelay(socket, orbID){
         console.error("Orb to Client error:", e)
       }
     } else {
-      console.log("Client not connected yet:", orbID, relayClientPairs)
+      console.log("Client not connected yet:", orbID)
     }
   })
   socket.on('close', () => {
@@ -295,7 +297,7 @@ function bindOrbClient(socket, orbID) {
         console.error("Client to Orb error:", e)
       }
     } else {
-      console.log("Orb not connected yet:", orbID, clientRelayPairs)
+      console.log("Orb not connected yet:", orbID)
     }
   })
   socket.on('close', () => {
@@ -457,7 +459,7 @@ connectionQueue = []
 
 function ipUpdate(){
   exec("ip addr | grep 'state UP' -A5 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'", (error, stdout, stderr) => {
-    var ip=stdout.trim()
+    var ip=stdout.trim().split(/\s+/)[0]
     if(ip !== localIP){
       console.log(`Sending IP '${config.ORB_ID}':${ip}`)
       var options = {
