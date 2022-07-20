@@ -32,7 +32,7 @@ process.on('SIGTERM', handleKill)
 process.on('SIGHUP', handleKill)
 
 process.on('uncaughtException', function(err) {
-  console.log('Uncaught exception: ' + err)
+  console.error('Uncaught exception: ' + err)
 });
 
 //load and process config and environment variables
@@ -118,7 +118,7 @@ class ClientConnection {
           }
         }
       } catch(e) {
-        console.log("Error processing web socket message", e)
+        console.error("Error processing web socket message", e)
       }
     })
     socket.on("close", () => {
@@ -144,7 +144,7 @@ class ClientConnection {
           }
         }
       } catch(e) {
-        console.log("Error processing webRTC socket message", e)
+        console.error("Error processing webRTC socket message", e)
       }
     })
     socket.on("close", () => {
@@ -166,13 +166,21 @@ class ClientConnection {
 
   send(message) {
     for(const socket of this.sockets){
-      socket.send(message)
+      try {
+        socket.send(message)
+      } catch(e) {
+        console.error("Error sending to client", e)
+      }
     }
   }
 
   close() {
     for(const socket of this.sockets){
-      socket.close()
+      try {
+        socket.close()
+      } catch(e) {
+        console.error("Error closing client socket", e)
+      }
     }
   }
 }
@@ -249,10 +257,10 @@ function bindOrbRelay(socket, orbID){
       try {
         client.send(data)
       } catch(e) {
-        console.log("Orb to Client error:", e)
+        console.error("Orb to Client error:", e)
       }
     } else {
-      console.log("Client not connected:", orbID, relayClientPairs)
+      console.log("Client not connected yet:", orbID, relayClientPairs)
     }
   })
   socket.on('close', () => {
@@ -263,7 +271,7 @@ function bindOrbRelay(socket, orbID){
       try {
         client.close()
       } catch(e) {
-        console.log("Error closing client from relay:",orbID)
+        console.error("Error closing client from relay:",orbID)
       }
     }
   })
@@ -284,10 +292,10 @@ function bindOrbClient(socket, orbID) {
       try {
         orb.send(data)
       } catch(e) {
-        console.log("Client to Orb error:", e)
+        console.error("Client to Orb error:", e)
       }
     } else {
-      console.log("Orb not connected:", orbID, clientRelayPairs)
+      console.log("Orb not connected yet:", orbID, clientRelayPairs)
     }
   })
   socket.on('close', () => {
@@ -298,7 +306,7 @@ function bindOrbClient(socket, orbID) {
       try {
         relay.close()
       } catch(e) {
-        console.log("Error closing relay from client:",e)
+        console.error("Error closing relay from client:",e)
       }
     }
   })
@@ -366,7 +374,7 @@ function relayUpkeep() {
           relayRequestSocket = null
         })
       } catch(e) {
-        console.log("Error connecting to relay:", e)
+        console.error("Error connecting to relay:", e)
       }
     }
   }
@@ -547,7 +555,7 @@ python_process.stderr.on('data', data => {
 });
 
 python_process.on('uncaughtException', function(err) {
-  console.log('Caught python exception: ' + err);
+  console.error('Caught python exception: ' + err);
 });
 
 
