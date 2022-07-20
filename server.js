@@ -109,7 +109,7 @@ class ClientConnection {
   bindWebSocket(socket) {
     let self = this
     this.sockets.push(socket)
-    socket.on("message", (data) => {
+    socket.on("message", (data, isBinary) => {
       try {
         let content = JSON.parse(data)
         if(content.timestamp > self.latestMessage){
@@ -156,7 +156,6 @@ class ClientConnection {
         }
       }
     })
-    console.log("SOCKET CLOSE?", socket.close)
     socket.close = socket.destroy
   }
 
@@ -669,7 +668,7 @@ signalClient.on('request', async (request) => {
     const { peer, metadata } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
     console.log("WEBRTC REQUEST ACCEPTED",metadata)
     let clientConnection = getClientConnection(metadata.clientID)
-    clientConnections.bindWebRTCSocket(peer)
+    clientConnection.bindWebRTCSocket(peer)
     bindRemotePlayer(clientConnection)
   } catch (e) {
     console.error("Error establishing WebRTC connection", e)

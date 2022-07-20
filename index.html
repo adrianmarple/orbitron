@@ -1199,34 +1199,33 @@ var app = new Vue({
         allIDs.forEach(async function(id){
           try {
             const { peer } = await self.signalClient.connect(id,{clientID:self.uuid})
+            // self.connectionStatus = "CONNECTED"
+            self.wrtcs = peer
+            peer.on('data', function(data){
+              self.handleMessage(data.toString())
+            })
+            peer.on('close',function(){
+              // self.connectionStatus = "TIMED OUT"
+              setTimeout(function(){ self.destroyWebRTCSocket(); })
+            })
+            peer.on('error', (err) => {
+              console.error("ERROR",err)
+              self.connectionStatus = "ERROR"
+              setTimeout(function(){ self.destroyWebRTCSocket(); })
+            })
           } catch(e) {
             console.log("WebRTC Connection error",e)
             self.destroyWebRTCSocket()
-            return
           }
-          // self.connectionStatus = "CONNECTED"
-          self.wrtcs = peer
-          peer.on('data', function(data){
-            self.handleMessage(data)
-          })
-          peer.on('close',function(){
-            // self.connectionStatus = "TIMED OUT"
-            setTimeout(function(){ self.destroyWebRTCSocket(); })
-          })
-          peer.on('error', (err) => {
-            console.error("ERROR",err)
-            self.connectionStatus = "ERROR"
-            setTimeout(function(){ self.destroyWebRTCSocket(); })
-          })
         })
       })
-      self.signalClient.discover({orbID:window.location.pathname})
+      self.signalClient.discover({orbID:window.location.pathname.substr(1)})
     },
 
     handleMessage(data) {
       //TODO check and handle timestamp of data
       let self = this
-      message = JSON.parse(event.data)
+      message = JSON.parse(data)
       switch(message.event) {
       case "sound":
         if (message.playerId < 0 || message.playerId == message.self) {
