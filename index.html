@@ -899,6 +899,7 @@ var app = new Vue({
 
     this.startWebsocket()
     this.startWebRTCSocket()
+    this.startLocalSocket()
     this.warmUpAudio()
     onfocus = () => {
       if (!this.ws) {
