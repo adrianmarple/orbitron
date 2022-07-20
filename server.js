@@ -107,6 +107,19 @@ class ClientConnection {
     return this.id
   }
 
+  removeSocket(socket) {
+    let startLength = this.sockets.length
+    let index = this.sockets.indexOf(socket)
+    if(index >= 0) {
+      this.sockets.splice(index)
+    }
+    if(this.sockets.length <= 0 && startLength > 0){
+      if(this.callbacks.close){
+        this.callbacks.close()
+      }
+    }
+  }
+
   bindWebSocket(socket) {
     let self = this
     this.sockets.push(socket)
@@ -124,13 +137,7 @@ class ClientConnection {
       }
     })
     socket.on("close", () => {
-      let index = self.sockets.indexOf(socket)
-      self.sockets.splice(index)
-      if(self.sockets.length <= 0){
-        if(self.callbacks.close){
-          self.callbacks.close()
-        }
-      }
+      self.removeSocket(socket)
     })
   }
 
@@ -151,13 +158,7 @@ class ClientConnection {
       }
     })
     socket.on("close", () => {
-      let index = self.sockets.indexOf(socket)
-      self.sockets.splice(index)
-      if(self.sockets.length <= 0){
-        if(self.callbacks.close){
-          self.callbacks.close()
-        }
-      }
+      self.removeSocket(socket)
     })
     socket.close = socket.destroy
   }
@@ -168,11 +169,14 @@ class ClientConnection {
   }
 
   send(message) {
+    console.log(this)
     for(const socket of this.sockets){
       try {
         socket.send(message)
       } catch(e) {
         console.error("Error sending to client", e)
+	socket.close()
+        this.removeSocket(socket)
       }
     }
   }
@@ -181,6 +185,7 @@ class ClientConnection {
     for(const socket of this.sockets){
       try {
         socket.close()
+        this.removeSocket(socket)
       } catch(e) {
         console.error("Error closing client socket", e)
       }
