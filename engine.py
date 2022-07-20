@@ -769,17 +769,17 @@ def broadcast_event(event):
 def broadcast_state():
   # for line in traceback.format_stack():
   #   print(line.strip(), file=sys.stderr)
+  time_remaining = round(game.end_time - time()) if game and game.end_time else 0
   message = {
     "game": game.name if game else "",
     "players": [player.to_json() for player in game.players],
     "gameState": game.state if game else "none",
-    "timeRemaining": game.end_time - time() if game else 0,
+    "timeRemaining": time_remaining,
     "victor": game.victor.to_json() if game.victor else {},
     "config": game.config,
     "data": game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
-    "timestamp": time(),
   }
   print(json.dumps(message))
 

@@ -499,11 +499,19 @@ connectionQueue = []
 // Communications with python script
 
 gameState = {}
+broadcastCounter = 0
+const counterThreshold = 30
 
 function broadcast(baseMessage) {
-  gameState = baseMessage
+  broadcastCounter++
   baseMessage.notimeout = NO_TIMEOUT
-
+  let noChange = JSON.stringify(baseMessage) == JSON.stringify(gameState)
+  gameState = baseMessage
+  if(noChange && broadcastCounter % counterThreshold != 0){
+    return
+  }
+  broadcastCounter = 0
+  baseMessage.timestamp = Date.now()
   for (let id in connections) {
     baseMessage.self = parseInt(id)
     connections[id].send(JSON.stringify(baseMessage))
@@ -513,6 +521,8 @@ function broadcast(baseMessage) {
     baseMessage.queuePosition = i + 1
     connectionQueue[i].send(JSON.stringify(baseMessage))
   }
+  delete baseMessage.queuePosition
+  delete baseMessage.timestamp
 }
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
@@ -631,7 +641,7 @@ signalServer = require('simple-signal-server')(switchboard)
 connectedWebRTCOrbs = {}
 
 signalServer.on('discover', (request) => {
-  console.log("WEBRTC DISCOVER",request.discoveryData)
+  //console.log("WEBRTC DISCOVER",request.discoveryData)
   let orbID = request.discoveryData.orbID
   let clientID = request.socket.id // clients are uniquely identified by socket.id
   if(orbID){
@@ -668,7 +678,7 @@ rootServer.listen(rootServerPort, "0.0.0.0")
 const socket = io(config.SWITCHBOARD || `http://localhost:${rootServerPort}`);
 const signalClient = new SimpleSignalClient(socket)
 signalClient.on('discover', (ids) => {
-  console.log("WEBRTC DISCOVER RESPONSE",ids)
+  //console.log("WEBRTC DISCOVER RESPONSE",ids)
 })
 
 signalClient.on('request', async (request) => {

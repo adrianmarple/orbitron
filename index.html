@@ -882,6 +882,7 @@ var app = new Vue({
     isMoving: false,
     move: [0,0],
     timestamp: 0,
+    latestMessage: 0,
 
     carouselInterval: null,
     carouselPosition: 0,
@@ -1223,9 +1224,12 @@ var app = new Vue({
     },
 
     handleMessage(data) {
-      //TODO check and handle timestamp of data
       let self = this
       message = JSON.parse(data)
+      if(message.timestamp <= self.latestMessage){
+        return
+      }
+      self.latestMessage = message.timestamp
       switch(message.event) {
       case "sound":
         if (message.playerId < 0 || message.playerId == message.self) {
