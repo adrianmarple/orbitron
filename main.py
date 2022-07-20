@@ -103,6 +103,9 @@ def consume_input():
       if "self" not in message:
         continue
 
+      if not engine.game:
+        continue
+
       player = engine.game.players[message["self"]]
 
       if message["type"] == "claim":

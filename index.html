@@ -1114,7 +1114,7 @@ var app = new Vue({
 
     send(json) {
       //console.log(json)
-      json.timestamp = Date.now()
+      json.timestamp = Date.now() + window.performance.now() % 1
       let message = null
       try {
         message = JSON.stringify(json)
@@ -1253,6 +1253,7 @@ var app = new Vue({
         .then((response) => {
           self.fetchingIP = false
           response.text().then((ip) => {
+            if(!ip) return
             //self.connectionStatus = "CONNECTING"
             self.ls = new WebSocket(`ws://${ip}:7777//${self.uuid}`)
             self.ls.onmessage = event => {

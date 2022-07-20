@@ -12,6 +12,7 @@ const wrtc = require('wrtc')
 const { io } = require("socket.io-client")
 const SimplePeerServer = require('simple-peer-server');
 const { Server } = require("socket.io");
+const { randomUUID } = require('crypto')
 
 // Log to file and standard out
 const util = require('util')
@@ -96,7 +97,7 @@ class ClientConnection {
     this.id = id
     this.sockets = []
     this.callbacks = {}
-    this.latestMessage = Date.now()
+    this.latestMessage = 0
     // used by business logic
     this.pid = null
     this.lastActivityTime = null
@@ -203,7 +204,7 @@ server.listen(7777, "0.0.0.0", function() {
 wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
 
 wsServer.on('connection', (socket, request) => {
-  socket.rid = Date.now()
+  socket.rid = randomUUID()
   let url = request.url.trim()
   console.log('WS connection request made to',request.url)
   let meta = url.split("/")
@@ -510,7 +511,7 @@ function broadcast(baseMessage) {
     return
   }
   broadcastCounter = 0
-  baseMessage.timestamp = Date.now()
+  baseMessage.timestamp = Date.now() + (process.hrtime()[1]*0.000001)%1
   for (let id in connections) {
     baseMessage.self = parseInt(id)
     connections[id].send(JSON.stringify(baseMessage))
@@ -587,7 +588,6 @@ const rootServer = http.createServer(function (request, response) {
     let meta = filePath.split("/")
     let orbID = meta[2]
     if(request.method == "GET") {
-      console.log("GET IP", filePath, orbIPAddresses)
       let ip = orbIPAddresses[orbID]
       response.writeHead(200, { 'Content-Type': 'text' })
       response.end(ip, 'utf-8')
