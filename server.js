@@ -10,9 +10,9 @@ const pako = require('./thirdparty/pako.min.js')
 const SimpleSignalClient = require('simple-signal-client')
 const wrtc = require('wrtc')
 const { io } = require("socket.io-client")
-const SimplePeerServer = require('simple-peer-server');
-const { Server } = require("socket.io");
-const { randomUUID } = require('crypto')
+const SimplePeerServer = require('simple-peer-server')
+const { Server } = require("socket.io")
+const { v4: uuidv4 } = require('uuid')
 
 // Log to file and standard out
 const util = require('util')
@@ -204,7 +204,7 @@ server.listen(7777, "0.0.0.0", function() {
 wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
 
 wsServer.on('connection', (socket, request) => {
-  socket.rid = randomUUID()
+  socket.rid = uuidv4()
   let url = request.url.trim()
   console.log('WS connection request made to',request.url)
   let meta = url.split("/")
