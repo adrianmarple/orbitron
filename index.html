@@ -873,6 +873,8 @@ var app = new Vue({
     wrtcs: null,
     signalSocket: null,
     signalClient: null,
+    ls: null,
+    fetchingIP: false,
     connectionStatus: "CONNECTING",
     state: {},
     localFlags: {},
@@ -912,6 +914,7 @@ var app = new Vue({
       if (!this.state.notimeout) {
         this.destroyWebsocket()
         this.destroyWebRTCSocket()
+        this.destroyLocalSocket()
         this.connectionStatus = "LOST FOCUS"
       }
     };
@@ -1138,6 +1141,16 @@ var app = new Vue({
           this.startWebRTCSocket()
         }
       }
+      if(!this.ls) {
+        this.startLocalSocket()
+      } else {
+        try {
+          this.ls.send(message)
+        } catch(e) {
+          this.destroyLocalSocket()
+          this.startLocalSocket()
+        }
+      }
     },
     pulse() {
       this.send({type: "pulse"})
@@ -1165,7 +1178,6 @@ var app = new Vue({
         self.handleMessage(event.data)
       }
       this.ws.onclose = event => {
-        console.log("CLOSE")
         self.connectionStatus = "TIMED OUT"
         setTimeout(function(){ self.destroyWebsocket(); })
       }
@@ -1221,6 +1233,46 @@ var app = new Vue({
         })
       })
       self.signalClient.discover({orbID:window.location.pathname.substr(1)})
+    },
+
+    destroyLocalSocket() {
+      if(this.ls) {
+        this.ls.close()
+        this.ls = null
+      }
+    },
+
+    startLocalSocket() {
+      let self=this
+      if(self.ls || self.fetchingIP) {
+        return // Already trying to establish a connection
+      }
+      self.fetchingIP = true
+      fetch(`${location.origin}/ip${window.location.pathname}`,{method:"GET"})
+        .then((response) => {
+          self.fetchingIP = false
+          response.text().then((ip) => {
+            //self.connectionStatus = "CONNECTING"
+            self.ls = new WebSocket(`ws://${ip}:7777//${self.uuid}`)
+            self.ls.onmessage = event => {
+              //self.connectionStatus = "CONNECTED"
+              self.handleMessage(event.data)
+            }
+            self.ls.onclose = event => {
+              //self.connectionStatus = "TIMED OUT"
+              setTimeout(function(){ self.destroyLocalSocket(); })
+            }
+            self.ls.onerror = event => {
+              console.error("ERROR",event)
+              //self.connectionStatus = "ERROR"
+              setTimeout(function(){ self.destroyLocalSocket(); })
+            }
+          })
+        })
+        .catch((e) => {
+          self.fetchingIP = false
+          console.error("Error fecthing local IP", e)
+        })
     },
 
     handleMessage(data) {

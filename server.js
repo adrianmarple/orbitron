@@ -455,46 +455,43 @@ MAX_PLAYERS = 6
 connections = {}
 connectionQueue = []
 
-// setInterval(ipUpdate, 10000)
-// function ipUpdate(){
-//   exec("ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/'", (error, stdout, stderr) => {
-//     var ip=stdout.trim()
-//     if(ip !== localIP){
-//       console.log(`Sending IP '${config.ORB_ID}':${ip}`)
-//       var options = {
-//         hostname: 'super-orbitron-default-rtdb.firebaseio.com',
-//         path: `/ips/${config.ORB_ID}.json`,
-//         method: 'PUT',
-//         port: 443,
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//       }
-//       var req = https.request(options, res => {
-//         let rawData = '';
-
-//         res.on('data', chunk => {
-//           rawData += chunk;
-//         });
-
-//         res.on('end', () => {
-//           localIP = ip
-//           console.log(`IP Send Response: ${rawData}`)
-//           console.log("Sending IP completed")
-//         });
-//       });
-//       req.on('error', err => {
-//         console.error(`IP Send Error: ${err}`)
-//         console.error("Sending IP failed")
-//       });
-//       req.write(JSON.stringify(`${ip}`));
-//       req.end();
-//     }
-//   })
-// }
-// localIP = ""
-// ipUpdate()
-
+function ipUpdate(){
+  exec("ip addr | grep 'state UP' -A5 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'", (error, stdout, stderr) => {
+    var ip=stdout.trim()
+    if(ip !== localIP){
+      console.log(`Sending IP '${config.ORB_ID}':${ip}`)
+      var options = {
+        hostname: 'orbitron.games',
+        path: `/ip/${config.ORB_ID}`,
+        method: 'POST',
+        port: 80,
+        headers: {
+          'Content-Type': 'text',
+        },
+      }
+      var req = http.request(options, res => {
+        let rawData = '';
+        res.on('data', chunk => {
+          rawData += chunk;
+        });
+        res.on('end', () => {
+          localIP = ip
+          console.log(`IP Send Response: ${rawData}`)
+          console.log("Sending IP completed")
+        });
+      });
+      req.on('error', err => {
+        console.error(`IP Send Error: ${err}`)
+        console.error("Sending IP failed")
+      });
+      req.write(`${ip}`);
+      req.end();
+    }
+  })
+}
+localIP = ""
+ipUpdate()
+setInterval(ipUpdate, 10000)
 
 // Communications with python script
 
@@ -569,8 +566,10 @@ python_process.on('uncaughtException', function(err) {
 });
 
 
-// Simple HTTP server
+// Orb IP address storage
+const orbIPAddresses = {}
 
+// Simple HTTP server
 const rootServer = http.createServer(function (request, response) {
   var filePath = request.url
 
@@ -582,6 +581,28 @@ const rootServer = http.createServer(function (request, response) {
     filePath = config.PIXELS || "/pixels-rhomb.json"
   else if (Object.keys(connectedOrbs).includes(filePath.substr(1)))
     filePath = "/index.html"
+  else if (filePath.includes("/ip")) {
+    let meta = filePath.split("/")
+    let orbID = meta[2]
+    if(request.method == "GET") {
+      console.log("GET IP", filePath, orbIPAddresses)
+      let ip = orbIPAddresses[orbID]
+      response.writeHead(200, { 'Content-Type': 'text' })
+      response.end(ip, 'utf-8')
+    } else if(request.method == "POST") {
+      let postData = '';
+      request.on('data', function (chunk) {
+        postData += chunk;
+      });
+      request.on('end', function () {
+        console.log("POST IP", postData);
+        orbIPAddresses[orbID] = postData.trim()
+        response.writeHead(200, { 'Content-Type': 'text' })
+        response.end(postData, 'utf-8')
+      })
+    }
+    return
+  }
 
   filePath = `${__dirname}/${filePath}`
   //console.log(filePath);
