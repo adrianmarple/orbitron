@@ -501,6 +501,14 @@ setInterval(ipUpdate, 10000)
 gameState = {}
 broadcastCounter = 0
 const counterThreshold = 30
+const preciseTimeStart = process.hrtime()
+const epochTimeStart = Date.now()
+
+function preciseTime(){
+  let ht = process.hrtime(preciseTimeStart)
+  let precise = epochTimeStart + (ht[0]+ht[1]*0.000000001)*1000
+  return precise
+}
 
 function broadcast(baseMessage) {
   broadcastCounter++
@@ -511,7 +519,7 @@ function broadcast(baseMessage) {
     return
   }
   broadcastCounter = 0
-  baseMessage.timestamp = Date.now() + (process.hrtime()[1]*0.000001)%1
+  baseMessage.timestamp = preciseTime()
   for (let id in connections) {
     baseMessage.self = parseInt(id)
     connections[id].send(JSON.stringify(baseMessage))
