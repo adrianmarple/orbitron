@@ -117,6 +117,11 @@ var app = new Vue({
     this.startWebsocket()
     this.startWebRTCSocket()
     this.startLocalSocket()
+    setInterval(() => {
+      if(this.connectionStatus == "CONNECTED"){
+        this.ping()
+      }
+    }, 3000)
     onfocus = () => {
       this.blurred = false
       if (!this.ws) {
@@ -404,7 +409,9 @@ var app = new Vue({
     advance(from) {
       this.send({type: "advance", from})
     },
-
+    ping() {
+      this.send({type: "ping"})
+    },
     destroyWebsocket() {
       if(this.ws) {
         this.ws.close()

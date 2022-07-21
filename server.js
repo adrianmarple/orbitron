@@ -91,6 +91,27 @@ const connectedOrbClients = {}
 const relayClientPairs = {}
 const clientRelayPairs = {}
 
+function addWSTimeoutHandler(socket,timeout) {
+  socket.timeoutHandler = {
+    onTimeout: () => {
+      try {
+        console.log("SOCKET TIMEOUT", socket)
+        socket.close()
+      } catch(e) {
+        console.error("Error closing socket on timeout", e, socket)
+      }
+    },
+    timeoutID: null,
+    duration: timeout
+  }
+  socket.on("message", (data, isBinary) => {
+    if(socket.timeoutHandler.timeoutID) {
+      clearTimeout(socket.timeoutHandler.timeoutID)
+    }
+    socket.timeoutHandler.timeoutID = setTimeout(socket.timeoutHandler.onTimeout, socket.timeoutHandler.duration)
+  })
+}
+
 // Class that handles mutliple redundant connections between client and orb
 class ClientConnection {
   constructor(id) {
@@ -101,6 +122,7 @@ class ClientConnection {
     // used by business logic
     this.pid = null
     this.lastActivityTime = null
+    this.timeout = 10 * 1000
   }
 
   getID() {
@@ -123,6 +145,7 @@ class ClientConnection {
   bindWebSocket(socket) {
     let self = this
     this.sockets.push(socket)
+    addWSTimeoutHandler(socket,self.timeout)
     socket.on("message", (data, isBinary) => {
       try {
         let content = JSON.parse(data)
@@ -177,7 +200,6 @@ class ClientConnection {
   }
 
   send(message) {
-    console.log(this)
     for(const socket of this.sockets){
       try {
         socket.send(message)
@@ -388,7 +410,7 @@ function relayUpkeep() {
   if(config.CONNECT_TO_RELAY) {
     if(!relayRequestSocket){
       try {
-        let relayURL = `ws://${config.CONNECT_TO_RELAY}/relay/${config.ORB_ID}`
+        let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
         console.log("Initializing relay request socket")
         relayRequestSocket = new WebSocket.WebSocket(relayURL)
         relayRequestSocket.on('message', data => {
@@ -738,7 +760,7 @@ const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")
 
 //WebRTC connection to switchboard
-const socket = io(config.SWITCHBOARD || `http://localhost:${rootServerPort}`);
+const socket = io(`http://${config.SWITCHBOARD}` || `http://localhost:${rootServerPort}`);
 const signalClient = new SimpleSignalClient(socket)
 signalClient.on('discover', (ids) => {
   //console.log("WEBRTC DISCOVER RESPONSE",ids)
