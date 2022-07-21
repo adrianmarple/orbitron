@@ -972,13 +972,13 @@ var app = new Vue({
       if(this.blurred){
         return "LOST FOCUS"
       } else {
-        let connected = this.ws && this.ws.readyState == WebSocket.OPEN
-        connected = connected || this.wrtcs
-        connected = connected || this.ls && this.ls.readyState == WebSocket.OPEN
+        let connected = !isNothing(this.ws) && this.ws.readyState == WebSocket.OPEN
+        connected = connected || !isNothing(this.wrtcs)
+        connected = connected || (!isNothing(this.ls) && this.ls.readyState == WebSocket.OPEN)
         if(connected) return "CONNECTED"
-        let connecting = this.ws && this.ws.readyState == WebSocket.CONNECTING
-        connecting = connecting || (this.signalClient && !this.wrtcs)
-        connecting = connecting || this.ls && this.ls.readyState == WebSocket.CONNECTING
+        let connecting = !isNothing(this.ws) && this.ws.readyState == WebSocket.CONNECTING
+        connecting = connecting || (!isNothing(this.signalClient) && isNothing(this.wrtcs))
+        connecting = connecting || (!isNothing(this.ls) && this.ls.readyState == WebSocket.CONNECTING)
         if(connecting) return "CONNECTING"
         return "DISCONNECTED"
       }
