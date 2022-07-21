@@ -334,7 +334,7 @@ function bindOrbClient(socket, orbID) {
       }
     }
   })
-  scoket.on('error', (e) => {
+  socket.on('error', (e) => {
     console.error("Error on orb client socket", e)
     socket.close()
   })
