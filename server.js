@@ -224,11 +224,14 @@ wsServer.on('connection', (socket, request) => {
   let orbID = meta[1]
   let clientID = meta[2]
   if(orbID == "") { // direct client
+    delete socket.rid
+    socket.isDirectClient = true
     let clientConnection = getClientConnection(clientID)
     clientConnection.bindWebSocket(socket)
     bindRemotePlayer(clientConnection)
   } else if(orbID == "relay") { // relay server
     orbID = clientID
+    socket.isOrbRelay = true
     if(!connectedOrbs[orbID]){
       bindOrbServer(socket, orbID)
     } else {
