@@ -617,13 +617,13 @@ const rootServer = http.createServer(function (request, response) {
   var filePath = request.url
 
   if (filePath == '/')
-    filePath = "/index.html"
+    filePath = "/controller/controller.html"
   else if (filePath == '/dev' || filePath == '/view')
-    filePath = "/dev.html"
+    filePath = "/emulator/dev.html"
   else if (filePath == '/pixels.json')
     filePath = config.PIXELS || "/pixels-rhomb.json"
   else if (Object.keys(connectedOrbs).includes(filePath.substr(1)))
-    filePath = "/index.html"
+    filePath = "/controller/controller.html"
   else if (filePath.includes("/ip")) {
     let meta = filePath.split("/")
     let orbID = meta[2]

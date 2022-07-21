@@ -8,7 +8,7 @@ from threading import main_thread, Thread
 from time import time, sleep
 import traceback
 
-MUSIC_DIRECTORY = os.path.dirname(__file__) + "/audio/"
+MUSIC_DIRECTORY = os.path.dirname(__file__) + "/"
 
 EMPTY_SOUND = None #Initialized to an empty bytes object after mixer init
 
