@@ -106,6 +106,10 @@ var app = new Vue({
     config: {},
     GAMES_INFO,
     uuid: uuid(),
+
+    localSocketStatus: "CONNECTING",
+    webRTCStatus: "CONNECTING",
+    relaySocketStatus: "CONNECTING",
   },
 
   created() {
@@ -179,17 +183,20 @@ var app = new Vue({
   computed: {
     BETWEEN_GAMES() { return !this.state.game },
     connectionStatus() {
+      console.log("checking status")
       if(this.blurred){
         return "LOST FOCUS"
       } else {
-        let connected = !isNothing(this.ws) && this.ws.readyState == WebSocket.OPEN
-        connected = connected || !isNothing(this.wrtcs)
-        connected = connected || (!isNothing(this.ls) && this.ls.readyState == WebSocket.OPEN)
-        if(connected) return "CONNECTED"
-        let connecting = !isNothing(this.ws) && this.ws.readyState == WebSocket.CONNECTING
-        connecting = connecting || (!isNothing(this.signalClient) && isNothing(this.wrtcs))
-        connecting = connecting || (!isNothing(this.ls) && this.ls.readyState == WebSocket.CONNECTING)
-        if(connecting) return "CONNECTING"
+        if (this.relaySocketStatus == "CONNECTED" ||
+            this.webRTCStatus == "CONNECTED" ||
+            this.localSocketStatus == "CONNECTED") {
+          return "CONNECTED"
+        }
+        if (this.relaySocketStatus == "CONNECTING" ||
+            this.webRTCStatus == "CONNECTING" ||
+            this.localSocketStatus == "CONNECTING") {
+          return "CONNECTING"
+        }
         return "DISCONNECTED"
       }
     },
@@ -403,15 +410,17 @@ var app = new Vue({
         this.ws.close()
         this.ws = null
       }
+      this.relaySocketStatus = "DISCONNECTED"
     },
-
     startWebsocket() {
       let self=this
       if(self.ws) {
         return // Already trying to establish a connection
       }
+      this.relaySocketStatus == 'CONNECTING'
       this.ws = new WebSocket(`ws://${window.location.hostname}:7777${window.location.pathname}/${this.uuid}`)
       this.ws.onmessage = event => {
+        self.$set(self, 'relaySocketStatus', 'CONNECTED')
         self.handleMessage(event.data)
       }
       this.ws.onclose = event => {
@@ -433,13 +442,14 @@ var app = new Vue({
         this.signalSocket = null
       }
       this.signalClient = null
+      this.webRTCStatus = "DISCONNECTED"
     },
-
     startWebRTCSocket() {
       let self=this
       if(self.signalClient) {
         return // Already trying to establish a connection
       }
+      this.webRTCStatus == 'CONNECTING'
       self.signalSocket = io(location.origin)
       self.signalClient = new SimpleSignalClient(self.signalSocket)
       self.signalClient.on('discover', async (allIDs) => {
@@ -448,6 +458,7 @@ var app = new Vue({
             const { peer } = await self.signalClient.connect(id,{clientID:self.uuid})
             self.wrtcs = peer
             peer.on('data', function(data){
+              self.$set(self, 'webRTCStatus', 'CONNECTED')
               self.handleMessage(data.toString())
             })
             peer.on('close',function(){
@@ -471,13 +482,14 @@ var app = new Vue({
         this.ls.close()
         this.ls = null
       }
+      this.localSocketStatus = "DISCONNECTED"
     },
-
     startLocalSocket() {
       let self=this
       if(self.ls || self.fetchingIP) {
         return // Already trying to establish a connection
       }
+      this.localSocketStatus == 'CONNECTING'
       self.fetchingIP = true
       fetch(`${location.origin}/ip${window.location.pathname}`,{method:"GET"})
         .then((response) => {
@@ -486,6 +498,7 @@ var app = new Vue({
             if(!ip) return
             self.ls = new WebSocket(`ws://${ip}:7777//${self.uuid}`)
             self.ls.onmessage = event => {
+              self.$set(self, 'localSocketStatus', 'CONNECTED')
               self.handleMessage(event.data)
             }
             self.ls.onclose = event => {
@@ -510,20 +523,12 @@ var app = new Vue({
         return
       }
       self.latestMessage = message.timestamp
-      switch(message.event) {
-      case "sound":
-        if (message.playerId < 0 || message.playerId == message.self) {
-          self.playSound(message.type)
-        }
-        break
-      default:
-        if (message.self != this.state.self) {
-          window.parent.postMessage({self: message.self}, '*')
-        }
-        self.state = message
-        // console.log(message)
-        self.$forceUpdate()
+      if (message.self != this.state.self) {
+        window.parent.postMessage({self: message.self}, '*')
       }
+      self.state = message
+      // console.log(message)
+      self.$forceUpdate()
     },
 
     handleStart(location) {
