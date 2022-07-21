@@ -7,6 +7,8 @@ import json
 from time import time
 import math
 
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from audio import soundActions, prewarm_audio, musicActions
 
 last_music_action = 0

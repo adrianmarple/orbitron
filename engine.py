@@ -49,7 +49,7 @@ base_config = {
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
 
-file_name = os.environ.get("PIXELS", "/pixels-rhomb.json")
+file_name = os.environ.get("PIXELS", "/pixels/rhombicosidodecahedron.json")
 if file_name[0] != "/":
   file_name = "/" + file_name
 f = open(os.path.dirname(__file__) + file_name, "r")
@@ -671,26 +671,6 @@ def color_pixel(index, color):
 
 def add_color_to_pixel(index, color):
   pixels[index] += np.array(color,dtype="<u1")
-
-def multi_lerp(x, control_points):
-  if x < 0:
-    return control_points[0][1]
-
-  index = 1
-  prev_v = control_points[0][1]
-  while index < len(control_points):
-    max_x = control_points[index][0]
-    next_v = control_points[index][1]
-    if x > max_x:
-      x -= max_x
-      prev_v = next_v
-      index += 1
-      continue
-
-    alpha = x / max_x
-    return alpha * next_v + (1-alpha) * prev_v
-
-  return control_points[index - 1][1]
 
 def latlong_delta(ll0, ll1):
   delta = [ll0[0] - ll1[0], ll0[1] - ll1[1]]

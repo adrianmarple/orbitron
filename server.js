@@ -621,7 +621,7 @@ const rootServer = http.createServer(function (request, response) {
   else if (filePath == '/dev' || filePath == '/view')
     filePath = "/emulator/dev.html"
   else if (filePath == '/pixels.json')
-    filePath = config.PIXELS || "/pixels-rhomb.json"
+    filePath = config.PIXELS || "/pixels/rhombicosidodecahedron.json"
   else if (Object.keys(connectedOrbs).includes(filePath.substr(1)))
     filePath = "/controller/controller.html"
   else if (filePath.includes("/ip")) {

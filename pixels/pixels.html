@@ -334,9 +334,9 @@ document.getElementById("download").addEventListener('click', function() {
   let blob = new Blob([fileContent], { type: 'text/plain' })
   let a = document.createElement('a')
   if (isWall) {
-    a.download = 'pixels-wall.json'
+    a.download = 'wall.json'
   } else {
-    a.download = 'pixels-rhomb.json'
+    a.download = 'rhombicosidodecahedron.json'
   }
   a.href = window.URL.createObjectURL(blob)
   a.textContent = 'Download ready';
