@@ -23,7 +23,7 @@ if os.getenv("DEV_MODE"):
     print("raw_pixels=%s" % data.hex())
 else:
   import board
-  from orbpixel import neopixel_write
+  from orbclient.orbpixel import neopixel_write
   pin = digitalio.DigitalInOut(board.D18)
   pin.direction = digitalio.Direction.OUTPUT
 
