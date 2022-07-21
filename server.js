@@ -139,6 +139,10 @@ class ClientConnection {
     socket.on("close", () => {
       self.removeSocket(socket)
     })
+    socket.on("error", () => {
+      socket.close()
+      self.removeSocket(socket)
+    })
   }
 
   bindWebRTCSocket(socket) {
@@ -158,6 +162,10 @@ class ClientConnection {
       }
     })
     socket.on("close", () => {
+      self.removeSocket(socket)
+    })
+    socket.on("error", () => {
+      socket.close()
       self.removeSocket(socket)
     })
     socket.close = socket.destroy
@@ -248,6 +256,10 @@ function bindOrbServer(socket, orbID) {
   socket.on('close', () => {
     delete connectedOrbs[orbID]
   })
+  socket.on('error', (e) => {
+    console.error("Error in orb server socket", e)
+    socket.close()
+  })
 }
 
 function bindOrbRelay(socket, orbID){
@@ -283,6 +295,10 @@ function bindOrbRelay(socket, orbID){
       }
     }
   })
+  socket.on('error', (e) => {
+    console.error("Error in orb relay socket", e)
+    socket.close()
+  })
 }
 
 function bindOrbClient(socket, orbID) {
@@ -317,6 +333,10 @@ function bindOrbClient(socket, orbID) {
         console.error("Error closing relay from client:",e)
       }
     }
+  })
+  scoket.on('error', (e) => {
+    console.error("Error on orb client socket", e)
+    socket.close()
   })
 }
 
@@ -372,10 +392,14 @@ function relayUpkeep() {
           let clientID = data.toString().trim()
           console.log("Got relay request",clientID)
           let socket = new WebSocket.WebSocket(relayURL)
+          socket.relayBound = false
           socket.on('open', () => {
-            let clientConnection = getClientConnection(clientID)
-            clientConnection.bindWebSocket(socket)
-            bindRemotePlayer(clientConnection)
+            if(!socket.relayBound){
+              socket.relayBound = true
+              let clientConnection = getClientConnection(clientID)
+              clientConnection.bindWebSocket(socket)
+              bindRemotePlayer(clientConnection)
+            }
           })
         })
         relayRequestSocket.on('close', () => {
