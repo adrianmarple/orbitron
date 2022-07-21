@@ -875,10 +875,10 @@ var app = new Vue({
     signalClient: null,
     ls: null,
     fetchingIP: false,
-    connectionStatus: "CONNECTING",
     state: {},
     localFlags: {},
     showSettings: false,
+    blurred: false,
 
     startLocation: null,
     isMoving: false,
@@ -904,6 +904,7 @@ var app = new Vue({
     this.startLocalSocket()
     this.warmUpAudio()
     onfocus = () => {
+      this.blurred = false
       if (!this.ws) {
         let self=this
         setTimeout(function(){self.startWebsocket();},10)
@@ -912,13 +913,17 @@ var app = new Vue({
         let self = this
         setTimeout(function(){self.startWebRTCSocket();},10)
       }
+      if (!this.ls) {
+        let self = this
+        setTimeout(function(){self.startLocalSocket();},10)
+      }
     };
     onblur = () => {
       if (!this.state.notimeout) {
         this.destroyWebsocket()
         this.destroyWebRTCSocket()
         this.destroyLocalSocket()
-        this.connectionStatus = "LOST FOCUS"
+        this.blurred = true
       }
     };
 
@@ -963,6 +968,21 @@ var app = new Vue({
 
   computed: {
     BETWEEN_GAMES() { return !this.state.game },
+    connectionStatus() {
+      if(this.blurred){
+        return "LOST FOCUS"
+      } else {
+        let connected = this.ws && this.ws.readyState == WebSocket.OPEN
+        connected = connected || this.wrtcs
+        connected = connected || this.ls && this.ls.readyState == WebSocket.OPEN
+        if(connected) return "CONNECTED"
+        let connecting = this.ws && this.ws.readyState == WebSocket.CONNECTING
+        connecting = connecting || (this.signalClient && !this.wrtcs)
+        connecting = connecting || this.ls && this.ls.readyState == WebSocket.CONNECTING
+        if(connecting) return "CONNECTING"
+        return "DISCONNECTED"
+      }
+    },
     gameInfo() {
       for (let info of GAMES_INFO) {
         if (info.name == this.state.game) {
@@ -1180,19 +1200,15 @@ var app = new Vue({
       if(self.ws) {
         return // Already trying to establish a connection
       }
-      this.connectionStatus = "CONNECTING"
       this.ws = new WebSocket(`ws://${window.location.hostname}:7777${window.location.pathname}/${this.uuid}`)
       this.ws.onmessage = event => {
-        self.connectionStatus = "CONNECTED"
         self.handleMessage(event.data)
       }
       this.ws.onclose = event => {
-        self.connectionStatus = "TIMED OUT"
         setTimeout(function(){ self.destroyWebsocket(); })
       }
       this.ws.onerror = event => {
         console.error("ERROR",event)
-        self.connectionStatus = "ERROR"
         setTimeout(function(){ self.destroyWebsocket(); })
       }
     },
@@ -1214,25 +1230,21 @@ var app = new Vue({
       if(self.signalClient) {
         return // Already trying to establish a connection
       }
-      // this.connectionStatus = "CONNECTING"
       self.signalSocket = io(location.origin)
       self.signalClient = new SimpleSignalClient(self.signalSocket)
       self.signalClient.on('discover', async (allIDs) => {
         allIDs.forEach(async function(id){
           try {
             const { peer } = await self.signalClient.connect(id,{clientID:self.uuid})
-            // self.connectionStatus = "CONNECTED"
             self.wrtcs = peer
             peer.on('data', function(data){
               self.handleMessage(data.toString())
             })
             peer.on('close',function(){
-              // self.connectionStatus = "TIMED OUT"
               setTimeout(function(){ self.destroyWebRTCSocket(); })
             })
             peer.on('error', (err) => {
               console.error("ERROR",err)
-              self.connectionStatus = "ERROR"
               setTimeout(function(){ self.destroyWebRTCSocket(); })
             })
           } catch(e) {
@@ -1262,19 +1274,15 @@ var app = new Vue({
           self.fetchingIP = false
           response.text().then((ip) => {
             if(!ip) return
-            //self.connectionStatus = "CONNECTING"
             self.ls = new WebSocket(`ws://${ip}:7777//${self.uuid}`)
             self.ls.onmessage = event => {
-              //self.connectionStatus = "CONNECTED"
               self.handleMessage(event.data)
             }
             self.ls.onclose = event => {
-              //self.connectionStatus = "TIMED OUT"
               setTimeout(function(){ self.destroyLocalSocket(); })
             }
             self.ls.onerror = event => {
               console.error("ERROR",event)
-              //self.connectionStatus = "ERROR"
               setTimeout(function(){ self.destroyLocalSocket(); })
             }
           })
