@@ -112,8 +112,8 @@ class PacMan(Game):
       self.play_ontimeout()
       self.victor = engine.Dummy(
         name="Ghosts",
-        color=(255, 0, 0),
-        color_string="red")
+        color=engine.BAD_COLOR,
+        color_string=engine.BAD_COLOR_STRING)
 
     if self.data["score"] >= self.data["victory_score"]:
       self.play_ontimeout()
@@ -122,10 +122,6 @@ class PacMan(Game):
         color=self.pacmen()[0].color,
         color_string=self.pacmen()[0].color_string)
 
-    self.spawn_pellets()
-
-
-  def spawn_pellets(self):
     if time() - self.previous_pellet_generation_time > self.PELLET_REGEN_FREQ:
       self.spawn("pellet")
       self.previous_pellet_generation_time = time()
@@ -243,17 +239,10 @@ class Ghost(Player):
   def __init__(self, *args, **kwargs):
     Player.__init__(self, *args, **kwargs)
     self.is_pacman = False
-    self.set_color()
 
   def reset(self):
     Player.reset(self)
     self.power_pellet_end_time = 0
-
-  def set_color(self):
-    self.color = np.array((1, 0, 0))
-    self.team_color = self.color
-    self.color_string = "#ff0000"
-    return
 
   def is_scared(self):
     return time() < self.power_pellet_end_time

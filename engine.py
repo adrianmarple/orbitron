@@ -32,8 +32,11 @@ prewarm_audio()
 # Actual constants
 COORD_MAGNITUDE = 4.46590101883
 COORD_SQ_MAGNITUDE = 19.94427190999916
+
 GOOD_COLOR = np.array((255, 0, 255))
+GOOD_COLOR_STRING = "#ff00ff"
 BAD_COLOR = np.array((255, 0, 0))
+BAD_COLOR_STRING = "#ff0000"
 
 base_config = {
   "SELECTION_WEIGHTS": [0, 1, 1, 1, 1, 1],

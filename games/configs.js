@@ -149,4 +149,28 @@ let GAMES_INFO = [
       type: "rankedscore",
     },
   },
+  {
+    name: "basedefense",
+    label: "Base Defense",
+    rules: [
+      {
+        words: [
+          "Welcome!",
+          "You are currently playing co-op Base Defense!",
+        ],
+      },
+      {
+        words: ["Stop the RED enemies before they reach the bottom."],
+      },
+      {
+        words: [
+          "Survive the round to collectively win.",
+        ],
+      },
+    ],
+    victoryCondition: "Survive for {{state.config.ROUND_TIME}} seconds.",
+    statusDisplay: {
+      type: "cooperativescore",
+    },
+  },
 ]
