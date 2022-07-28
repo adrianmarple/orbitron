@@ -16,10 +16,10 @@ Game = engine.Game
 Player = engine.Player
 
 additional_config = {
-  "CONTINUOUS_MOVEMENT": True,
+  # "CONTINUOUS_MOVEMENT": True,
   "LIVES": 3,
-  "STARTING_SPAWN_DELAY": 5,
-  "ENDING_SPAWN_DELAY": 2,
+  "STARTING_SPAWN_DELAY": 8,
+  "ENDING_SPAWN_DELAY": 3,
   "MIN_INVADER_MOVE_FREQ": 0.3,
   "MAX_INVADER_MOVE_FREQ": 0.5,
   "INVADER_RANDOMNESS": 0.2,
