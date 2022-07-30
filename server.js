@@ -308,6 +308,7 @@ function bindRelay(socket, orbID, clientID) {
   }
   connectedRelays[orbID][clientID] = socket
   socket.clientID = clientID
+  addWSTimeoutHandler(socket, 30 * 1000)
   socket.on('message', (data,isBinary) => {
     if(!isBinary){
       data = data.toString()
@@ -352,6 +353,7 @@ function bindClient(socket, orbID, clientID) {
   }
   connectedClients[orbID][clientID] = socket
   socket.clientID = clientID
+  addWSTimeoutHandler(socket, 30 * 1000)
   socket.on('message', (data, isBinary) => {
     if(!isBinary){
       data = data.toString()
@@ -430,6 +432,7 @@ function relayUpkeep() {
         let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
         console.log("Initializing relay requester socket")
         relayRequesterSocket = new WebSocket.WebSocket(relayURL)
+        addWSTimeoutHandler(relayRequesterSocket,60 * 1000)
         relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
           console.log("Got relay request",clientID)
