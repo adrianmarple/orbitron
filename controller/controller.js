@@ -414,7 +414,11 @@ var app = new Vue({
     },
     destroyWebsocket() {
       if(this.ws) {
-        this.ws.close()
+        try {
+          this.ws.close()
+        } catch(e) {
+          console.log("Error closing relay socket",e)
+        }
         this.ws = null
       }
       this.relaySocketStatus = "DISCONNECTED"
@@ -441,11 +445,19 @@ var app = new Vue({
 
     destroyWebRTCSocket() {
       if(this.wrtcs) {
-        this.wrtcs.destroy()
+        try {
+          this.wrtcs.destroy()
+        } catch(e) {
+          console.log("Error closing webRTC socket", e)
+        }
         this.wrtcs = null
       }
       if(this.signalSocket) {
-        this.signalSocket.close()
+        try {
+          this.signalSocket.close()
+        } catch(e) {
+          console.log("Error closing signaling socket", e)
+        }
         this.signalSocket = null
       }
       this.signalClient = null
@@ -486,7 +498,11 @@ var app = new Vue({
 
     destroyLocalSocket() {
       if(this.ls) {
-        this.ls.close()
+        try {
+          this.ls.close()
+        } catch(e) {
+          console.log("Error closing local socket", e)
+        }
         this.ls = null
       }
       this.localSocketStatus = "DISCONNECTED"

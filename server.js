@@ -86,16 +86,14 @@ function devBroadcast(message) {
 
 // Orb relay management
 const connectedOrbs = {}
-const connectedOrbRelays = {}
-const connectedOrbClients = {}
-const relayClientPairs = {}
-const clientRelayPairs = {}
+const connectedRelays = {}
+const connectedClients = {}
 
 function addWSTimeoutHandler(socket,timeout) {
   socket.timeoutHandler = {
     onTimeout: () => {
       try {
-        console.log("SOCKET TIMEOUT", socket)
+        console.log("SOCKET TIMEOUT", socket.clientID)
         socket.close()
       } catch(e) {
         console.error("Error closing socket on timeout", e, socket)
@@ -239,29 +237,31 @@ server.listen(7777, "0.0.0.0", function() {
 wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
 
 wsServer.on('connection', (socket, request) => {
-  socket.rid = uuidv4()
   let url = request.url.trim()
   console.log('WS connection request made to',request.url)
   let meta = url.split("/")
   let orbID = meta[1]
   let clientID = meta[2]
-  if(orbID == "") { // direct client
-    delete socket.rid
+  if(orbID == "") { // direct client socket
     socket.isDirectClient = true
+    socket.clientID = clientID
     let clientConnection = getClientConnection(clientID)
     clientConnection.bindWebSocket(socket)
     bindRemotePlayer(clientConnection)
-  } else if(orbID == "relay") { // relay server
+  } else if(orbID == "relay") { // relay socket from orb
     orbID = clientID
-    socket.isOrbRelay = true
-    if(!connectedOrbs[orbID]){
-      bindOrbServer(socket, orbID)
-    } else {
-      bindOrbRelay(socket, orbID)
+    if(meta.length>3){ // actual relay socket for a client
+      clientID = meta[3]
+      socket.isRelay = true
+      bindRelay(socket, orbID, clientID)
+    } else { // socket to request relay sockets over
+      socket.isRelayRequester = true
+      bindRelayRequester(socket, orbID)
     }
-  } else { //relay client
+  } else { // client socket connecting to relay
     socket.clientID = clientID
-    bindOrbClient(socket, orbID, clientID)
+    socket.isClient = true
+    bindClient(socket, orbID, clientID)
   }
 })
 
@@ -272,95 +272,112 @@ function getClientConnection(clientID) {
   return clientConnections[clientID]
 }
 
-function bindOrbServer(socket, orbID) {
-  console.log("Binding orb server",orbID)
+function bindRelayRequester(socket, orbID) {
+  console.log("Binding relay requester",orbID)
+  if(connectedOrbs[orbID]){
+    try {
+      connectedOrbs[orbID].close()
+    } catch(e) {
+      console.error("Error closing existing orb relay request socket",e)
+    }
+  }
   connectedOrbs[orbID] = socket
   socket.on('message', data => {
-    console.log("Got Message from Orb Server: ", data)
+    console.log("Got Message from relay requester: ", data)
   })
   socket.on('close', () => {
     delete connectedOrbs[orbID]
   })
   socket.on('error', (e) => {
-    console.error("Error in orb server socket", e)
+    console.error("Error in relay requester socket", e)
     socket.close()
   })
 }
 
-function bindOrbRelay(socket, orbID){
-  console.log("Binding orb relay",orbID)
-  if(!connectedOrbRelays[orbID]) {
-    connectedOrbRelays[orbID] = {}
+function bindRelay(socket, orbID, clientID) {
+  console.log("Binding relay",orbID, clientID)
+  if(!connectedRelays[orbID]) {
+    connectedRelays[orbID] = {}
   }
-  connectedOrbRelays[orbID][socket.rid] = socket
+  if(connectedRelays[orbID][clientID]){
+    try {
+      connectedRelays[orbID][clientID].close()
+    } catch(e) {
+      console.error("Error closing existing relay", orbID, clientID, e)
+    }
+  }
+  connectedRelays[orbID][clientID] = socket
+  socket.clientID = clientID
   socket.on('message', (data,isBinary) => {
     if(!isBinary){
       data = data.toString()
     }
-    let client = relayClientPairs[socket.rid]
-    if(client) {
-      try {
+    try {
+      let client = connectedClients[orbID] && connectedClients[orbID][clientID]
+      if(client){
         client.send(data)
-      } catch(e) {
-        console.error("Orb to Client error:", e)
       }
-    } else {
-      console.log("Client not connected yet:", orbID)
+    } catch(e) {
+      console.error("Relay to Client error:", orbID, clientID, e)
     }
   })
   socket.on('close', () => {
-    delete connectedOrbRelays[orbID][socket.rid]
-    let client = relayClientPairs[socket.rid]
-    delete relayClientPairs[socket.rid]
-    if(client){
-      try {
+    delete connectedRelays[orbID][clientID]
+    try {
+      let client = connectedClients[orbID] && connectedClients[orbID][clientID]
+      if(client) {
         client.close()
-      } catch(e) {
-        console.error("Error closing client from relay:",orbID)
       }
+    } catch(e) {
+      console.error("Error closing client from relay:",orbID, clientID, e)
     }
   })
   socket.on('error', (e) => {
-    console.error("Error in orb relay socket", e)
+    console.error("Error in relay socket", orbID, clientID, e)
     socket.close()
   })
 }
 
-function bindOrbClient(socket, orbID) {
-  console.log("Binding orb client",orbID)
-  if(!connectedOrbClients[orbID]){
-    connectedOrbClients[orbID] = {}
+function bindClient(socket, orbID, clientID) {
+  console.log("Binding client",orbID,clientID)
+  if(!connectedClients[orbID]){
+    connectedClients[orbID] = {}
   }
-  connectedOrbClients[orbID][socket.rid] = socket
+  if(connectedClients[orbID][clientID]){
+    try {
+      connectedClients[orbID][clientID].close()
+    } catch(e) {
+      console.error("Error closing existing client", orbID, clientID, e)
+    }
+  }
+  connectedClients[orbID][clientID] = socket
+  socket.clientID = clientID
   socket.on('message', (data, isBinary) => {
     if(!isBinary){
       data = data.toString()
     }
-    let orb = clientRelayPairs[socket.rid]
-    if(orb){
-      try {
-        orb.send(data)
-      } catch(e) {
-        console.error("Client to Orb error:", e)
+    try {
+      let relay = connectedRelays[orbID] && connectedRelays[orbID][clientID]
+      if(relay){
+        relay.send(data)
       }
-    } else {
-      console.log("Orb not connected yet:", orbID)
+    } catch(e) {
+      console.error("Client to relay error:", orbID, clientID, e)
     }
   })
   socket.on('close', () => {
-    delete connectedOrbClients[orbID][socket.rid]
-    relay = clientRelayPairs[socket.rid]
-    delete clientRelayPairs[socket.rid]
-    if(relay) {
-      try {
+    delete connectedClients[orbID][clientID]
+    try {
+      relay = connectedRelays[orbID] && connectedRelays[orbID][clientID]
+      if(relay){
         relay.close()
-      } catch(e) {
-        console.error("Error closing relay from client:",e)
       }
+    } catch(e) {
+      console.error("Error closing relay from client:", orbID, clientID, e)
     }
   })
   socket.on('error', (e) => {
-    console.error("Error on orb client socket", e)
+    console.error("Error on client socket", orbID, clientID, e)
     socket.close()
   })
 }
@@ -405,19 +422,20 @@ function bindDataEvents(peer) {
 }
 
 // Relay Connection
-var relayRequestSocket = null
+var relayRequesterSocket = null
 function relayUpkeep() {
   if(config.CONNECT_TO_RELAY) {
-    if(!relayRequestSocket){
+    if(!relayRequesterSocket){
       try {
         let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
-        console.log("Initializing relay request socket")
-        relayRequestSocket = new WebSocket.WebSocket(relayURL)
-        relayRequestSocket.on('message', data => {
+        console.log("Initializing relay requester socket")
+        relayRequesterSocket = new WebSocket.WebSocket(relayURL)
+        relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
           console.log("Got relay request",clientID)
-          let socket = new WebSocket.WebSocket(relayURL)
+          let socket = new WebSocket.WebSocket(`${relayURL}/${clientID}`)
           socket.relayBound = false
+          socket.clientID = clientID
           socket.on('open', () => {
             if(!socket.relayBound){
               socket.relayBound = true
@@ -427,8 +445,11 @@ function relayUpkeep() {
             }
           })
         })
-        relayRequestSocket.on('close', () => {
-          relayRequestSocket = null
+        relayRequesterSocket.on('close', () => {
+          relayRequesterSocket = null
+        })
+        relayRequesterSocket.on('error', () => {
+          relayRequesterSocket.close()
         })
       } catch(e) {
         console.error("Error connecting to relay:", e)
@@ -438,28 +459,16 @@ function relayUpkeep() {
   if(config.ACT_AS_RELAY){
     for(orbID of Object.keys(connectedOrbs)){
       let orbSocket = connectedOrbs[orbID]
-      // Connect clients to available relays
-      for(client of Object.keys(connectedOrbClients[orbID] || {})){
-        if(!clientRelayPairs[client]){
-          let found = false
-          for(relay of Object.keys(connectedOrbRelays[orbID] || {})){
-            if(!relayClientPairs[relay]){
-              clientRelayPairs[client]=connectedOrbRelays[orbID][relay]
-              relayClientPairs[relay]=connectedOrbClients[orbID][client]
-              found = true
-              break
-            }
-          }
-          // No available relay sockets, request one
-          if(!found && orbSocket){
-            orbSocket.send(connectedOrbClients[orbID][client].clientID)
-          }
+      // Request relays for dangling clients
+      for(clientID of Object.keys(connectedClients[orbID] || {})){
+        if((!connectedRelays[orbID] || !connectedRelays[orbID][clientID]) && orbSocket){
+          orbSocket.send(clientID)
         }
       }
       // Remove excess relays, if any
-      for(relay of Object.keys(connectedOrbRelays[orbID] || {})){
-        if(!relayClientPairs[relay]){
-          connectedOrbRelays[orbID][relay].close()
+      for(clientID of Object.keys(connectedRelays[orbID] || {})){
+        if(!connectedClients[orbID] || !connectedClients[orbID][clientID]){
+          connectedRelays[orbID][clientID].close()
         }
       }
     }
