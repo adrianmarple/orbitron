@@ -557,7 +557,7 @@ function ipUpdate(){
   })
 }
 ipUpdate()
-setInterval(ipUpdate, 10000)
+setInterval(ipUpdate, 60 * 1000)
 
 // Communications with python script
 
