@@ -524,38 +524,35 @@ connectionQueue = []
 function ipUpdate(){
   exec("ip addr | grep 'state UP' -A5 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'", (error, stdout, stderr) => {
     var ip=stdout.trim().split(/\s+/)[0]
-    if(ip !== localIP){
-      console.log(`Sending IP '${config.ORB_ID}':${ip}`)
-      var options = {
-        hostname: 'orbitron.games',
-        path: `/ip/${config.ORB_ID}`,
-        method: 'POST',
-        port: 80,
-        headers: {
-          'Content-Type': 'text',
-        },
-      }
-      var req = http.request(options, res => {
-        let rawData = '';
-        res.on('data', chunk => {
-          rawData += chunk;
-        });
-        res.on('end', () => {
-          localIP = ip
-          console.log(`IP Send Response: ${rawData}`)
-          console.log("Sending IP completed")
-        });
-      });
-      req.on('error', err => {
-        console.error(`IP Send Error: ${err}`)
-        console.error("Sending IP failed")
-      });
-      req.write(`${ip}`);
-      req.end();
+    console.log(`Sending IP '${config.ORB_ID}':${ip}`)
+    var options = {
+      hostname: 'orbitron.games',
+      path: `/ip/${config.ORB_ID}`,
+      method: 'POST',
+      port: 80,
+      headers: {
+        'Content-Type': 'text',
+      },
     }
+    var req = http.request(options, res => {
+      let rawData = '';
+      res.on('data', chunk => {
+        rawData += chunk;
+      });
+      res.on('end', () => {
+        localIP = ip
+        console.log(`IP Send Response: ${rawData}`)
+        console.log("Sending IP completed")
+      });
+    });
+    req.on('error', err => {
+      console.error(`IP Send Error: ${err}`)
+      console.error("Sending IP failed")
+    });
+    req.write(`${ip}`);
+    req.end();
   })
 }
-localIP = ""
 ipUpdate()
 setInterval(ipUpdate, 10000)
 
