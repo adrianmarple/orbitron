@@ -5,8 +5,7 @@ let GAMES_INFO = [
     rules: [
       {
         words: [
-          "Welcome!",
-          "You are currently playing Snektron in sandbox mode.",
+          "You are currently playing Snektron.",
         ],
       },
       {
@@ -16,10 +15,6 @@ let GAMES_INFO = [
       {
         words: ["Shrink on contact."],
         image: "/images/snektronShrinkTutorial.gif",
-      },
-      {
-        words: ["Drag to move."],
-        image: "/images/snektronMovementTutorial.gif",
       },
     ],
     victoryCondition: "Record longest snake wins",
@@ -34,13 +29,12 @@ let GAMES_INFO = [
     rules: [
       {
         words: [
-          "Welcome!",
-          "You are currently playing Color War in sandbox mode.",
+          "You are currently playing Color War.",
         ],
       },
       {
         words: [
-          "Wherever you go, it turns your color.",
+          "Wherever you go, you leave behind your color.",
           "Your score is the number of pixels turned your color.",
         ],
       },
@@ -56,8 +50,7 @@ let GAMES_INFO = [
     rules: [
       {
         words: [
-          "Welcome!",
-          "You are currently playing Co-op Pac-Man in sandbox mode.",
+          "You are currently playing Co-op Pac-Man.",
         ],
       },
       {
@@ -94,8 +87,7 @@ let GAMES_INFO = [
     rules: [
       {
         words: [
-          "Welcome!",
-          "You are currently playing Bomberman in sandbox mode.",
+          "You are currently playing Bomberman.",
         ],
       },
       {
@@ -115,8 +107,8 @@ let GAMES_INFO = [
       },
       {
         words: [
-          "If you hit yourself, you will get stunned.",
-          "If you hit someone else with your bomb they get hurt.",
+          "If you get hit by a bomb you will get hurt.",
+          "Get hurt twice and you're dead.",
         ],
       },
     ],
@@ -132,8 +124,7 @@ let GAMES_INFO = [
     rules: [
       {
         words: [
-          "Welcome!",
-          "You are currently playing Red Light Pink Light in sandbox mode.",
+          "You are currently playing Red Light Pink Light.",
         ],
       },
       {
@@ -156,7 +147,6 @@ let GAMES_INFO = [
     rules: [
       {
         words: [
-          "Welcome!",
           "You are currently playing co-op Base Defense!",
         ],
       },
@@ -174,5 +164,24 @@ let GAMES_INFO = [
       type: "cooperative",
       showLives: true,
     },
+  },
+]
+
+GLOBAL_RULES = [
+  {
+    words: [
+      "Welcome!",
+      "You are playing Super Orbiton!",
+    ]
+  },
+  {
+    words: [
+      "You will be playing a series of minigames.",
+      "The rules change every round, so be sure to read them.",
+    ],
+  },
+  {
+    words: ["Drag to move."],
+    image: "/images/snektronMovementTutorial.gif",
   },
 ]

@@ -88,6 +88,7 @@ var app = new Vue({
     fetchingIP: false,
     state: {},
     localFlags: {},
+    hasSeenGlobalRules: false,
     showSettings: false,
     blurred: false,
 
@@ -160,7 +161,7 @@ var app = new Vue({
     ontouchmove = event => {
       this.handleChange(event.changedTouches[0])
     }
-    // Do this just in case localStorage is inaccessible and errors
+    // Do this last just in case localStorage is inaccessible and errors
     // this.localFlags = JSON.parse(localStorage.getItem('flags')) || {}
   },
 
@@ -204,14 +205,6 @@ var app = new Vue({
         }
         return "DISCONNECTED"
       }
-    },
-    gameInfo() {
-      for (let info of GAMES_INFO) {
-        if (info.name == this.state.game) {
-          return info
-        }
-      }
-      return {rules: []}
     },
     victoryCondition() {
       return this.substitute(this.gameInfo.victoryCondition)
@@ -328,8 +321,26 @@ var app = new Vue({
       }
     },
 
+    gameInfo() {
+      for (let info of GAMES_INFO) {
+        if (info.name == this.state.game) {
+          return info
+        }
+      }
+      return {}
+    },
+    rules() {
+      let startingRules = this.hasSeenGlobalRules ? [] : GLOBAL_RULES
+      console.log(this.hasSeenGlobalRules)
+      console.log(startingRules)
+      if (!this.gameInfo || !this.gameInfo.rules) {
+        return startingRules
+      } else {
+        return startingRules.concat(this.gameInfo.rules)
+      }
+    },
     carouselSize() {
-      return this.gameInfo.rules.length
+      return this.rules.length
     },
     carouselStyle() {
       return {
@@ -611,8 +622,9 @@ var app = new Vue({
     },
 
     dismissRules() {
-      this.$set(this.localFlags, 'hasPlayedOnce', true)
-      this.$set(this.localFlags, this.state.game, true)
+      // this.$set(this.localFlags, 'hasPlayedOnce', true)
+      // this.$set(this.localFlags, this.state.game, true)
+      this.hasSeenGlobalRules = true
       this.send({ type: 'ready' })
       this.carouselPosition = 0
       this.carouselCurrentX = 0

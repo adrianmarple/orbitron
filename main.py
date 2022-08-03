@@ -77,6 +77,10 @@ def check_vote():
         engine.game.ontimeout()
     elif election == "playagain":
       engine.start(engine.game)
+      for player in engine.game.claimed_players():
+        player.set_ready()
+      if are_all_ready():
+        engine.game.ontimeout()
     elif election == "quit":
       engine.start_random_game()
 
