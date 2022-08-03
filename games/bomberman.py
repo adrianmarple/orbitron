@@ -109,12 +109,33 @@ class Rhomberman(Game):
         if (x >= 0):
           sequence = self.explosion_providence[i].explosion_color_sequence
           x *= len(sequence) - 1
-          engine.color_pixel(i, engine.multi_lerp(x, sequence))
+          engine.color_pixel(i, multi_lerp(x, sequence))
 
 
   def is_pixel_blank(self, index):
     return self.statuses[index] == "blank"
 
+
+
+def multi_lerp(x, control_points):
+  if x < 0:
+    return control_points[0][1]
+
+  index = 1
+  prev_v = control_points[0][1]
+  while index < len(control_points):
+    max_x = control_points[index][0]
+    next_v = control_points[index][1]
+    if x > max_x:
+      x -= max_x
+      prev_v = next_v
+      index += 1
+      continue
+
+    alpha = x / max_x
+    return alpha * next_v + (1-alpha) * prev_v
+
+  return control_points[index - 1][1]
 
 # ================================ PLAYER =========================================
 

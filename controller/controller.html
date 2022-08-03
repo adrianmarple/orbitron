@@ -213,10 +213,12 @@
         </div>
       </div>
 
-      <div v-if="gameInfo.statusDisplay.type == 'cooperativescore'">
-        Score: {{state.data.score}}/{{state.data.victory_score}}
-        <div v-if="gameInfo.statusDisplay.showLives && self.livesLeft >= 0">
-          Lives left: {{self.livesLeft}}
+      <div v-if="gameInfo.statusDisplay.type == 'cooperative'">
+        <div v-if="gameInfo.statusDisplay.showScore">
+          Score: {{state.data.score}}/{{state.data.victory_score}}
+        </div>
+        <div v-if="gameInfo.statusDisplay.showLives">
+          Lives left: {{state.data.lives}}
         </div>
       </div>
 

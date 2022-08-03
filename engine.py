@@ -305,6 +305,9 @@ class Player:
       return new_pos
 
   def is_occupied(self, position):
+    if not self.is_alive:
+      return False
+
     if game.CONTINUOUS_MOVEMENT:
       return False
 

@@ -32,7 +32,6 @@ additional_config = {
   "MARGINAL_PACMAN_VICTORY_SCORE": 1000,
   "PELLET_REGEN_FREQ": 1,
   "POWER_PELLET_REGEN_FREQ": 30,
-  "SHARED_LIVES": True,
   "PULSE_DURATION": 0.75,
   "GHOST_STUN_TIME": 5,
   "SELECTION_WEIGHTS": [0, 0.1, 0.1, 0.1, 0.1, 0],
@@ -220,12 +219,6 @@ class Pacman(Player):
     elif game.statuses[self.position] == "pellet":
       game.data["score"] += game.PELLET_SCORE
       game.statuses[self.position] = "blank"
-
-  def to_json(self):
-    dictionary = Player.to_json(self)
-    dictionary["isPacman"] = True
-    dictionary["livesLeft"] = game.data["lives"] if game.SHARED_LIVES else self.lives_left
-    return dictionary
 
   def is_occupied(self, position):
     for player in game.pacmen():

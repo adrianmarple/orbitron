@@ -83,7 +83,8 @@ let GAMES_INFO = [
     ],
     victoryCondition: "You all win if you reach score {{state.data.victory_score}}",
     statusDisplay: {
-      type: "cooperativescore",
+      type: "cooperative",
+      showScore: true,
       showLives: true,
     },
   },
@@ -170,7 +171,8 @@ let GAMES_INFO = [
     ],
     victoryCondition: "Survive for {{state.config.ROUND_TIME}} seconds.",
     statusDisplay: {
-      type: "cooperativescore",
+      type: "cooperative",
+      showLives: true,
     },
   },
 ]

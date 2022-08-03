@@ -37,18 +37,15 @@ class BaseDefense(Game):
 
   def restart(self):
     Game.restart(self)
-    self.data["lives"] = self.LIVES
-
-  def start_ontimeout(self):
-    Game.start_ontimeout(self)
+    self.invaders = []
     self.data["lives"] = self.LIVES
 
   def play_ontimeout(self):
     Game.play_ontimeout(self)
     self.victor = engine.Dummy(
       name="Defenders",
-      color=self.pacmen()[0].color,
-      color_string=self.pacmen()[0].color_string)
+      color=self.players[0].color,
+      color_string=self.players[0].color_string)
 
   def play_update(self):
     for player in self.claimed_players():
@@ -103,9 +100,6 @@ class Invader(Player):
     self.move_freq = game.MIN_INVADER_MOVE_FREQ + random() * (
       game.MAX_INVADER_MOVE_FREQ - game.MIN_INVADER_MOVE_FREQ)
 
-  def move_delay(self):
-    return self.move_freq
-
   def die(self):
     self.is_alive = False
     self.hit_time = time()
@@ -126,12 +120,19 @@ class Invader(Player):
 
     return southernmost_neighbor
 
+  def cant_move(self):
+    return not self.is_alive or time() - self.last_move_time < self.move_freq
+
+  def is_occupied(self, position):
+    return False
+
   def move(self):
     if not self.is_alive and time() - self.hit_time > game.PULSE_DURATION:
       game.invaders.remove(self)
       return
 
-    Player.move(self)
+    if not Player.move(self):
+      return
 
     if self.position in engine.south_pole:
       game.data["lives"] -= 1
