@@ -628,10 +628,7 @@ class Game:
 
 class Idle(Game):
   name = "idle"
-
-  # def __init__(self):
-  #   Game.__init__(self)
-  #   self.waiting_music = "idle"
+  waiting_music = "idle"
 
   def update(self):
     pass

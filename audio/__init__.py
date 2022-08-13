@@ -204,6 +204,7 @@ class MusicWrapper:
 
 def prewarm_audio():
   MusicWrapper("any.ogg")# for checking general music state
+  MusicWrapper("idle.ogg", loop=True)
   MusicWrapper("battle1.ogg", vamp_file_name="battle1Loop.ogg")
   MusicWrapper("dm1.ogg", vamp_file_name="dm1Loop.ogg")
   MusicWrapper("snekBattle.ogg")
