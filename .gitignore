@@ -72,3 +72,4 @@ debug.log
 
 # 3d printing files
 *.gcode
+*.stl
