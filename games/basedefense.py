@@ -102,12 +102,10 @@ class Invader(Player):
     weights = []
     neighbors = engine.neighbors[self.position]
     for neighbor in neighbors:
-      weight = my_z - engine.coords[neighbor][2] + 0.1
+      weight = my_z - engine.coords[neighbor][2]
       if weight > 0:
         weights.append(weight)
       else:
-        print(my_z, file=sys.stderr)
-        print(engine.coords[neighbor][2], file=sys.stderr)
         weights.append(0)
 
     next_pos = engine.weighted_random(weights=weights, values=neighbors)

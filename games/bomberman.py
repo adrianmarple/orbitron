@@ -61,8 +61,8 @@ class Rhomberman(Game):
 
     # Timer death creep from south pole
     phase = (self.end_time - time()) / self.DEATH_CREEP_DURATION
-    threshold = engine.COORD_MAGNITUDE * (1 - 2 * phase)
-    threshold = min(threshold, engine.COORD_MAGNITUDE * 0.8)
+    threshold = 1 - 2 * phase
+    threshold = min(threshold, 0.8)
     for i in range(engine.SIZE):
       z = engine.coords[i][2]
       if z < threshold:

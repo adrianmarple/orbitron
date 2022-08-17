@@ -29,10 +29,6 @@ else:
 
 prewarm_audio()
 
-# Actual constants
-COORD_MAGNITUDE = 4.46590101883
-COORD_SQ_MAGNITUDE = 19.94427190999916
-
 GOOD_COLOR = np.array((255, 0, 255))
 GOOD_COLOR_STRING = "#ff00ff"
 BAD_COLOR = np.array((255, 0, 0))
@@ -62,16 +58,16 @@ f.close()
 SIZE = pixel_info["SIZE"]
 neighbors = pixel_info["neighbors"]
 next_pixel = pixel_info["nextPixel"]
-coords = [np.array(coord) for coord in pixel_info["coords"]]
+coords = [np.array(coord) / np.linalg.norm(np.array(coord)) for coord in pixel_info["coords"]]
 coord_matrix = np.matrix(coords).transpose()
 unique_to_dupe = pixel_info["uniqueToDupe"]
 antipodes = pixel_info["antipodes"]
 north_pole = []
 south_pole = []
 for (i, coord) in enumerate(coords):
-  if coord[2] > 0.92 * COORD_MAGNITUDE:
+  if coord[2] > 0.94:
     north_pole.append(i)
-  if coord[2] < -0.92 * COORD_MAGNITUDE:
+  if coord[2] < -0.94:
     south_pole.append(i)
 
 dupe_matrix = np.zeros((len(unique_to_dupe), SIZE),dtype="<u1")
@@ -528,7 +524,7 @@ class Game:
       countdown = ceil(self.end_time - time())
       countup = 5 - countdown
       render_pulse(
-        direction=(0,0,COORD_MAGNITUDE),
+        direction=(0,0,1),
         color=np.array((60,60,60)) * countup,
         start_time=self.end_time - countdown,
         duration=READY_PULSE_DURATION)
@@ -541,7 +537,7 @@ class Game:
         countdown = ceil(self.end_time - time())
         countup = 7 - countdown
         render_pulse(
-          direction=(0,0,COORD_MAGNITUDE),
+          direction=(0,0,1),
           color=np.array((60,60,60)) * countup,
           start_time=self.end_time - countdown,
           duration=READY_PULSE_DURATION)
@@ -590,7 +586,7 @@ class Game:
         render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
       else:
         for (i, coord) in enumerate(coords):
-          color_pixel(i, color * sin(coord[2] - 4*(timer - 0.3)))
+          color_pixel(i, color * sin(4*(coord[2] - timer + 0.3)))
 
 
   def render_game(self):
@@ -733,6 +729,7 @@ def phase_color():
     b = 3 - 3 * color_phase
   return np.array((r,g,b))
 
+# Assume direction (and from_direction) is normalized
 def render_pulse(direction=np.array((0,0,1), dtype=float),
     from_direction=None,
     color=(200,200,200), start_time=0, duration=READY_PULSE_DURATION):
@@ -747,18 +744,14 @@ def render_pulse(direction=np.array((0,0,1), dtype=float),
       alpha = min(alpha, 1)
       direction = alpha * direction - (1 - alpha) * from_direction
 
-    direction /= np.linalg.norm(direction)
-
-    ds = direction * coord_matrix / COORD_MAGNITUDE / 2 + 0.5
+    ds = direction * coord_matrix / 2 + 0.5
     ds = ds * 6 - (t * 7 - 1)
-    # ds = 6*(ds + 1) - 7*t
-    # ds *= -1
     ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
     pixels += np.array(np.outer(ds, color), dtype="<u1")
 
+# Assume direction is normalized
 def render_ring(direction, pixels, color, width):
-  direction /= np.linalg.norm(direction)
-  ds = direction * coord_matrix / COORD_MAGNITUDE
+  ds = direction * coord_matrix
   ds = ds * 6 + width/2
   ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
   pixels += np.array(np.outer(ds, color), dtype="<u1")
