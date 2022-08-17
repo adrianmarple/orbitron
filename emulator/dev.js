@@ -376,7 +376,9 @@ var app = new Vue({
         new MusicWrapper("dm1.ogg",false,"dm1Loop.ogg"),
         new MusicWrapper("snekBattle.ogg"), 
         new MusicWrapper("waiting.ogg", true), 
-        new MusicWrapper("victory.ogg")
+        new MusicWrapper("victory.ogg"),
+        new MusicWrapper("lose.ogg"),
+        new MusicWrapper("idle.ogg")
       ]
 
       for (let m of music) {

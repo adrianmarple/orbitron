@@ -209,7 +209,7 @@ def prewarm_audio():
   MusicWrapper("dm1.ogg", vamp_file_name="dm1Loop.ogg")
   MusicWrapper("snekBattle.ogg")
   MusicWrapper("waiting.ogg", loop=True)
-  MusicWrapper("victory.ogg", vamp_file_name="victoryLoop.ogg")
+  MusicWrapper("victory.ogg")
   MusicWrapper("lose.ogg")
   SoundWrapper("kick.wav")
   SoundWrapper("placeBomb.wav")

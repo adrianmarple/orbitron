@@ -564,32 +564,38 @@ class Game:
         victor = self.victors[floor(timer/2 % len(self.victors))]
         color = victor.color
 
-      width = 2
-      if timer < 0.4:
-        render_ring((sin(timer*6),cos(timer*6),0.5),pixels,color,width)
-      elif timer < 0.9:
-        render_ring((cos(timer*6),sin(timer*6),0.5),pixels,color,width)
-      elif timer < 1.35:
-        render_ring((sin(timer*8),1,cos(timer*8)),pixels,color,width)
-        render_ring((cos(timer*8),0,sin(timer*8)),pixels,color,width)
-      elif timer < 1.9:
-        render_ring((0,sin(timer*6),cos(timer*6)),pixels,color,width)
-      elif timer < 2.25:
-        render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),pixels,color,width)
-      elif timer < 2.75:
-        render_ring((sin(timer*6),cos(timer*6),0),pixels,color,width)
-        render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color,width)
-      elif timer < 4.65:
-        t = min((timer - 3)*2,pi/2)+pi/2
-        #width = width + t - pi/2 + sin(timer*2)
-        width = 1 + 3.1*abs(cos(timer*1.9))
-        render_ring((0,sin(t),cos(t)),pixels,color*0.028,width)
-        render_ring((sin(t),0,cos(t)),pixels,color*0.028,width)
-        render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
-        render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
-      else:
+      if self.victors == ENEMY_TEAM:
+        width = 4 + (20 - min(20,timer*4))
         for (i, coord) in enumerate(coords):
-          color_pixel(i, color * sin(4*(coord[2] - timer + 0.3)))
+          color_pixel(i, color * sin(width*(coord[2] - timer + 0.3)))
+
+      else:
+        width = 2
+        if timer < 0.4:
+          render_ring((sin(timer*6),cos(timer*6),0.5),pixels,color,width)
+        elif timer < 0.9:
+          render_ring((cos(timer*6),sin(timer*6),0.5),pixels,color,width)
+        elif timer < 1.35:
+          render_ring((sin(timer*8),1,cos(timer*8)),pixels,color,width)
+          render_ring((cos(timer*8),0,sin(timer*8)),pixels,color,width)
+        elif timer < 1.9:
+          render_ring((0,sin(timer*6),cos(timer*6)),pixels,color,width)
+        elif timer < 2.25:
+          render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),pixels,color,width)
+        elif timer < 2.75:
+          render_ring((sin(timer*6),cos(timer*6),0),pixels,color,width)
+          render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color,width)
+        elif timer < 4.65:
+          t = min((timer - 3)*2,pi/2)+pi/2
+          #width = width + t - pi/2 + sin(timer*2)
+          width = 1 + 3.1*abs(cos(timer*1.9))
+          render_ring((0,sin(t),cos(t)),pixels,color*0.028,width)
+          render_ring((sin(t),0,cos(t)),pixels,color*0.028,width)
+          render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
+          render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
+        else:
+          for (i, coord) in enumerate(coords):
+            color_pixel(i, color * sin(4*(coord[2] - timer + 0.3)))
 
 
   def render_game(self):
