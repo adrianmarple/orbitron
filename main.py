@@ -23,18 +23,7 @@ for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   engine.game_selection_weights[module_name] = 1
 
 def start_random_game():
-  total_weight = 0
-  for weight in game_selection_weights.values():
-    total_weight += weight
-
-  x = random() * total_weight
-  selection = ""
-  for (name, weight) in game_selection_weights.items():
-    if x < weight:
-      selection = name
-      break
-
-    x -= weight
+  selection = engine.weighted_random(game_selection_weights)
 
   for name in game_selection_weights.keys():
     game_selection_weights[name] += 1

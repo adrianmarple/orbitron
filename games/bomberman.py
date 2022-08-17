@@ -82,7 +82,7 @@ class Rhomberman(Game):
     # GAME OVER
     if live_player_count <= 1:
       Game.play_ontimeout(self)
-      self.victor = last_player_alive
+      self.victors = [last_player_alive]
 
 
   def render_game(self):
@@ -200,12 +200,13 @@ class Bomberman(Player):
       if bomb.has_exploded and time() - bomb.explosion_time > game.SHOCKWAVE_DURATION:
         self.bombs.remove(bomb)
 
+    if not self.is_alive:
+      return False
 
-
-    if self.is_alive and game.statuses[pos] == "death":
+    if game.statuses[pos] == "death":
       sounds["death"].play()
       self.is_alive = False
-      return
+      return False
 
     # non-blank status means either explosion or death
     if not game.is_pixel_blank(pos) and time() - self.hit_time > game.INVULNERABILITY_TIME:

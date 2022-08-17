@@ -161,18 +161,6 @@ def update():
 
 # ================================ PLAYER =========================================
 
-class Dummy:
-  def __init__(self, color, color_string, name):
-    self.color = np.array(color)
-    self.color_string = color_string
-    self.name = name
-
-  def to_json(self):
-    return {
-      "id": -1,
-      "name": self.name,
-      "color": self.color_string,
-    }
 
 
 GHOST_BUFFER_LEN = 20
@@ -376,10 +364,10 @@ class Player:
 
 
   def to_json(self):
-    dictionary = {
+    return {
       "isClaimed": self.is_claimed,
       "isReady": self.is_ready,
-      "isPlaying": self.is_playing,
+      # "isPlaying": self.is_playing,
       "isAlive": self.is_alive,
       "color": self.color_string,
       "position": self.position,
@@ -388,9 +376,17 @@ class Player:
       "scoreTimestamp": self.score_timestamp,
     }
 
-    return dictionary
+  def victor_json(self):
+    return {
+      "color": self.color_string,
+    }
 
 
+# Used in co-op games to assign to `victors` when the players lose
+ENEMY_TEAM = [Player(
+    position = 0,
+    color=BAD_COLOR,
+    color_string=BAD_COLOR_STRING)]
 
 # ================================ Game =========================================
 
@@ -401,7 +397,7 @@ class Game:
   waiting_music = "waiting"
   battle_music = "battle1"
 
-  victor = None
+  victors = []
   data = {}
   statuses = ["blank"] * SIZE
 
@@ -508,7 +504,7 @@ class Game:
       if player.score > top_score or (player.score == top_score and player.score_timestamp < top_score_time):
         top_score = player.score
         top_score_time = player.score_timestamp
-        self.victor = player
+        self.victors = [player]
     touchall()
 
   def previctory_ontimeout(self):
@@ -561,8 +557,14 @@ class Game:
 
     elif self.state == "victory":
       start_time = self.end_time - self.VICTORY_TIMEOUT
-      color = self.victor.color if self.victor else np.array((60,60,60))
       timer = (time() - start_time)
+
+      if len(self.victors) == 0:
+        color = np.array((60,60,60))
+      else:
+        victor = self.victors[floor(timer/2 % len(self.victors))]
+        color = victor.color
+
       width = 2
       if timer < 0.4:
         render_ring((sin(timer*6),cos(timer*6),0.5),pixels,color,width)
@@ -687,6 +689,28 @@ def latlong_delta(ll0, ll1):
     delta[1] += 2*pi
   return delta
 
+def weighted_random(value_to_weights=None, weights=None, values=None):
+  if weights is None:
+    weights = value_to_weights.values()
+  if values is None:
+    values = value_to_weights.keys()
+
+  total_weight = 0
+  for weight in weights:
+    total_weight += weight
+
+  if total_weight == 0:
+    return None
+
+  x = random() * total_weight
+  for (i, value) in enumerate(values):
+    weight = weights[i]
+    if x < weight:
+      return value
+    x -= weight
+
+  print("Weighted random failed: %s %s" % (weights, values), file=sys.stderr)
+
 def projection(u, v): # assume v is normalized
   return v * np.dot(u,v)
 
@@ -758,7 +782,7 @@ def broadcast_state():
     "players": [player.to_json() for player in game.players],
     "gameState": game.state if game else "none",
     "timeRemaining": time_remaining,
-    "victor": game.victor.to_json() if game.victor else {},
+    "victors": [victor.victor_json() for victor in game.victors],
     "config": game.config,
     "data": game.data,
     "musicActions": remoteMusicActions,

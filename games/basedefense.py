@@ -16,16 +16,15 @@ Game = engine.Game
 Player = engine.Player
 
 additional_config = {
-  # "CONTINUOUS_MOVEMENT": True,
+  "CONTINUOUS_MOVEMENT": True,
   "LIVES": 3,
   "STARTING_SPAWN_DELAY": 8,
   "ENDING_SPAWN_DELAY": 3,
   "MIN_INVADER_MOVE_FREQ": 0.3,
   "MAX_INVADER_MOVE_FREQ": 0.5,
-  "INVADER_RANDOMNESS": 0.2,
   "PULSE_DURATION": 0.75,
   "ROUND_TIME": 90,
-  "SELECTION_WEIGHTS": [0, 0, 1, 1, 1, 1],
+  "SELECTION_WEIGHTS": [0, 0.5, 1, 1, 1, 1],
 }
 
 
@@ -42,10 +41,7 @@ class BaseDefense(Game):
 
   def play_ontimeout(self):
     Game.play_ontimeout(self)
-    self.victor = engine.Dummy(
-      name="Defenders",
-      color=self.players[0].color,
-      color_string=self.players[0].color_string)
+    self.victors = self.claimed_players()
 
   def play_update(self):
     for player in self.claimed_players():
@@ -55,10 +51,7 @@ class BaseDefense(Game):
 
     if self.data["lives"] <= 0:
       self.play_ontimeout()
-      self.victor = engine.Dummy(
-        name="Invaders",
-        color=engine.BAD_COLOR,
-        color_string=engine.BAD_COLOR_STRING)
+      self.victors = engine.ENEMY_TEAM
 
 
     game_completion = 1 - (self.end_time - time()) / self.ROUND_TIME
@@ -86,7 +79,7 @@ class Defender(Player):
   def move(self):
     Player.move(self)
     for invader in game.invaders:
-      if invader.position == self.position:
+      if invader.is_alive and invader.position == self.position:
         invader.color = engine.GOOD_COLOR
         invader.die()
 
@@ -105,20 +98,24 @@ class Invader(Player):
     self.hit_time = time()
 
   def get_next_position(self):
-    if random() < game.INVADER_RANDOMNESS:
-      goto = choice(engine.neighbors[self.position])
-      while goto == self.prev_pos:
-        goto = choice(engine.neighbors[self.position])
-      return goto
+    my_z = engine.coords[self.position][2]
+    weights = []
+    neighbors = engine.neighbors[self.position]
+    for neighbor in neighbors:
+      weight = my_z - engine.coords[neighbor][2] + 0.1
+      if weight > 0:
+        weights.append(weight)
+      else:
+        print(my_z, file=sys.stderr)
+        print(engine.coords[neighbor][2], file=sys.stderr)
+        weights.append(0)
 
-    southernmost_neighbor = None
-    for neighbor in engine.neighbors[self.position]:
-      if (southernmost_neighbor is None or
-          (engine.coords[neighbor][2] <
-            engine.coords[southernmost_neighbor][2])):
-        southernmost_neighbor = neighbor
+    next_pos = engine.weighted_random(weights=weights, values=neighbors)
+    if next_pos is None:
+      return self.position
+    else:
+      return next_pos
 
-    return southernmost_neighbor
 
   def cant_move(self):
     return not self.is_alive or time() - self.last_move_time < self.move_freq
@@ -144,7 +141,7 @@ class Invader(Player):
         direction=engine.coords[self.position],
         color=self.current_color(),
         start_time=self.hit_time,
-        duration=game.PULSE_DURATION)
+        duration=game.PULSE_DURATION/2)
 
     Player.render(self)
 

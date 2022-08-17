@@ -109,17 +109,11 @@ class PacMan(Game):
 
     if self.data["lives"] <= 0:
       self.play_ontimeout()
-      self.victor = engine.Dummy(
-        name="Ghosts",
-        color=engine.BAD_COLOR,
-        color_string=engine.BAD_COLOR_STRING)
+      self.victors = engine.ENEMY_TEAM
 
     if self.data["score"] >= self.data["victory_score"]:
       self.play_ontimeout()
-      self.victor = engine.Dummy(
-        name="Pacmen",
-        color=self.pacmen()[0].color,
-        color_string=self.pacmen()[0].color_string)
+      self.victors = self.claimed_players()
 
     if time() - self.previous_pellet_generation_time > self.PELLET_REGEN_FREQ:
       self.spawn("pellet")
@@ -137,7 +131,6 @@ class PacMan(Game):
     for i in range(len(self.statuses)):
       if self.statuses[i] == "pellet":
         engine.color_pixel(i, (10, 10, 10))
-        #engine.color_pixel(i, (50, 50, 50))
       elif self.statuses[i] == "power":
         engine.color_pixel(i, power_color)
 

@@ -259,7 +259,7 @@ var app = new Vue({
       return this.claimedPlayers.filter(player => !player.isReady)
     },
     livePlayers() {
-      return this.claimedPlayers.filter(player => player.isPlaying && player.isAlive)
+      return this.claimedPlayers.filter(player => player.isAlive)
     },
     playersByRanking() {
       return this.livePlayers.sort((p0, p1) => {
@@ -311,14 +311,12 @@ var app = new Vue({
       return maxScore
     },
     iAmVictorious() {
-      if (!this.state.victor || isNothing(this.state.self)) {
-        return false
+      for (let victor of this.state.victors) {
+        if (this.self.color == victor.color) {
+          return true
+        }
       }
-      if (this.state.victor.players) {
-        return this.state.victor.players.includes(this.state.self)
-      } else {
-        return this.self.color === this.state.victor.color
-      }
+      return false
     },
 
     gameInfo() {
@@ -331,8 +329,6 @@ var app = new Vue({
     },
     rules() {
       let startingRules = this.hasSeenGlobalRules ? [] : GLOBAL_RULES
-      console.log(this.hasSeenGlobalRules)
-      console.log(startingRules)
       if (!this.gameInfo || !this.gameInfo.rules) {
         return startingRules
       } else {
