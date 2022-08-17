@@ -506,7 +506,10 @@ class Game:
   def previctory_ontimeout(self):
     self.state = "victory"
     self.end_time = time() + self.VICTORY_TIMEOUT
-    music["victory"].play()
+    if self.victors == ENEMY_TEAM:
+      music["lose"].play()
+    else:
+      music["victory"].play()
 
   def victory_ontimeout(self):
     start_random_game()
