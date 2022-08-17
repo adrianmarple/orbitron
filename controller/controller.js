@@ -93,6 +93,8 @@ var app = new Vue({
     blurred: false,
 
     startLocation: null,
+    delta: null,
+    isDragging: false,
     isMoving: false,
     move: [0,0],
     timestamp: 0,
@@ -103,6 +105,7 @@ var app = new Vue({
     carouselInterval: null,
     carouselPosition: 0,
     carouselCurrentX: 0,
+    carouselVelocityX: 0,
 
     config: {},
     GAMES_INFO,
@@ -565,52 +568,73 @@ var app = new Vue({
       if (this.showSettings) {
         return
       }
-      this.isMoving = true
       this.startLocation = [location.clientX, location.clientY]
+      this.currentLocation = this.startLocation
       this.timestamp = Date.now()
+      if (this.self.isReady) {
+        this.isMoving = true
+        console.log("moving")
+      } else {
+        this.isDragging = true
+      }
     },
     handleEnd(location) {
-      if (this.showSettings || !this.self.isReady) {
+      if (this.showSettings) {
         return
       }
-      if (Date.now() - this.timestamp > 10 &&
-          Date.now() - this.timestamp < 300 &&
-          Math.abs(this.startLocation[0] - location.clientX) < 10 &&
-          Math.abs(this.startLocation[1] - location.clientY) < 10) {
-        this.send({type: "tap"})
+      if (this.isDragging) {
+        let finalX = -(this.carouselCurrentX + this.carouselVelocityX * 20)
+        this.carouselPosition = Math.round(finalX / innerWidth)
+        this.carouselPosition = Math.max(this.carouselPosition, 0)
+        this.carouselPosition = Math.min(this.carouselPosition, this.carouselSize - 1)
+        this.updateCarousel()
+        this.isDragging = false
       }
-      this.move = [0,0]
+      if (this.isMoving) {
+        if (Date.now() - this.timestamp > 10 &&
+            Date.now() - this.timestamp < 300 &&
+            Math.abs(this.startLocation[0] - location.clientX) < 10 &&
+            Math.abs(this.startLocation[1] - location.clientY) < 10) {
+          this.send({type: "tap"})
+        }
+        this.move = [0,0]
 
-      this.send({type: "move", move: this.move})
-      this.isMoving = false
+        this.send({type: "move", move: this.move})
+        this.isMoving = false
+      }
     },
     handleChange(location) {
       if (this.showSettings) {
         return
       }
-      if (!this.isMoving) {
-        return
+      if (this.isDragging) {
+        let deltaX = location.clientX - this.startLocation[0]
+        this.carouselCurrentX += deltaX
+        this.carouselVelocityX = deltaX
+        this.startLocation = [location.clientX, location.clientY]
       }
-      let joystickBG = document.querySelector(".joystick-bg")
-      if (!joystickBG)
-        return
-      let joystickWidth = joystickBG.getBoundingClientRect().width
-      let maxDisplacement = joystickWidth * 0.25
+      if (this.isMoving) {
+        let joystickBG = document.querySelector(".joystick-bg")
+        if (!joystickBG)
+          return
+        let joystickWidth = joystickBG.getBoundingClientRect().width
+        let maxDisplacement = joystickWidth * 0.25
 
-      this.move = [(this.startLocation[0] - location.clientX) / maxDisplacement,
-                   (this.startLocation[1] - location.clientY) / maxDisplacement]
-      let moveMagnitude = Math.sqrt(this.move[0] * this.move[0] + this.move[1] * this.move[1])
-      if (moveMagnitude > 1) {
-        this.move[0] /= moveMagnitude
-        this.move[1] /= moveMagnitude
+        this.move = [(this.startLocation[0] - location.clientX) / maxDisplacement,
+                     (this.startLocation[1] - location.clientY) / maxDisplacement]
+        let moveMagnitude = Math.sqrt(this.move[0] * this.move[0] + this.move[1] * this.move[1])
+        if (moveMagnitude > 1) {
+          this.move[0] /= moveMagnitude
+          this.move[1] /= moveMagnitude
 
-        this.startLocation = [
-          location.clientX + this.move[0] * maxDisplacement,
-          location.clientY + this.move[1] * maxDisplacement
-        ]
+          this.startLocation = [
+            location.clientX + this.move[0] * maxDisplacement,
+            location.clientY + this.move[1] * maxDisplacement
+          ]
+        }
+
+        this.send({type: "move", move: this.move})
       }
-
-      this.send({type: "move", move: this.move})
     },
 
     showRules() {
@@ -662,8 +686,13 @@ var app = new Vue({
         return
       }
       this.carouselInterval = setInterval(() => {
+        if (this.isDragging) {
+          return
+        }
         let targetX = innerWidth * -this.carouselPosition
         const alpha = 0.75
+        this.carouselVelocityX = alpha * this.carouselVelocityX
+        this.carouselCurrentX += this.carouselVelocityX
         this.carouselCurrentX = alpha * this.carouselCurrentX + (1 - alpha) * targetX
         this.$forceUpdate()
         if (Math.abs(this.carouselCurrentX - this.targetX) < 0.1) {
