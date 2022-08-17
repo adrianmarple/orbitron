@@ -45,67 +45,42 @@ class PacMan(Game):
   previous_pellet_generation_time = 0
   previous_power_pellet_generation_time = 0
 
-  def generate_players(self, player_class):
-    engine.Game.generate_players(self, player_class)
-    #North Pole Coords = 268-273 133-141 172
-    self.players += [
-      Ghost(position=133),
-      Ghost(position=137),
-      Ghost(position=141),
-      Ghost(position=172),
-      Ghost(position=135),
-      Ghost(position=139),
-      Ghost(position=269),
-      Ghost(position=272),
-      Ghost(position=134),
-      Ghost(position=138),
-    ]
-
   def restart(self):
     Game.restart(self)
     self.data["score"] = 0
     self.data["victory_score"] = 0
     self.data["lives"] = self.PACMEN_LIVES
 
-  def ghosts(self):
-    return [player for player in self.players if not player.is_pacman]
-  def pacmen(self):
-    if self.state == "start":
-      return [player for player in self.players if player.is_pacman and player.is_claimed]
-    else:
-      return [player for player in self.players if player.is_pacman and player.is_playing]
-
-
   def start_ontimeout(self):
     # Suppliment with AI ghosts
-    ghost_count = 0
-    num_ghosts = self.NUM_GHOSTS + len(self.pacmen())
-    for ghost in self.ghosts():
-      ghost_count += 1
-      ghost.reset()
-      ghost.is_playing = ghost_count <= num_ghosts
+    num_ghosts = self.NUM_GHOSTS + len(self.claimed_players())
+    self.ghosts = []
+    for i in range(num_ghosts):
+      self.ghosts.append(Ghost(engine.north_pole[i]))
 
     Game.start_ontimeout(self)
 
     self.data["lives"] = self.PACMEN_LIVES
-    self.data["victory_score"] = self.VICTORY_SCORE + len(self.pacmen()) * self.MARGINAL_PACMAN_VICTORY_SCORE
-
+    self.data["victory_score"] = self.VICTORY_SCORE + len(self.claimed_players()) * self.MARGINAL_PACMAN_VICTORY_SCORE
 
 
   def countdown_ontimeout(self):
     for i in range(len(self.statuses)):
       self.statuses[i] = "pellet"
     for i in range(self.STARTING_POWER_PELLET_COUNT):
-      self.statuses[randrange(len(self.statuses))] = "power"
+      self.spawn("power")
 
     self.previous_pellet_generation_time = time()
     self.previous_power_pellet_generation_time = time()
     Game.countdown_ontimeout(self)
+    self.end_time = 0
 
 
   def play_update(self):
     for player in self.claimed_players():
       player.move()
+    for ghost in self.ghosts:
+      ghost.move()
 
     if self.data["lives"] <= 0:
       self.play_ontimeout()
@@ -124,9 +99,6 @@ class PacMan(Game):
 
 
   def render_game(self):
-    reversed_players = self.claimed_players()
-    reversed_players.reverse()
-
     power_color = np.array((255,255,255))*(0.55 + 0.45*sin(time() * 16))
     for i in range(len(self.statuses)):
       if self.statuses[i] == "pellet":
@@ -134,7 +106,9 @@ class PacMan(Game):
       elif self.statuses[i] == "power":
         engine.color_pixel(i, power_color)
 
-    for player in reversed_players:
+    for ghost in self.ghosts:
+      ghost.render()
+    for player in self.claimed_players():
       player.render()
 
     self.power_pulses = [pulse for pulse in self.power_pulses if time() < pulse[1] + self.PULSE_DURATION]
@@ -148,10 +122,6 @@ class PacMan(Game):
 # ================================ PLAYER =========================================
 
 class Pacman(Player):
-  def __init__(self, *args, **kwargs):
-    Player.__init__(self, *args, **kwargs)
-    self.is_pacman = True
-
   def reset(self):
     Player.reset(self)
     self.lives_left = game.PACMEN_LIVES
@@ -166,12 +136,11 @@ class Pacman(Player):
     else:
       return game.PACMAN_MOVE_FREQ
 
-  def hit_check(self):
-    if not self.is_alive:
-      return
+  def move(self):
+    Player.move(self)
 
-    for ghost in game.ghosts():
-      if ghost.is_playing and ghost.position == self.position:
+    for ghost in game.ghosts:
+      if ghost.position == self.position:
         if ghost.is_scared():
           sounds["kick"].play()
           ghost.position = engine.unique_antipodes[ghost.position]
@@ -181,24 +150,9 @@ class Pacman(Player):
           break
         elif time() - self.hit_time > game.INVULNERABILITY_TIME:
           self.hit_time = time()
-          if game.SHARED_LIVES:
-            game.data["lives"] -= 1
-          else:
-            self.lives_left -= 1
-          if self.lives_left < 0:
-            sounds["death"].play()
-            self.is_alive = False
-          else:
-            sounds["hurt"].play()
+          game.data["lives"] -= 1
+          sounds["hurt"].play()
           break
-
-
-  def move(self):
-    self.hit_check()
-    if not self.is_alive:
-      return
-    Player.move(self)
-    self.hit_check()
 
     # Pacman consumes pellets as they move
     if game.statuses[self.position] == "power":
@@ -213,19 +167,8 @@ class Pacman(Player):
       game.data["score"] += game.PELLET_SCORE
       game.statuses[self.position] = "blank"
 
-  def is_occupied(self, position):
-    for player in game.pacmen():
-      if player.is_alive and player.position == position:
-        return True
-
-    return False
-
 
 class Ghost(Player):
-  def __init__(self, *args, **kwargs):
-    Player.__init__(self, *args, **kwargs)
-    self.is_pacman = False
-
   def reset(self):
     Player.reset(self)
     self.power_pellet_end_time = 0
@@ -261,7 +204,7 @@ class Ghost(Player):
 
     best_dist_sq = 1000
     closest_pacman_coord = my_coord
-    for pacman in game.pacmen():
+    for pacman in game.claimed_players():
       pacman_coord = engine.coords[pacman.position]
       delta = pacman_coord - my_coord
       dist_sq = np.dot(delta, delta)
