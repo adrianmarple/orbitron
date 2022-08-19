@@ -383,7 +383,11 @@ var app = new Vue({
         return
       }
       if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
-        this.startWebsocket()
+        try {
+          this.startWebsocket()
+        } catch(e) {
+          console.log(e)
+        }
       } else if(this.ws.readyState === WebSocket.OPEN) {
         try {
           this.ws.send(message)
@@ -393,7 +397,11 @@ var app = new Vue({
         }
       }
       if(!this.wrtcs) {
-        this.startWebRTCSocket()
+        try {
+          this.startWebRTCSocket()
+        } catch(e) {
+          console.log(e)
+        }
       } else {
         try {
           this.wrtcs.send(message)
@@ -403,7 +411,11 @@ var app = new Vue({
         }
       }
       if(!this.ls) {
-        this.startLocalSocket()
+        try {
+          this.startLocalSocket()
+        } catch(e) {
+          console.log(e)
+        }
       } else {
         try {
           this.ls.send(message)
