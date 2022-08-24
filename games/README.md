@@ -29,7 +29,7 @@ In order to make your own game you simply need to make a new python module (i.e.
 Here are the relevant fields that a game has:
  - `statuses`: A list of 420 entries representing the status of each pixel. Generally populated with strings. Defaults to all "blank"
  - `data`: An object with game-global information that needs to get sent to the controller.
- - `victor`: Player (or `Dummy` player) representing who won.
+ - `victors`: A list of players who have won (should have a single entry for competitive free-for-all games). There is a constant `ENEMY_TEAM` that is a list containing a dummy player that diplays red and should be used in cooperative games when the players lose.
  - `players`: Pretty much what you'd expect. This list should never change once populated. If you want to reset the players do so to each player rather than repopulate the list.
 
 And some helper methods attacted the base `Game` class:
@@ -125,9 +125,9 @@ A Super Orbitron controller is governed by the code in `controller` folder. Howe
 - `statusDisplay`: how the game state is shown. Honestly this is pretty much bespoke for every game and you may have to alter the code elsewhere to get what you want
    - current options are: "rankedscore", "cooperativescore", and "battleroyale" 
 
-### CONFIG
+### Game settings
 
-Addition configurations are added by passing an `additional_config` dictionary to your `Game`'s initializer. These are copied along with the global config and will be unique to that game an unaffected by identically named config variables in other games.
+Addition settings are added by passing an `additional_config` dictionary to your `Game`'s initializer. These are copied along with the global config and will be unique to that game an unaffected by identically named config variables in other games.
 
 The contents of these dictionaries will be turned into attributes and so can be accessed with a `.` (e.g. as `game.MY_VAR` if `additional_config = {"MY_VAR": true}`).
 
@@ -156,6 +156,7 @@ There are two arrys to import from `audio.py`, `sounds` and `music`. If you want
  - `add_color_to_pixel`: Name says it all.
  - `render_pulse`: Renders a pulse that spans the entire sphere (used for instance in the ready pulse, countdown, and explostion shockwaves)
  - `render_ring`: Renders a solid ring on the sphere (used in the victory sequence)
+ - `weighted_random`: Chooses a random entry from a list of values according to a corresponding list of weights (or using a dict mapping values to weights). For example, if the values are `['a', 'b', 'c']` and the weights `[0.5, 0, 1]`. It will never choose `'b'`, will have a 1 in 3 chance of choosing `'a'`, and likewise a 2 in 3 chance of choosing `'c'`.
 
 ### Colors
 
@@ -166,6 +167,6 @@ Everything else should be grayscale.
 
 ### Final thoughts
 
-If you have any recommendations (for little things or large architectual changes alike) contact Adrian Marple (Marplebot#4158 on discord) or make a pull request.
+If you have any recommendations (for little things or large architectual changes alike) contact Adrian Marple (adrian@marplebot.com or Marplebot#4158 on discord) or make a pull request.
 
 Thanks!
