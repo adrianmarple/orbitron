@@ -16,7 +16,7 @@ Player = engine.Player
 additional_config = {
   "CONTINUOUS_MOVEMENT": True,
   "MOVE_FREQ": 0.28,
-  "SELECTION_WEIGHTS": [1, 0, 1, 1, 1, 1],
+  "SELECTION_WEIGHTS": [0, 0, 1, 1, 1, 1],
 }
 
 class ColorWar(Game):

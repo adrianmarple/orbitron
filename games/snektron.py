@@ -17,7 +17,7 @@ Player = engine.Player
 
 additional_config = {
   "CONTINUOUS_MOVEMENT": True,
-  "SNEK_ROUND_TIME": 94.6,
+  "ROUND_TIME": 94.6,
   "START_LENGTH": 4,
   "SANDBOX_APPLES_PER_SNEK": 15,
   "ADDITIONAL_APPLES": 25,

@@ -1,7 +1,7 @@
 let GAMES_INFO = [
   {
     name: "snektron",
-    label: "Snekton",
+    label: "Snake",
     rules: [
       {
         words: [
@@ -181,7 +181,12 @@ GLOBAL_RULES = [
     ],
   },
   {
-    words: ["Drag to move."],
+    words: [
+      "Once a game has started you can drag on your phone to move.",
+    ],
     image: "/images/snektronMovementTutorial.gif",
+  },
+  {
+    words: ["Your color is <span style='color:{{self.color}}'>{{self.colorName}}</span>, so look for the <span style='color:{{self.color}}'>{{self.colorName}}</span> pixel once the game starts."],
   },
 ]

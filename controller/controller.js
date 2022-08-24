@@ -7,75 +7,19 @@ document.addEventListener("click", event => {
   }
 })
 
+function delay(millis, v) {
+  return new Promise(function(resolve) {
+    setTimeout(resolve.bind(null, v), millis)
+  })
+}
 function uuid() {
-  let url = URL.createObjectURL(new Blob());
-  URL.revokeObjectURL(url);
-  return url.split("/")[3];
-};
-
-Vue.component('tallybutton', {
-  props: ['label', 'election', 'vote', 'settings'],
-  computed: {
-    voteCount() {
-      let voteCount = 0
-      if (this.$root.voteTally[this.election]) {
-        voteCount = this.$root.voteTally[this.election][this.vote] || 0
-      }
-      return voteCount
-    },
-    voteColors() {
-      let icons = this.$root.claimedPlayers
-          .filter(player => player.votes[this.election] == this.vote)
-          .map(player => player.color)
-      // for (let i = icons.length; i < this.$root.majorityCount; i++) {
-      for (let i = icons.length; i < this.$root.consensusCount; i++) {
-        icons.push("")
-      }
-      return icons
-    },
-    selected() {
-      if (!this.$root.self.votes) {
-        return false
-      }
-      return this.$root.self.votes[this.election] === this.vote
-    },
-    style() {
-      if (this.voteCount > 0) {
-        return {
-          zIndex: 100
-        }
-      } else {
-        return {}
-      }
-    },
-  },
-  methods: {
-    sendVote() {
-      this.$root.send({
-        type: 'vote',
-        election: this.election,
-        vote: this.vote,
-        settings: this.settings,
-      })
-    },
-  },
-  template: `
-<div style="position: relative">
-  <div class="button"
-      @click="sendVote"
-      :class="{ selected }"
-      :style="style"
-  >
-    {{ label }}
-    <div v-if="voteCount" class="vote-tally">
-      <div v-for="color in voteColors"
-          class="vote" :class="{ blank: !color }"
-          :style="{ background: color }"
-      ></div>
-    </div>
-  </div>
-</div>`
-})
+  let url = URL.createObjectURL(new Blob())
+  URL.revokeObjectURL(url)
+  return url.split("/")[3]
+}
+function isNothing(val) {
+  return val === undefined || val === null
+}
 
 var app = new Vue({
   el: '#app',
@@ -322,6 +266,14 @@ var app = new Vue({
       return false
     },
 
+    nextGameName() {
+      for (let info of GAMES_INFO) {
+        if (info.name == this.state.nextGame) {
+          return info.label
+        }
+      }
+      return ""
+    },
     gameInfo() {
       for (let info of GAMES_INFO) {
         if (info.name == this.state.game) {
@@ -430,6 +382,12 @@ var app = new Vue({
     },
     advance(from) {
       this.send({type: "advance", from})
+    },
+    skip() {
+      this.send({type: "skip"})
+    },
+    playagain() {
+      this.send({type: "playagain"})
     },
     ping() {
       this.send({type: "ping"})
@@ -643,6 +601,10 @@ var app = new Vue({
             location.clientX + this.move[0] * maxDisplacement,
             location.clientY + this.move[1] * maxDisplacement
           ]
+          this.startLocation[0] = Math.max(this.startLocation[0], joystickWidth/2)
+          this.startLocation[0] = Math.min(this.startLocation[0], innerWidth - joystickWidth/2)
+          this.startLocation[1] = Math.max(this.startLocation[1], joystickWidth/2)
+          this.startLocation[1] = Math.min(this.startLocation[1], innerHeight - joystickWidth/2)
         }
 
         this.send({type: "move", move: this.move})
@@ -715,14 +677,3 @@ var app = new Vue({
     },
   },
 });
-
-
-function delay(millis, v) {
-  return new Promise(function(resolve) {
-    setTimeout(resolve.bind(null, v), millis)
-  });
-}
-
-function isNothing(val) {
-  return val === undefined || val === null
-}

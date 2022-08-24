@@ -94,7 +94,7 @@
     </div>
     <div class="carousel" :style="carouselStyle">
       <div v-if="gameInfo" v-for="rule in rules" class="slide">
-        <p v-for="paragraph in rule.words">{{paragraph}}</p>
+        <p v-for="paragraph in rule.words" v-html="substitute(paragraph)"></p>
         <img v-if="rule.image" style="width:100%" :src="rule.image" />
       </div>
     </div>
@@ -151,7 +151,7 @@
     <div id="label">{{gameInfo.label}}</div>
     <div id="header-buttons">
       <div class="button" style="width: 8rem" @click="showRules()">RULES</div>
-      <TallyButton label="SKIP GAME" election="quit" vote="quit"></TallyButton>
+      <div class="button" @click.stop="skip">SKIP GAME</div>
     </div>
   </div>
 
@@ -169,15 +169,15 @@
       <div v-else>Waiting for everyone to read the rules.</div>
     </div>
     <div class="buttons">
+      <div class="button" @click.stop="advance('start')">Start anyway</div>
       <div class="button" @click.stop="pulse">Pulse</div>
     </div>
-
   </div>
 
   <div v-else-if="mode=='countdown'" class="main">
     <div class="header">
       <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 3em">{{Math.round(state.timeRemaining)}}</div>
-      <div>{{victoryCondition}}</div>
+      <div v-html="substitute(gameInfo.victoryCondition)"></div>
     </div>
   </div>
 
@@ -192,14 +192,8 @@
           You lost...
         </div>
         <br/>
-<!--         <TallyButton label="Continue"
-          election="skip"
-          vote="yes">
-        </TallyButton> -->
-        <TallyButton label="Play again"
-          election="playagain"
-          vote="yes">
-        </TallyButton>
+        <div class="button" @click.stop="playagain">Play again</div>
+        <div>Next game is {{nextGameName}}</div>
         <br/>
       </div>
 

@@ -77,13 +77,15 @@ def check_vote():
       if election in player.votes:
         del player.votes[election]
 
-def are_all_ready():
+def check_all_ready():
+  if engine.game.state != "start":
+    return
   if len(engine.game.claimed_players()) <= 1:
-    return False
+    return
   for player in engine.game.claimed_players():
     if not player.is_ready:
-      return False
-  return True
+      return
+  engine.game.ontimeout()
 
 def consume_input():
   for line in fileinput.input():
@@ -101,39 +103,34 @@ def consume_input():
 
       player = engine.game.players[message["self"]]
 
+      # Player commands
       if message["type"] == "claim":
         player.is_claimed = True
       elif message["type"] == "release":
         player.is_claimed = False
-        check_vote()
+        check_all_ready()
       elif message["type"] == "ready":
         player.set_ready()
-        if engine.game.state == "start" and are_all_ready():
-          engine.game.ontimeout()
+        check_all_ready()
       elif message["type"] == "unready":
         player.set_unready()
-      elif message["type"] == "vote":
-        vote = message["vote"]
-        vote_to_message[vote] = message
-        election = message["election"]
-        if player.votes.get(election, None) == vote:
-          player.votes[election] = ""
-        else:
-          player.votes[election] = vote
-        check_vote()
       elif message["type"] == "move":
         player.move_direction = np.array(message["move"])
         player.last_move_input_time = time()
-      elif message["type"] == "pulse":
-        player.pulse()
       elif message["type"] == "tap":
         player.tap = time()
+      elif message["type"] == "pulse":
+        player.pulse()
+      # Global commands
+      elif message["type"] == "advance":
+        if not message.get("from", None) or message["from"] == engine.game.state:
+          engine.game.ontimeout()
+      elif message["type"] == "skip":
+        engine.start_random_game()
+      elif message["type"] == "playagain":
+        engine.start(engine.game)
       elif message["type"] == "settings":
         engine.game.update_config(message["update"])
-      elif message["type"] == "advance":
-        if engine.game:
-          if not message.get("from", None) or message["from"] == engine.game.state:
-            engine.game.ontimeout()
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

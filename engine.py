@@ -78,36 +78,32 @@ pixels = np.zeros((SIZE, 3),dtype="<u1")
 print("Running %s pixels" % len(unique_to_dupe), file=sys.stderr)
 
 game = None
+next_game = None
 games = {}
 game_selection_weights = {}
 
 # ================================ START =========================================
 
-def start_random_game():
+def select_random_game():
   player_count = 1
   if game:
     player_count = len(game.claimed_players())
 
-  total_weight = 0
+  weights = {}
   for (name, weight) in game_selection_weights.items():
-    weight *= games[name].SELECTION_WEIGHTS[player_count-1]
-    total_weight += weight
+    weights[name] = weight * games[name].SELECTION_WEIGHTS[player_count-1]
 
-  x = random() * total_weight
-  selection = ""
-  for (name, weight) in game_selection_weights.items():
-    weight *= games[name].SELECTION_WEIGHTS[player_count-1]
-    if x < weight:
-      selection = name
-      break
-
-    x -= weight
+  selection = weighted_random(weights)
+  if selection is None:
+    selection = "snektron"
 
   for name in game_selection_weights.keys():
     game_selection_weights[name] += 1
   game_selection_weights[selection] = 0
-  start(games[selection])
+  return games[selection]
 
+def start_random_game():
+  start(select_random_game())
 
 def start(new_game):
   if not new_game:
@@ -165,12 +161,15 @@ class Player:
   def __init__(self,
       position=0,
       color=(150,150,150),
-      color_string="white"):
+      color_string="white",
+      color_name="White"):
 
     self.initial_position = position
     self.prev_pos = position
     self.color = np.array(color)
     self.color_string = color_string
+    self.color_name = color_name
+
     self.last_move_time = 0
     self.ready_time = 0
     self.is_claimed = False
@@ -366,6 +365,7 @@ class Player:
       # "isPlaying": self.is_playing,
       "isAlive": self.is_alive,
       "color": self.color_string,
+      "colorName": self.color_name,
       "position": self.position,
       "votes": self.votes,
       "score": self.score,
@@ -414,32 +414,38 @@ class Game:
       player_class(
         position=positions[0],
         color=(0, 255, 0),
-        color_string="#00ff00" #green
+        color_string="#00ff00",
+        color_name="Green"
       ),
       player_class(
         position=positions[1],
         color=(0, 0, 255),
-        color_string="#0000ff" #blue
+        color_string="#4040ff",
+        color_name="Blue"
       ),
       player_class(
         position=positions[2],
         color=(255, 80, 0),
-        color_string="#ff7f00" #orange
+        color_string="#ff7f00",
+        color_name="Orange"
       ),
       player_class(
         position=positions[3],
         color=(70, 0, 255),
-        color_string="#6f00ff" #violet
+        color_string="#6f00ff",
+        color_name="Violet"
       ),
       player_class(
         position=positions[4],
         color=(255, 255, 0),
-        color_string="#ffff00" #yellow
+        color_string="#ffff00",
+        color_name="Yellow"
       ),
       player_class(
         position=positions[5],
         color=(0, 255, 255),
-        color_string="#00ffff" #cyan
+        color_string="#00ffff",
+        color_name="Cyan"
       ),
     ]
     self.restart()
@@ -511,8 +517,11 @@ class Game:
     else:
       music["victory"].play()
 
+    global next_game
+    next_game = select_random_game()
+
   def victory_ontimeout(self):
-    start_random_game()
+    start(next_game)
 
 
   def render(self):
@@ -536,6 +545,7 @@ class Game:
         player.render_ready()
 
     elif self.state == "play":
+      self.render_game()
       if self.end_time > 0 and self.end_time - time() < 7:
         countdown = ceil(self.end_time - time())
         countup = 7 - countdown
@@ -545,7 +555,6 @@ class Game:
           start_time=self.end_time - countdown,
           duration=READY_PULSE_DURATION)
 
-      self.render_game()
       for player in self.claimed_players():
           player.render()
 
@@ -696,7 +705,7 @@ def latlong_delta(ll0, ll1):
 
 def weighted_random(value_to_weights=None, weights=None, values=None):
   if weights is None:
-    weights = value_to_weights.values()
+    weights = list(value_to_weights.values())
   if values is None:
     values = value_to_weights.keys()
 
@@ -781,6 +790,7 @@ def broadcast_state():
   time_remaining = round(game.end_time - time()) if game and game.end_time else 0
   message = {
     "game": game.name if game else "",
+    "nextGame": next_game.name if next_game else "",
     "players": [player.to_json() for player in game.players],
     "gameState": game.state if game else "none",
     "timeRemaining": time_remaining,
