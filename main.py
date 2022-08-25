@@ -22,61 +22,6 @@ for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   engine.games[module_name] = module.game
   engine.game_selection_weights[module_name] = 1
 
-def start_random_game():
-  selection = engine.weighted_random(game_selection_weights)
-
-  for name in game_selection_weights.keys():
-    game_selection_weights[name] += 1
-  game_selection_weights[selection] = 0
-  engine.start(game_modules[selection].game)
-
-
-vote_to_message = {}
-def check_vote():
-  all_votes = {}
-  for player in engine.game.claimed_players():
-    for (election, vote) in player.votes.items():
-      if election not in all_votes:
-        all_votes[election] = {}
-      all_votes[election][vote] = all_votes[election].get(vote, 0) + 1
-
-  majority_count = len(engine.game.claimed_players()) / 2.0
-  consensus_count = len(engine.game.claimed_players())
-
-  for (election, votes) in all_votes.items():
-    if election == "ready" and consensus_count == 1:
-      continue
-
-    final_vote = None
-    for (vote, count) in votes.items():
-      # if count > majority_count:
-      if count == consensus_count:
-        final_vote = vote
-        break
-
-    if final_vote is None:
-      continue
-
-    message = vote_to_message.get(final_vote, {})
-    if "settings" in message:
-      engine.config.update(message["settings"])
-
-    if election == "skip":
-      if engine.game:
-        engine.game.ontimeout()
-    elif election == "playagain":
-      engine.start(engine.game)
-      for player in engine.game.claimed_players():
-        player.set_ready()
-      if are_all_ready():
-        engine.game.ontimeout()
-    elif election == "quit":
-      engine.start_random_game()
-
-    for player in engine.game.players:
-      if election in player.votes:
-        del player.votes[election]
-
 def check_all_ready():
   if engine.game.state != "start":
     return
