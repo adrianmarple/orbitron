@@ -396,12 +396,16 @@ function generatePixelInfo() {
   for (let i = 0; i < coords.length; i++) {
     let local_neighbors = neighbors[i]
     for (let n of local_neighbors) {
-      expected_n2_coords = delta(scale(coords[n], 2), coords[i])
+      furthest_neighbor = null
+      max_dist = 0
       for (let n2 of neighbors[n]) {
-        if (d(coords[n2], expected_n2_coords) < 0.4) {
-          nextPixel[`(${i}, ${n})`] = n2
+        let dist = d(coords[n2], coords[i])
+        if (dist > max_dist) {
+          max_dist = dist
+          furthest_neighbor = n2
         }
       }
+      nextPixel[`(${i}, ${n})`] = furthest_neighbor
     }
   }
 

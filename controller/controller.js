@@ -40,6 +40,8 @@ var app = new Vue({
     delta: null,
     isDragging: false,
     isMoving: false,
+    isReadyLocal: false,
+    loadingDotCount: 1,
     move: [0,0],
     timestamp: 0,
     latestMessage: 0,
@@ -169,32 +171,6 @@ var app = new Vue({
       else
         return {}
     },
-
-    majorityCount() {
-      return Math.ceil((this.claimedPlayers.length + 1) / 2)
-    },
-    consensusCount() {
-      return this.claimedPlayers.length
-    },
-    voteTally() {
-      let tally = {}
-      for (const player of this.claimedPlayers) {
-        for (const election in player.votes) {
-          const vote = player.votes[election]
-          if (!tally[election]) {
-            tally[election] = {}
-          }
-          tally[election][vote] = (tally[election][vote] || 0) + 1
-        }
-      }
-      return tally
-    },
-    isReady() {
-      return this.voteTally.ready &&
-          this.voteTally.ready.yes > 1 &&
-          this.voteTally.ready.yes >= this.consensusCount //this.majorityCount
-    },
-
     claimedPlayers() {
       if (this.state.players) {
         return this.state.players.filter(player => player.isClaimed)
@@ -282,6 +258,7 @@ var app = new Vue({
       }
       return {}
     },
+
     rules() {
       let startingRules = this.hasSeenGlobalRules ? [] : GLOBAL_RULES
       if (!this.gameInfo || !this.gameInfo.rules) {
@@ -299,11 +276,10 @@ var app = new Vue({
         width: (this.carouselSize * innerWidth) + "px",
         marginLeft: ((this.carouselSize - 1) * innerWidth) + "px",
       }
-    }
+    },
   },
 
   methods: {
-
     preciseTime() {
       let precise = this.epochTimeStart + window.performance.now() - this.preciseTimeStart
       return precise
@@ -322,6 +298,53 @@ var app = new Vue({
         match = re.exec(string)
       }
       return string
+    },
+    pulse() {
+      this.send({type: "pulse"})
+    },
+    advance(from) {
+      this.send({type: "advance", from})
+    },
+    skip() {
+      this.send({type: "skip"})
+    },
+    playagain() {
+      this.send({type: "playagain"})
+    },
+    ping() {
+      this.send({type: "ping"})
+    },
+
+    showRules() {
+      this.isReadyLocal = false
+      this.send({ type: 'unready' })
+    },
+    dismissRules() {
+      this.hasSeenGlobalRules = true
+      this.isReadyLocal = true
+      this.send({ type: 'ready' })
+      this.runLoadingAnimation()
+      this.carouselPosition = 0
+      this.carouselCurrentX = 0
+      if (this.carouselInterval) {
+        clearInterval(this.carouselInterval)
+        this.carouselInterval = null
+      }
+    },
+    runLoadingAnimation() {
+      let self = this
+      self.loadingDotCount = 1
+      let interval = setInterval(() => {
+        self.send({ type: 'ready' })
+        self.loadingDotCount += 1
+        if (self.loadingDotCount > 5) {
+          self.loadingDotCount = 1
+        }
+        self.$forceUpdate()
+        if (self.self.isReady) {
+          clearInterval(interval)
+        }
+      }, 200)
     },
 
     send(json) {
@@ -377,21 +400,7 @@ var app = new Vue({
         }
       }
     },
-    pulse() {
-      this.send({type: "pulse"})
-    },
-    advance(from) {
-      this.send({type: "advance", from})
-    },
-    skip() {
-      this.send({type: "skip"})
-    },
-    playagain() {
-      this.send({type: "playagain"})
-    },
-    ping() {
-      this.send({type: "ping"})
-    },
+
     destroyWebsocket() {
       if(this.ws) {
         try {
@@ -608,23 +617,6 @@ var app = new Vue({
         }
 
         this.send({type: "move", move: this.move})
-      }
-    },
-
-    showRules() {
-      this.send({ type: 'unready' })
-    },
-
-    dismissRules() {
-      // this.$set(this.localFlags, 'hasPlayedOnce', true)
-      // this.$set(this.localFlags, this.state.game, true)
-      this.hasSeenGlobalRules = true
-      this.send({ type: 'ready' })
-      this.carouselPosition = 0
-      this.carouselCurrentX = 0
-      if (this.carouselInterval) {
-        clearInterval(this.carouselInterval)
-        this.carouselInterval = null
       }
     },
     // displaySignup() {

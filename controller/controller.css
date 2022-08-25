@@ -373,3 +373,11 @@ body, #app, .main {
   width: 1.2rem;
   height: 1.2rem;
 }
+
+#loading {
+  font-size: 10em;
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  width: 25vw;
+}
