@@ -58,7 +58,7 @@ f.close()
 SIZE = pixel_info["SIZE"]
 neighbors = pixel_info["neighbors"]
 next_pixel = pixel_info["nextPixel"]
-coords = [np.array(coord) / np.linalg.norm(np.array(coord)) for coord in pixel_info["coords"]]
+coords = [np.array(coord) for coord in pixel_info["coords"]]
 coord_matrix = np.matrix(coords).transpose()
 unique_to_dupe = pixel_info["uniqueToDupe"]
 antipodes = pixel_info["antipodes"]
@@ -665,6 +665,10 @@ class Idle(Game):
     self.previous_fluid_time = time()
     new_heads = []
     for head in self.fluid_heads:
+      if random() < 0.1:
+        new_heads.append(head)
+        continue
+
       for n in neighbors[head]:
         x = self.fluid_values[n] + 0.01
         x *= (1 + len(self.fluid_heads)/3)

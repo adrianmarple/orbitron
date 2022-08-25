@@ -184,7 +184,7 @@ var app = new Vue({
       this.pixels = []
       for (let index of this.pixelData.uniqueToDupe) {
         let point = this.pixelData.coords[index]
-        let pixelGeometry = new THREE.SphereGeometry(0.06, 8, 8)
+        let pixelGeometry = new THREE.SphereGeometry(0.014, 8, 8)
         let pixelMaterial = new THREE.MeshBasicMaterial({
           color: 0x999999
         })
@@ -206,20 +206,22 @@ var app = new Vue({
       subGroup.add(line)
 
       if (!this.pixelData.isWall) {
-        let standGeometry = new THREE.CylinderGeometry( 0.75, 0.75, 1.5, 32 )
+        let standGeometry = new THREE.CylinderGeometry( 0.2, 0.2, 0.4, 32 )
         let standMaterial = new THREE.MeshBasicMaterial( {color: standColor} )
         let stand = new THREE.Mesh( standGeometry, standMaterial )
-        stand.translateY(-5)
+        stand.translateY(-1.15)
         this.orbitronGroup.add(stand)
 
-        let innerSphereGeometry = new THREE.SphereGeometry( 4.25, 32, 16 )
+        let innerSphereGeometry = new THREE.SphereGeometry( 0.95, 32, 16 )
         let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
         innerSphereMaterial.transparent = true
         innerSphereMaterial.opacity = 0.8
         let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
         subGroup.add(innerSphere)
+        subGroup.rotation.set(-Math.PI/2,0,0)
       }
-      subGroup.rotation.set(-Math.PI/2,0,0)
+      const SCALE = 4.4
+      subGroup.scale.set(SCALE, SCALE, SCALE)
       this.orbitronGroup.add(subGroup)
       //let axesHelper = new THREE.AxesHelper(5);
       //this.orbitronGroup.add(axesHelper)
