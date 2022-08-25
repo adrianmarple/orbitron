@@ -16,22 +16,22 @@ Game = engine.Game
 Player = engine.Player
 
 additional_config = {
-  "PACMEN_LIVES": 5,
-  "NUM_GHOSTS": 4,
+  "PACMEN_LIVES": 8,
+  "NUM_GHOSTS": 3,
   "STARTING_POWER_PELLET_COUNT": 4,
   "POWER_PELLET_DURATION": 10,
   "PACMAN_MOVE_FREQ": 0.22,
   "PACMAN_POWER_MOVE_FREQ": 0.18,
-  "GHOST_MOVE_FREQ": 0.22,
+  "GHOST_MOVE_FREQ": 0.25,
   "GHOST_SCARED_MOVE_FREQ": 0.4,
   "GHOST_RANDOMNESS": 0.3,
   "PELLET_SCORE": 10,
   "POWER_PELLET_SCORE": 50,
   "GHOST_KILL_SCORE": 200,
   "VICTORY_SCORE": 3000,
-  "MARGINAL_PACMAN_VICTORY_SCORE": 1000,
+  "MARGINAL_PACMAN_VICTORY_SCORE": 500,
   "PELLET_REGEN_FREQ": 1,
-  "POWER_PELLET_REGEN_FREQ": 30,
+  "POWER_PELLET_REGEN_FREQ": 20,
   "PULSE_DURATION": 0.75,
   "GHOST_STUN_TIME": 5,
   "SELECTION_WEIGHTS": [0, 0.1, 0.1, 0.1, 0.1, 0],
@@ -65,10 +65,11 @@ class PacMan(Game):
 
 
   def countdown_ontimeout(self):
-    for i in range(len(self.statuses)):
-      self.statuses[i] = "pellet"
     for i in range(self.STARTING_POWER_PELLET_COUNT):
       self.spawn("power")
+    for i in range(len(self.statuses)):
+      if self.statuses[i] == "blank":
+        self.statuses[i] = "pellet"
 
     self.previous_pellet_generation_time = time()
     self.previous_power_pellet_generation_time = time()
@@ -143,7 +144,7 @@ class Pacman(Player):
       if ghost.position == self.position:
         if ghost.is_scared():
           sounds["kick"].play()
-          ghost.position = engine.unique_antipodes[ghost.position]
+          ghost.position = engine.antipodes[ghost.position]
           ghost.hit_time = time()
           ghost.power_pellet_end_time = 0 # ghost no longer scared
           game.data["score"] += game.GHOST_KILL_SCORE
@@ -160,6 +161,8 @@ class Pacman(Player):
       power_pellet_end_time = time() + game.POWER_PELLET_DURATION
       for player in game.claimed_players():
         player.power_pellet_end_time = power_pellet_end_time
+      for ghost in game.ghosts:
+        ghost.power_pellet_end_time = power_pellet_end_time
       game.data["score"] += game.POWER_PELLET_SCORE
       game.statuses[self.position] = "blank"
       game.power_pulses.append((engine.coords[self.position], time()))

@@ -22,6 +22,7 @@ additional_config = {
   "MAX_GREEN_LIGHT_TIME": 6,
   "MIN_PULSE_DURATION": 0.25,
   "MAX_PULSE_DURATION": 0.6,
+  "MOVE_FREQ": 0.24,
 }
 
 
@@ -30,10 +31,17 @@ class RLGL(Game):
   red_light = True
   light_change_time = 0
   pulse_duration = 0
+  top_score = 0
 
+  def start_ontimeout(self):
+    self.top_score = 0
+    Game.start_ontimeout(self)
 
   def play_update(self):
     Game.play_update(self)
+
+    for player in self.claimed_players():
+      self.top_score = max(self.top_score, player.score)
 
     if self.light_change_time < time():
       self.red_light = not self.red_light
@@ -69,6 +77,9 @@ class RLGL(Game):
 
 class Runner(Player):
   previous_success_time = 0
+
+  def move_delay(self):
+    return (5 + self.score) / (5 + game.top_score) * game.MOVE_FREQ
 
   def move(self):
     starting_position = self.position
