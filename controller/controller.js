@@ -127,6 +127,10 @@ var app = new Vue({
         }
       }
     },
+    "state.gameId": function(val, oldValue) {
+      this.isReadyLocal = false
+      console.log("game ID changed",val, oldValue)
+    },
     localFlags: {
       handler: function (val) {
         localStorage.setItem('flags', JSON.stringify(val))

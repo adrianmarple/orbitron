@@ -98,7 +98,6 @@ function addWSTimeoutHandler(socket,timeout) {
     duration: timeout
   }
   socket.on("message", (data, isBinary) => {
-    console.log("STOPPED TIMEOUT")
     if(socket.timeoutHandler.timeoutID) {
       clearTimeout(socket.timeoutHandler.timeoutID)
     }
@@ -440,10 +439,7 @@ function relayUpkeep() {
         addWSTimeoutHandler(relayRequesterSocket,10 * 1000)
         relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
-          if(clientID == "PING") {
-            console.log("RELAY REQUESTER PING")
-            return
-          }
+          if(clientID == "PING") return
           console.log("Got relay request",clientID)
           let socket = new WebSocket.WebSocket(`${relayURL}/${clientID}`)
           socket.relayBound = false
@@ -536,7 +532,7 @@ connectionQueue = []
 function ipUpdate(){
   exec("ip addr | grep 'state UP' -A5 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'", (error, stdout, stderr) => {
     var ip=stdout.trim().split(/\s+/)[0]
-    console.log(`Sending IP '${config.ORB_ID}':${ip}`)
+    //console.log(`Sending IP '${config.ORB_ID}':${ip}`)
     var options = {
       hostname: 'orbitron.games',
       path: `/ip/${config.ORB_ID}`,
@@ -553,8 +549,8 @@ function ipUpdate(){
       });
       res.on('end', () => {
         localIP = ip
-        console.log(`IP Send Response: ${rawData}`)
-        console.log("Sending IP completed")
+        //console.log(`IP Send Response: ${rawData}`)
+        //console.log("Sending IP completed")
       });
     });
     req.on('error', err => {
