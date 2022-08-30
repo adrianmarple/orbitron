@@ -84,11 +84,6 @@ function devBroadcast(message) {
   }
 }
 
-// Orb relay management
-const connectedOrbs = {}
-const connectedRelays = {}
-const connectedClients = {}
-
 function addWSTimeoutHandler(socket,timeout) {
   socket.timeoutHandler = {
     onTimeout: () => {
@@ -103,6 +98,7 @@ function addWSTimeoutHandler(socket,timeout) {
     duration: timeout
   }
   socket.on("message", (data, isBinary) => {
+    console.log("STOPPED TIMEOUT")
     if(socket.timeoutHandler.timeoutID) {
       clearTimeout(socket.timeoutHandler.timeoutID)
     }
@@ -223,7 +219,10 @@ class ClientConnection {
 
 const clientConnections = {}
 
-// Client Websocket server
+// Orb relay management
+const connectedOrbs = {}
+const connectedRelays = {}
+const connectedClients = {}
 
 var server = http.createServer(function(request, response) {
   console.log('Websocket Server received request for ' + request.url)
@@ -282,10 +281,14 @@ function bindRelayRequester(socket, orbID) {
     }
   }
   connectedOrbs[orbID] = socket
+  let pingInterval = setInterval(() => {
+    socket.send("PING")
+  }, 3000)
   socket.on('message', data => {
     console.log("Got Message from relay requester: ", data)
   })
   socket.on('close', () => {
+    clearInterval(pingInterval)
     delete connectedOrbs[orbID]
   })
   socket.on('error', (e) => {
@@ -308,7 +311,7 @@ function bindRelay(socket, orbID, clientID) {
   }
   connectedRelays[orbID][clientID] = socket
   socket.clientID = clientID
-  addWSTimeoutHandler(socket, 30 * 1000)
+  addWSTimeoutHandler(socket, 10 * 1000)
   socket.on('message', (data,isBinary) => {
     if(!isBinary){
       data = data.toString()
@@ -353,7 +356,7 @@ function bindClient(socket, orbID, clientID) {
   }
   connectedClients[orbID][clientID] = socket
   socket.clientID = clientID
-  addWSTimeoutHandler(socket, 30 * 1000)
+  addWSTimeoutHandler(socket, 10 * 1000)
   socket.on('message', (data, isBinary) => {
     if(!isBinary){
       data = data.toString()
@@ -362,6 +365,8 @@ function bindClient(socket, orbID, clientID) {
       let relay = connectedRelays[orbID] && connectedRelays[orbID][clientID]
       if(relay){
         relay.send(data)
+      }else if(connectedOrbs[orbID]){
+        connectedOrbs[orbID].send(clientID)
       }
     } catch(e) {
       console.error("Client to relay error:", orbID, clientID, e)
@@ -432,9 +437,13 @@ function relayUpkeep() {
         let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
         console.log("Initializing relay requester socket")
         relayRequesterSocket = new WebSocket.WebSocket(relayURL)
-        addWSTimeoutHandler(relayRequesterSocket,60 * 1000)
+        addWSTimeoutHandler(relayRequesterSocket,10 * 1000)
         relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
+          if(clientID == "PING") {
+            console.log("RELAY REQUESTER PING")
+            return
+          }
           console.log("Got relay request",clientID)
           let socket = new WebSocket.WebSocket(`${relayURL}/${clientID}`)
           socket.relayBound = false
