@@ -686,7 +686,7 @@ const rootServer = http.createServer(function (request, response) {
     return
   }
 
-  filePath = `${__dirname}/${filePath}`
+  filePath = `${__dirname}${filePath}`
   //console.log(filePath);
 
   var extname = path.extname(filePath)
@@ -719,7 +719,7 @@ const rootServer = http.createServer(function (request, response) {
     if (error) {
       if(error.code == 'ENOENT'){
         response.writeHead(404)
-        response.end(`Nothing found at ${filePath}. Either the Orb is not connected or the URL is incorrect. Check the URL or refresh the page to try again.`, 'utf-8')
+        response.end(`Nothing found at ${request.url}. Either the Orb is not connected or the URL is incorrect. Check the URL or refresh the page to try again.`, 'utf-8')
       }
       else {
         response.writeHead(500)
