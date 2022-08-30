@@ -318,6 +318,9 @@ function bindRelay(socket, orbID, clientID) {
     try {
       let client = connectedClients[orbID] && connectedClients[orbID][clientID]
       if(client){
+        while(client.messageCache.length > 0) {
+          socket.send(messageCache.shift())
+        }
         client.send(data)
       }
     } catch(e) {
@@ -355,6 +358,7 @@ function bindClient(socket, orbID, clientID) {
   }
   connectedClients[orbID][clientID] = socket
   socket.clientID = clientID
+  socket.messageCache = []
   addWSTimeoutHandler(socket, 10 * 1000)
   socket.on('message', (data, isBinary) => {
     if(!isBinary){
@@ -364,8 +368,14 @@ function bindClient(socket, orbID, clientID) {
       let relay = connectedRelays[orbID] && connectedRelays[orbID][clientID]
       if(relay){
         relay.send(data)
-      }else if(connectedOrbs[orbID]){
-        connectedOrbs[orbID].send(clientID)
+      }else{
+        socket.messageCache.push(data)
+        if(socket.messageCache.length > 16) {
+          socket.messageCache.shift()
+        }
+        if(connectedOrbs[orbID]) {
+          connectedOrbs[orbID].send(clientID)
+        }
       }
     } catch(e) {
       console.error("Client to relay error:", orbID, clientID, e)
