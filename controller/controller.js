@@ -664,7 +664,7 @@ var app = new Vue({
           return
         }
         let targetX = innerWidth * -this.carouselPosition
-        const alpha = 0.75
+        const alpha = 0.65
         this.carouselVelocityX = alpha * this.carouselVelocityX
         this.carouselCurrentX += this.carouselVelocityX
         this.carouselCurrentX = alpha * this.carouselCurrentX + (1 - alpha) * targetX
