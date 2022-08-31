@@ -319,7 +319,9 @@ function bindRelay(socket, orbID, clientID) {
       let client = connectedClients[orbID] && connectedClients[orbID][clientID]
       if(client){
         while(client.messageCache.length > 0) {
-          socket.send(messageCache.shift())
+          let message = client.messageCache.shift()
+          console.log("SENDING CACHED", message)
+          socket.send(message)
         }
         client.send(data)
       }
@@ -369,6 +371,7 @@ function bindClient(socket, orbID, clientID) {
       if(relay){
         relay.send(data)
       }else{
+        console.log("CACHING MESSAGE",data)
         socket.messageCache.push(data)
         if(socket.messageCache.length > 16) {
           socket.messageCache.shift()
