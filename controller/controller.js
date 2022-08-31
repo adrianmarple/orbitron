@@ -45,7 +45,8 @@ var app = new Vue({
     move: [0,0],
     timestamp: 0,
     latestMessage: 0,
-    preciseTimeStart: window.performance.now(),
+    lastMessageTimestamp: 0,
+    lastMessageTimestampCount: 0,
     epochTimeStart: Date.now(),
 
     carouselInterval: null,
@@ -285,8 +286,14 @@ var app = new Vue({
 
   methods: {
     preciseTime() {
-      let precise = this.epochTimeStart + window.performance.now() - this.preciseTimeStart
-      return precise
+      let t = Date.now()
+      if(t != this.lastMessageTimestamp){
+        this.lastMessageTimestamp = t
+        this.lastMessageTimestampCount = 0
+      }
+      t = t + this.lastMessageTimestampCount * .001
+      this.lastMessageTimestampCount += 1
+      return t
     },
 
     substitute(string) {
@@ -304,6 +311,7 @@ var app = new Vue({
       return string
     },
     pulse() {
+      console.log("pulse")
       this.send({type: "pulse"})
     },
     advance(from) {

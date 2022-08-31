@@ -582,13 +582,18 @@ setInterval(ipUpdate, 60 * 1000)
 gameState = {}
 broadcastCounter = 0
 const counterThreshold = 30
-const preciseTimeStart = process.hrtime()
-const epochTimeStart = Date.now()
 
+lastMessageTimestamp = 0
+lastMessageTimestampCount = 0
 function preciseTime(){
-  let ht = process.hrtime(preciseTimeStart)
-  let precise = epochTimeStart + (ht[0]+ht[1]*0.000000001)*1000
-  return precise
+  let t = Date.now()
+  if(t != lastMessageTimestamp){
+    lastMessageTimestamp = t
+    lastMessageTimestampCount = 0
+  }
+  t = t + lastMessageTimestampCount * .001
+  lastMessageTimestampCount += 1
+  return t
 }
 
 function broadcast(baseMessage) {
