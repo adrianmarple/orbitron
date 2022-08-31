@@ -102,7 +102,8 @@ class Invader(Player):
     weights = []
     neighbors = engine.neighbors[self.position]
     for neighbor in neighbors:
-      weight = my_z - engine.coords[neighbor][2]
+      sq_radius = pow(engine.coords[0],2) + pow(engine.coords[1],2)
+      weight = my_z - engine.coords[neighbor][2] + sq_radius/100
       if weight > 0:
         weights.append(weight)
       else:
