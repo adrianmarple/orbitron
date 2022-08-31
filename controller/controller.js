@@ -130,7 +130,6 @@ var app = new Vue({
     },
     "state.gameId": function(val, oldValue) {
       this.isReadyLocal = false
-      console.log("game ID changed",val, oldValue)
     },
     localFlags: {
       handler: function (val) {
@@ -143,7 +142,6 @@ var app = new Vue({
   computed: {
     BETWEEN_GAMES() { return !this.state.game },
     connectionStatus() {
-      console.log("checking status")
       if(this.blurred){
         return "LOST FOCUS"
       } else {
@@ -311,7 +309,6 @@ var app = new Vue({
       return string
     },
     pulse() {
-      console.log("pulse")
       this.send({type: "pulse"})
     },
     advance(from) {
@@ -564,7 +561,6 @@ var app = new Vue({
       this.timestamp = Date.now()
       if (this.self.isReady) {
         this.isMoving = true
-        console.log("moving")
       } else {
         this.isDragging = true
       }

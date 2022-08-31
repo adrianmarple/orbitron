@@ -499,8 +499,9 @@ function relayUpkeep() {
 setInterval(relayUpkeep, 500)
 
 function upkeep() {
+  if(!gameState) return
   // Check for stale players
-  if (gameState.players && !NO_TIMEOUT) {
+  if (!NO_TIMEOUT) {
     for (let peer of Object.values(connections)) {
       let player = gameState.players[peer.pid]
       if (!player.isReady && !player.isPlaying &&
@@ -579,9 +580,9 @@ setInterval(ipUpdate, 60 * 1000)
 
 // Communications with python script
 
-gameState = {}
+gameState = null
 broadcastCounter = 0
-const counterThreshold = 30
+const counterThreshold = 35
 
 lastMessageTimestamp = 0
 lastMessageTimestampCount = 0

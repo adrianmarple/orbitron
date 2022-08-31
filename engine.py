@@ -794,11 +794,11 @@ def broadcast_state():
   #   print(line.strip(), file=sys.stderr)
   time_remaining = round(game.end_time - time()) if game and game.end_time else 0
   message = {
-    "game": game.name if game else "",
-    "gameId": game.id if game else "",
+    "game": game.name,
+    "gameId": game.id,
     "nextGame": next_game.name if next_game else "",
     "players": [player.to_json() for player in game.players],
-    "gameState": game.state if game else "none",
+    "gameState": game.state,
     "timeRemaining": time_remaining,
     "victors": [victor.victor_json() for victor in game.victors],
     "config": game.config,
