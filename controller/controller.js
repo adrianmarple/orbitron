@@ -597,7 +597,7 @@ var app = new Vue({
       if (this.isDragging) {
         let deltaX = location.clientX - this.startLocation[0]
         this.carouselCurrentX += deltaX
-        this.carouselVelocityX = deltaX
+        this.carouselVelocityX = Math.max(Math.min(deltaX,innerWidth/30),-innerWidth/30)
         this.startLocation = [location.clientX, location.clientY]
       }
       if (this.isMoving) {
@@ -664,7 +664,7 @@ var app = new Vue({
           return
         }
         let targetX = innerWidth * -this.carouselPosition
-        const alpha = 0.65
+        const alpha = 0.75
         this.carouselVelocityX = alpha * this.carouselVelocityX
         this.carouselCurrentX += this.carouselVelocityX
         this.carouselCurrentX = alpha * this.carouselCurrentX + (1 - alpha) * targetX
