@@ -1,0 +1,182 @@
+{
+  "settings": {
+    "hasHeaders": true,
+    "constrainDragToContainer": true,
+    "reorderEnabled": true,
+    "selectionEnabled": false,
+    "popoutWholeStack": false,
+    "blockedPopoutsThrowError": true,
+    "closePopoutsOnUnload": true,
+    "showPopoutIcon": false,
+    "showMaximiseIcon": false,
+    "showCloseIcon": false,
+    "responsiveMode": "onload",
+    "tabOverlapAllowance": 0,
+    "reorderOnTabMenuClick": true,
+    "tabControlOffset": 10
+  },
+  "dimensions": {
+    "borderWidth": 5,
+    "borderGrabWidth": 15,
+    "minItemHeight": 10,
+    "minItemWidth": 10,
+    "headerHeight": 20,
+    "dragProxyWidth": 300,
+    "dragProxyHeight": 200
+  },
+  "labels": {
+    "close": "close",
+    "maximise": "maximise",
+    "minimise": "minimise",
+    "popout": "open in new window",
+    "popin": "pop in",
+    "tabDropdown": "additional tabs"
+  },
+  "content": [
+    {
+      "type": "row",
+      "isClosable": true,
+      "reorderEnabled": true,
+      "title": "",
+      "content": [
+        {
+          "type": "stack",
+          "width": 50,
+          "isClosable": true,
+          "reorderEnabled": true,
+          "title": "",
+          "activeItemIndex": 0,
+          "content": [
+            {
+              "type": "component",
+              "componentName": "codeEditor",
+              "title": "* Orbitron Plus.json",
+              "componentState": {
+                "code": [
+                  "// Welcome to Cascade Studio!   Here are some useful functions:",
+                  "//  Translate(), Rotate(), Scale(), Mirror(), Union(), Difference(), Intersection()",
+                  "//  Box(), Sphere(), Cylinder(), Cone(), Text3D(), Polygon()",
+                  "//  Offset(), Extrude(), RotatedExtrude(), Revolve(), Pipe(), Loft(), ",
+                  "//  FilletEdges(), ChamferEdges(),",
+                  "//  Slider(), Checkbox(), TextInput(), Dropdown()",
+                  "",
+                  "let rightAngle = false",
+                  "",
+                  "const EDGE_LENGTH = 66",
+                  "const WALL_THICKNESS = 3",
+                  "const CHANNEL_WIDTH = 12",
+                  "const CHANNEL_DEPTH = 8",
+                  "const BASE_THICKNESS = 4",
+                  "const CONNECTION_LENGTH = 16",
+                  "const CONNECTION_BUFFER = 0.2",
+                  "const GROOVE_DEPTH = 1",
+                  "const HEIGHT = BASE_THICKNESS + CHANNEL_DEPTH",
+                  "const WIDTH = CHANNEL_WIDTH + WALL_THICKNESS * 2",
+                  "",
+                  "function Ell(width, length, height) {",
+                  "  let box1 = Translate([-width/2,-width/2,0], Box((length + width)/2, width, height))",
+                  "  let box2 = Translate([-width/2,-width/2,0], Box(width, (length + width)/2, height))",
+                  "  return Union([box1, box2])",
+                  "}",
+                  "function Plus(width, length, height) {",
+                  "  let box1 = Box(length, width, height, true)",
+                  "  let box2 = Box(width, length, height, true)",
+                  "  return Translate([0,0,height/2], Union([box1, box2]))",
+                  "}",
+                  "",
+                  "let shape = rightAngle ? Ell : Plus",
+                  "",
+                  "let outer = shape(WIDTH, EDGE_LENGTH, HEIGHT)",
+                  "let inner = shape(CHANNEL_WIDTH, EDGE_LENGTH, HEIGHT)",
+                  "inner = Translate([0,0,BASE_THICKNESS], inner)",
+                  "let groove = shape(CHANNEL_WIDTH + GROOVE_DEPTH*2, EDGE_LENGTH, GROOVE_DEPTH)",
+                  "groove = Translate([0,0,HEIGHT - 2*GROOVE_DEPTH], groove)",
+                  "",
+                  "",
+                  "let maleBit = Translate([0,EDGE_LENGTH/2,BASE_THICKNESS/4 - CONNECTION_BUFFER/2],",
+                  "        Box(CHANNEL_WIDTH - CONNECTION_BUFFER*2, CONNECTION_LENGTH*2 - CONNECTION_BUFFER*2, BASE_THICKNESS/2 - CONNECTION_BUFFER, true))",
+                  "if (!rightAngle) {",
+                  "  maleBit = Union([maleBit, Rotate([0,0,1], 180, maleBit)])",
+                  "}",
+                  "let femaleBit = Translate([0,EDGE_LENGTH/2,0],",
+                  "        Box(CHANNEL_WIDTH, CONNECTION_LENGTH*2, BASE_THICKNESS, true))",
+                  "femaleBit = Rotate([0,0,1], -90, femaleBit)",
+                  "if (!rightAngle) {",
+                  "  femaleBit = Union([femaleBit, Rotate([0,0,1], 180, femaleBit)])",
+                  "}",
+                  "",
+                  "let output = Difference(Union([outer, maleBit]), [inner, groove, femaleBit])",
+                  "",
+                  "Rotate([1,0,0], 90, output) // In lieu of swapping y and x axes",
+                  "",
+                  "// Don't forget to push imported or oc-defined shapes into sceneShapes to add them to the workspace!"
+                ]
+              },
+              "width": 50,
+              "isClosable": false,
+              "reorderEnabled": true
+            }
+          ]
+        },
+        {
+          "type": "column",
+          "isClosable": true,
+          "reorderEnabled": true,
+          "title": "",
+          "width": 50,
+          "content": [
+            {
+              "type": "stack",
+              "height": 80,
+              "isClosable": true,
+              "reorderEnabled": true,
+              "title": "",
+              "activeItemIndex": 0,
+              "content": [
+                {
+                  "type": "component",
+                  "componentName": "cascadeView",
+                  "title": "CAD View",
+                  "componentState": {
+                    "componentName": "cascadeView",
+                    "MeshRes": 0.01,
+                    "Cache?": true,
+                    "GroundPlane?": false,
+                    "Grid?": true,
+                    "Radius": 34.57
+                  },
+                  "isClosable": false,
+                  "reorderEnabled": true
+                }
+              ]
+            },
+            {
+              "type": "stack",
+              "height": 20,
+              "isClosable": true,
+              "reorderEnabled": true,
+              "title": "",
+              "activeItemIndex": 0,
+              "content": [
+                {
+                  "type": "component",
+                  "componentName": "console",
+                  "title": "Console",
+                  "componentState": {},
+                  "height": 20,
+                  "isClosable": false,
+                  "reorderEnabled": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "isClosable": true,
+  "reorderEnabled": true,
+  "title": "",
+  "openPopouts": [],
+  "maximisedItemId": null
+}

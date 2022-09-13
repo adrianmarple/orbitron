@@ -18,10 +18,8 @@ adjacent_verticies = [
 
 gap = 0.5;
 wall_thickness = 1.6;
-spur_offset = 16.666;
-spur_height = 2;
 
-MIRROR = 1; // 1;
+MIRROR = 1;
 
 socket_radius = 21; // For 1.25" schedule 40 PVC pipe
 pipe_holder_depth = 12;
@@ -41,7 +39,6 @@ echo(center_length);
 
 module pipe_holder_cuff() {
   difference() {
-    // cylinder(r=socket_radius + 2*pipe_holder_thickness, h=pipe_holder_depth/2 + pipe_holder_thickness - 1);
     cylinder(r=socket_radius + 2*pipe_holder_thickness, h=pipe_holder_depth + pipe_holder_thickness - 1);
 
     cylinder(r=socket_radius+0.5, h=100);
@@ -52,7 +49,6 @@ module pipe_holder_cuff() {
 }
 
 module vertex() {
-  // suppor_pillar();
 
   a = -atan2(sqrt(2), main_vertex[2]);
   mirror([MIRROR,0,0])
@@ -60,46 +56,9 @@ module vertex() {
   difference() {
     union() {
       edges();
-//      square_support();
     }
 
     edges_negative();
-  }
-
-/*
-  module suppor_pillar() {
-    difference() {
-      translate([0,0,5])
-      cylinder(r=cube_dims[0] / 2, h=center_length);
-
-      translate([0,0,center_length])
-      sphere(r=102); // 4 inches
-    }
-  }
-*/
-  
-  module square_support() {
-    square_length = cube_dims[2] - cube_dims[0]/2;
-
-    translate([-cube_dims[2], -cube_dims[2], -1]) {
-      difference() {
-        union() {
-          translate([0, 0, -pipe_holder_depth])
-          cylinder(r=socket_radius + pipe_holder_thickness , h=3/2*pipe_holder_depth + cube_dims[1]);
-          cube([square_length, square_length, cube_dims[1]]);
-        }
-
-        translate([0, 0, -pipe_holder_depth - 1]) {
-          cylinder(r=socket_radius, h=100);
-
-          translate([-100 + 0.5, -100, 0])
-          cube([100, 200, 100]);
-
-          translate([-100, -100 + 0.5, 0])
-          cube([200, 100, 100]);
-        }
-      }
-    }
   }
 
   module edges() {
@@ -156,14 +115,6 @@ module vertex() {
       translate([-cube_dims[0]/2, 0, 0]) {
         cube(cube_dims);
       }
-      // translate([0, cube_dims[1], cube_dims[2] - spur_offset]) {
-      //   translate([-cube_dims[0]/2, 0, 0]) {
-      //     cube([wall_thickness, spur_height, wall_thickness]);
-      //   }
-      //   translate([cube_dims[0]/2 - wall_thickness, 0, 0]) {
-      //     cube([wall_thickness, spur_height, wall_thickness]);
-      //   }
-      // }
     }
   }
   
