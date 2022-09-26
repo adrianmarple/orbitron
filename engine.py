@@ -13,7 +13,6 @@ import gzip
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
-from scipy.spatial.transform import Rotation
 from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
@@ -736,7 +735,20 @@ def random_unit_vector():
   return v / np.linalg.norm(v)
 
 def rotate(v, axis, angle):
-  return np.matmul(v, Rotation.from_rotvec(angle * axis).as_matrix())
+  return np.ravel(np.matmul(v, rotation_matrix(axis, angle)))
+
+def rotation_matrix(axis, angle):
+  c = cos(angle)
+  s = sin(angle)
+  x = axis[0]
+  y = axis[1]
+  z = axis[2]
+  # Based on https://en.wikipedia.org/wiki/Rotation_matrix
+  return np.matrix([
+    [c + x*x*(1-c), x*y*(1-c) - z*s, x*z*(1-c) + y*s],
+    [y*z*(1-c) + z*s, c + y*y*(1-c), y*z*(1-c) - x*s],
+    [z*x*(1-c) - y*s, z*y*(1-c) + x*s, c + z*z*(1-c)]
+  ])
 
 def projection(u, v): # assume v is normalized
   return v * np.dot(u,v)
