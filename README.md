@@ -21,7 +21,8 @@ See [the games folder README](games)
 - `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
 - go to Download directory or wherever the SD image download is
 - `sudo dd if=Orbitron.img of=/dev/disk2 status=progress`
-- On MacOS use `gdd` instead (installation instructions [here](https://apple.stackexchange.com/questions/234167/how-can-i-track-progress-of-dd))
+- On MacOS use `gdd` instead
+  - Install with `brew install coreutils`
   - `sudo gdd if=Orbitron.img of=/dev/disk2 status=progress`
 
 ## SSHFS
