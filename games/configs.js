@@ -165,6 +165,21 @@ let GAMES_INFO = [
       showLives: true,
     },
   },
+  {
+    name: "dominion",
+    label: "Dominion",
+    rules: [
+      {
+        words: [
+          "The rules for dominion",
+        ],
+      },
+    ],
+    victoryCondition: "Get the highest score.",
+    statusDisplay: {
+      type: "rankedscore",
+    },
+  },
 ]
 
 GLOBAL_RULES = [

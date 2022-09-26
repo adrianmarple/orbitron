@@ -13,6 +13,7 @@ import gzip
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
+from scipy.spatial.transform import Rotation
 from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
@@ -582,27 +583,27 @@ class Game:
       else:
         width = 2
         if timer < 0.4:
-          render_ring((sin(timer*6),cos(timer*6),0.5),pixels,color,width)
+          render_ring((sin(timer*6),cos(timer*6),0.5),color,width)
         elif timer < 0.9:
-          render_ring((cos(timer*6),sin(timer*6),0.5),pixels,color,width)
+          render_ring((cos(timer*6),sin(timer*6),0.5),color,width)
         elif timer < 1.35:
-          render_ring((sin(timer*8),1,cos(timer*8)),pixels,color,width)
-          render_ring((cos(timer*8),0,sin(timer*8)),pixels,color,width)
+          render_ring((sin(timer*8),1,cos(timer*8)),color,width)
+          render_ring((cos(timer*8),0,sin(timer*8)),color,width)
         elif timer < 1.9:
-          render_ring((0,sin(timer*6),cos(timer*6)),pixels,color,width)
+          render_ring((0,sin(timer*6),cos(timer*6)),color,width)
         elif timer < 2.25:
-          render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),pixels,color,width)
+          render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),color,width)
         elif timer < 2.75:
-          render_ring((sin(timer*6),cos(timer*6),0),pixels,color,width)
+          render_ring((sin(timer*6),cos(timer*6),0),color,width)
           render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color,width)
         elif timer < 4.65:
           t = min((timer - 3)*2,pi/2)+pi/2
           #width = width + t - pi/2 + sin(timer*2)
           width = 1 + 3.1*abs(cos(timer*1.9))
-          render_ring((0,sin(t),cos(t)),pixels,color*0.028,width)
-          render_ring((sin(t),0,cos(t)),pixels,color*0.028,width)
-          render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),pixels,color*0.28,width)
-          render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),pixels,color*0.28,width)
+          render_ring((0,sin(t),cos(t)),color*0.028,width)
+          render_ring((sin(t),0,cos(t)),color*0.028,width)
+          render_ring((0,cos(t*3-pi/2),sin(t*3-pi/2)),color*0.28,width)
+          render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),color*0.28,width)
         else:
           for (i, coord) in enumerate(coords):
             color_pixel(i, color * sin(4*(coord[2] - timer + 0.3)))
@@ -730,6 +731,13 @@ def weighted_random(value_to_weights=None, weights=None, values=None):
 
   print("Weighted random failed: %s %s" % (weights, values), file=sys.stderr)
 
+def random_unit_vector():
+  v = np.array((random(), random(), random()))
+  return v / np.linalg.norm(v)
+
+def rotate(v, axis, angle):
+  return np.matmul(v, Rotation.from_rotvec(angle * axis).as_matrix())
+
 def projection(u, v): # assume v is normalized
   return v * np.dot(u,v)
 
@@ -773,7 +781,8 @@ def render_pulse(direction=np.array((0,0,1), dtype=float),
     pixels += np.array(np.outer(ds, color), dtype="<u1")
 
 # Assume direction is normalized
-def render_ring(direction, pixels, color, width):
+def render_ring(direction, color, width):
+  global pixels
   ds = direction * coord_matrix
   ds = ds * 6 + width/2
   ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
