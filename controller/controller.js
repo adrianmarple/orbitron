@@ -573,7 +573,6 @@ var app = new Vue({
         let finalX = -(this.carouselCurrentX + this.carouselVelocityX * 20)
         this.carouselPosition = Math.round(finalX / innerWidth)
         this.carouselPosition = Math.max(this.carouselPosition, 0)
-        this.carouselPosition = Math.min(this.carouselPosition, this.carouselSize - 1)
         this.updateCarousel()
         this.isDragging = false
       }
@@ -669,6 +668,9 @@ var app = new Vue({
         this.carouselCurrentX += this.carouselVelocityX
         this.carouselCurrentX = alpha * this.carouselCurrentX + (1 - alpha) * targetX
         this.$forceUpdate()
+        if (this.carouselCurrentX < -(this.carouselSize - 0.1) * innerWidth) {
+          this.dismissRules()
+        }
         if (Math.abs(this.carouselCurrentX - this.targetX) < 0.1) {
           clearInterval(this.carouselInterval)
           this.carouselInterval = null
