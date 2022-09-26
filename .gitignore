@@ -69,6 +69,8 @@ config.js
 __pycache__
 package-lock.json
 debug.log
+Icon[\r]
+Icon?
 
 # 3d printing files
 *.gcode
