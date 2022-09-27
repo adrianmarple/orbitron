@@ -50,7 +50,8 @@ See [the games folder README](games)
 - If you edit outside the version controlled directory create a new SD card image
 - Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
 - `sudo dd if=/dev/disk2 of=Orbitron.img bs=1M status=progress`
-- On MacOS use `gdd` instead (installation instructions [here](https://apple.stackexchange.com/questions/234167/how-can-i-track-progress-of-dd))
+- On MacOS use `gdd` instead
+  - Install with `brew install coreutils`
   - `sudo gdd if=/dev/disk2 of=Orbitron.img bs=1m status=progress`
 
 ## Adding WiFi network to Pi for auto connect
