@@ -55,6 +55,7 @@ f = open(os.path.dirname(__file__) + file_name, "r")
 pixel_info = json.loads(f.read())
 f.close()
 
+IS_WALL = pixel_info["isWall"]
 SIZE = pixel_info["SIZE"]
 neighbors = pixel_info["neighbors"]
 next_pixel = pixel_info["nextPixel"]
@@ -269,8 +270,12 @@ class Player:
       delta = coords[pos] - coords[n]
       delta += game.MOVE_BIAS * (coords[self.prev_pos] - coords[pos]) # Bias towards turning or moving backwards
       delta /= np.linalg.norm(delta)  # normalize
-      rectified_delta = -np.matmul(basis, delta)[0:2]
-      dot = np.dot(rectified_delta, self.buffered_move)
+      if IS_WALL:
+        delta[1] = -delta[1] # y-axis is inverted in wall version for some reason
+      else:
+        delta = -np.matmul(basis, delta)
+
+      dot = np.dot(delta[0:2], self.buffered_move)
       if game.CONTINUOUS_MOVEMENT:
         if n == continuation_pos:
           dot *= 1 - game.MOVE_BIAS
@@ -594,7 +599,7 @@ class Game:
           render_ring((sin(timer*6),cos(timer*6),abs(sin(timer*6))),color,width)
         elif timer < 2.75:
           render_ring((sin(timer*6),cos(timer*6),0),color,width)
-          render_ring((sin(timer*6),cos(timer*5),sin(timer)),pixels,color,width)
+          render_ring((sin(timer*6),cos(timer*5),sin(timer)),color,width)
         elif timer < 4.65:
           t = min((timer - 3)*2,pi/2)+pi/2
           #width = width + t - pi/2 + sin(timer*2)
@@ -787,7 +792,14 @@ def render_pulse(direction=np.array((0,0,1), dtype=float),
       alpha = min(alpha, 1)
       direction = alpha * direction - (1 - alpha) * from_direction
 
-    ds = direction * coord_matrix / 2 + 0.5
+    if IS_WALL:
+      deltas = np.dot(np.asmatrix(direction).T, np.ones((1, SIZE))) - coord_matrix
+      ds = np.sum(np.multiply(deltas, deltas), axis=0).T
+      ds = np.sqrt(ds)
+      ds = 1 - ds/2
+    else:
+      ds = direction * coord_matrix / 2 + 0.5
+      
     ds = ds * 6 - (t * 7 - 1)
     ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
     pixels += np.array(np.outer(ds, color), dtype="<u1")

@@ -254,7 +254,7 @@ var app = new Vue({
     },
     render() {
       let rotationFactor = 200
-      if(app.$data.followingPlayer >= 0){
+      if(!this.pixelData.isWall && app.$data.followingPlayer >= 0){
         let rotation = this.orbitronGroup.rotation
         let player = this.gameState.players[this.followingPlayer]
         let uniquePosition = this.pixelData.dupeToUniques[player.position][0]
