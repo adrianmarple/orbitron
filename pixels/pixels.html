@@ -319,6 +319,9 @@ function generatePixelInfo() {
 
   let vertIndexToCoordIndex = {}
   let previousVertex = edges[0].verticies[1]
+  if (isWall) {
+    let previousVertex = edges[0].verticies[0]
+  }
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
     let nextVertex = otherVertex(edge, previousVertex)
