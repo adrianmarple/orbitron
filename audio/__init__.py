@@ -20,7 +20,7 @@ remoteMusicActions = []
 remoteSoundActions = []
 currentMusic = ""
 
-NO_AUDIO = os.getenv("DEV_MODE") || not os.getenv("ORB_AUDIO")
+NO_AUDIO = os.getenv("DEV_MODE") or not os.getenv("ORB_AUDIO")
 
 def addRemoteAction(queue,action):
   queue.append(str(time()) + ";" + action)

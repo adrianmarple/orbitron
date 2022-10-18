@@ -71,6 +71,7 @@ package-lock.json
 debug.log
 Icon[\r]
 Icon?
+/core
 
 # 3d printing files
 *.gcode
