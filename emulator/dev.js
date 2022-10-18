@@ -150,6 +150,14 @@ var app = new Vue({
       }
     }, false)
 
+
+    document.addEventListener("keypress", ({code}) => {
+      let self = this
+      if (code == 'KeyP') {
+        console.log(self.gameState.players[self.followingPlayer].position)
+      }
+    })
+
     let volume = localStorage.getItem('musicVolume')
     if (volume) {
       this.musicVolume = parseInt(volume)

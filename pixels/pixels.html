@@ -277,7 +277,6 @@ function EulerianPath(path, currentVertex) {
   // For wall sort by straightest path
   if (isWall) {
     edgesCopy.sort((a,b) => distance(b) - distance(a))
-    console.log(currentVertex, edgesCopy.map(distance), edgesCopy)
   }
 
   for (let edge of edgesCopy) {
@@ -387,6 +386,37 @@ function generatePixelInfo() {
     }
   }
 
+  let northPole = []
+  let southPole = []
+  let dim = 2
+  let threshold = 0.94
+  if (isWall) {
+    dim = 1
+    threshold = 1
+  }
+
+  let initialPositions
+  if (isWall) {
+    initialPositions = [432,175,155,123,79,59]
+  } else {
+    initialPositions = [105,117,50,157,24,202]
+  }
+  let southerlyInitialPositions
+  if (isWall) {
+    southerlyInitialPositions = [360,392,364,368,388,368,384]
+  } else {
+    southerlyInitialPositions = [79,39,12,113,352,401]
+  }
+
+  for (var i = 0; i < coords.length; i++) {
+    let val = coords[i][dim]
+    if (val > threshold) {
+      northPole.push(i)
+    }
+    if (val < -threshold) {
+      southPole.push(i)
+    }
+  }
   return {
     SIZE: coords.length,
     isWall,
@@ -396,8 +426,10 @@ function generatePixelInfo() {
     neighbors,
     nextPixel,
     antipodes,
-    // northPole,
-    // southPole,
+    northPole,
+    southPole,
+    initialPositions,
+    southerlyInitialPositions,
   }
 }
 

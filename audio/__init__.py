@@ -20,6 +20,8 @@ remoteMusicActions = []
 remoteSoundActions = []
 currentMusic = ""
 
+NO_AUDIO = os.getenv("DEV_MODE") || not os.getenv("ORB_AUDIO")
+
 def addRemoteAction(queue,action):
   queue.append(str(time()) + ";" + action)
   last_play = None
@@ -37,7 +39,7 @@ class SoundWrapper:
     sounds[self.name] = self
 
   def init(self):
-    if not os.getenv("DEV_MODE"):
+    if not NO_AUDIO:
       self.sound = mixer.Sound(MUSIC_DIRECTORY + self.file_name)
 
   def _play(self):
@@ -131,7 +133,7 @@ class MusicWrapper:
     self._stop()
     self._open()
     loop_count = -1 if self.loop else 0
-    if not os.getenv("DEV_MODE"):
+    if not NO_AUDIO:
       mixer.music.load(self.song)
       mixer.music.play(loops=loop_count, fade_ms=fade_ms)
       if self.vamp:
@@ -140,7 +142,7 @@ class MusicWrapper:
     currentMusic = self.name
 
   def _is_playing(self):
-    if os.getenv("DEV_MODE"):
+    if NO_AUDIO:
       return False
     global currentMusic
     if self.name == "any":
@@ -163,7 +165,7 @@ class MusicWrapper:
     musicActions.append(action)
 
   def _stop(self):
-    if not os.getenv("DEV_MODE"):
+    if not NO_AUDIO:
       mixer.music.stop()
       mixer.music.unload()
     self._close()
@@ -197,7 +199,7 @@ class MusicWrapper:
       duration = 0
     else:
       duration = int(duration)
-    if not os.getenv("DEV_MODE"):
+    if not NO_AUDIO:
       mixer.music.fadeout(duration)
       mixer.music.unload()
     self._close()
@@ -219,7 +221,7 @@ def prewarm_audio():
 
   # Now run prewarm thread
   def thread_func():
-    if not os.getenv("DEV_MODE"):
+    if not NO_AUDIO:
       mixer.init(devicename=os.getenv("ORB_AUDIO"), channels=1)
 
       global EMPTY_SOUND

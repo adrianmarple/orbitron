@@ -68,7 +68,10 @@ class RLGL(Game):
       engine.color_pixel(pos, pole_color)
 
     if not self.red_light:
+      direction = np.array((0,1.2,0)) if engine.IS_WALL else np.array((0,0,1))
+
       engine.render_pulse(
+        direction=direction,
         color=engine.BAD_COLOR,
         start_time=self.light_change_time - self.pulse_duration,
         duration=self.pulse_duration)
@@ -84,11 +87,11 @@ class Runner(Player):
   def move(self):
     starting_position = self.position
     Player.move(self)
-    if game.red_light and time() - self.last_move_time < 0.01:
-      self.position = self.initial_position
-      self.prev_pos = self.position
-      if starting_position != self.initial_position:
-        sounds["hurt"].play()
+    # if game.red_light and time() - self.last_move_time < 0.01:
+    #   self.position = self.initial_position
+    #   self.prev_pos = self.position
+    #   if starting_position != self.initial_position:
+    #     sounds["hurt"].play()
 
     if self.position in engine.north_pole:
       self.score += 1
@@ -107,4 +110,4 @@ class Runner(Player):
 
 
 game = RLGL(additional_config)
-game.generate_players(Runner, positions=[79,39,12,113,352,401])
+game.generate_players(Runner, positions=engine.SOUTHERLY_INITIAL_POSITIONS)

@@ -63,13 +63,10 @@ coords = [np.array(coord) for coord in pixel_info["coords"]]
 coord_matrix = np.matrix(coords).transpose()
 unique_to_dupe = pixel_info["uniqueToDupe"]
 antipodes = pixel_info["antipodes"]
-north_pole = []
-south_pole = []
-for (i, coord) in enumerate(coords):
-  if coord[2] > 0.94:
-    north_pole.append(i)
-  if coord[2] < -0.94:
-    south_pole.append(i)
+north_pole = pixel_info["northPole"]
+south_pole = pixel_info["southPole"]
+INITIAL_POSITIONS = pixel_info["initialPositions"]
+SOUTHERLY_INITIAL_POSITIONS = pixel_info["southerlyInitialPositions"]
 
 dupe_matrix = np.zeros((len(unique_to_dupe), SIZE),dtype="<u1")
 for (i, dupe) in enumerate(unique_to_dupe):
@@ -391,7 +388,6 @@ ENEMY_TEAM = [Player(
 
 # ================================ Game =========================================
 
-INITIAL_POSITIONS = [105, 117, 50, 157, 24, 202]
 
 class Game:
   players = []
