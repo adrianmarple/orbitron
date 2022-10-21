@@ -85,14 +85,8 @@ let GAMES_INFO = [
     name: "bomberman",
     label: "Bomberman",
     rules: [
-      {
-        words: [
-          "You are currently playing Bomberman.",
-        ],
-      },
-      {
-        words: ["Tap to place a bomb."],
-      },
+      { words: [ "You are currently playing Bomberman.", ], },
+      { words: [ "Tap to place a bomb." ], },
       {
         words: [
           "Tap again to kick your bomb.",
@@ -122,19 +116,9 @@ let GAMES_INFO = [
     name: "redlightgreenlight",
     label: "Red Light Pink Light",
     rules: [
-      {
-        words: [
-          "You are currently playing Red Light Pink Light.",
-        ],
-      },
-      {
-        words: ["You can only move when the north pole glows pink."],
-      },
-      {
-        words: [
-          "You'll get sent back to the start if you try to move when the north pole is red.",
-        ],
-      },
+      { words: [ "You are currently playing Red Light Pink Light", ], },
+      { words: [ "You can only move when the north pole glows pink"], },
+      { words: [ "You'll get sent back to the start if you try to move when the north pole is red", ], },
     ],
     victoryCondition: "Whoever reaches the top the most times wins!",
     statusDisplay: {
@@ -145,19 +129,9 @@ let GAMES_INFO = [
     name: "basedefense",
     label: "Base Defense",
     rules: [
-      {
-        words: [
-          "You are currently playing co-op Base Defense!",
-        ],
-      },
-      {
-        words: ["Stop the RED enemies before they reach the bottom."],
-      },
-      {
-        words: [
-          "Survive the round to collectively win.",
-        ],
-      },
+      { words: [ "You are currently playing co-op Base Defense", ], },
+      { words: [ "Stop the RED enemies before they reach the bottom" ], },
+      { words: [ "Survive the round to collectively win", ], },
     ],
     victoryCondition: "Survive for {{state.config.ROUND_TIME}} seconds.",
     statusDisplay: {
@@ -169,11 +143,10 @@ let GAMES_INFO = [
     name: "dominion",
     label: "Dominion",
     rules: [
-      {
-        words: [
-          "The rules for dominion",
-        ],
-      },
+      { words: [ "You are currently playing Dominion", ], },
+      { words: [ "Occupy a spotlight to turn it to your color", ], },
+      { words: [ "Once a spotlight is your color it earns points for you", ], },
+      { words: [ "Tap to push an adjacent player", ], },
     ],
     victoryCondition: "Get the highest score.",
     statusDisplay: {

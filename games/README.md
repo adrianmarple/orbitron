@@ -13,7 +13,7 @@ What you mainly need to understand is in engine.py. The engine works by running 
 
 ### The Game class
 
-The first thing to be aware of is the `Game` class (still within engine.py). The engine has a global `game` (if it's none it choose a random one) and within the `update()` function it calls three relevant methods of this `Game` class:
+The first thing to be aware of is the `Game` class (still within engine.py). The engine has a global `game` (if it's none it chooses a random one) and within the `update()` function it calls three relevant methods of this `Game` class:
  - `update()` this intended for changes of internal state within the game based on player input
  - `ontimeout()` which triggers whenever `game.end_time` has elapsed and is non-zero
  - `render()` which is intended as a function without mutation that writes information to the engine global `pixels`
