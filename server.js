@@ -88,7 +88,7 @@ function devBroadcast(message) {
 function addWSTimeoutHandler(socket,duration) {
   let lastMessage = Date.now()
   let timeoutFunc = () => {
-    if(Date.now() - lastMessage) > duration){
+    if(Date.now() - lastMessage > duration){
       try{
         console.log("SOCKET TIMEOUT", socket.clientID, socket.classification)
         socket.close()
