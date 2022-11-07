@@ -139,6 +139,7 @@ class ClientConnection {
         this.callbacks.close()
       }
     }
+    this.numSockets = this.sockets.length
   }
 
   bindWebSocket(socket) {
@@ -511,9 +512,10 @@ function relayUpkeep() {
         for(clientID of Object.keys(connectedClients[orbID] || {})){
           if(!connectedRelays[orbID] || !connectedRelays[orbID][clientID]){
             try {
+              console.log("Requesting relay for client", orbID, clientID)
               orbSocket.send(clientID)
             } catch(e) {
-              console.error("Error requestiong relay for client", orbID, clientID, e)
+              console.error("Error requesting relay for client", orbID, clientID, e)
             }
           }
         }
@@ -522,6 +524,7 @@ function relayUpkeep() {
       for(clientID of Object.keys(connectedRelays[orbID] || {})){
         if(!connectedClients[orbID] || !connectedClients[orbID][clientID]){
           try {
+            console.log("Closing excess relay", orbID, clientID)
             connectedRelays[orbID][clientID].close()
           } catch(e) {
             console.error("Error closing excess relay", orbID, clientID)
