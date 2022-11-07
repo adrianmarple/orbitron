@@ -460,7 +460,7 @@ function relayUpkeep() {
     if(!relayRequesterSocket){
       try {
         let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
-        console.log("Initializing relay requester socket")
+        console.log("Initializing relay requester socket", relayURL)
         relayRequesterSocket = new WebSocket.WebSocket(relayURL)
         addWSTimeoutHandler(relayRequesterSocket,10 * 1000)
         relayRequesterSocket.on('message', data => {
@@ -481,9 +481,11 @@ function relayUpkeep() {
           })
         })
         relayRequesterSocket.on('close', () => {
+          console.log("Relay requester socket closed")
           relayRequesterSocket = null
         })
-        relayRequesterSocket.on('error', () => {
+        relayRequesterSocket.on('error', (e) => {
+          console.log("Relay requester socket error", e)
           relayRequesterSocket.close()
         })
       } catch(e) {
@@ -564,9 +566,9 @@ function upkeep() {
 
 setInterval(upkeep, 1000)
 
-MAX_PLAYERS = 6
-connections = {}
-connectionQueue = []
+let MAX_PLAYERS = 6
+let connections = {}
+let connectionQueue = []
 
 function ipUpdate(){
   exec("ip addr | grep 'state UP' -A5 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'", (error, stdout, stderr) => {
@@ -842,3 +844,23 @@ function webRTCUpkeep() {
 
 setInterval(webRTCUpkeep, 5000)
 
+// periodic status logging
+function statusLogging() {
+  console.log("STATUS",new Date(),{
+    devConnections,
+    connectedOrbs,
+    connectedWebRTCOrbs,
+    connectedRelays,
+    connectedClients,
+    relayRequesterSocket,
+    connections,
+    connectionQueue,
+    gameState,
+    broadcastCounter,
+    lastMessageTimestamp,
+    lastMessageTimestampCount,
+    orbIPAddresses,
+  })
+}
+statusLogging()
+setInterval(statusLogging,60 * 1000)
