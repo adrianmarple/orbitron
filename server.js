@@ -854,9 +854,13 @@ setInterval(webRTCUpkeep, 5000)
 
 // periodic status logging
 function statusLogging() {
+  let _connectedOrbs = {}
+  for(const orb in connectedOrbs) {
+    _connectedOrbs[orb] = connectedOrbs[orb].classification
+  }
   console.log("STATUS",new Date(),{
     devConnections,
-    connectedOrbs,
+    connectedOrbs: _connectedOrbs,
     connectedWebRTCOrbs,
     connectedRelays,
     connectedClients,
