@@ -89,9 +89,11 @@ function addWSTimeoutHandler(socket,duration) {
   let lastMessage = Date.now()
   let timeoutFunc = () => {
     if(Date.now() - lastMessage > duration){
-      try{
-        console.log("SOCKET TIMEOUT", socket.clientID, socket.classification)
-        socket.close()
+      try {
+        if(socket.readyState < 2) { //isn't already closing
+          console.log("SOCKET TIMEOUT", socket.clientID, socket.classification)
+          socket.close()
+        }
       } catch(e) {
         console.error("Error closing socket on timeout", e, socket.clientID, socket.classification)
       }
