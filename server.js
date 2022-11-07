@@ -117,6 +117,7 @@ class ClientConnection {
     this.pid = null
     this.lastActivityTime = null
     this.timeout = 10 * 1000
+    this.numSockets = 0
   }
 
   getID() {
@@ -127,7 +128,10 @@ class ClientConnection {
     let startLength = this.sockets.length
     let index = this.sockets.indexOf(socket)
     if(index >= 0) {
-      this.sockets.splice(index)
+      let removed = this.sockets.splice(index)[0]
+      if(removed){
+        this[removed.classification] = false
+      }
     }
     if(this.sockets.length <= 0 && startLength > 0){
       if(this.callbacks.close){
@@ -137,8 +141,10 @@ class ClientConnection {
   }
 
   bindWebSocket(socket) {
+    this[socket.classification] = true
     let self = this
     this.sockets.push(socket)
+    this.numSockets = this.sockets.length
     addWSTimeoutHandler(socket,self.timeout)
     socket.on("message", (data, isBinary) => {
       try {
@@ -163,8 +169,10 @@ class ClientConnection {
   }
 
   bindWebRTCSocket(socket) {
+    this[socket.classification] = true
     let self = this
     this.sockets.push(socket)
+    this.numSockets = this.sockets.length
     socket.close = socket.destroy
     socket.on("data", (data) => {
       try {
@@ -248,7 +256,7 @@ wsServer.on('connection', (socket, request) => {
   let orbID = meta[1]
   let clientID = meta[2]
   if(orbID == "") { // direct client socket
-    socket.classification = "direct client"
+    socket.classification = "WS direct client to orb"
     socket.clientID = clientID
     let clientConnection = getClientConnection(clientID)
     clientConnection.bindWebSocket(socket)
@@ -257,15 +265,15 @@ wsServer.on('connection', (socket, request) => {
     orbID = meta[2]
     if(meta.length > 3){ // actual relay socket for a client
       clientID = meta[3]
-      socket.classification = "relay"
+      socket.classification = "WS orb to relay"
       bindRelay(socket, orbID, clientID)
     } else { // socket to request relay sockets over
-      socket.classification = "relay requester"
+      socket.classification = "WS orb relay requester"
       bindRelayRequester(socket, orbID)
     }
   } else { // client socket connecting to relay
     socket.clientID = clientID
-    socket.classification = "relay client"
+    socket.classification = "WS client to relay"
     bindClient(socket, orbID, clientID)
   }
 })
@@ -470,7 +478,7 @@ function relayUpkeep() {
           let socket = new WebSocket.WebSocket(`${relayURL}/${clientID}`)
           socket.relayBound = false
           socket.clientID = clientID
-          socket.classification = "relay"
+          socket.classification = "WS orb to relay"
           socket.on('open', () => {
             if(!socket.relayBound){
               socket.relayBound = true
@@ -829,6 +837,7 @@ signalClient.on('discover', (ids) => {
 signalClient.on('request', async (request) => {
   try {
     const { peer, metadata } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
+    peer.classification = "webRTC"
     console.log("WEBRTC REQUEST ACCEPTED",metadata)
     let clientConnection = getClientConnection(metadata.clientID)
     clientConnection.bindWebRTCSocket(peer)
@@ -852,7 +861,7 @@ function statusLogging() {
     connectedWebRTCOrbs,
     connectedRelays,
     connectedClients,
-    relayRequesterSocket,
+    relayRequesterSocket: !relayRequesterSocket ? null : "connected",
     connections,
     connectionQueue,
     game: !gameState ? null : {
