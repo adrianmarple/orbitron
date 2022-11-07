@@ -86,18 +86,22 @@ function devBroadcast(message) {
 
 // Helper function to add timeouts to websockets
 function addWSTimeoutHandler(socket,duration) {
-  clearTimeout(socket.timeoutID)
-  socket.timeoutID = null
-  socket.on("message", (data, isBinary) => {
-    clearTimeout(socket.timeoutID)
-    socket.timeoutID = setTimeout(() => {
-      try {
+  let lastMessage = Date.now()
+  let timeoutFunc = () => {
+    if(Date.now() - lastMessage) > duration){
+      try{
         console.log("SOCKET TIMEOUT", socket.clientID, socket.classification)
         socket.close()
       } catch(e) {
         console.error("Error closing socket on timeout", e, socket.clientID, socket.classification)
       }
-    }, duration)
+    } else {
+      setTimeout(timeoutFunc, 1000)
+    }
+  }
+  setTimeout(timeoutFunc, 1000)
+  socket.on("message", (data, isBinary) => {
+    lastMessage = Date.now()
   })
 }
 
