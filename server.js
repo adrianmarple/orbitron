@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const WebSocket = require('ws')
 const http = require('http')
-const https = require('https')
+//const https = require('https')
 const fs = require('fs')
 const path = require('path')
 const process = require('process')
@@ -12,7 +12,7 @@ const wrtc = require('wrtc')
 const { io } = require("socket.io-client")
 const SimplePeerServer = require('simple-peer-server')
 const { Server } = require("socket.io")
-const { v4: uuidv4 } = require('uuid')
+//const { v4: uuidv4 } = require('uuid')
 
 // Log to file and standard out
 const util = require('util')
@@ -38,7 +38,7 @@ process.on('uncaughtException', function(err) {
 
 //load and process config and environment variables
 
-config=require(__dirname + "/config.js")
+config = require(__dirname + "/config.js")
 console.log(config)
 const NO_TIMEOUT = process.argv.includes('-t')
 let starting_game = null
@@ -50,7 +50,7 @@ if (game_index) {
 
 // Dev Kit Websocket server
 
-var devServer = http.createServer(function(request, response) {
+let devServer = http.createServer(function(request, response) {
   console.log('Dev Server Received request for ' + request.url)
   response.writeHead(404)
   response.end()
@@ -59,7 +59,7 @@ devServer.listen(8888, "0.0.0.0", function() {
   console.log('Dev WebSocket Server is listening on port 8888')
 })
 
-var wsDevServer = new WebSocket.Server({ 
+let wsDevServer = new WebSocket.Server({ 
   server: devServer, 
   autoAcceptConnections: true 
 })
@@ -67,7 +67,7 @@ var wsDevServer = new WebSocket.Server({
 wsDevServer.on('connection', socket => {
   socket.binaryType = "arraybuffer"
   console.log('Dev connection accepted.')
-  let id = Math.floor(Math.random() * 1000000000)
+  let id = Math.floor(Math.random() * 1000000000) // change this to uuid?
   devConnections[id] = socket
   socket.id = id
   socket.on('close', () => {
@@ -84,24 +84,25 @@ function devBroadcast(message) {
   }
 }
 
+// Helper function to add timeouts to websockets
 function addWSTimeoutHandler(socket,timeout) {
   socket.timeoutHandler = {
     onTimeout: () => {
       try {
-        console.log("SOCKET TIMEOUT", socket.clientID)
+        console.log("SOCKET TIMEOUT", socket.clientID, socket.classification)
         socket.close()
       } catch(e) {
-        console.error("Error closing socket on timeout", e, socket)
+        console.error("Error closing socket on timeout", e, socket.clientID, socket.classification)
       }
     },
-    timeoutID: null,
+    timeoutId: null,
     duration: timeout
   }
   socket.on("message", (data, isBinary) => {
-    if(socket.timeoutHandler.timeoutID) {
-      clearTimeout(socket.timeoutHandler.timeoutID)
+    if(socket.timeoutHandler.timeoutId) {
+      clearTimeout(socket.timeoutHandler.timeoutId)
     }
-    socket.timeoutHandler.timeoutID = setTimeout(socket.timeoutHandler.onTimeout, socket.timeoutHandler.duration)
+    socket.timeoutHandler.timeoutId = setTimeout(socket.timeoutHandler.onTimeout, socket.timeoutHandler.duration)
   })
 }
 
@@ -149,7 +150,7 @@ class ClientConnection {
           }
         }
       } catch(e) {
-        console.error("Error processing web socket message", e)
+        console.error("Error processing web socket message", e, socket.clientID, socket.classification)
       }
     })
     socket.on("close", () => {
@@ -164,6 +165,7 @@ class ClientConnection {
   bindWebRTCSocket(socket) {
     let self = this
     this.sockets.push(socket)
+    socket.close = socket.destroy
     socket.on("data", (data) => {
       try {
         let content = JSON.parse(data)
@@ -184,7 +186,6 @@ class ClientConnection {
       socket.close()
       self.removeSocket(socket)
     })
-    socket.close = socket.destroy
   }
 
   // functions used by business logic
@@ -197,21 +198,27 @@ class ClientConnection {
       try {
         socket.send(message)
       } catch(e) {
-        console.error("Error sending to client", e)
-	socket.close()
-        this.removeSocket(socket)
+        console.error("Error sending to client", e, socket.clientID, socket.classification)
+        setTimeout(() => {
+          try {
+            socket.close()
+          } catch(e) {
+            console.error("Error closing socket after failed message send", e, socket.clientID, socket.classification)
+          }
+        })
       }
     }
   }
 
   close() {
     for(const socket of this.sockets){
-      try {
-        socket.close()
-        this.removeSocket(socket)
-      } catch(e) {
-        console.error("Error closing client socket", e)
-      }
+      setTimeout(() =>{
+        try {
+          socket.close()
+        } catch(e) {
+          console.error("Error closing socket from complete close call", e, socket.clientID, socket.classification)
+        }
+      })
     }
   }
 }
@@ -223,7 +230,7 @@ const connectedOrbs = {}
 const connectedRelays = {}
 const connectedClients = {}
 
-var server = http.createServer(function(request, response) {
+let server = http.createServer(function(request, response) {
   console.log('Websocket Server received request for ' + request.url)
   response.writeHead(404)
   response.end()
@@ -236,29 +243,29 @@ wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
 
 wsServer.on('connection', (socket, request) => {
   let url = request.url.trim()
-  console.log('WS connection request made to',request.url)
+  console.log('WS connection request made to', request.url)
   let meta = url.split("/")
   let orbID = meta[1]
   let clientID = meta[2]
   if(orbID == "") { // direct client socket
-    socket.isDirectClient = true
+    socket.classification = "direct client"
     socket.clientID = clientID
     let clientConnection = getClientConnection(clientID)
     clientConnection.bindWebSocket(socket)
     bindRemotePlayer(clientConnection)
   } else if(orbID == "relay") { // relay socket from orb
-    orbID = clientID
-    if(meta.length>3){ // actual relay socket for a client
+    orbID = meta[2]
+    if(meta.length > 3){ // actual relay socket for a client
       clientID = meta[3]
-      socket.isRelay = true
+      socket.classification = "relay"
       bindRelay(socket, orbID, clientID)
     } else { // socket to request relay sockets over
-      socket.isRelayRequester = true
+      socket.classification = "relay requester"
       bindRelayRequester(socket, orbID)
     }
   } else { // client socket connecting to relay
     socket.clientID = clientID
-    socket.isClient = true
+    socket.classification = "relay client"
     bindClient(socket, orbID, clientID)
   }
 })
@@ -273,35 +280,38 @@ function getClientConnection(clientID) {
 function bindRelayRequester(socket, orbID) {
   console.log("Binding relay requester",orbID)
   if(connectedOrbs[orbID]){
+    console.log("Already an existing relay requester socket, closing it")
     try {
       connectedOrbs[orbID].close()
     } catch(e) {
-      console.error("Error closing existing orb relay request socket",e)
+      console.error("Error closing existing orb relay request socket",orbID, e)
     }
   }
   connectedOrbs[orbID] = socket
-  let pingInterval = setInterval(() => {
+  socket.pingInterval = setInterval(() => {
     socket.send("PING")
   }, 3000)
   socket.on('message', data => {
-    console.log("Got Message from relay requester: ", data)
+    console.log("Got Message from relay requester: ", orbID, data)
   })
   socket.on('close', () => {
-    clearInterval(pingInterval)
+    console.log("Closing relay requester socket", orbID)
+    clearInterval(socket.pingInterval)
     delete connectedOrbs[orbID]
   })
   socket.on('error', (e) => {
-    console.error("Error in relay requester socket", e)
+    console.error("Error in relay requester socket", orbID, e)
     socket.close()
   })
 }
 
 function bindRelay(socket, orbID, clientID) {
-  console.log("Binding relay",orbID, clientID)
+  console.log("Binding relay", orbID, clientID)
   if(!connectedRelays[orbID]) {
     connectedRelays[orbID] = {}
   }
   if(connectedRelays[orbID][clientID]){
+    console.log("Trying to close existing relay")
     try {
       connectedRelays[orbID][clientID].close()
     } catch(e) {
@@ -311,7 +321,7 @@ function bindRelay(socket, orbID, clientID) {
   connectedRelays[orbID][clientID] = socket
   socket.clientID = clientID
   addWSTimeoutHandler(socket, 10 * 1000)
-  socket.on('message', (data,isBinary) => {
+  socket.on('message', (data, isBinary) => {
     if(!isBinary){
       data = data.toString()
     }
@@ -321,7 +331,11 @@ function bindRelay(socket, orbID, clientID) {
         while(client.messageCache.length > 0) {
           let message = client.messageCache.shift()
           console.log("SENDING CACHED", message)
-          socket.send(message)
+          try {
+            socket.send(message)
+          } catch(e) {
+            console.error("Error sending cached message to relay", orbID, clientID, e)
+          }
         }
         client.send(data)
       }
@@ -423,7 +437,6 @@ function bindDataEvents(peer) {
     content.self = peer.pid
     peer.lastActivityTime = Date.now()
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
-
   })
 
   peer.on('close', () => {
@@ -441,7 +454,7 @@ function bindDataEvents(peer) {
 }
 
 // Relay Connection
-var relayRequesterSocket = null
+let relayRequesterSocket = null
 function relayUpkeep() {
   if(config.CONNECT_TO_RELAY) {
     if(!relayRequesterSocket){
@@ -457,6 +470,7 @@ function relayUpkeep() {
           let socket = new WebSocket.WebSocket(`${relayURL}/${clientID}`)
           socket.relayBound = false
           socket.clientID = clientID
+          socket.classification = "relay"
           socket.on('open', () => {
             if(!socket.relayBound){
               socket.relayBound = true
@@ -474,6 +488,7 @@ function relayUpkeep() {
         })
       } catch(e) {
         console.error("Error connecting to relay:", e)
+        relayRequesterSocket = null
       }
     }
   }
@@ -481,15 +496,25 @@ function relayUpkeep() {
     for(orbID of Object.keys(connectedOrbs)){
       let orbSocket = connectedOrbs[orbID]
       // Request relays for dangling clients
-      for(clientID of Object.keys(connectedClients[orbID] || {})){
-        if((!connectedRelays[orbID] || !connectedRelays[orbID][clientID]) && orbSocket){
-          orbSocket.send(clientID)
+      if(orbSocket) {
+        for(clientID of Object.keys(connectedClients[orbID] || {})){
+          if(!connectedRelays[orbID] || !connectedRelays[orbID][clientID]){
+            try {
+              orbSocket.send(clientID)
+            } catch(e) {
+              console.error("Error requestiong relay for client", orbID, clientID, e)
+            }
+          }
         }
       }
       // Remove excess relays, if any
       for(clientID of Object.keys(connectedRelays[orbID] || {})){
         if(!connectedClients[orbID] || !connectedClients[orbID][clientID]){
-          connectedRelays[orbID][clientID].close()
+          try {
+            connectedRelays[orbID][clientID].close()
+          } catch(e) {
+            console.error("Error closing excess relay", orbID, clientID)
+          }
         }
       }
     }
@@ -545,9 +570,9 @@ connectionQueue = []
 
 function ipUpdate(){
   exec("ip addr | grep 'state UP' -A5 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'", (error, stdout, stderr) => {
-    var ip=stdout.trim().split(/\s+/)[0]
+    let ip=stdout.trim().split(/\s+/)[0]
     //console.log(`Sending IP '${config.ORB_ID}':${ip}`)
-    var options = {
+    let options = {
       hostname: 'orbitron.games',
       path: `/ip/${config.ORB_ID}`,
       method: 'POST',
@@ -556,7 +581,7 @@ function ipUpdate(){
         'Content-Type': 'text',
       },
     }
-    var req = http.request(options, res => {
+    let req = http.request(options, res => {
       let rawData = '';
       res.on('data', chunk => {
         rawData += chunk;
@@ -576,7 +601,7 @@ function ipUpdate(){
   })
 }
 ipUpdate()
-setInterval(ipUpdate, 60 * 1000)
+setInterval(ipUpdate, 30 * 1000)
 
 // Communications with python script
 
@@ -669,7 +694,7 @@ const orbIPAddresses = {}
 
 // Simple HTTP server
 const rootServer = http.createServer(function (request, response) {
-  var filePath = request.url
+  let filePath = request.url
 
   if (filePath == '/')
     filePath = "/controller/controller.html"
@@ -692,8 +717,11 @@ const rootServer = http.createServer(function (request, response) {
         postData += chunk;
       });
       request.on('end', function () {
-        console.log("POST IP", postData);
-        orbIPAddresses[orbID] = postData.trim()
+        let ip = postData.trim()
+        if(ip != orbIPAddresses[orbID]) {
+          console.log("Got orb IP update", orbID, ip);
+        }
+        orbIPAddresses[orbID] = ip
         response.writeHead(200, { 'Content-Type': 'text' })
         response.end(postData, 'utf-8')
       })
@@ -704,8 +732,8 @@ const rootServer = http.createServer(function (request, response) {
   filePath = `${__dirname}${filePath}`
   //console.log(filePath);
 
-  var extname = path.extname(filePath)
-  var contentType = 'text/html'
+  let extname = path.extname(filePath)
+  let contentType = 'text/html'
   switch (extname) {
     case '.js':
       contentType = 'text/javascript'
