@@ -855,10 +855,14 @@ function statusLogging() {
     relayRequesterSocket,
     connections,
     connectionQueue,
-    gameState,
-    broadcastCounter,
-    lastMessageTimestamp,
-    lastMessageTimestampCount,
+    game: !gameState ? null : {
+      name: gameState.game,
+      state: gameState.gameState,
+    },
+    //gameState,
+    //broadcastCounter,
+    //lastMessageTimestamp,
+    //lastMessageTimestampCount,
     orbIPAddresses,
   })
 }
