@@ -87,11 +87,11 @@ class Runner(Player):
   def move(self):
     starting_position = self.position
     Player.move(self)
-    if game.red_light and time() - self.last_move_time < 0.01:
-      self.position = self.initial_position
-      self.prev_pos = self.position
-      if starting_position != self.initial_position:
-        sounds["hurt"].play()
+    # if game.red_light and time() - self.last_move_time < 0.01:
+    #   self.position = self.initial_position
+    #   self.prev_pos = self.position
+    #   if starting_position != self.initial_position:
+    #     sounds["hurt"].play()
 
     if self.position in engine.north_pole:
       self.score += 1

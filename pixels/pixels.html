@@ -62,12 +62,12 @@ let verticies = []
 let edges = []
 let path = []
 let isWall = false
-let isOG = false
+let name = "rhombicosidodecahedron"
 
 function createRhombicosidodecahedron() {
   seed = initialSeed
   isWall = false
-  isOG = true
+  name = "rhombicosidodecahedron"
   verticies = []
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
@@ -95,8 +95,8 @@ function createRhombicosidodecahedron() {
 
 function createHelmet() {
   seed = initialSeed
-  isWall = true
-  isOG = false
+  isWall = false
+  name = "helmet"
   verticies = []
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
@@ -147,7 +147,7 @@ function createHelmet() {
   let pentagonCenter = [0,0,0]
   let dodecagonVerticies = []
   for (let vertex of pentagonVertices) {
-    pentagonCenter = add(pentagonCenter, scale(vertex, 0.2))
+    pentagonCenter = add(pentagonCenter, vertex.coordinates)
     remove(verticies, vertex)
     for (let edge of vertex.edges) {
       removeEdge(edge)
@@ -155,6 +155,7 @@ function createHelmet() {
       dodecagonVerticies.push(edge.verticies[1])
     }
   }
+  pentagonCenter = normalize(pentagonCenter)
   dodecagonVerticies = dodecagonVerticies.filter(vert => !pentagonVertices.includes(vert))
 
   // Remove ever other edge from remaining dodecagon
@@ -178,6 +179,13 @@ function createHelmet() {
     edges[i].index = i
   }
 
+  // Rotate helmet to orient dodec/pentagons down
+  rotateY(-Math.atan2(pentagonCenter[0], pentagonCenter[2]))
+  rotateX(Math.PI)
+  for (let vertex of verticies) {
+    vertex.ogCoords = scale(vertex.coordinates, SCALE)
+  }
+
   console.log(edges.length)
   path = EulerianPath([dodecagonVerticies[0].edges[0].index], dodecagonVerticies[0])
 }
@@ -190,7 +198,7 @@ function createDodecagonWallTiling() {
   const X_GAP = 1.375
   seed = initialSeed
   isWall = true
-  isOG = false
+  name = "dodecwall"
   verticies = []
   edges = []
   addDodecagon([-3*X_GAP,-Y_GAP,0])
@@ -211,7 +219,7 @@ function createDodecagonWallTiling() {
 function createDiamondWallTiling() {
   seed = initialSeed
   isWall = true
-  isOG = false
+  name = "wall"
   verticies = []
   edges = []
 
@@ -322,15 +330,12 @@ function addVertex(coordinates) {
       return existingVertex
     }
   }
-  let ogCoords = []
-  for (let dim in coordinates) {
-    ogCoords[dim] = coordinates[dim] * SCALE
-  }
+  let ogCoords = scale(coordinates, SCALE)
   let vertex = {
     adjacentVertices: [],
     edges: [],
     index: verticies.length,
-    coordinates: coordinates,
+    coordinates,
     ogCoords,
   }
   verticies.push(vertex)
@@ -373,14 +378,14 @@ function EulerianPath(path, currentVertex) {
   }
 
   // For wall sort by straightest path
-  if (!isOG) {
+  if (name != "rhombicosidodecahedron") {
     edgesCopy.sort((a,b) => distance(b) - distance(a))
   }
 
   for (let edge of edgesCopy) {
     if (!path.includes(edge.index)) {
       let dist = distance(edge)
-      if (isOG && (epsilonEquals(dist, 2) || epsilonEquals(dist, 3.236))) {
+      if (name == "rhombicosidodecahedron" && (epsilonEquals(dist, 2) || epsilonEquals(dist, 3.236))) {
         continue
       }
 
@@ -413,10 +418,11 @@ function generatePixelInfo() {
   let dupeToUniques = []
 
   let vertIndexToCoordIndex = {}
-  let previousVertex = edges[0].verticies[1]
-  if (isWall) {
-    let previousVertex = edges[0].verticies[0]
+  let previousVertex = edges[path[0]].verticies[0]
+  if (name == "rhombicosidodecahedron" || name == "helmet") {
+    previousVertex = edges[path[0]].verticies[1]
   }
+
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
     let nextVertex = otherVertex(edge, previousVertex)
@@ -480,6 +486,9 @@ function generatePixelInfo() {
         break
       }
     }
+    if (antipodes.length <= i) {
+      antipodes.push(-1)
+    }
   }
 
   // TODO Helmet cases...
@@ -488,22 +497,25 @@ function generatePixelInfo() {
   let southPole = []
   let dim = 2
   let threshold = 0.94
-  if (isWall) {
+  if (name == "wall") {
     dim = 1
     threshold = 1
   }
 
   let initialPositions
-  if (isWall) {
-    initialPositions = [432,175,155,123,79,59]
-  } else {
-    initialPositions = [105,117,50,157,24,202]
-  }
-  let southerlyInitialPositions
-  if (isWall) {
-    southerlyInitialPositions = [360,392,364,368,388,368,384]
-  } else {
-    southerlyInitialPositions = [79,39,12,113,352,401]
+  switch (name) {
+    case "rhombicosidodecahedron":
+      initialPositions = [105,157,117,24,50,202]
+      southerlyInitialPositions = [79,113,39,352,12,401]
+      break
+    case "wall":
+      initialPositions = [432,123,175,79,155,59]
+      southerlyInitialPositions = [360,368,392,388,364,368]
+      break
+    case "helmet":
+      initialPositions = [181,155,279,191,255,12]
+      southerlyInitialPositions = [4,68,129,36,99,64]
+      break
   }
 
   for (var i = 0; i < coords.length; i++) {
@@ -511,11 +523,14 @@ function generatePixelInfo() {
     if (val > threshold) {
       northPole.push(i)
     }
-    if (val < -threshold) {
+    if (name == "helmet" && val < -0.6) {
+      southPole.push(i)
+    } else if (val < -threshold) {
       southPole.push(i)
     }
   }
   return {
+    name,
     SIZE: coords.length,
     isWall,
     coords,
@@ -587,11 +602,7 @@ document.getElementById("download").addEventListener('click', function() {
   let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
   let blob = new Blob([fileContent], { type: 'text/plain' })
   let a = document.createElement('a')
-  if (isWall) {
-    a.download = 'wall.json'
-  } else {
-    a.download = 'rhombicosidodecahedron.json'
-  }
+  a.download = name + '.json'
   a.href = window.URL.createObjectURL(blob)
   a.textContent = 'Download ready';
   a.style='display:none';
@@ -670,7 +681,6 @@ function rotateX(theta) {
         -v[1] * Math.sin(theta) + v[2] * Math.cos(theta)]
   }
 }
-
 function rotateY(theta) {
   for (let vertex of verticies) {
     let v = vertex.coordinates
@@ -680,9 +690,27 @@ function rotateY(theta) {
         -v[0] * Math.sin(theta) + v[2] * Math.cos(theta)]
   }
 }
+function rotateZ(theta) {
+  for (let vertex of verticies) {
+    let v = vertex.coordinates
+    vertex.coordinates = [
+        v[0] * Math.cos(theta) + v[1] * Math.sin(theta),
+        -v[0] * Math.sin(theta) + v[1] * Math.cos(theta),
+        v[2]]
+  }
+}
 
 function scale(v, scalar) {
   return [v[0] * scalar, v[1] * scalar, v[2] * scalar]
+}
+function dot(v1, v2) {
+  return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
+}
+function magnitude(v) {
+  return Math.sqrt(dot(v, v))
+}
+function normalize(v) {
+  return scale(v, 1/magnitude(v))
 }
 
 function linearCombo(v1, v2, alpha) {

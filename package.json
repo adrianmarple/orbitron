@@ -20,6 +20,6 @@
     "ws": "^8.2.3"
   },
   "scripts": {
-    "start": "node switchboard.js"
+    "start": "node server.js"
   }
 }
