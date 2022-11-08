@@ -44,9 +44,10 @@ canvas {
 
 <div id="type-buttons">
   <div class="button" id="rhomb">Rhombicosidodecahedron</div>
-  <div class="button" id="dodec">Dodecagons (wall)</div>
+  <div class="button" id="helmet">Helmet</div>
   <div class="button" id="diamond">Diamond grid (wall)</div>
-  <div class="button" id="small-grid">Small grid (wall)</div>
+  <div class="button" id="dodec">Dodecagons (wall)</div>
+  <!-- <div class="button" id="small-grid">Small grid (wall)</div> -->
   <!-- <div class="button" id="large-grid">Large grid (wall)</div> -->
 </div>
 
@@ -61,10 +62,12 @@ let verticies = []
 let edges = []
 let path = []
 let isWall = false
+let isOG = false
 
 function createRhombicosidodecahedron() {
   seed = initialSeed
   isWall = false
+  isOG = true
   verticies = []
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
@@ -90,11 +93,104 @@ function createRhombicosidodecahedron() {
   path = EulerianPath([0], verticies[0])
 }
 
+function createHelmet() {
+  seed = initialSeed
+  isWall = true
+  isOG = false
+  verticies = []
+  baseVerticies = [
+    [1, 1, Math.pow(PHI, 3)],
+    [Math.pow(PHI, 2), PHI, 2 * PHI],
+    [2 + PHI, 0 , Math.pow(PHI, 2)],
+  ]
+
+  for (let baseVertex of baseVerticies) {
+    addPlusMinusVertex(baseVertex)
+    addPlusMinusVertex([baseVertex[1], baseVertex[2], baseVertex[0]])
+    addPlusMinusVertex([baseVertex[2], baseVertex[0], baseVertex[1]])
+  }
+
+  edges = []
+  for (let i = 0; i < verticies.length; i++) {
+    for (let j = i + 1; j < verticies.length; j++) {
+      if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2)) {
+        addEdge(verticies[i], verticies[j])
+      }
+    }
+  }
+
+  // find a pentagon
+  let previousVertex = edges[0].verticies[0]
+  let currentVertex = edges[0].verticies[1]
+  let pentagonVertices = [previousVertex, currentVertex]
+  for (let i = 0; i < 3; i++) {
+    for (let edge of currentVertex.edges) {
+      let vertex = otherVertex(edge, currentVertex)
+      let dist = d(vertex.coordinates, previousVertex.coordinates)
+      if (dist > 3 && dist < 3.5) {
+        previousVertex = currentVertex
+        currentVertex = vertex
+        pentagonVertices.push(vertex)
+        break
+      }
+    }
+  }
+
+  function removeEdge(edge) {
+    remove(edges, edge)
+    for (let vertex of verticies) {
+      remove(vertex.edges, edge)
+    }
+  }
+
+  // Remove pentagon and adjoining edges and compute surrounding dodecagon
+  let pentagonCenter = [0,0,0]
+  let dodecagonVerticies = []
+  for (let vertex of pentagonVertices) {
+    pentagonCenter = add(pentagonCenter, scale(vertex, 0.2))
+    remove(verticies, vertex)
+    for (let edge of vertex.edges) {
+      removeEdge(edge)
+      dodecagonVerticies.push(edge.verticies[0])
+      dodecagonVerticies.push(edge.verticies[1])
+    }
+  }
+  dodecagonVerticies = dodecagonVerticies.filter(vert => !pentagonVertices.includes(vert))
+
+  // Remove ever other edge from remaining dodecagon
+  for (let i = 0; i < 10; i += 2) {
+    let v0 = dodecagonVerticies[i]
+    let v1 = dodecagonVerticies[i + 1]
+    let edge = null
+    for (let e of v0.edges) {
+      if (e.verticies.includes(v1)) {
+        edge = e
+        break
+      }
+    }
+    removeEdge(edge)
+  }
+
+  for (let i = 0; i < verticies.length; i++) {
+    verticies[i].index = i
+  }
+  for (let i = 0; i < edges.length; i++) {
+    edges[i].index = i
+  }
+
+  console.log(edges.length)
+  path = EulerianPath([dodecagonVerticies[0].edges[0].index], dodecagonVerticies[0])
+}
+
+
+
+
 function createDodecagonWallTiling() {
   const Y_GAP = 2.4
   const X_GAP = 1.375
   seed = initialSeed
   isWall = true
+  isOG = false
   verticies = []
   edges = []
   addDodecagon([-3*X_GAP,-Y_GAP,0])
@@ -115,6 +211,7 @@ function createDodecagonWallTiling() {
 function createDiamondWallTiling() {
   seed = initialSeed
   isWall = true
+  isOG = false
   verticies = []
   edges = []
 
@@ -140,6 +237,7 @@ function createDiamondWallTiling() {
 function createSmallGridWallTiling() {
   seed = initialSeed
   isWall = true
+  isOG = false
   verticies = []
   edges = []
   addSquare([-3,-3,0])
@@ -261,7 +359,7 @@ function addEdge(vertex1, vertex2) {
 
 
 function EulerianPath(path, currentVertex) {
-  if (path.length === edges.length) {
+  if (path.length >= edges.length) {
     return path
   }
   // TODO randomly distribute edges with fixed seed
@@ -275,17 +373,15 @@ function EulerianPath(path, currentVertex) {
   }
 
   // For wall sort by straightest path
-  if (isWall) {
+  if (!isOG) {
     edgesCopy.sort((a,b) => distance(b) - distance(a))
   }
 
   for (let edge of edgesCopy) {
     if (!path.includes(edge.index)) {
       let dist = distance(edge)
-      if (!isWall && (epsilonEquals(dist, 2) || epsilonEquals(dist, 3.236))) {
+      if (isOG && (epsilonEquals(dist, 2) || epsilonEquals(dist, 3.236))) {
         continue
-      } else {
-        // Prefer the straightest path
       }
 
       path.push(edge.index);
@@ -386,6 +482,8 @@ function generatePixelInfo() {
     }
   }
 
+  // TODO Helmet cases...
+
   let northPole = []
   let southPole = []
   let dim = 2
@@ -469,15 +567,18 @@ document.onkeydown = e => {
 document.getElementById("rhomb").addEventListener('click', function() {
   createRhombicosidodecahedron()
 })
+document.getElementById("helmet").addEventListener('click', function() {
+  createHelmet()
+})
 document.getElementById("dodec").addEventListener('click', function() {
   createDodecagonWallTiling()
 })
 document.getElementById("diamond").addEventListener('click', function() {
   createDiamondWallTiling()
 })
-document.getElementById("small-grid").addEventListener('click', function() {
-  createSmallGridWallTiling()
-})
+// document.getElementById("small-grid").addEventListener('click', function() {
+//   createSmallGridWallTiling()
+// })
 // document.getElementById("large-grid").addEventListener('click', function() {
 //   createLargeGridWallTiling()
 // })
@@ -540,11 +641,15 @@ function epsilonEquals(a, b, epsilon=0.1) {
   return a - b < epsilon && b - a < epsilon
 }
 
+
 function d(v1, v2) {
   let difference = delta(v1, v2);
   return Math.sqrt(difference[0] * difference[0] +
                    difference[1] * difference[1] +
                    difference[2] * difference[2])
+}
+function add(v1,v2) {
+  return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
 }
 function delta(v1, v2) {
   return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]]
@@ -586,6 +691,13 @@ function linearCombo(v1, v2, alpha) {
     v1[1] * alpha + v2[1] * (1 - alpha),
     v1[2] * alpha + v2[2] * (1 - alpha),
   ]
+}
+
+function remove(array, element)  {
+  let index = array.indexOf(element)
+  if (index >= 0) {
+    array.splice(index, 1)
+  }
 }
 
 function random() {
