@@ -24,6 +24,7 @@ additional_config = {
   "SELECTION_WEIGHTS": [0, 0, 1, 1, 1, 1],
   "NUM_SPOTLIGHTS": 3,
   "DOMAIN_THRESHOLD": 100, 
+  "EXCLUDED_TOPOLOGIES": ["wall"],
 }
 
 class Dominion(Game):

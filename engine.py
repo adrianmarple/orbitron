@@ -91,6 +91,10 @@ def select_random_game():
   for (name, weight) in game_selection_weights.items():
     weights[name] = weight * games[name].SELECTION_WEIGHTS[player_count-1]
 
+  for (name, g) in games.items():
+    if hasattr(g, "EXCLUDED_TOPOLOGIES") and pixel_info["name"] in g.EXCLUDED_TOPOLOGIES:
+      weights[name] = 0
+
   selection = weighted_random(weights)
   if selection is None:
     selection = "snektron"

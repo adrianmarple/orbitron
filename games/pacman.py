@@ -34,7 +34,8 @@ additional_config = {
   "POWER_PELLET_REGEN_FREQ": 20,
   "PULSE_DURATION": 0.75,
   "GHOST_STUN_TIME": 5,
-  "SELECTION_WEIGHTS": [0, 0.1, 0.1, 0.1, 0.1, 0],
+  "SELECTION_WEIGHTS": [0, 0.5, 0.5, 0.5, 0.5, 0],
+  "EXCLUDED_TOPOLOGIES": ["helmet"],
 }
 
 

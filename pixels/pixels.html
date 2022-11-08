@@ -47,8 +47,6 @@ canvas {
   <div class="button" id="helmet">Helmet</div>
   <div class="button" id="diamond">Diamond grid (wall)</div>
   <div class="button" id="dodec">Dodecagons (wall)</div>
-  <!-- <div class="button" id="small-grid">Small grid (wall)</div> -->
-  <!-- <div class="button" id="large-grid">Large grid (wall)</div> -->
 </div>
 
 <div class="button" id="download">Download</div>
@@ -242,52 +240,6 @@ function createDiamondWallTiling() {
   path = EulerianPath([0], verticies[1])
 }
 
-function createSmallGridWallTiling() {
-  seed = initialSeed
-  isWall = true
-  isOG = false
-  verticies = []
-  edges = []
-  addSquare([-3,-3,0])
-  addSquare([-2,-4,0])
-  addSquare([-1,-5,0])
-
-  addSquare([-2,-2,0])
-  addSquare([-1,-3,0])
-  addSquare([0,-4,0])
-
-  addSquare([-4,2,0])
-  addSquare([-3,1,0])
-  addSquare([-2,0,0])
-  addSquare([-1,-1,0])
-  addSquare([0,-2,0])
-  addSquare([1,-3,0])
-
-  addSquare([-3,3,0])
-  addSquare([-2,2,0])
-  addSquare([-1,1,0])
-  addSquare([0,0,0])
-  addSquare([1,-1,0])
-  addSquare([2,-2,0])
-  addSquare([3,-3,0])
-
-  addSquare([-2,4,0])
-  addSquare([-1,3,0])
-  addSquare([0,2,0])
-  addSquare([1,1,0])
-  addSquare([2,0,0])
-  addSquare([3,-1,0])
-  addSquare([4,-2,0])
-
-  addSquare([2,2,0])
-  addSquare([3,1,0])
-  addSquare([4,0,0])
-  addSquare([5,-1,0])
-
-  console.log(edges.length)
-  path = EulerianPath([0], verticies[0])
-}
-
 function addSquare(center) {
   addPolygon(4, Math.sqrt(2)/2, center)
 }
@@ -418,7 +370,7 @@ function generatePixelInfo() {
   let dupeToUniques = []
 
   let vertIndexToCoordIndex = {}
-  let previousVertex = edges[path[0]].verticies[0]
+  let previousVertex = edges[0].verticies[0]
   if (name == "rhombicosidodecahedron" || name == "helmet") {
     previousVertex = edges[path[0]].verticies[1]
   }
@@ -491,8 +443,6 @@ function generatePixelInfo() {
     }
   }
 
-  // TODO Helmet cases...
-
   let northPole = []
   let southPole = []
   let dim = 2
@@ -500,6 +450,9 @@ function generatePixelInfo() {
   if (name == "wall") {
     dim = 1
     threshold = 1
+  }
+  if (name == "helmet") {
+    threshold = 0.92
   }
 
   let initialPositions
@@ -591,12 +544,6 @@ document.getElementById("dodec").addEventListener('click', function() {
 document.getElementById("diamond").addEventListener('click', function() {
   createDiamondWallTiling()
 })
-// document.getElementById("small-grid").addEventListener('click', function() {
-//   createSmallGridWallTiling()
-// })
-// document.getElementById("large-grid").addEventListener('click', function() {
-//   createLargeGridWallTiling()
-// })
 
 document.getElementById("download").addEventListener('click', function() {
   let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
