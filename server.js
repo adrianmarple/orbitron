@@ -185,7 +185,17 @@ class ClientConnection {
   }
 
   bindWebRTCSocket(socket) {
+    // for stats logging
     this[socket.classification] = true
+    let counter = socket.classification + " Count"
+    let skipped = socket.classification + " Skipped"
+    if(!this[counter]) {
+      this[counter] = 0
+    }
+    if(!this[skipped]) {
+      this[skipped] = 0
+    }
+
     let self = this
     this.sockets.push(socket)
     this.numSockets = this.sockets.length
@@ -198,6 +208,10 @@ class ClientConnection {
           if(self.callbacks.message){
             self.callbacks.message(content)
           }
+          //for logging of which sockets get used
+          self[counter] += 1
+        } else {
+          self[skipped] += 1
         }
       } catch(e) {
         console.error("Error processing webRTC socket message", e)
