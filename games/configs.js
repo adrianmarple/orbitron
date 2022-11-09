@@ -146,7 +146,7 @@ let GAMES_INFO = [
       { words: [ "You are currently playing Dominion", ], },
       { words: [ "Occupy a spotlight to turn it to your color", ], },
       { words: [ "Once a spotlight is your color it earns points for you", ], },
-      { words: [ "Tap to push an adjacent player", ], },
+      { words: [ "Tap to dash"., "If you dash into another player you'll push them."], },
     ],
     victoryCondition: "Get the highest score.",
     statusDisplay: {

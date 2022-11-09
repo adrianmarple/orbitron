@@ -61,9 +61,20 @@ class Domineer(Player):
     if self.push_count > 0:
       if time() - self.last_push_time < game.PUSH_MOVE_FREQ:
         return
+
       self.push_count -= 1
       next_pos = engine.next_pixel.get(str((self.prev_pos, self.position)), None)
-      if next_pos is not None:
+      player_in_way = None
+      for player in game.claimed_players():
+        if player.position == next_pos:
+          player_in_way = player
+
+      if player_in_way is not None:
+        sounds["kick"].play()
+        player.push_count = game.PUSH_DISTANCE
+        player.prev_pos = self.position
+        self.push_count = 0
+      elif next_pos is not None:
         self.prev_pos = self.position
         self.position = next_pos
         self.last_push_time = time()
@@ -80,11 +91,7 @@ class Domineer(Player):
 
     if time() - tap < 0.1:
       self.last_push_time = time()
-      sounds["kick"].play()
-      for player in game.claimed_players():
-        if player.position in engine.neighbors[self.position]:
-          player.push_count = game.PUSH_DISTANCE
-          player.prev_pos = self.position
+      self.push_count = game.PUSH_DISTANCE
 
 
   def current_color(self):
