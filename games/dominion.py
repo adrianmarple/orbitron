@@ -71,8 +71,8 @@ class Domineer(Player):
 
       if player_in_way is not None:
         sounds["kick"].play()
-        player.push_count = game.PUSH_DISTANCE
-        player.prev_pos = self.position
+        player_in_way.push_count = game.PUSH_DISTANCE
+        player_in_way.prev_pos = self.position
         self.push_count = 0
       elif next_pos is not None:
         self.prev_pos = self.position
@@ -90,7 +90,7 @@ class Domineer(Player):
     self.tap = 0 # consume tap signal
 
     if time() - tap < 0.1:
-      self.last_push_time = time()
+      #self.last_push_time = time()
       self.push_count = game.PUSH_DISTANCE
 
 
