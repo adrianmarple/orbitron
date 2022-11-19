@@ -18,12 +18,12 @@ additional_config = {
   "DOMAIN_OFFSET": 0.93,
   "ROTATION_SPEED": 0.01,
   "PUSH_COOLDOWN": 3,
-  "PUSH_DISTANCE": 3,
+  "PUSH_DISTANCE": 4,
   "PUSH_MOVE_FREQ": 0.1,
   "MOVE_FREQ": 0.28,
   "SELECTION_WEIGHTS": [0, 0, 1, 1, 1, 1],
   "NUM_SPOTLIGHTS": 3,
-  "DOMAIN_THRESHOLD": 100, 
+  "DOMAIN_THRESHOLD": 50, 
   "EXCLUDED_TOPOLOGIES": ["wall"],
 }
 
@@ -35,6 +35,7 @@ class Dominion(Game):
 
   def countdown_ontimeout(self):
     Game.countdown_ontimeout(self)
+    self.spotlights.clear()
     for i in range(self.NUM_SPOTLIGHTS):
       self.spotlights.append(Spotlight())
 
