@@ -61,10 +61,12 @@ var app = new Vue({
     localSocketStatus: "CONNECTING",
     webRTCStatus: "CONNECTING",
     relaySocketStatus: "CONNECTING",
+
+    speedbumpCallback: null,
+    speedbumpMessage: "",
   },
 
   created() {
-
     this.startWebsocket()
     this.startWebRTCSocket()
     this.startLocalSocket()
@@ -311,14 +313,26 @@ var app = new Vue({
     pulse() {
       this.send({type: "pulse"})
     },
-    advance(from) {
-      this.send({type: "advance", from})
+    startAnyway() {
+      let self = this
+      this.speedbumpMessage = "Other players may still be reading the rules."
+      this.speedbumpCallback = () => {
+        self.send({type: "advance", from:"start"})
+      }
     },
     skip() {
-      this.send({type: "skip"})
+      let self = this
+      this.speedbumpMessage = `This will skip ${this.gameInfo.label} for everyone.`
+      this.speedbumpCallback = () => {
+        self.send({type: "skip"})
+      }
     },
     playagain() {
-      this.send({type: "playagain"})
+      let self = this
+      this.speedbumpMessage = `Everyone will play ${this.gameInfo.label} again.`
+      this.speedbumpCallback = () => {
+        self.send({type: "playagain"})
+      }
     },
     ping() {
       this.send({type: "ping"})
@@ -340,6 +354,15 @@ var app = new Vue({
         this.carouselInterval = null
       }
     },
+
+    confirmSpeedbump() {
+      this.speedbumpCallback()
+    },
+    clearSpeedbump() {
+      this.speedbumpCallback = null
+      this.speedbumpMessage = ""
+    },
+
     runLoadingAnimation() {
       let self = this
       self.loadingDotCount = 1

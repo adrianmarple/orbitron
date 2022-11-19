@@ -142,6 +142,17 @@
     <span v-for="i in loadingDotCount">.</span>
   </div>
 
+  <div v-else-if="speedbumpCallback" id="speedbump" class="header" @click="clearSpeedbump">
+    <p>{{speedbumpMessage}}</p>
+    <p>Are you sure?</p>
+    <div class="button" @click="confirmSpeedbump">
+      Yes
+    </div>
+    <div class="button">
+      No
+    </div>
+  </div>
+
   <div v-else>
 
 <!--   <div id="playerMarker"
@@ -174,7 +185,7 @@
       <div v-else>Waiting for everyone to read the rules.</div>
     </div>
     <div class="buttons">
-      <div class="button" @click.stop="advance('start')">Start anyway</div>
+      <div class="button" @click.stop="startAnyway">Start anyway</div>
       <div class="button" @click.stop="pulse">Pulse</div>
     </div>
   </div>
