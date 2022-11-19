@@ -463,7 +463,6 @@ function bindRemotePlayer(socket) {
   if (starting_game) {
     let message = {type: 'start', game: starting_game}
     python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
-    starting_game = null
   }
 }
 
