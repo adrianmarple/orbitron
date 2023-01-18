@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
-import os
+import base64
 import collections
-import json
 import digitalio
+import gzip
+import json
 import numpy as np
+import os
 import sys
 import traceback
-import base64
-import gzip
 
+from datetime import datetime
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
@@ -652,6 +653,20 @@ class Idle(Game):
   name = "idle"
   waiting_music = "idle"
 
+  def __init__(self, additional_config=None):
+    Game.__init__(self, additional_config)
+    now_date = datetime.now().date()
+
+    start_string = os.getenv("START_TIME") or "0:00"
+    start_time = datetime.strptime(start_string, '%H:%M').time()
+    self.start = datetime.combine(now_date, start_time)
+
+    end_string = os.getenv("END_TIME") or "23:59"
+    end_time = datetime.strptime(end_string, '%H:%M').time() # TODO ingest this from config
+    self.end = datetime.combine(now_date, end_time)
+    
+    self.fade_duration = 20.0*60 # 20 minutes
+
   def update(self):
     pass
 
@@ -687,7 +702,18 @@ class Idle(Game):
 
     self.fluid_values *= 0.86
     squares = np.multiply(self.fluid_values, self.fluid_values)
-    pixels = np.outer(squares, phase_color() * 200)
+
+    now = datetime.now()
+    start_fade = (now - self.start).total_seconds() / self.fade_duration
+    start_fade = min(start_fade, 1)
+    start_fade = max(start_fade, 0)
+    end_fade = (self.end - now).total_seconds() / self.fade_duration
+    end_fade = min(end_fade, 1)
+    end_fade = max(end_fade, 0)
+    fade = min(start_fade, end_fade)
+    fade *= fade * fade
+
+    pixels = np.outer(squares, phase_color() * 200 * fade)
 
 idle = Idle()
 idle.generate_players(Player)
