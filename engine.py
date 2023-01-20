@@ -665,7 +665,7 @@ class Idle(Game):
     end_time = datetime.strptime(end_string, '%H:%M').time() # TODO ingest this from config
     self.end = datetime.combine(now_date, end_time)
     
-    self.fade_duration = 20.0*60 # 20 minutes
+    self.fade_duration = 40.0*60 # 40 minutes
 
   def update(self):
     pass
@@ -711,7 +711,7 @@ class Idle(Game):
     end_fade = min(end_fade, 1)
     end_fade = max(end_fade, 0)
     fade = min(start_fade, end_fade)
-    fade *= fade * fade
+    fade *= fade
 
     pixels = np.outer(squares, phase_color() * 200 * fade)
 
