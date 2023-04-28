@@ -37,6 +37,7 @@ canvas {
   right:  24px;
   bottom: 24px;
 }
+
 </style>
 <head>
 <body>
@@ -46,11 +47,13 @@ canvas {
   <div class="button" id="rhomb">Rhombicosidodecahedron</div>
   <div class="button" id="helmet">Helmet</div>
   <div class="button" id="diamond">Diamond grid (wall)</div>
+  <div class="button" id="organic">Organic grid (wall)</div>
+  <div class="button" id="simple">Simple grid (wall)</div>
+  <div class="button" id="square">Square (wall)</div>
   <div class="button" id="dodec">Dodecagons (wall)</div>
 </div>
 
 <div class="button" id="download">Download</div>
-
 <script>
   
 const initialSeed = 3
@@ -231,6 +234,97 @@ function createDiamondWallTiling() {
         continue
       }
 
+      addSquare([i,j,0])
+    }
+  }
+
+  console.log(edges.length)
+
+  path = EulerianPath([0], verticies[1])
+
+  rotateZ(Math.PI/2);
+  for (let vertex of verticies) {
+    vertex.ogCoords = scale(vertex.coordinates, SCALE)
+  }
+}
+
+function createOrganicWallTiling() {
+  seed = initialSeed
+  isWall = true
+  name = "organic wall"
+  verticies = []
+  edges = []
+
+  addSquare([-4,2,0])
+  addSquare([-3,-3,0])
+  addSquare([-3,1,0])
+  addSquare([-3,3,0])
+  addSquare([-2,4,0])
+  addSquare([-2,2,0])
+  addSquare([-2,0,0])
+  addSquare([-2,-2,0])
+  addSquare([-2,-4,0])
+  addSquare([-1,3,0])
+  addSquare([-1,1,0])
+  addSquare([-1,-1,0])
+  addSquare([-1,-3,0])
+  addSquare([-1,-5,0])
+  addSquare([0,2,0])
+  addSquare([0,0,0])
+  addSquare([0,-2,0])
+  addSquare([0,-4,0])
+  addSquare([1,1,0])
+  addSquare([1,-1,0])
+  addSquare([1,-3,0])
+  addSquare([2,2,0])
+  addSquare([2,0,0])
+  addSquare([2,-2,0])
+  addSquare([3,1,0])
+  addSquare([3,-1,0])
+  addSquare([4,0,0])
+  addSquare([4,-2,0])
+  addSquare([5,-1,0])
+
+  console.log(edges.length)
+
+  path = EulerianPath([0], verticies[1])
+
+  for (let vertex of verticies) {
+    vertex.ogCoords = scale(vertex.coordinates, SCALE)
+  }
+}
+
+function createWallSquare() {
+  isWall = true
+  name = "square"
+  verticies = []
+  edges = []
+
+  addSquare([0,0,0])
+
+  console.log(edges.length)
+
+  path = EulerianPath([0], verticies[1])
+
+  rotateZ(Math.PI/2);
+  for (let vertex of verticies) {
+    vertex.ogCoords = scale(vertex.coordinates, SCALE)
+  }
+}
+
+function createSimpleWallTiling() {
+  seed = initialSeed
+  isWall = true
+  name = "simple"
+  verticies = []
+  edges = []
+
+  for (let i = -3; i <= 3; i++) {
+    for (let j = -3; j <= 3; j++) {
+      let manhattan = Math.abs(i) + Math.abs(j)
+      if (manhattan > 1) {
+        continue
+      }
       addSquare([i,j,0])
     }
   }
@@ -460,7 +554,7 @@ function generatePixelInfo() {
     threshold = 0.92
   }
 
-  let initialPositions
+  let initialPositions, southerlyInitialPositions
   switch (name) {
     case "rhombicosidodecahedron":
       initialPositions = [105,157,117,24,50,202]
@@ -474,6 +568,9 @@ function generatePixelInfo() {
       initialPositions = [181,155,279,191,255,12]
       southerlyInitialPositions = [4,68,129,36,99,64]
       break
+    default:
+      initialPositions = shuffle([...Array(coords.length).keys()]).slice(0,6)
+      southerlyInitialPositions = initialPositions
   }
 
   for (var i = 0; i < coords.length; i++) {
@@ -549,6 +646,15 @@ document.getElementById("dodec").addEventListener('click', function() {
 document.getElementById("diamond").addEventListener('click', function() {
   createDiamondWallTiling()
 })
+document.getElementById("organic").addEventListener('click', function() {
+  createOrganicWallTiling()
+})
+document.getElementById("simple").addEventListener('click', function() {
+  createSimpleWallTiling()
+})
+document.getElementById("square").addEventListener('click', function() {
+  createWallSquare()
+})
 
 document.getElementById("download").addEventListener('click', function() {
   let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
@@ -589,7 +695,7 @@ function render() {
     if (subPath.includes(edge.index)) {
       ctx.strokeStyle = `rgb(${255*alpha}, ${255*alpha}, ${255*alpha})`
     } else {
-      ctx.strokeStyle = `rgb(${25*alpha}, ${25*alpha}, ${255*alpha})`
+      ctx.strokeStyle = `rgb(${255*alpha}, ${25*alpha}, ${255*alpha})`
     }
     ctx.lineWidth = 100 / (z + 10)
     ctx.moveTo(xy0[0], xy0[1])
@@ -696,11 +802,9 @@ function shuffle(array) {
   return array
 }
 
-if (isWall) {
-  createDodecagonWallTiling()
-} else {
-  createRhombicosidodecahedron()
-}
+createSimpleWallTiling()
 
 </script>
+
+<script type="text/javascript" src="laser.js"></script>
 </body>
