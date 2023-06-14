@@ -61,15 +61,23 @@ let seed = initialSeed
 const PHI = (1 + Math.sqrt(5))/ 2
 let verticies = []
 let edges = []
+let edgeCentersBlacklist = []
 let path = []
 let isWall = false
 let name = "rhombicosidodecahedron"
 
+function reset() {
+  verticies = []
+  edges = []
+  edgeCentersBlacklist = []
+  path = []
+}
+
 function createRhombicosidodecahedron() {
+  reset()
   seed = initialSeed
   isWall = false
   name = "rhombicosidodecahedron"
-  verticies = []
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
     [Math.pow(PHI, 2), PHI, 2 * PHI],
@@ -82,7 +90,6 @@ function createRhombicosidodecahedron() {
     addPlusMinusVertex([baseVertex[2], baseVertex[0], baseVertex[1]])
   }
 
-  edges = []
   for (let i = 0; i < verticies.length; i++) {
     for (let j = i + 1; j < verticies.length; j++) {
       if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2)) {
@@ -95,10 +102,10 @@ function createRhombicosidodecahedron() {
 }
 
 function createHelmet() {
+  reset()
   seed = initialSeed
   isWall = false
   name = "helmet"
-  verticies = []
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
     [Math.pow(PHI, 2), PHI, 2 * PHI],
@@ -111,7 +118,6 @@ function createHelmet() {
     addPlusMinusVertex([baseVertex[2], baseVertex[0], baseVertex[1]])
   }
 
-  edges = []
   for (let i = 0; i < verticies.length; i++) {
     for (let j = i + 1; j < verticies.length; j++) {
       if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2)) {
@@ -195,13 +201,12 @@ function createHelmet() {
 
 
 function createDodecagonWallTiling() {
+  reset()
   const Y_GAP = 2.4
   const X_GAP = 1.375
   seed = initialSeed
   isWall = true
   name = "dodecwall"
-  verticies = []
-  edges = []
   addDodecagon([-3*X_GAP,-Y_GAP,0])
   addDodecagon([-1*X_GAP,-Y_GAP,0])
   addDodecagon([1*X_GAP,-Y_GAP,0])
@@ -218,11 +223,10 @@ function createDodecagonWallTiling() {
 
 
 function createDiamondWallTiling() {
+  reset()
   seed = initialSeed
   isWall = true
   name = "wall"
-  verticies = []
-  edges = []
 
   for (let i = -6; i <= 6; i++) {
     for (let j = -6; j <= 6; j++) {
@@ -249,11 +253,10 @@ function createDiamondWallTiling() {
 }
 
 function createOrganicWallTiling() {
+  reset()
   seed = initialSeed
   isWall = true
   name = "organic wall"
-  verticies = []
-  edges = []
 
   addSquare([-4,2,0])
   addSquare([-3,-3,0])
@@ -293,12 +296,76 @@ function createOrganicWallTiling() {
     vertex.ogCoords = scale(vertex.coordinates, SCALE)
   }
 }
+function createOrganicWallTiling2() {
+  reset()
+  seed = initialSeed
+  isWall = true
+  name = "organic wall"
+
+  edgeCentersBlacklist = [
+    [0, -3.5, 0],
+    [3, 0.5, 0],
+    [4, 0.5, 0],
+    [4, 1.5, 0],
+    [2.5, 1, 0],
+    [2.5, 2, 0],
+    [3.5, 2, 0],
+  ]
+
+  addSquare([4,-4,0])
+  addSquare([-5,-3,0])
+  addSquare([-1,-3,0])
+  addSquare([0,-3,0])
+  addSquare([1,-3,0])
+  addSquare([5,-3,0])
+  addSquare([-6,-2,0])
+  addSquare([-4,-2,0])
+  addSquare([-2,-2,0])
+  addSquare([-1,-2,0])
+  addSquare([1,-2,0])
+  addSquare([2,-2,0])
+  addSquare([4,-2,0])
+  addSquare([6,-2,0])
+  addSquare([-5,-1,0])
+  addSquare([-3,-1,0])
+  addSquare([-2,-1,0])
+  addSquare([2,-1,0])
+  addSquare([3,-1,0])
+  addSquare([5,-1,0])
+  addSquare([-6,0,0])
+  addSquare([-2,0,0])
+  addSquare([-1,0,0])
+  addSquare([3,0,0])
+  addSquare([4,0,0])
+  addSquare([-5,1,0])
+  addSquare([-3,1,0])
+  addSquare([-1,1,0])
+  addSquare([0,1,0])
+  addSquare([2,1,0])
+  addSquare([4,1,0])
+  addSquare([-4,2,0])
+  addSquare([-2,2,0])
+  addSquare([0,2,0])
+  addSquare([1,2,0])
+  addSquare([2,2,0])
+  addSquare([3,2,0])
+  addSquare([4,2,0])
+  addSquare([-3,3,0])
+  addSquare([1,3,0])
+
+  console.log(edges.length)
+
+  path = EulerianPath([0], verticies[1])
+
+  for (let vertex of verticies) {
+    vertex.ogCoords = scale(vertex.coordinates, SCALE)
+  }
+}
 
 function createWallSquare() {
+  reset()
   isWall = true
   name = "square"
-  verticies = []
-  edges = []
 
   addSquare([0,0,0])
 
@@ -313,11 +380,10 @@ function createWallSquare() {
 }
 
 function createSimpleWallTiling() {
+  reset()
   seed = initialSeed
   isWall = true
   name = "simple"
-  verticies = []
-  edges = []
 
   for (let i = -3; i <= 3; i++) {
     for (let j = -3; j <= 3; j++) {
@@ -338,6 +404,9 @@ function createSimpleWallTiling() {
     vertex.ogCoords = scale(vertex.coordinates, SCALE)
   }
 }
+
+
+
 
 function addSquare(center) {
   addPolygon(4, Math.sqrt(2)/2, center)
@@ -394,6 +463,13 @@ function addVertex(coordinates) {
 }
 
 function addEdge(vertex1, vertex2) {
+  var edgeCenter = scale(add(vertex1.coordinates, vertex2.coordinates), .5)
+  for (let center of edgeCentersBlacklist) {
+    if (vectorEquals(edgeCenter, center)) {
+      return
+    }
+  }
+
   for (let existingEdge of edges) {
     if (existingEdge.verticies[0] == vertex1 && existingEdge.verticies[1] == vertex2) {
       return
@@ -647,7 +723,7 @@ document.getElementById("diamond").addEventListener('click', function() {
   createDiamondWallTiling()
 })
 document.getElementById("organic").addEventListener('click', function() {
-  createOrganicWallTiling()
+  createOrganicWallTiling2()
 })
 document.getElementById("simple").addEventListener('click', function() {
   createSimpleWallTiling()
@@ -709,6 +785,9 @@ function render() {
 function epsilonEquals(a, b, epsilon=0.1) {
   return a - b < epsilon && b - a < epsilon
 }
+function vectorEquals(v1, v2, epsilon=0.1) {
+  return epsilonEquals(d(v1,v2), 0, epsilon)
+}
 
 
 function d(v1, v2) {
@@ -760,6 +839,11 @@ function rotateZ(theta) {
 
 function scale(v, scalar) {
   return [v[0] * scalar, v[1] * scalar, v[2] * scalar]
+}
+function cross(v1, v2) {
+  return [v1[1]*v2[2] - v1[2]*v2[1],
+          v1[2]*v2[0] - v1[0]*v2[2],
+          v1[0]*v2[1] - v1[1]*v2[0]]
 }
 function dot(v1, v2) {
   return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]

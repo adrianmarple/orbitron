@@ -10,7 +10,7 @@ import os
 import sys
 import traceback
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
@@ -45,6 +45,22 @@ base_config = {
   "CONTINUOUS_MOVEMENT": False,
   "INTERSECTION_PAUSE_FACTOR": 0.2,
 }
+
+prefs = {"startTime": "0:00", "endTime": "23:59"}
+pref_path = os.path.dirname(__file__) + "/prefs.json"
+if os.path.exists(pref_path):
+  f = open(pref_path, "r")
+  prefs = json.loads(f.read())
+  f.close()
+
+def update_prefs(update):
+  prefs.update(update)
+  idle.update_prefs()
+  for game in games.values():
+    game.update_prefs()
+  f = open(pref_path, "w")
+  f.write(json.dumps(prefs, indent=2))
+  f.close()
 
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
@@ -135,8 +151,8 @@ def update():
       start(idle)
     elif len(game.claimed_players()) == 0 and game != idle:
       start(idle)
-    elif len(game.claimed_players()) > 0 and game == idle:
-      start_random_game()
+    # elif len(game.claimed_players()) > 0 and game == idle:
+    #   start_random_game()
 
     game.update()
     if game.end_time <= time() and game.end_time > 0:
@@ -414,6 +430,11 @@ class Game:
         self.config[key] = value
         setattr(self, key, value)
 
+    self.update_prefs()
+
+  def update_prefs(self):
+    pass
+
   # Doing this so players can have global reference to "game" in various game modules
   def generate_players(self, player_class, positions=INITIAL_POSITIONS):
     self.players = [
@@ -649,20 +670,23 @@ class Game:
 # ================================ Idle Animation "Game" =========================================
 
 
+target_head_count = SIZE / 32.0
 class Idle(Game):
   name = "idle"
   waiting_music = "idle"
 
-  def __init__(self, additional_config=None):
-    Game.__init__(self, additional_config)
+  def update_prefs(self):
     now_date = datetime.now().date()
 
-    start_string = os.getenv("START_TIME") or "0:00"
+    start_string = prefs.get("startTime", "0:00")
     start_time = datetime.strptime(start_string, '%H:%M').time()
     self.start = datetime.combine(now_date, start_time)
 
-    end_string = os.getenv("END_TIME") or "23:59"
-    end_time = datetime.strptime(end_string, '%H:%M').time() # TODO ingest this from config
+    end_string = prefs.get("endTime", "23:59")
+    print(end_string, file=sys.stderr)
+    end_time = datetime.strptime(end_string, '%H:%M').time()
+    if end_time < start_time:
+      now_date += timedelta(days=1)
     self.end = datetime.combine(now_date, end_time)
     
     self.fade_duration = 40.0*60 # 40 minutes
@@ -679,6 +703,9 @@ class Idle(Game):
   def render_fluid(self):
     global pixels
 
+    head_ratio = len(self.fluid_heads) / target_head_count
+    dampening_factor = (1 + head_ratio*head_ratio*5)
+
     time_to_wait = self.previous_fluid_time + 0.066 - time()
     if time_to_wait > 0:
       sleep(time_to_wait)
@@ -692,10 +719,14 @@ class Idle(Game):
 
       for n in neighbors[head]:
         x = self.fluid_values[n] + 0.01
-        x *= (1 + len(self.fluid_heads)/3)
+        x *= dampening_factor
         if x < random():
           new_heads.append(n)
           self.fluid_values[n] = 1
+
+    spontaneous_combustion_chance = 0.01 / (head_ratio * head_ratio)
+    if spontaneous_combustion_chance > random():
+      new_heads.append(randrange(SIZE))
 
     if len(new_heads) != 0:
       self.fluid_heads = new_heads
@@ -864,6 +895,7 @@ def broadcast_state():
     "data": game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
+    "prefs": prefs,
   }
   print(json.dumps(message))
 

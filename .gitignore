@@ -63,6 +63,7 @@ node_modules/
 
 # config file
 config.js
+prefs.json
 
 ._*
 .DS_Store

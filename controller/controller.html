@@ -81,6 +81,28 @@
     Tap To Reconnect
   </div>
 
+  <div v-else-if="!gameStarted" id="home" :style="homeStyle">
+    <div class="header">
+      <div>
+        Start Time:
+        <textarea v-model="prefs.startTime"
+          @change="updatePrefs('startTime')">
+        </textarea>
+      </div>
+      <div>
+        End Time:
+        <textarea v-model="prefs.endTime"
+          @change="updatePrefs('endTime')">
+        </textarea>
+      </div>
+
+      <div class="button" style="margin-top: 48px;"
+        @click="startGames" >
+        Play Games
+      </div>
+    </div>
+  </div>
+
   <div v-else-if="!hasClaimed" id="queue" class="header">
     All the play slots have been claimed.
     <br/>

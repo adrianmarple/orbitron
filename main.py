@@ -76,6 +76,8 @@ def consume_input():
         engine.start(engine.game)
       elif message["type"] == "settings":
         engine.game.update_config(message["update"])
+      elif message["type"] == "prefs":
+        engine.update_prefs(message["update"])
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

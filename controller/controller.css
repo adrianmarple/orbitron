@@ -19,6 +19,19 @@ body, #app, .main {
   position: relative;
 }
 
+#home {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  z-index: 3;
+}
+#home textarea {
+  width: 100px;
+  height: 40px;
+  text-align: center;
+  font-size: 1.5em;
+}
+
 #settings-button, #label, #quit-vote-tally, #game-selection-menu, .main {
   user-select: none;
   -webkit-user-select: none; /* Safari */

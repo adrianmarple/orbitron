@@ -55,6 +55,7 @@ var app = new Vue({
     carouselVelocityX: 0,
 
     config: {},
+    prefs: {},
     GAMES_INFO,
     uuid: uuid(),
 
@@ -64,6 +65,8 @@ var app = new Vue({
 
     speedbumpCallback: null,
     speedbumpMessage: "",
+
+    homeStyle: {background: "blue"},
   },
 
   created() {
@@ -75,6 +78,11 @@ var app = new Vue({
         this.ping()
       }
     }, 3000)
+    setInterval(() => {
+      this.homeStyle = {
+        background: phaseColor()
+      }
+    }, 30)
     onfocus = () => {
       this.blurred = false
       if (!this.ws) {
@@ -130,6 +138,18 @@ var app = new Vue({
         }
       }
     },
+    "state.prefs": function(val, oldValue) {
+      if (!oldValue) {
+        this.prefs = { ...val }
+        return
+      }
+      for (let key in val) {
+        if (val[key] != oldValue[key]) {
+          this.prefs = { ...val }
+          return
+        }
+      }
+    },
     "state.gameId": function(val, oldValue) {
       this.isReadyLocal = false
     },
@@ -160,6 +180,10 @@ var app = new Vue({
         return "DISCONNECTED"
       }
     },
+    gameStarted() {
+      return this.state.game != "idle"
+    },
+
     victoryCondition() {
       return this.substitute(this.gameInfo.victoryCondition)
     },
@@ -294,6 +318,9 @@ var app = new Vue({
       t = t + this.lastMessageTimestampCount * .001
       this.lastMessageTimestampCount += 1
       return t
+    },
+    startGames() {
+      this.send({type: "skip"})
     },
 
     substitute(string) {
@@ -667,6 +694,9 @@ var app = new Vue({
     updateSettings(settingsName) {
       this.send({ type: "settings", update: {[settingsName]: this.config[settingsName] }})
     },
+    updatePrefs(prefName) {
+      this.send({ type: "prefs", update: {[prefName]: this.prefs[prefName] }})
+    },
     prettifySettingName(name) {
       return name.toLowerCase().replaceAll("_", " ")
     },
@@ -703,3 +733,24 @@ var app = new Vue({
     },
   },
 });
+
+function phaseColor() {
+  let colorPhase = (Date.now()/1000.0/10) % 1
+  let r,g,b
+  if (colorPhase < 0.333) {
+    r = 1 - 3 * colorPhase
+    g = 3 * colorPhase
+    b = 0
+  } else if (colorPhase < 0.666) {
+    r = 0
+    g = 2 - 3 * colorPhase
+    b = 3 * colorPhase - 1
+  } else {
+    r = 3 * colorPhase - 2
+    g = 0
+    b = 3 - 3 * colorPhase
+  }
+  const min = 200
+  const range = 50
+  return `rgb(${min + r*range},${min + g*range},${min + b*range})`
+}
