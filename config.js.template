@@ -6,6 +6,5 @@ module.exports={
   //ACT_AS_RELAY: false,
   //CONNECT_TO_RELAY: "orbitron.games",
   //SWITCHBOARD: "orbitron.games",
-  //START_TIME: "8:00",
-  //END_TIME: "23:30",
+  AUTO_GAME: false,
 }

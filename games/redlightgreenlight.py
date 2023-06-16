@@ -5,7 +5,7 @@ import sys
 import numpy as np
 
 from math import floor, pi, cos, sin, sqrt
-from random import uniform
+from random import randrange, uniform
 from time import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -33,8 +33,15 @@ class RLGL(Game):
   pulse_duration = 0
   top_score = 0
 
+  goals = []
+
   def start_ontimeout(self):
     self.top_score = 0
+    self.goals.clear()
+    goal_count = len(self.claimed_players()) - 1
+    goal_count = max(goal_count, 2)
+    for i in range(goal_count):
+      self.spawn_goal()
     Game.start_ontimeout(self)
 
   def play_update(self):
@@ -64,22 +71,47 @@ class RLGL(Game):
     else:
       pole_color = engine.GOOD_COLOR * (0.5 + 0.5 * sin(time() * 15))
 
-    for pos in engine.north_pole:
+    for pos in self.goals:
       engine.color_pixel(pos, pole_color)
 
     if not self.red_light:
       direction = np.array((0,1.2,0)) if engine.IS_WALL else np.array((0,0,1))
 
-      engine.render_pulse(
-        direction=direction,
-        color=engine.BAD_COLOR,
-        start_time=self.light_change_time - self.pulse_duration,
-        duration=self.pulse_duration)
+      for goal in self.goals:
+        engine.render_pulse(
+          direction=engine.coords[goal],
+          color=engine.BAD_COLOR,
+          start_time=self.light_change_time - self.pulse_duration,
+          duration=self.pulse_duration)
 
+  def spawn_goal(self):
+    points_to_avoid = set()
+    for goal in self.goals:
+      points_to_avoid.add(goal)
+    for player in self.claimed_players():
+      points_to_avoid.add(player.position)
+
+    points_to_avoid = self.all_neighbors(points_to_avoid)
+    points_to_avoid = self.all_neighbors(points_to_avoid)
+    points_to_avoid = self.all_neighbors(points_to_avoid)
+    
+    for i in range(100):
+      pos = randrange(engine.SIZE)
+      if pos not in points_to_avoid:
+        self.goals.append(pos)
+        return
 
 
 class Runner(Player):
   previous_success_time = 0
+
+  def reset(self):
+    self.initial_position = self.random_teleport_pos()
+    Player.reset(self)
+
+  def ready(self):
+    Player.ready(self)
+    self.position = self.initial_position
 
   def move_delay(self):
     return (5 + self.score) / (5 + game.top_score) * game.MOVE_FREQ
@@ -93,17 +125,22 @@ class Runner(Player):
       if starting_position != self.initial_position:
         sounds["hurt"].play()
 
-    if self.position in engine.north_pole:
+    if self.position in game.goals:
+      game.goals.remove(self.position)
+      game.spawn_goal()
+
       self.score += 1
       self.score_timestamp = time()
-      self.position = self.initial_position
+      # self.initial_position = self.random_teleport_pos()
+      self.initial_position = self.position
+      # self.position = self.initial_position
       self.prev_pos = self.position
       self.previous_success_time = time()
 
   def render(self):
     Player.render(self)
     engine.render_pulse(
-      direction=engine.coords[self.initial_position],
+      direction=engine.coords[self.position],
       color=self.current_color(),
       start_time=self.previous_success_time,
       duration=0.5)

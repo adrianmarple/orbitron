@@ -32,6 +32,7 @@ additional_config = {
   "TAP_BOMB_KICK": True,
   "MAX_BOMBS": 3,
   "SHOCKWAVE_DURATION": 0.5,
+  "REQUIREMENTS": ["north_pole"],
 }
 
 class Rhomberman(Game):

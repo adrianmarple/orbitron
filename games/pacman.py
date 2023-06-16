@@ -35,7 +35,7 @@ additional_config = {
   "PULSE_DURATION": 0.75,
   "GHOST_STUN_TIME": 5,
   "SELECTION_WEIGHTS": [0, 0.5, 0.5, 0.5, 0.5, 0],
-  "EXCLUDED_TOPOLOGIES": ["helmet"],
+  "REQUIREMENTS": ["north_pole", "antipodes"],
 }
 
 

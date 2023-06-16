@@ -303,59 +303,59 @@ function createOrganicWallTiling2() {
   name = "organic wall"
 
   edgeCentersBlacklist = [
-    [0, -3.5, 0],
-    [3, 0.5, 0],
-    [4, 0.5, 0],
-    [4, 1.5, 0],
-    [2.5, 1, 0],
-    [2.5, 2, 0],
-    [3.5, 2, 0],
+    [0, 3.5, 0],
+    [3, -0.5, 0],
+    [4, -0.5, 0],
+    [4, -1.5, 0],
+    [2.5, -1, 0],
+    [2.5, -2, 0],
+    [3.5, -2, 0],
   ]
 
-  addSquare([4,-4,0])
-  addSquare([-5,-3,0])
-  addSquare([-1,-3,0])
-  addSquare([0,-3,0])
+  addSquare([-3,-3,0])
   addSquare([1,-3,0])
-  addSquare([5,-3,0])
-  addSquare([-6,-2,0])
-  addSquare([-4,-2,0])
-  addSquare([-2,-2,0])
-  addSquare([-1,-2,0])
-  addSquare([1,-2,0])
-  addSquare([2,-2,0])
-  addSquare([4,-2,0])
-  addSquare([6,-2,0])
-  addSquare([-5,-1,0])
-  addSquare([-3,-1,0])
-  addSquare([-2,-1,0])
-  addSquare([2,-1,0])
-  addSquare([3,-1,0])
-  addSquare([5,-1,0])
+  addSquare([4,4,0])
+  addSquare([-5,3,0])
+  addSquare([-1,3,0])
+  addSquare([0,3,0])
+  addSquare([1,3,0])
+  addSquare([5,3,0])
+  addSquare([-6,2,0])
+  addSquare([-4,2,0])
+  addSquare([-2,2,0])
+  addSquare([-1,2,0])
+  addSquare([1,2,0])
+  addSquare([2,2,0])
+  addSquare([4,2,0])
+  addSquare([6,2,0])
+  addSquare([-5,1,0])
+  addSquare([-3,1,0])
+  addSquare([-2,1,0])
+  addSquare([2,1,0])
+  addSquare([3,1,0])
+  addSquare([5,1,0])
   addSquare([-6,0,0])
   addSquare([-2,0,0])
   addSquare([-1,0,0])
   addSquare([3,0,0])
   addSquare([4,0,0])
-  addSquare([-5,1,0])
-  addSquare([-3,1,0])
-  addSquare([-1,1,0])
-  addSquare([0,1,0])
-  addSquare([2,1,0])
-  addSquare([4,1,0])
-  addSquare([-4,2,0])
-  addSquare([-2,2,0])
-  addSquare([0,2,0])
-  addSquare([1,2,0])
-  addSquare([2,2,0])
-  addSquare([3,2,0])
-  addSquare([4,2,0])
-  addSquare([-3,3,0])
-  addSquare([1,3,0])
+  addSquare([-5,-1,0])
+  addSquare([-3,-1,0])
+  addSquare([-1,-1,0])
+  addSquare([0,-1,0])
+  addSquare([2,-1,0])
+  addSquare([4,-1,0])
+  addSquare([-4,-2,0])
+  addSquare([-2,-2,0])
+  addSquare([0,-2,0])
+  addSquare([1,-2,0])
+  addSquare([2,-2,0])
+  addSquare([3,-2,0])
+  addSquare([4,-2,0])
 
   console.log(edges.length)
 
-  path = EulerianPath([0], verticies[1])
+  path = EulerianPath([2], verticies[2])
 
   for (let vertex of verticies) {
     vertex.ogCoords = scale(vertex.coordinates, SCALE)
@@ -540,14 +540,16 @@ function generatePixelInfo() {
   let neighbors = []
   let coords = []
   let nextPixel = {}
-  let antipodes = []
   let uniqueToDupe = []
   let dupeToUniques = []
 
   let vertIndexToCoordIndex = {}
-  let previousVertex = edges[0].verticies[0]
-  if (name == "rhombicosidodecahedron" || name == "helmet") {
-    previousVertex = edges[path[0]].verticies[1]
+
+  let e0 = edges[path[0]]
+  let e1 = edges[path[1]]
+  let previousVertex = e0.verticies[0]
+  if (e1.verticies[0] == previousVertex || e1.verticies[1] == previousVertex) {
+    previousVertex = e0.verticies[1]
   }
 
   for (let edgeIndex of path) {
@@ -604,63 +606,7 @@ function generatePixelInfo() {
     }
   }
 
-  for (let i = 0; i < coords.length; i++) {
-    let coord = coords[i]
-    for (let j = 0; j < coords.length; j++) {
-      let coord2 = coords[j]
-      if (epsilonEquals(d(coord, scale(coord2, -1)), 0)) {
-        antipodes.push(j)
-        break
-      }
-    }
-    if (antipodes.length <= i) {
-      antipodes.push(-1)
-    }
-  }
-
-  let northPole = []
-  let southPole = []
-  let dim = 2
-  let threshold = 0.94
-  if (name == "wall") {
-    dim = 1
-    threshold = 1
-  }
-  if (name == "helmet") {
-    threshold = 0.92
-  }
-
-  let initialPositions, southerlyInitialPositions
-  switch (name) {
-    case "rhombicosidodecahedron":
-      initialPositions = [105,157,117,24,50,202]
-      southerlyInitialPositions = [79,113,39,352,12,401]
-      break
-    case "wall":
-      initialPositions = [432,123,175,79,155,59]
-      southerlyInitialPositions = [360,368,392,388,364,368]
-      break
-    case "helmet":
-      initialPositions = [181,155,279,191,255,12]
-      southerlyInitialPositions = [4,68,129,36,99,64]
-      break
-    default:
-      initialPositions = shuffle([...Array(coords.length).keys()]).slice(0,6)
-      southerlyInitialPositions = initialPositions
-  }
-
-  for (var i = 0; i < coords.length; i++) {
-    let val = coords[i][dim]
-    if (val > threshold) {
-      northPole.push(i)
-    }
-    if (name == "helmet" && val < -0.6) {
-      southPole.push(i)
-    } else if (val < -threshold) {
-      southPole.push(i)
-    }
-  }
-  return {
+  let info = {
     name,
     SIZE: coords.length,
     isWall,
@@ -669,12 +615,66 @@ function generatePixelInfo() {
     dupeToUniques,
     neighbors,
     nextPixel,
-    antipodes,
-    northPole,
-    southPole,
-    initialPositions,
-    southerlyInitialPositions,
+    defaultPulseDirection: [0,1,0],
   }
+
+  if (name == "rhombicosidodecahedron") {
+    let antipodes = []
+    for (let i = 0; i < coords.length; i++) {
+      let coord = coords[i]
+      for (let j = 0; j < coords.length; j++) {
+        let coord2 = coords[j]
+        if (epsilonEquals(d(coord, scale(coord2, -1)), 0)) {
+          antipodes.push(j)
+          break
+        }
+      }
+      if (antipodes.length <= i) {
+        antipodes.push(-1)
+      }
+    }
+    info.antipodes = antipodes
+  }
+
+  if (!isWall) {
+    let northPole = []
+    let southPole = []
+    let threshold = 0.94
+    if (name == "helmet") {
+      threshold = 0.92
+    }
+    for (var i = 0; i < coords.length; i++) {
+      let val = coords[i][2]
+      if (val > threshold) {
+        northPole.push(i)
+      }
+      if (name == "helmet" && val < -0.6) {
+        southPole.push(i)
+      } else if (val < -threshold) {
+        southPole.push(i)
+      }
+    }
+    info.northPole = northPole
+    info.northPole = southPole
+  }
+
+  switch (name) {
+    case "rhombicosidodecahedron":
+      info.initialPositions = [105,157,117,24,50,202]
+      info.southerlyInitialPositions = [79,113,39,352,12,401]
+      info.defaultPulseDirection = [0,0,1]
+      break
+    case "wall":
+      info.initialPositions = [432,123,175,79,155,59]
+      break
+    case "helmet":
+      info.initialPositions = [181,155,279,191,255,12]
+      info.southerlyInitialPositions = [4,68,129,36,99,64]
+      info.defaultPulseDirection = [0,0,1]
+      break
+  }
+
+  return info
 }
 
 
@@ -806,7 +806,7 @@ function delta(v1, v2) {
 function project(v) {
   const SCALE = 800
   let z = v[2] + 15
-  return [500 + v[0] * SCALE / z, 500 + v[1] * SCALE / z]
+  return [500 + v[0] * SCALE / z, 500 - v[1] * SCALE / z]
 }
 
 function rotateX(theta) {

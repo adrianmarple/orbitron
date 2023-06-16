@@ -72,18 +72,32 @@ f = open(os.path.dirname(__file__) + file_name, "r")
 pixel_info = json.loads(f.read())
 f.close()
 
-IS_WALL = pixel_info["isWall"]
+IS_WALL = pixel_info.get("isWall", False)
 SIZE = pixel_info["SIZE"]
 neighbors = pixel_info["neighbors"]
 next_pixel = pixel_info["nextPixel"]
 coords = [np.array(coord) for coord in pixel_info["coords"]]
 coord_matrix = np.matrix(coords).transpose()
 unique_to_dupe = pixel_info["uniqueToDupe"]
-antipodes = pixel_info["antipodes"]
-north_pole = pixel_info["northPole"]
-south_pole = pixel_info["southPole"]
-INITIAL_POSITIONS = pixel_info["initialPositions"]
-SOUTHERLY_INITIAL_POSITIONS = pixel_info["southerlyInitialPositions"]
+
+DEFAULT_PULSE_DIRECTION = np.array(
+  pixel_info.get("defaultPulseDirection", (0,0,1)),
+  dtype=float)
+
+minPulseDot = 1000
+maxPulseDot = -1000
+for coord in coords:
+  d = np.dot(coord, DEFAULT_PULSE_DIRECTION)
+  minPulseDot = min(minPulseDot, d)
+  maxPulseDot = max(maxPulseDot, d)
+pulseRange = maxPulseDot - minPulseDot
+
+INITIAL_POSITIONS = pixel_info.get("initialPositions", [None]*6)
+antipodes = pixel_info.get("antipodes", None)
+# Expect these pole based concepts to exist together
+north_pole = pixel_info.get("northPole", None)
+south_pole = pixel_info.get("southPole", None)
+SOUTHERLY_INITIAL_POSITIONS = pixel_info.get("southerlyInitialPositions", [None]*6)
 
 dupe_matrix = np.zeros((len(unique_to_dupe), SIZE),dtype="<u1")
 for (i, dupe) in enumerate(unique_to_dupe):
@@ -109,8 +123,11 @@ def select_random_game():
     weights[name] = weight * games[name].SELECTION_WEIGHTS[player_count-1]
 
   for (name, g) in games.items():
-    if hasattr(g, "EXCLUDED_TOPOLOGIES") and pixel_info["name"] in g.EXCLUDED_TOPOLOGIES:
-      weights[name] = 0
+    if not hasattr(g, "REQUIREMENTS"):
+      continue
+    for req in g.REQUIREMENTS:
+      if getattr(sys.modules[__name__], req) is None:
+        weights[name] = 0
 
   selection = weighted_random(weights)
   if selection is None:
@@ -151,8 +168,8 @@ def update():
       start(idle)
     elif len(game.claimed_players()) == 0 and game != idle:
       start(idle)
-    # elif len(game.claimed_players()) > 0 and game == idle:
-    #   start_random_game()
+    elif os.getenv("AUTO_GAME") == "true" and len(game.claimed_players()) > 0 and game == idle:
+      start_random_game()
 
     game.update()
     if game.end_time <= time() and game.end_time > 0:
@@ -178,13 +195,12 @@ GHOST_BUFFER_LEN = 20
 
 class Player:
   def __init__(self,
-      position=0,
+      position=None,
       color=(150,150,150),
       color_string="white",
       color_name="White"):
 
     self.initial_position = position
-    self.prev_pos = position
     self.color = np.array(color)
     self.color_string = color_string
     self.color_name = color_name
@@ -212,7 +228,7 @@ class Player:
     self.is_ready = False
     self.is_alive = True
     self.is_playing = False
-    self.position = self.initial_position
+    self.position = self.initial_position or self.random_teleport_pos()
     self.prev_pos = self.position
     self.hit_time = 0
     self.score = 0
@@ -221,9 +237,6 @@ class Player:
   def set_ready(self):
     self.is_ready = True
     self.ready_time = time()
-    self.position = self.initial_position
-    self.prev_pos = self.position
-    self.score = 0
 
   def setup_for_game(self):
     self.is_playing = True
@@ -348,6 +361,28 @@ class Player:
       return True
     else:
       return False
+
+
+  def random_teleport_pos(self):
+    if game is None:
+      self.position = 0
+      return 0
+
+    for i in range(20):
+      pos = randrange(SIZE)
+      if game.statuses[pos] != "blank":
+        continue
+      occupied = False
+      for player in game.claimed_players():
+        if player.occupies(pos):
+          occupied = True
+        for n in neighbors[pos]:
+          if player.occupies(n):
+            occupied = True
+      if not occupied:
+        return pos
+
+    return 0
 
   def render_ghost_trail(self):
     for i in range(GHOST_BUFFER_LEN):
@@ -564,7 +599,6 @@ class Game:
       countdown = ceil(self.end_time - time())
       countup = 5 - countdown
       render_pulse(
-        direction=(0,0,1),
         color=np.array((60,60,60)) * countup,
         start_time=self.end_time - countdown,
         duration=READY_PULSE_DURATION)
@@ -578,7 +612,6 @@ class Game:
         countdown = ceil(self.end_time - time())
         countup = 7 - countdown
         render_pulse(
-          direction=(0,0,1),
           color=np.array((60,60,60)) * countup,
           start_time=self.end_time - countdown,
           duration=READY_PULSE_DURATION)
@@ -653,6 +686,13 @@ class Game:
   def claimed_players(self):
     return [player for player in self.players if player.is_claimed]
 
+  def all_neighbors(self, point_set):
+    neighbor_set = point_set.copy()
+    for point in point_set:
+      for n in neighbors[point]:
+        neighbor_set.add(n)
+    return neighbor_set
+
   def spawn(self, status):
     for i in range(10):
       pos = randrange(SIZE)
@@ -683,7 +723,6 @@ class Idle(Game):
     self.start = datetime.combine(now_date, start_time)
 
     end_string = prefs.get("endTime", "23:59")
-    print(end_string, file=sys.stderr)
     end_time = datetime.strptime(end_string, '%H:%M').time()
     if end_time < start_time:
       now_date += timedelta(days=1)
@@ -834,32 +873,29 @@ def phase_color():
     b = 3 - 3 * color_phase
   return np.array((r,g,b))
 
-# Assume direction (and from_direction) is normalized
-def render_pulse(direction=np.array((0,0,1), dtype=float),
-    from_direction=None,
-    color=(200,200,200), start_time=0, duration=READY_PULSE_DURATION):
-
+def render_pulse(direction=None, color=(200,200,200),
+    start_time=0, duration=READY_PULSE_DURATION):
   global pixels
   t = (time() - start_time) / duration
+  if (t >= 1):
+    return
 
-  if (t < 1):
-    if from_direction is not None:
-      alpha = 1.4 * t - 0.2
-      alpha = max(alpha, 0)
-      alpha = min(alpha, 1)
-      direction = alpha * direction - (1 - alpha) * from_direction
-
-    if IS_WALL:
-      deltas = np.dot(np.asmatrix(direction).T, np.ones((1, SIZE))) - coord_matrix
-      ds = np.sum(np.multiply(deltas, deltas), axis=0).T
-      ds = np.sqrt(ds)
-      ds = 1 - ds/2
-    else:
-      ds = direction * coord_matrix / 2 + 0.5
+  if IS_WALL and direction is not None:
+    deltas = np.dot(np.asmatrix(direction).T, np.ones((1, SIZE))) - coord_matrix
+    ds = np.sum(np.multiply(deltas, deltas), axis=0).T
+    ds = np.sqrt(ds)
+    # ds = 1 - ds/2
+    ds = 1 - ds/4
+  else:
+    if direction is None:
+      direction = DEFAULT_PULSE_DIRECTION
+    ds = direction * coord_matrix / 2 + 0.5
+    ds -= minPulseDot
+    ds /= pulseRange
       
-    ds = ds * 6 - (t * 7 - 1)
-    ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
-    pixels += np.array(np.outer(ds, color), dtype="<u1")
+  ds = 12*ds - 7*t - 5
+  ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
+  pixels += np.array(np.outer(ds, color), dtype="<u1")
 
 # Assume direction is normalized
 def render_ring(direction, color, width):

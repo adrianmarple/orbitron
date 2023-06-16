@@ -23,8 +23,8 @@ additional_config = {
   "MOVE_FREQ": 0.28,
   "SELECTION_WEIGHTS": [0, 0, 1, 1, 1, 1],
   "NUM_SPOTLIGHTS": 3,
-  "DOMAIN_THRESHOLD": 50, 
-  "EXCLUDED_TOPOLOGIES": ["wall"],
+  "DOMAIN_THRESHOLD": 50,
+  "REQUIREMENTS": ["antipodes"],
 }
 
 class Dominion(Game):

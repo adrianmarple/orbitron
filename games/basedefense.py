@@ -25,6 +25,7 @@ additional_config = {
   "PULSE_DURATION": 0.75,
   "ROUND_TIME": 90,
   "SELECTION_WEIGHTS": [0, 0.5, 1, 1, 1, 1],
+  "REQUIREMENTS": ["north_pole"],
 }
 
 
