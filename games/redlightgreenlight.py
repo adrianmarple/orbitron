@@ -91,9 +91,8 @@ class RLGL(Game):
     for player in self.claimed_players():
       points_to_avoid.add(player.position)
 
-    points_to_avoid = self.all_neighbors(points_to_avoid)
-    points_to_avoid = self.all_neighbors(points_to_avoid)
-    points_to_avoid = self.all_neighbors(points_to_avoid)
+    for i in range(5):
+      points_to_avoid = self.all_neighbors(points_to_avoid)
     
     for i in range(100):
       pos = randrange(engine.SIZE)
