@@ -489,12 +489,17 @@ function addEdge(vertex1, vertex2) {
   vertex2.edges.push(edge)
 }
 
-
+noncovergenceGuard = 1e6
 function EulerianPath(path, currentVertex) {
+  noncovergenceGuard -= 1
+  if (noncovergenceGuard < 0) {
+    path.length = 0
+    noncovergenceGuard = 1e6
+    return
+  }
   if (path.length >= edges.length) {
     return path
   }
-  // TODO randomly distribute edges with fixed seed
   let edgesCopy = currentVertex.edges.slice()
   shuffle(edgesCopy)
 

@@ -107,7 +107,7 @@ document.getElementById("download").addEventListener('click', function() {
 document.querySelectorAll(".button").forEach(elem => elem.addEventListener('click', function() {
   setTimeout(() => {
     if (isWall) {
-      createCoverSVG()
+      // createCoverSVG()
       // createWallSVG("wall", false, true)
     } else {
       document.querySelectorAll("path").forEach(path => path.setAttribute('d', ""))
