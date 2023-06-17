@@ -58,14 +58,14 @@ class Snek(Player):
     self.tail.clear()
     self.shrinking = 0
     for i in range(game.START_LENGTH):
-      self.tail.append(self.initial_position)
+      self.tail.append(self.position)
 
   def set_ready(self):
     Player.set_ready(self)
     self.tail.clear()
     self.shrinking = 0
     for i in range(game.START_LENGTH):
-      self.tail.append(self.initial_position)
+      self.tail.append(self.position)
 
     self.score = game.START_LENGTH
 

@@ -85,15 +85,15 @@
     <div class="header">
       <div>
         Start Time:
-        <textarea v-model="prefs.startTime"
+        <input type="time" v-model="prefs.startTime"
           @change="updatePrefs('startTime')">
-        </textarea>
+        </input>
       </div>
       <div>
         End Time:
-        <textarea v-model="prefs.endTime"
+        <input type="time" v-model="prefs.endTime"
           @change="updatePrefs('endTime')">
-        </textarea>
+        </input>
       </div>
 
       <div class="button" style="margin-top: 48px;"
