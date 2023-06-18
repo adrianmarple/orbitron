@@ -665,7 +665,8 @@ class Game:
           render_ring((cos(t*3-pi/2),0,sin(t*3-pi/2)),color*0.28,width)
         else:
           for (i, coord) in enumerate(coords):
-            color_pixel(i, color * sin(4*(coord[2] - timer + 0.3)))
+            d = np.dot(coord, DEFAULT_PULSE_DIRECTION)
+            color_pixel(i, color * sin(4*(d - timer + 0.3)))
 
 
   def render_game(self):

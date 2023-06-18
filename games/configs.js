@@ -117,10 +117,11 @@ GAMES_INFO = [
     label: "Red Light Pink Light",
     rules: [
       { words: [ "You are currently playing Red Light Pink Light", ], },
-      { words: [ "You can only move when the north pole glows pink"], },
-      { words: [ "You'll get sent back to the start if you try to move when the north pole is red", ], },
+      { words: [ "You can only move when the dots glow pink"], },
+      { words: [ "When you reach a pink light you score"], },
+      { words: [ "You'll get sent back to the start if you try to move when the dots are red", ], },
     ],
-    victoryCondition: "Whoever reaches the top the most times wins!",
+    victoryCondition: "Whoever reaches the most pink lights wins!",
     statusDisplay: {
       type: "rankedscore",
     },

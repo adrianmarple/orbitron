@@ -1,7 +1,8 @@
 
 // To prevent zoom on iOS
 document.addEventListener("click", event => {
-  if (event.target.tagName != "INPUT") {
+  if (event.target.tagName != "INPUT" &&
+      event.target.tagName != "A") {
     event.preventDefault()
     event.stopPropagation()
   }
@@ -34,6 +35,7 @@ var app = new Vue({
     localFlags: {},
     hasSeenGlobalRules: false,
     showSettings: false,
+    showAboutPage: false,
     blurred: false,
 
     startLocation: null,
