@@ -73,7 +73,6 @@ var app = new Vue({
 
   created() {
     this.startWebsocket()
-    this.startWebRTCSocket()
     this.startLocalSocket()
     setInterval(() => {
       if(this.connectionStatus == "CONNECTED"){
@@ -103,7 +102,6 @@ var app = new Vue({
     onblur = () => {
       if (!this.state.notimeout) {
         this.destroyWebsocket()
-        this.destroyWebRTCSocket()
         this.destroyLocalSocket()
         this.blurred = true
       }
@@ -492,59 +490,6 @@ var app = new Vue({
         console.error("ERROR",event)
         setTimeout(function(){ self.destroyWebsocket(); })
       }
-    },
-
-    destroyWebRTCSocket() {
-      if(this.wrtcs) {
-        try {
-          this.wrtcs.destroy()
-        } catch(e) {
-          console.log("Error closing webRTC socket", e)
-        }
-        this.wrtcs = null
-      }
-      if(this.signalSocket) {
-        try {
-          this.signalSocket.close()
-        } catch(e) {
-          console.log("Error closing signaling socket", e)
-        }
-        this.signalSocket = null
-      }
-      this.signalClient = null
-      this.webRTCStatus = "DISCONNECTED"
-    },
-    startWebRTCSocket() {
-      let self=this
-      if(self.signalClient) {
-        return // Already trying to establish a connection
-      }
-      this.webRTCStatus == 'CONNECTING'
-      self.signalSocket = io(location.origin)
-      self.signalClient = new SimpleSignalClient(self.signalSocket)
-      self.signalClient.on('discover', async (allIDs) => {
-        allIDs.forEach(async function(id){
-          try {
-            const { peer } = await self.signalClient.connect(id,{clientID:self.uuid})
-            self.wrtcs = peer
-            peer.on('data', function(data){
-              self.$set(self, 'webRTCStatus', 'CONNECTED')
-              self.handleMessage(data.toString())
-            })
-            peer.on('close',function(){
-              setTimeout(function(){ self.destroyWebRTCSocket(); })
-            })
-            peer.on('error', (err) => {
-              console.error("ERROR",err)
-              setTimeout(function(){ self.destroyWebRTCSocket(); })
-            })
-          } catch(e) {
-            console.log("WebRTC Connection error",e)
-            self.destroyWebRTCSocket()
-          }
-        })
-      })
-      self.signalClient.discover({orbID:window.location.pathname.substr(1)})
     },
 
     destroyLocalSocket() {

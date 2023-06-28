@@ -7,11 +7,6 @@ const path = require('path')
 const process = require('process')
 const { spawn, exec } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
-const SimpleSignalClient = require('simple-signal-client')
-const wrtc = require('wrtc')
-const { io } = require("socket.io-client")
-const SimplePeerServer = require('simple-peer-server')
-const { Server } = require("socket.io")
 //const { v4: uuidv4 } = require('uuid')
 
 // Log to file and standard out
@@ -84,29 +79,6 @@ function devBroadcast(message) {
   }
 }
 
-// Helper function to add timeouts to websockets
-function addWSTimeoutHandler(socket,duration) {
-  let lastMessage = Date.now()
-  let timeoutFunc = () => {
-    if(Date.now() - lastMessage > duration){
-      try {
-        if(socket.readyState < 2) { //isn't already closing
-          console.log("SOCKET TIMEOUT", socket.clientID, socket.classification)
-          socket.close()
-        }
-      } catch(e) {
-        console.error("Error closing socket on timeout", e, socket.clientID, socket.classification)
-      }
-    } else {
-      setTimeout(timeoutFunc, 1000)
-    }
-  }
-  setTimeout(timeoutFunc, 1000)
-  socket.on("message", (data, isBinary) => {
-    lastMessage = Date.now()
-  })
-}
-
 // Class that handles mutliple redundant connections between client and orb
 class ClientConnection {
   constructor(id) {
@@ -157,7 +129,6 @@ class ClientConnection {
     let self = this
     this.sockets.push(socket)
     this.numSockets = this.sockets.length
-    addWSTimeoutHandler(socket,self.timeout)
     socket.on("message", (data, isBinary) => {
       try {
         let content = JSON.parse(data)
@@ -173,48 +144,6 @@ class ClientConnection {
         }
       } catch(e) {
         console.error("Error processing web socket message", e, socket.clientID, socket.classification)
-      }
-    })
-    socket.on("close", () => {
-      self.removeSocket(socket)
-    })
-    socket.on("error", () => {
-      socket.close()
-      self.removeSocket(socket)
-    })
-  }
-
-  bindWebRTCSocket(socket) {
-    // for stats logging
-    this[socket.classification] = true
-    let counter = socket.classification + " Count"
-    let skipped = socket.classification + " Skipped"
-    if(!this[counter]) {
-      this[counter] = 0
-    }
-    if(!this[skipped]) {
-      this[skipped] = 0
-    }
-
-    let self = this
-    this.sockets.push(socket)
-    this.numSockets = this.sockets.length
-    socket.close = socket.destroy
-    socket.on("data", (data) => {
-      try {
-        let content = JSON.parse(data)
-        if(content.timestamp > self.latestMessage){
-          self.latestMessage = content.timestamp
-          if(self.callbacks.message){
-            self.callbacks.message(content)
-          }
-          //for logging of which sockets get used
-          self[counter] += 1
-        } else {
-          self[skipped] += 1
-        }
-      } catch(e) {
-        console.error("Error processing webRTC socket message", e)
       }
     })
     socket.on("close", () => {
@@ -358,7 +287,6 @@ function bindRelay(socket, orbID, clientID) {
   }
   connectedRelays[orbID][clientID] = socket
   socket.clientID = clientID
-  addWSTimeoutHandler(socket, 10 * 1000)
   socket.on('message', (data, isBinary) => {
     if(!isBinary){
       data = data.toString()
@@ -413,7 +341,6 @@ function bindClient(socket, orbID, clientID) {
   connectedClients[orbID][clientID] = socket
   socket.clientID = clientID
   socket.messageCache = []
-  addWSTimeoutHandler(socket, 10 * 1000)
   socket.on('message', (data, isBinary) => {
     if(!isBinary){
       data = data.toString()
@@ -485,9 +412,9 @@ function bindDataEvents(peer) {
       connectionQueue = connectionQueue.filter(elem => elem !== peer)
     }
   })
-  //peer.on('error', (err) => {
-  //  console.error("ERROR",peer.pid,err)
-  //})
+  peer.on('error', (err) => {
+   console.error("ERROR",peer.pid,err)
+  })
 }
 
 // Relay Connection
@@ -499,7 +426,6 @@ function relayUpkeep() {
         let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
         console.log("Initializing relay requester socket", relayURL)
         relayRequesterSocket = new WebSocket.WebSocket(relayURL)
-        addWSTimeoutHandler(relayRequesterSocket,10 * 1000)
         relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
           if(clientID == "PING") return
@@ -818,71 +744,8 @@ const rootServer = http.createServer(function (request, response) {
 
 })
 
-//WebRTC switchboard
-const switchboard = new Server(rootServer);
-signalServer = require('simple-signal-server')(switchboard)
-
-connectedWebRTCOrbs = {}
-
-signalServer.on('discover', (request) => {
-  //console.log("WEBRTC DISCOVER",request.discoveryData)
-  let orbID = request.discoveryData.orbID
-  let clientID = request.socket.id // clients are uniquely identified by socket.id
-  if(orbID){
-    if(request.discoveryData.isOrb) {
-      connectedWebRTCOrbs[orbID] = clientID
-    }
-    request.discover([connectedWebRTCOrbs[orbID]]) // respond with id of connected orb
-  }
-})
-
-signalServer.on('disconnect', (socket) => {
-  console.log("WEBRTC DISCONNECT",socket.id)
-  let clientID = socket.id
-  let orbID = null
-  for(id in connectedWebRTCOrbs){
-    if(connectedWebRTCOrbs[id] == clientID){
-      orbID = id
-      break
-    }
-  }
-  if(orbID){
-    delete connectedWebRTCOrbs[orbID]
-  }
-})
-
-signalServer.on('request', (request) => {
-  console.log("WEBRTC REQUEST FORWARDED",request.metadata)
-  request.forward() // forward all requests to connect
-})
 const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")
-
-//WebRTC connection to switchboard
-const socket = io(`http://${config.SWITCHBOARD}` || `http://localhost:${rootServerPort}`);
-const signalClient = new SimpleSignalClient(socket)
-signalClient.on('discover', (ids) => {
-  //console.log("WEBRTC DISCOVER RESPONSE",ids)
-})
-
-signalClient.on('request', async (request) => {
-  try {
-    const { peer, metadata } = await request.accept(null,{wrtc:wrtc}) // Accept the incoming request
-    peer.classification = "webRTC"
-    console.log("WEBRTC REQUEST ACCEPTED",metadata)
-    let clientConnection = getClientConnection(metadata.clientID)
-    clientConnection.bindWebRTCSocket(peer)
-    bindRemotePlayer(clientConnection)
-  } catch (e) {
-    console.error("Error establishing WebRTC connection", e)
-  }
-})
-
-function webRTCUpkeep() {
-  signalClient.discover({orbID:config.ORB_ID,isOrb:true})
-}
-
-setInterval(webRTCUpkeep, 5000)
 
 // periodic status logging
 function statusLogging() {
@@ -893,7 +756,6 @@ function statusLogging() {
   console.log("STATUS",new Date(),{
     devConnections,
     connectedOrbs: _connectedOrbs,
-    connectedWebRTCOrbs,
     connectedRelays,
     connectedClients,
     relayRequesterSocket: !relayRequesterSocket ? null : "connected",
