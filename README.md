@@ -146,11 +146,13 @@ network={
 ### Clone Repo
 
 - `git clone https://github.com/adrianmarple/orbitron`
-
-### Setup to run on startup on Pi
-
 - `cd orbitron`
-- `sudo pm2 start <server.js or orbclient.js>`
+- `npm install`
+- `cp config.js.template config.js`
+
+### Setup to run on startup on Pi (still within orbitron directory)
+
+- `sudo pm2 start <server.js or orbclient/orbclient.js>`
 - `sudo pm2 start wifisetup.js`
 - `sudo pm2 startup`
 - `sudo pm2 save`
