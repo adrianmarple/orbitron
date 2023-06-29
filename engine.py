@@ -2,7 +2,6 @@
 
 import base64
 import collections
-import digitalio
 import gzip
 import json
 import numpy as np
@@ -19,14 +18,10 @@ from time import sleep, time
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
 
 if os.getenv("DEV_MODE"):
-  pin = 0
-  def neopixel_write(pin,data):
+  def neopixel_write(data):
     print("raw_pixels=%s" % data.hex())
 else:
-  import board
   from orbclient.orbpixel import neopixel_write
-  pin = digitalio.DigitalInOut(board.D18)
-  pin.direction = digitalio.Direction.OUTPUT
 
 prewarm_audio()
 
@@ -181,7 +176,7 @@ def update():
     raw_pixels = np.matmul(dupe_matrix,pixels)
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
     output=np.array(raw_pixels,dtype="<u1").tobytes()
-    neopixel_write(pin,output)
+    neopixel_write(output)
     broadcast_state()
   except Exception:
     print(traceback.format_exc(), file=sys.stderr)

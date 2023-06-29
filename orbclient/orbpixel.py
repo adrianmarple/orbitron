@@ -1,6 +1,8 @@
 """BCM283x NeoPixel Driver Class"""
 import time
 import atexit
+import digitalio
+import board
 import _rpi_ws281x as ws
 
 # LED configuration.
@@ -18,8 +20,10 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 _led_strip = None
 _buf = None
 
+gpio = digitalio.DigitalInOut(board.D18)
+gpio.direction = digitalio.Direction.OUTPUT
 
-def neopixel_write(gpio, buf):
+def neopixel_write(buf):
     """NeoPixel Writing Function"""
     global _led_strip  # we'll have one strip we init if its not at first
     global _buf  # we save a reference to the buf, and if it changes we will cleanup and re-init.

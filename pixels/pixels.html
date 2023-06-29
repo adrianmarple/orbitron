@@ -695,7 +695,7 @@ document.onmousedown = e => {
 document.onmousemove = e => {
   if (isRotating && previousXY) {
     let newXY = [e.clientX, e.clientY]
-    rotateX(-ROTATION_SCALE * (newXY[1] - previousXY[1]))
+    rotateX(ROTATION_SCALE * (newXY[1] - previousXY[1]))
     rotateY(-ROTATION_SCALE * (newXY[0] - previousXY[0]))
     previousXY = newXY
   }
