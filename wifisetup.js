@@ -63,7 +63,7 @@ function startAccessPoint(){
   tryExecSync("sudo systemctl restart networking.service")
   tryExecSync("sudo systemctl restart dhcpcd")
   tryExecSync("sudo systemctl restart hostapd")
-
+  console.log("FINISHED STARTING ACCESS POINT")
 }
 
 function stopAccessPoint(){
@@ -74,6 +74,7 @@ function stopAccessPoint(){
   tryExecSync("sudo systemctl restart networking.service")
   tryExecSync("sudo systemctl restart dhcpcd")
   tryExecSync("sudo wpa_cli reconfigure")
+  console.log("FINISHED STOPPING ACCESS POINT")
 }
 
 function submitSSID(formData) {
@@ -164,18 +165,20 @@ function networkCheck(){
   isConnected().then((connected)=>{
     console.log("Internet Connected: ", connected)
     if(!connected){
-      exec("sudo systemctl status hostapd", function(err, pstdout, pstderr){
-        if(err){
-          startAccessPoint()
-        }
-      })
+      stopAccessPoint()
+      setTimeout(() => {
+        isConnected().then((connected2)=>{
+          if(!connected2){
+            startAccessPoint()
+            setTimeout(networkCheck, 10 * 60 * 1000);
+          } else {
+            setTimeout(networkCheck, 60 * 1000);
+          }
+        })
+      }, 60 * 1000);
+    } else {
+      setTimeout(networkCheck, 60 * 1000);
     }
-    setTimeout(networkCheck, 60 * 1000);
   })
 }
-
-// first, disable the access point and wait a bit before starting the loop
-stopAccessPoint()
-setTimeout(() => {
-  networkCheck()
-}, 10 * 1000);
+networkCheck()
