@@ -58,50 +58,73 @@ function reset() {
   edgeCentersBlacklist = []
   path = []
   seed = initialSeed
+  pixelDensity = 1
 }
 reset()
 
 // ===================== topology utilities =====================
 
-function addSquare(center) {
-  return addPolygon(4, Math.sqrt(2)/2, center)
+function addSquare(center, edgeLengths) {
+  return addPolygon(4, center, edgeLengths)
 }
-function addDodecagon(center) {
-  return addPolygon(12, 3.86370335645/2, center)
+function addDodecagon(center, edgeLengths) {
+  return addPolygon(12, center, edgeLengths)
 }
-function addPolygon(sideCount, radius, center) {
+function addPolygon(sideCount, center, edgeLengths) {
+  if (!edgeLengths) {
+    edgeLengths = [1]
+  }
+  if (typeof edgeLengths == "number") {
+    edgeLengths = [edgeLengths]
+  }
+
   let newEdges = []
-  let previousVertex = null
-  let firstVertex = null
+  let edgeVector = [1,0,0]
+  let point = [0,0,0]
+  let points = []
   for (let i = 0; i < sideCount; i++) {
-    let angle = (-0.5 + i)/sideCount * 2 *Math.PI
-    let vertex = addVertex([
-      center[0] + Math.sin(angle) * radius,
-      center[1] + Math.cos(angle) * radius,
-      0])
-    if (!firstVertex) {
-      firstVertex = vertex
-    }
-    if (previousVertex) {
-      newEdges.push(addEdge(previousVertex, vertex))
-    }
+    points.push(point)
+    edgeVector = normalize(edgeVector)
+    edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
+    point = add(point, edgeVector)
+    edgeVector = rotateZ(edgeVector, Math.PI*2 / sideCount)
+  }
+
+  let average = [0,0,0]
+  for (let point of points) {
+    average = add(average, point)
+  }
+  average = scale(average, 1.0/points.length)
+  center = delta(center, average)
+  let previousVertex = addVertex(add(points[points.length - 1], center))
+  for (let point of points) {
+    let vertex = addVertex(add(point, center))
+    newEdges.push(addEdge(previousVertex, vertex))
     previousVertex = vertex
   }
-  newEdges.push(addEdge(previousVertex, firstVertex))
-  newEdges = newEdges.filter(edge => edge != null)
   return newEdges
 }
 
-function extrudePolygon(startingEdge, sideCount, negate) {
+function extrudePolygon(startingEdge, sideCount, edgeLengths, negate) {
   let newEdges = [startingEdge]
   let vertex = startingEdge.verticies[0]
   let edgeVector = delta(vertex.coordinates, startingEdge.verticies[1].coordinates)
+  if (!edgeLengths) {
+    edgeLengths = [magnitude(edgeVector)]
+  }
+  console.log(edgeLengths[0], magnitude(edgeVector))
+  if (!epsilonEquals(edgeLengths[0], magnitude(edgeVector))) {
+    console.error("First edge length must match extrusion edge.")
+    return
+  }
   if (negate) {
     edgeVector = scale(edgeVector, -1)
     vertex = startingEdge.verticies[1]
   }
   for (let i = 1; i < sideCount; i++) {
     edgeVector = rotateZ(edgeVector, Math.PI*2 / sideCount)
+    edgeVector = normalize(edgeVector)
+    edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
     newVertex = addVertex(add(vertex.coordinates, edgeVector))
     newEdges.push(addEdge(vertex, newVertex))
     vertex = newVertex
@@ -118,14 +141,13 @@ function addPlusMinusVertex(vertex) {
     }
   }
 }
-const SCALE = 1/4.46590101883
 function addVertex(coordinates) {
   for (let existingVertex of verticies) {
     if (epsilonEquals(d(existingVertex.coordinates, coordinates), 0)) {
       return existingVertex
     }
   }
-  let ogCoords = scale(coordinates, SCALE)
+  let ogCoords = scale(coordinates, 1) // copy
   let vertex = {
     adjacentVertices: [],
     edges: [],
@@ -289,12 +311,16 @@ function generatePixelInfo() {
       uniqueToDupe.push(coords.length)
       coords.push(v1)
     }
-    uniqueToDupe.push(coords.length)
-    coords.push(linearCombo(v2, v1, 1/4))
-    uniqueToDupe.push(coords.length)
-    coords.push(linearCombo(v2, v1, 2/4))
-    uniqueToDupe.push(coords.length)
-    coords.push(linearCombo(v2, v1, 3/4))
+    let edgeLength = d(v1,v2)
+    for (let alpha = pixelDensity; true; alpha += pixelDensity) {
+      if (epsilonEquals(edgeLength, alpha, 0.01)) break
+      if (alpha > edgeLength) {
+        console.error("Edge legnth not a integer multiple of pixel density")
+        return
+      }
+      uniqueToDupe.push(coords.length)
+      coords.push(linearCombo(v2, v1, alpha/edgeLength))
+    }
 
     previousVertex = nextVertex
   }
@@ -458,13 +484,20 @@ function render() {
     subPath = path.slice(0, pathIndex)
   }
 
+  let maxMagnitude = 0
+  for (let vertex of verticies) {
+    let point = vertex.coordinates
+    maxMagnitude = Math.max(maxMagnitude, magnitude(point))
+  }
+  let scale = 8 / (0.6 + maxMagnitude)
+
   let edgesCopy = edges.slice()
   edgesCopy.sort((a, b) => {
     return b.verticies[0].coordinates[2] - a.verticies[0].coordinates[2]
   })
   for (let edge of edgesCopy) {
-    let xy0 = project(edge.verticies[0].coordinates)
-    let xy1 = project(edge.verticies[1].coordinates)
+    let xy0 = project(edge.verticies[0].coordinates, scale)
+    let xy1 = project(edge.verticies[1].coordinates, scale)
     let z = edge.verticies[0].coordinates[2] + 5.5
     ctx.beginPath()
 
@@ -505,9 +538,9 @@ function delta(v1, v2) {
   return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]]
 }
 
-function project(v) {
-  const SCALE = 800
-  let z = v[2] + 15
+function project(v, scale) {
+  const SCALE = 800 * scale
+  let z = v[2] * scale + 15
   return [500 + v[0] * SCALE / z, 500 - v[1] * SCALE / z]
 }
 

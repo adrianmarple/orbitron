@@ -7,6 +7,7 @@ button.classList.add("button")
 button.addEventListener('click', function() {
   name = "dodecwall"
   reset()
+  pixelDensity = 0.25
   const Y_GAP = 2.4
   const X_GAP = 1.375
   isWall = true

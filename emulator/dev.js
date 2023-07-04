@@ -190,6 +190,19 @@ var app = new Vue({
 
       let points = []
       this.pixels = []
+
+      let maxMagnitude = 0
+      for (let point of this.pixelData.coords) {
+        let magnitude = new THREE.Vector3(point[0], point[1], point[2]).length()
+        maxMagnitude = Math.max(maxMagnitude, magnitude)
+      }
+      let scale = 1.6 / (0.6 + maxMagnitude)
+      for (let point of this.pixelData.coords) {
+        point[0] = point[0] * scale
+        point[1] = point[1] * scale
+        point[2] = point[2] * scale
+      }
+
       for (let index of this.pixelData.uniqueToDupe) {
         let point = this.pixelData.coords[index]
         let pixelGeometry = new THREE.SphereGeometry(0.014, 8, 8)

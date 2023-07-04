@@ -8,15 +8,18 @@ button.addEventListener('click', function() {
   name = "bramble"
   reset()
   isWall = true
+
+  let smallEdge = 4
+  let bigEdge = 5
   
-  let dodecEdges = addDodecagon([0,0,0])
+  let dodecEdges = addDodecagon([0,0,0], [smallEdge, bigEdge])
   let parity = false
   for (let edge of dodecEdges) {
-    if (parity) {
-      extrudePolygon(edge, 4)
+    if (!parity) {
+      extrudePolygon(edge, 4, [bigEdge, smallEdge])
     } else {
       hexEdges = extrudePolygon(edge, 6)
-      extrudePolygon(hexEdges[0], 3, true)
+      extrudePolygon(hexEdges[0], 3, null, true)
       extrudePolygon(hexEdges[2], 3)
       extrudePolygon(hexEdges[3], 3)
       extrudePolygon(hexEdges[4], 3)

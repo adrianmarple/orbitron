@@ -5,8 +5,9 @@ button.innerHTML = "Diamond"
 document.getElementById("type-buttons").appendChild(button)
 button.classList.add("button")
 button.addEventListener('click', function() {
-  name = "wall"
+  name = "diamond"
   reset()
+  pixelDensity = 0.25
   isWall = true
 
   for (let i = -6; i <= 6; i++) {
@@ -28,7 +29,7 @@ button.addEventListener('click', function() {
   path = EulerianPath([0], verticies[1])
 
   // rotateZAll(Math.PI/2);
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
+  // for (let vertex of verticies) {
+  //   vertex.ogCoords = scale(vertex.coordinates, 1)
+  // }
 })

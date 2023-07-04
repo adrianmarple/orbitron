@@ -7,6 +7,7 @@ button.classList.add("button")
 button.addEventListener('click', function() {
   name = "organic wall"
   reset()
+  pixelDensity = 0.25
   isWall = true
 
   edgeCentersBlacklist = [
@@ -63,8 +64,4 @@ button.addEventListener('click', function() {
   console.log(edges.length)
 
   path = EulerianPath([2], verticies[2])
-
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
 })

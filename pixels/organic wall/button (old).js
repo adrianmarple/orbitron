@@ -7,6 +7,7 @@ button.classList.add("button")
 button.addEventListener('click', function() {
   name = "organic wall"
   reset()
+  pixelDensity = 0.25
   isWall = true
   
   addSquare([-4,2,0])
