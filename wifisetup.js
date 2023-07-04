@@ -49,6 +49,7 @@ SUBMITTED = `
 `
 
 function startAccessPoint(){
+  exec("sudo mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
   exec("sudo systemctl enable hostapd")
   exec("sudo systemctl start hostapd")
   exec("sudo systemctl restart networking.service")
@@ -58,6 +59,7 @@ function startAccessPoint(){
 function stopAccessPoint(){
   exec("sudo systemctl stop hostapd")
   exec("sudo systemctl disable hostapd")
+  exec("sudo mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
   exec("sudo systemctl restart networking.service")
   exec("sudo systemctl restart dhcpcd")
   exec("sudo wpa_cli reconfigure")
