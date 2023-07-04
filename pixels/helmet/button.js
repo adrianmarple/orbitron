@@ -93,7 +93,7 @@ button.addEventListener('click', function() {
   rotateYAll(-Math.atan2(pentagonCenter[0], pentagonCenter[2]))
   rotateXAll(Math.PI)
   for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
+    vertex.ogCoords = scale(vertex.coordinates, 1)
   }
 
   console.log(edges.length)
