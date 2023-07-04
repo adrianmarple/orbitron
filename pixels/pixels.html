@@ -43,378 +43,34 @@ canvas {
 <body>
 <canvas width="1000" height="1000"></canvas>
 
-<div id="type-buttons">
-  <div class="button" id="rhomb">Rhombicosidodecahedron</div>
-  <div class="button" id="helmet">Helmet</div>
-  <div class="button" id="diamond">Diamond grid (wall)</div>
-  <div class="button" id="organic">Organic grid (wall)</div>
-  <div class="button" id="simple">Simple grid (wall)</div>
-  <div class="button" id="square">Square (wall)</div>
-  <div class="button" id="dodec">Dodecagons (wall)</div>
-</div>
-
+<div id="type-buttons"></div>
 <div class="button" id="download">Download</div>
 <script>
   
 const initialSeed = 3
-let seed = initialSeed
 const PHI = (1 + Math.sqrt(5))/ 2
-let verticies = []
-let edges = []
-let edgeCentersBlacklist = []
-let path = []
-let isWall = false
-let name = "rhombicosidodecahedron"
+
+var isWall = false
 
 function reset() {
   verticies = []
   edges = []
   edgeCentersBlacklist = []
   path = []
-}
-
-function createRhombicosidodecahedron() {
-  reset()
   seed = initialSeed
-  isWall = false
-  name = "rhombicosidodecahedron"
-  baseVerticies = [
-    [1, 1, Math.pow(PHI, 3)],
-    [Math.pow(PHI, 2), PHI, 2 * PHI],
-    [2 + PHI, 0 , Math.pow(PHI, 2)],
-  ]
-
-  for (let baseVertex of baseVerticies) {
-    addPlusMinusVertex(baseVertex)
-    addPlusMinusVertex([baseVertex[1], baseVertex[2], baseVertex[0]])
-    addPlusMinusVertex([baseVertex[2], baseVertex[0], baseVertex[1]])
-  }
-
-  for (let i = 0; i < verticies.length; i++) {
-    for (let j = i + 1; j < verticies.length; j++) {
-      if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2)) {
-        addEdge(verticies[i], verticies[j])
-      }
-    }
-  }
-  console.log(edges.length)
-  path = EulerianPath([0], verticies[0])
 }
+reset()
 
-function createHelmet() {
-  reset()
-  seed = initialSeed
-  isWall = false
-  name = "helmet"
-  baseVerticies = [
-    [1, 1, Math.pow(PHI, 3)],
-    [Math.pow(PHI, 2), PHI, 2 * PHI],
-    [2 + PHI, 0 , Math.pow(PHI, 2)],
-  ]
-
-  for (let baseVertex of baseVerticies) {
-    addPlusMinusVertex(baseVertex)
-    addPlusMinusVertex([baseVertex[1], baseVertex[2], baseVertex[0]])
-    addPlusMinusVertex([baseVertex[2], baseVertex[0], baseVertex[1]])
-  }
-
-  for (let i = 0; i < verticies.length; i++) {
-    for (let j = i + 1; j < verticies.length; j++) {
-      if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2)) {
-        addEdge(verticies[i], verticies[j])
-      }
-    }
-  }
-
-  // find a pentagon
-  let previousVertex = edges[0].verticies[0]
-  let currentVertex = edges[0].verticies[1]
-  let pentagonVertices = [previousVertex, currentVertex]
-  for (let i = 0; i < 3; i++) {
-    for (let edge of currentVertex.edges) {
-      let vertex = otherVertex(edge, currentVertex)
-      let dist = d(vertex.coordinates, previousVertex.coordinates)
-      if (dist > 3 && dist < 3.5) {
-        previousVertex = currentVertex
-        currentVertex = vertex
-        pentagonVertices.push(vertex)
-        break
-      }
-    }
-  }
-
-  function removeEdge(edge) {
-    remove(edges, edge)
-    for (let vertex of verticies) {
-      remove(vertex.edges, edge)
-    }
-  }
-
-  // Remove pentagon and adjoining edges and compute surrounding dodecagon
-  let pentagonCenter = [0,0,0]
-  let dodecagonVerticies = []
-  for (let vertex of pentagonVertices) {
-    pentagonCenter = add(pentagonCenter, vertex.coordinates)
-    remove(verticies, vertex)
-    for (let edge of vertex.edges) {
-      removeEdge(edge)
-      dodecagonVerticies.push(edge.verticies[0])
-      dodecagonVerticies.push(edge.verticies[1])
-    }
-  }
-  pentagonCenter = normalize(pentagonCenter)
-  dodecagonVerticies = dodecagonVerticies.filter(vert => !pentagonVertices.includes(vert))
-
-  // Remove ever other edge from remaining dodecagon
-  for (let i = 0; i < 10; i += 2) {
-    let v0 = dodecagonVerticies[i]
-    let v1 = dodecagonVerticies[i + 1]
-    let edge = null
-    for (let e of v0.edges) {
-      if (e.verticies.includes(v1)) {
-        edge = e
-        break
-      }
-    }
-    removeEdge(edge)
-  }
-
-  for (let i = 0; i < verticies.length; i++) {
-    verticies[i].index = i
-  }
-  for (let i = 0; i < edges.length; i++) {
-    edges[i].index = i
-  }
-
-  // Rotate helmet to orient dodec/pentagons down
-  rotateY(-Math.atan2(pentagonCenter[0], pentagonCenter[2]))
-  rotateX(Math.PI)
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
-
-  console.log(edges.length)
-  path = EulerianPath([dodecagonVerticies[0].edges[0].index], dodecagonVerticies[0])
-}
-
-
-
-
-function createDodecagonWallTiling() {
-  reset()
-  const Y_GAP = 2.4
-  const X_GAP = 1.375
-  seed = initialSeed
-  isWall = true
-  name = "dodecwall"
-  addDodecagon([-3*X_GAP,-Y_GAP,0])
-  addDodecagon([-1*X_GAP,-Y_GAP,0])
-  addDodecagon([1*X_GAP,-Y_GAP,0])
-  addDodecagon([3*X_GAP,-Y_GAP,0])
-  addDodecagon([-2*X_GAP,0,0])
-  addDodecagon([0,0,0])
-  addDodecagon([2*X_GAP,0,0])
-  addDodecagon([-1*X_GAP,Y_GAP,0])
-  addDodecagon([1*X_GAP,Y_GAP,0])
-  addDodecagon([0,2*Y_GAP,0])
-  console.log(edges.length)
-  path = EulerianPath([0], verticies[0])
-}
-
-
-function createDiamondWallTiling() {
-  reset()
-  seed = initialSeed
-  isWall = true
-  name = "wall"
-
-  for (let i = -6; i <= 6; i++) {
-    for (let j = -6; j <= 6; j++) {
-      let manhattan = Math.abs(i) + Math.abs(j)
-      if (manhattan > 6) {
-        continue
-      }
-      if (manhattan < 3) {
-        continue
-      }
-
-      addSquare([i,j,0])
-    }
-  }
-
-  console.log(edges.length)
-
-  path = EulerianPath([0], verticies[1])
-
-  rotateZ(Math.PI/2);
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
-}
-
-function createOrganicWallTiling() {
-  reset()
-  seed = initialSeed
-  isWall = true
-  name = "organic wall"
-
-  addSquare([-4,2,0])
-  addSquare([-3,-3,0])
-  addSquare([-3,1,0])
-  addSquare([-3,3,0])
-  addSquare([-2,4,0])
-  addSquare([-2,2,0])
-  addSquare([-2,0,0])
-  addSquare([-2,-2,0])
-  addSquare([-2,-4,0])
-  addSquare([-1,3,0])
-  addSquare([-1,1,0])
-  addSquare([-1,-1,0])
-  addSquare([-1,-3,0])
-  addSquare([-1,-5,0])
-  addSquare([0,2,0])
-  addSquare([0,0,0])
-  addSquare([0,-2,0])
-  addSquare([0,-4,0])
-  addSquare([1,1,0])
-  addSquare([1,-1,0])
-  addSquare([1,-3,0])
-  addSquare([2,2,0])
-  addSquare([2,0,0])
-  addSquare([2,-2,0])
-  addSquare([3,1,0])
-  addSquare([3,-1,0])
-  addSquare([4,0,0])
-  addSquare([4,-2,0])
-  addSquare([5,-1,0])
-
-  console.log(edges.length)
-
-  path = EulerianPath([0], verticies[1])
-
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
-}
-function createOrganicWallTiling2() {
-  reset()
-  seed = initialSeed
-  isWall = true
-  name = "organic wall"
-
-  edgeCentersBlacklist = [
-    [0, 3.5, 0],
-    [3, -0.5, 0],
-    [4, -0.5, 0],
-    [4, -1.5, 0],
-    [2.5, -1, 0],
-    [2.5, -2, 0],
-    [3.5, -2, 0],
-  ]
-
-  addSquare([-3,-3,0])
-  addSquare([1,-3,0])
-  addSquare([4,4,0])
-  addSquare([-5,3,0])
-  addSquare([-1,3,0])
-  addSquare([0,3,0])
-  addSquare([1,3,0])
-  addSquare([5,3,0])
-  addSquare([-6,2,0])
-  addSquare([-4,2,0])
-  addSquare([-2,2,0])
-  addSquare([-1,2,0])
-  addSquare([1,2,0])
-  addSquare([2,2,0])
-  addSquare([4,2,0])
-  addSquare([6,2,0])
-  addSquare([-5,1,0])
-  addSquare([-3,1,0])
-  addSquare([-2,1,0])
-  addSquare([2,1,0])
-  addSquare([3,1,0])
-  addSquare([5,1,0])
-  addSquare([-6,0,0])
-  addSquare([-2,0,0])
-  addSquare([-1,0,0])
-  addSquare([3,0,0])
-  addSquare([4,0,0])
-  addSquare([-5,-1,0])
-  addSquare([-3,-1,0])
-  addSquare([-1,-1,0])
-  addSquare([0,-1,0])
-  addSquare([2,-1,0])
-  addSquare([4,-1,0])
-  addSquare([-4,-2,0])
-  addSquare([-2,-2,0])
-  addSquare([0,-2,0])
-  addSquare([1,-2,0])
-  addSquare([2,-2,0])
-  addSquare([3,-2,0])
-  addSquare([4,-2,0])
-
-  console.log(edges.length)
-
-  path = EulerianPath([2], verticies[2])
-
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
-}
-
-function createWallSquare() {
-  reset()
-  isWall = true
-  name = "square"
-
-  addSquare([0,0,0])
-
-  console.log(edges.length)
-
-  path = EulerianPath([0], verticies[1])
-
-  rotateZ(Math.PI/2);
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
-}
-
-function createSimpleWallTiling() {
-  reset()
-  seed = initialSeed
-  isWall = true
-  name = "simple"
-
-  for (let i = -3; i <= 3; i++) {
-    for (let j = -3; j <= 3; j++) {
-      let manhattan = Math.abs(i) + Math.abs(j)
-      if (manhattan > 1) {
-        continue
-      }
-      addSquare([i,j,0])
-    }
-  }
-
-  console.log(edges.length)
-
-  path = EulerianPath([0], verticies[1])
-
-  rotateZ(Math.PI/2);
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
-}
-
-
-
+// ===================== topology utilities =====================
 
 function addSquare(center) {
-  addPolygon(4, Math.sqrt(2)/2, center)
+  return addPolygon(4, Math.sqrt(2)/2, center)
 }
 function addDodecagon(center) {
-  addPolygon(12, 3.86370335645/2, center)
+  return addPolygon(12, 3.86370335645/2, center)
 }
 function addPolygon(sideCount, radius, center) {
+  let newEdges = []
   let previousVertex = null
   let firstVertex = null
   for (let i = 0; i < sideCount; i++) {
@@ -427,11 +83,30 @@ function addPolygon(sideCount, radius, center) {
       firstVertex = vertex
     }
     if (previousVertex) {
-      addEdge(previousVertex, vertex)
+      newEdges.push(addEdge(previousVertex, vertex))
     }
     previousVertex = vertex
   }
-  addEdge(previousVertex, firstVertex)
+  newEdges.push(addEdge(previousVertex, firstVertex))
+  newEdges = newEdges.filter(edge => edge != null)
+  return newEdges
+}
+
+function extrudePolygon(startingEdge, sideCount, negate) {
+  let newEdges = [startingEdge]
+  let vertex = startingEdge.verticies[0]
+  let edgeVector = delta(vertex.coordinates, startingEdge.verticies[1].coordinates)
+  if (negate) {
+    edgeVector = scale(edgeVector, -1)
+    vertex = startingEdge.verticies[1]
+  }
+  for (let i = 1; i < sideCount; i++) {
+    edgeVector = rotateZ(edgeVector, Math.PI*2 / sideCount)
+    newVertex = addVertex(add(vertex.coordinates, edgeVector))
+    newEdges.push(addEdge(vertex, newVertex))
+    vertex = newVertex
+  }
+  return newEdges
 }
 
 function addPlusMinusVertex(vertex) {
@@ -472,10 +147,10 @@ function addEdge(vertex1, vertex2) {
 
   for (let existingEdge of edges) {
     if (existingEdge.verticies[0] == vertex1 && existingEdge.verticies[1] == vertex2) {
-      return
+      return existingEdge
     }
     if (existingEdge.verticies[1] == vertex1 && existingEdge.verticies[0] == vertex2) {
-      return
+      return existingEdge
     }
   }
   let edge = {
@@ -487,15 +162,20 @@ function addEdge(vertex1, vertex2) {
   vertex2.adjacentVertices.push(vertex1)
   vertex1.edges.push(edge)
   vertex2.edges.push(edge)
+  return edge
 }
 
-noncovergenceGuard = 1e6
+
+// ===================== data creation =====================
+
+noncovergenceGuard = 1e4
+start = null
 function EulerianPath(path, currentVertex) {
   noncovergenceGuard -= 1
   if (noncovergenceGuard < 0) {
     path.length = 0
-    noncovergenceGuard = 1e6
-    return
+    noncovergenceGuard = 1e4
+    return path
   }
   if (path.length >= edges.length) {
     return path
@@ -504,6 +184,7 @@ function EulerianPath(path, currentVertex) {
   shuffle(edgesCopy)
 
   function distance(edge) {
+    if (path.length == 0) console.log(path)
     let previousVertex = otherVertex(edges[path[path.length - 1]], currentVertex)
     let nextVertex = otherVertex(edge, currentVertex)
     return d(previousVertex.coordinates, nextVertex.coordinates)
@@ -522,6 +203,11 @@ function EulerianPath(path, currentVertex) {
       }
 
       path.push(edge.index);
+      if (hasFreeEdge(currentVertex, path) &&
+          !isConnectedToStart(currentVertex, path)) {
+        path.pop()
+        continue
+      }
       let nextVertex = otherVertex(edge, currentVertex)
       let finalPath = EulerianPath(path, nextVertex);
       if (finalPath) {
@@ -531,6 +217,44 @@ function EulerianPath(path, currentVertex) {
       }
     }
   }
+}
+
+function startVertex(path) {
+  let e0 = edges[path[0]]
+  let e1 = edges[path[1]]
+  let v = e0.verticies[0]
+  if (e1.verticies[0] == v || e1.verticies[1] == v) {
+    return e0.verticies[1]
+  } else {
+    return v
+  }
+}
+
+function hasFreeEdge(vertex, path) {
+  for (let edge of vertex.edges) {
+    if (!path.includes(edge.index)) return true
+  }
+  return false
+}
+
+function isConnectedToStart(vertex, path) {
+  let accessibleVertices = [vertex]
+  let verticiesToProcess = [vertex]
+  let start = startVertex(path)
+
+  while (verticiesToProcess.length > 0) {
+    let v = verticiesToProcess.pop()
+    for (let edge of v.edges) {
+      if (path.includes(edge.index)) continue
+      let v2 = otherVertex(edge, v)
+      if (v2 == start) return true
+      if (accessibleVertices.includes(v2)) continue
+
+      accessibleVertices.push(v2)
+      verticiesToProcess.push(v2)
+    }
+  }
+  return false
 }
 
 function otherVertex(edge, vertex) {
@@ -550,12 +274,7 @@ function generatePixelInfo() {
 
   let vertIndexToCoordIndex = {}
 
-  let e0 = edges[path[0]]
-  let e1 = edges[path[1]]
-  let previousVertex = e0.verticies[0]
-  if (e1.verticies[0] == previousVertex || e1.verticies[1] == previousVertex) {
-    previousVertex = e0.verticies[1]
-  }
+  let previousVertex = startVertex(path)
 
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
@@ -682,8 +401,19 @@ function generatePixelInfo() {
   return info
 }
 
+document.getElementById("download").addEventListener('click', function() {
+  let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
+  let blob = new Blob([fileContent], { type: 'text/plain' })
+  let a = document.createElement('a')
+  a.download = name + '.json'
+  a.href = window.URL.createObjectURL(blob)
+  a.textContent = 'Download ready';
+  a.style='display:none';
+  a.click()
+})
 
 
+// ===================== rendering and interaction =====================
 
 const ROTATION_SCALE = 0.01
 let previousXY = null
@@ -715,52 +445,18 @@ document.onkeydown = e => {
   }
 }
 
-document.getElementById("rhomb").addEventListener('click', function() {
-  createRhombicosidodecahedron()
-})
-document.getElementById("helmet").addEventListener('click', function() {
-  createHelmet()
-})
-document.getElementById("dodec").addEventListener('click', function() {
-  createDodecagonWallTiling()
-})
-document.getElementById("diamond").addEventListener('click', function() {
-  createDiamondWallTiling()
-})
-document.getElementById("organic").addEventListener('click', function() {
-  createOrganicWallTiling2()
-})
-document.getElementById("simple").addEventListener('click', function() {
-  createSimpleWallTiling()
-})
-document.getElementById("square").addEventListener('click', function() {
-  createWallSquare()
-})
-
-document.getElementById("download").addEventListener('click', function() {
-  let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
-  let blob = new Blob([fileContent], { type: 'text/plain' })
-  let a = document.createElement('a')
-  a.download = name + '.json'
-  a.href = window.URL.createObjectURL(blob)
-  a.textContent = 'Download ready';
-  a.style='display:none';
-  a.click()
-})
-
-
-
-
 let c = document.querySelector("canvas")
 let ctx = c.getContext("2d")
 
 setInterval(render, 30)
-
 function render() {
   ctx.fillStyle = "black"
   ctx.fillRect(0, 0, 1000, 1000)
 
-  let subPath = path.slice(0, pathIndex)
+  let subPath = null
+  if (path) {
+    subPath = path.slice(0, pathIndex)
+  }
 
   let edgesCopy = edges.slice()
   edgesCopy.sort((a, b) => {
@@ -773,7 +469,7 @@ function render() {
     ctx.beginPath()
 
     let alpha = 2/z
-    if (subPath.includes(edge.index)) {
+    if (subPath && subPath.includes(edge.index)) {
       ctx.strokeStyle = `rgb(${255*alpha}, ${255*alpha}, ${255*alpha})`
     } else {
       ctx.strokeStyle = `rgb(${255*alpha}, ${25*alpha}, ${255*alpha})`
@@ -786,6 +482,7 @@ function render() {
   }
 }
 
+// ===================== vector utilities =====================
 
 function epsilonEquals(a, b, epsilon=0.1) {
   return a - b < epsilon && b - a < epsilon
@@ -814,32 +511,36 @@ function project(v) {
   return [500 + v[0] * SCALE / z, 500 - v[1] * SCALE / z]
 }
 
-function rotateX(theta) {
+function rotateXAll(theta) {
   for (let vertex of verticies) {
-    let v = vertex.coordinates
-    vertex.coordinates = [
-        v[0],
-        v[1] * Math.cos(theta) + v[2] * Math.sin(theta),
-        -v[1] * Math.sin(theta) + v[2] * Math.cos(theta)]
+    vertex.coordinates = rotateX(vertex.coordinates, theta)
   }
 }
-function rotateY(theta) {
+function rotateYAll(theta) {
   for (let vertex of verticies) {
-    let v = vertex.coordinates
-    vertex.coordinates = [
-        v[0] * Math.cos(theta) + v[2] * Math.sin(theta),
-        v[1],
-        -v[0] * Math.sin(theta) + v[2] * Math.cos(theta)]
+    vertex.coordinates = rotateY(vertex.coordinates, theta)
   }
 }
-function rotateZ(theta) {
+function rotateZAll(theta) {
   for (let vertex of verticies) {
-    let v = vertex.coordinates
-    vertex.coordinates = [
-        v[0] * Math.cos(theta) + v[1] * Math.sin(theta),
-        -v[0] * Math.sin(theta) + v[1] * Math.cos(theta),
-        v[2]]
+    vertex.coordinates = rotateZ(vertex.coordinates, theta)
   }
+}
+
+function rotateX(v, theta) {
+  return [v[0],
+          v[1] * Math.cos(theta) + v[2] * Math.sin(theta),
+          -v[1] * Math.sin(theta) + v[2] * Math.cos(theta)]
+}
+function rotateY(v, theta) {
+  return [v[0] * Math.cos(theta) + v[2] * Math.sin(theta),
+          v[1],
+          -v[0] * Math.sin(theta) + v[2] * Math.cos(theta)]
+}
+function rotateZ(v, theta) {
+  return [v[0] * Math.cos(theta) + v[1] * Math.sin(theta),
+          -v[0] * Math.sin(theta) + v[1] * Math.cos(theta),
+          v[2]]
 }
 
 function scale(v, scalar) {
@@ -891,9 +592,13 @@ function shuffle(array) {
   return array
 }
 
-createSimpleWallTiling()
-
 </script>
 
 <script type="text/javascript" src="laser.js"></script>
+<script type="text/javascript" src="rhombicosidodecahedron/button.js"></script>
+<script type="text/javascript" src="helmet/button.js"></script>
+<script type="text/javascript" src="diamond/button.js"></script>
+<script type="text/javascript" src="organic wall/button.js"></script>
+<script type="text/javascript" src="bramble/button.js"></script>
+<!-- <script type="text/javascript" src="test/simple.js"></script> -->
 </body>

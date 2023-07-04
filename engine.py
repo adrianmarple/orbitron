@@ -60,9 +60,13 @@ def update_prefs(update):
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
 
-file_name = os.environ.get("PIXELS", "/pixels/rhombicosidodecahedron.json")
-if file_name[0] != "/":
-  file_name = "/" + file_name
+file_name = os.environ.get("PIXELS", "rhombicosidodecahedron")
+if file_name.endswith(".json"):
+  file_name = file_name[:-5]
+if file_name.startswith("/pixels/"):
+  file_name = file_name[8:]
+
+file_name = "/pixels/" + file_name + "/" + file_name + ".json"
 f = open(os.path.dirname(__file__) + file_name, "r")
 pixel_info = json.loads(f.read())
 f.close()
