@@ -48,6 +48,21 @@ SUBMITTED = `
 </html>
 `
 
+function startAccessPoint(){
+  exec("sudo systemctl enable hostapd")
+  exec("sudo systemctl start hostapd")
+  exec("sudo systemctl restart networking.service")
+  exec("sudo systemctl restart dhcpcd")
+}
+
+function stopAccessPoint(){
+  exec("sudo systemctl stop hostapd")
+  exec("sudo systemctl disable hostapd")
+  exec("sudo systemctl restart networking.service")
+  exec("sudo systemctl restart dhcpcd")
+  exec("sudo wpa_cli reconfigure")
+}
+
 function submitSSID(formData) {
   var ssid = formData.ssid.replace(/'/g, "\\'")
   var password = formData.password.replace(/'/g, "\\'")
@@ -77,7 +92,7 @@ network={
   }
   var toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
   exec(toExec)
-  exec("sudo wpa_cli reconfigure")
+  stopAccessPoint()
 }
 
 let server = http.createServer(function (req, res) {
@@ -105,3 +120,45 @@ server.listen(PORT,function(err){
   console.log("Listening on " + PORT,err)
 })
 
+// access point management
+const http2 = require('http2');
+
+function isConnected() {
+  return new Promise((resolve) => {
+    const client = http2.connect('https://www.google.com');
+    client.setTimeout(5000)
+    client.on('connect', () => {
+      resolve(true);
+      client.destroy();
+    });
+    client.on('error', () => {
+      resolve(false);
+      client.destroy();
+    });
+    client.on('timeout', () => {
+      resolve(false);
+      client.destroy();
+    });
+  });
+};
+
+function networkCheck(){
+  isConnected().then((connected)=>{
+    console.log("Internet Connected: ", connected)
+    if(!connected){
+      exec("sudo systemctl status hostapd", function(err, pstdout, pstderr){
+        console.log(err)
+        if(err){
+          startAccessPoint()
+        }
+      })
+    }
+    setTimeout(networkCheck, 60 * 1000);
+  })
+}
+
+// first, disable the access point and wait a bit before starting the loop
+stopAccessPoint()
+setTimeout(() => {
+  networkCheck()
+}, 10 * 1000);
