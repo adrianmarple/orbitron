@@ -48,24 +48,32 @@ SUBMITTED = `
 </html>
 `
 
+function tryExecSync(command){
+  try {
+    execSync(command)
+  } catch(err){
+    console.log(err)
+  }
+}
+
 function startAccessPoint(){
   console.log("STARTING ACCESS POINT")
-  execSync("sudo mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
-  execSync("sudo systemctl enable hostapd")
-  execSync("sudo systemctl restart networking.service")
-  execSync("sudo systemctl restart dhcpcd")
-  execSync("sudo systemctl restart hostapd")
+  tryExecSync("sudo mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
+  tryExecSync("sudo systemctl enable hostapd")
+  tryExecSync("sudo systemctl restart networking.service")
+  tryExecSync("sudo systemctl restart dhcpcd")
+  tryExecSync("sudo systemctl restart hostapd")
 
 }
 
 function stopAccessPoint(){
   console.log("STOPPING ACCESS POINT")
-  execSync("sudo systemctl stop hostapd")
-  execSync("sudo systemctl disable hostapd")
-  execSync("sudo mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
-  execSync("sudo systemctl restart networking.service")
-  execSync("sudo systemctl restart dhcpcd")
-  execSync("sudo wpa_cli reconfigure")
+  tryExecSync("sudo systemctl stop hostapd")
+  tryExecSync("sudo systemctl disable hostapd")
+  tryExecSync("sudo mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
+  tryExecSync("sudo systemctl restart networking.service")
+  tryExecSync("sudo systemctl restart dhcpcd")
+  tryExecSync("sudo wpa_cli reconfigure")
 }
 
 function submitSSID(formData) {
@@ -96,7 +104,7 @@ network={
 `
   }
   var toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
-  execSync(toExec)
+  tryExecSync(toExec)
   stopAccessPoint()
 }
 
