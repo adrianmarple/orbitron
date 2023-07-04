@@ -3,7 +3,7 @@ const http = require('http')
 const path = require('path')
 const qs = require('querystring')
 const process = require('process')
-const { exec } = require('child_process')
+const { exec, execSync } = require('child_process')
 
 let PORT = process.env.PORT || 9090
 
@@ -49,20 +49,23 @@ SUBMITTED = `
 `
 
 function startAccessPoint(){
-  exec("sudo mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
-  exec("sudo systemctl enable hostapd")
-  exec("sudo systemctl start hostapd")
-  exec("sudo systemctl restart networking.service")
-  exec("sudo systemctl restart dhcpcd")
+  console.log("STARTING ACCESS POINT")
+  execSync("sudo mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
+  execSync("sudo systemctl enable hostapd")
+  execSync("sudo systemctl restart networking.service")
+  execSync("sudo systemctl restart dhcpcd")
+  execSync("sudo systemctl restart hostapd")
+
 }
 
 function stopAccessPoint(){
-  exec("sudo systemctl stop hostapd")
-  exec("sudo systemctl disable hostapd")
-  exec("sudo mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
-  exec("sudo systemctl restart networking.service")
-  exec("sudo systemctl restart dhcpcd")
-  exec("sudo wpa_cli reconfigure")
+  console.log("STOPPING ACCESS POINT")
+  execSync("sudo systemctl stop hostapd")
+  execSync("sudo systemctl disable hostapd")
+  execSync("sudo mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
+  execSync("sudo systemctl restart networking.service")
+  execSync("sudo systemctl restart dhcpcd")
+  execSync("sudo wpa_cli reconfigure")
 }
 
 function submitSSID(formData) {
@@ -93,7 +96,7 @@ network={
 `
   }
   var toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
-  exec(toExec)
+  execSync(toExec)
   stopAccessPoint()
 }
 
@@ -149,7 +152,6 @@ function networkCheck(){
     console.log("Internet Connected: ", connected)
     if(!connected){
       exec("sudo systemctl status hostapd", function(err, pstdout, pstderr){
-        console.log(err)
         if(err){
           startAccessPoint()
         }
