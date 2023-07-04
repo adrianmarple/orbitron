@@ -78,6 +78,11 @@ function stopAccessPoint(){
 
 function submitSSID(formData) {
   var ssid = formData.ssid.replace(/'/g, "\\'")
+  console.log("Addind SSID: ", ssid)
+  if(ssid == ""){
+    stopAccessPoint()
+    return
+  }
   var password = formData.password.replace(/'/g, "\\'")
   var priority = formData.priority == 'low' ? 1 : 2
   var append = ""
