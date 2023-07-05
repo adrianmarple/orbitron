@@ -26,10 +26,13 @@ button.addEventListener('click', function() {
 
   console.log(edges.length)
 
+  // WARNING: this produces a different path from what's on my wall!
   EulerianPath(verticies[1], [0])
 
-  // rotateZAll(Math.PI/2);
-  // for (let vertex of verticies) {
-  //   vertex.ogCoords = scale(vertex.coordinates, 1)
-  // }
+  rotateZAll(Math.PI/2)
+  for (let vertex of verticies) {
+    vertex.coordinates[1] *= -1
+    vertex.ogCoords = scale(vertex.coordinates, 1)
+  }
+
 })
