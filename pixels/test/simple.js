@@ -20,10 +20,5 @@ button.addEventListener('click', function() {
   }
 
   console.log(edges.length)
-
-  path = EulerianPath([0], verticies[1])
-
-  for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.coordinates, SCALE)
-  }
+  EulerianPath(verticies[1], [0])
 })

@@ -7,7 +7,7 @@ button.classList.add("button")
 button.addEventListener('click', function() {
   name = "helmet";
   reset()
-  pixelDensity = 0.25
+  pixelDensity = 0.5
   isWall = false
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
@@ -46,20 +46,13 @@ button.addEventListener('click', function() {
     }
   }
 
-  function removeEdge(edge) {
-    remove(edges, edge)
-    for (let vertex of verticies) {
-      remove(vertex.edges, edge)
-    }
-  }
-
   // Remove pentagon and adjoining edges and compute surrounding dodecagon
   let pentagonCenter = [0,0,0]
   let dodecagonVerticies = []
   for (let vertex of pentagonVertices) {
     pentagonCenter = add(pentagonCenter, vertex.coordinates)
-    remove(verticies, vertex)
-    for (let edge of vertex.edges) {
+    while (vertex.edges.length > 0) {
+      let edge = vertex.edges.pop()
       removeEdge(edge)
       dodecagonVerticies.push(edge.verticies[0])
       dodecagonVerticies.push(edge.verticies[1])
@@ -69,24 +62,25 @@ button.addEventListener('click', function() {
   dodecagonVerticies = dodecagonVerticies.filter(vert => !pentagonVertices.includes(vert))
 
   // Remove ever other edge from remaining dodecagon
-  for (let i = 0; i < 10; i += 2) {
-    let v0 = dodecagonVerticies[i]
-    let v1 = dodecagonVerticies[i + 1]
-    let edge = null
-    for (let e of v0.edges) {
-      if (e.verticies.includes(v1)) {
-        edge = e
-        break
+  function getAdjacentVertexAndEdge(v) {
+    for (let edge of v.edges) {
+      for (let v1 of dodecagonVerticies) {
+        if (edge.verticies.includes(v1)) {
+          return [v1, edge]
+        }
       }
     }
-    removeEdge(edge)
+    return [null,null]
   }
-
-  for (let i = 0; i < verticies.length; i++) {
-    verticies[i].index = i
-  }
-  for (let i = 0; i < edges.length; i++) {
-    edges[i].index = i
+  let start = dodecagonVerticies.pop()
+  v0 = start
+  while (dodecagonVerticies.length > 0) {
+    let [v1, edge] = getAdjacentVertexAndEdge(v0)
+    remove(dodecagonVerticies, v1)
+    v0 = v1
+    if (dodecagonVerticies.length % 2 == 0) {
+      removeEdge(edge)
+    }
   }
 
   // Rotate helmet to orient dodec/pentagons down
@@ -97,5 +91,5 @@ button.addEventListener('click', function() {
   }
 
   console.log(edges.length)
-  path = EulerianPath([dodecagonVerticies[0].edges[0].index], dodecagonVerticies[0])
+  EulerianPath(start, [start.edges[1].index])
 })

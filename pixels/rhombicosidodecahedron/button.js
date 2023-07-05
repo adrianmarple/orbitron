@@ -7,7 +7,7 @@ button.classList.add("button")
 button.addEventListener('click', function() {
   name = "rhombicosidodecahedron"
   reset()
-  pixelDensity = 0.25
+  pixelDensity = 0.5
   isWall = false
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
@@ -29,5 +29,5 @@ button.addEventListener('click', function() {
     }
   }
   console.log(edges.length)
-  path = EulerianPath([0], verticies[0])
+  EulerianPath(verticies[0],[0])
 })

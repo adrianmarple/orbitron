@@ -63,5 +63,5 @@ button.addEventListener('click', function() {
 
   console.log(edges.length)
 
-  path = EulerianPath([2], verticies[2])
+  EulerianPath(verticies[2], [2])
 })

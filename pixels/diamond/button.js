@@ -26,7 +26,7 @@ button.addEventListener('click', function() {
 
   console.log(edges.length)
 
-  path = EulerianPath([0], verticies[1])
+  EulerianPath(verticies[1], [0])
 
   // rotateZAll(Math.PI/2);
   // for (let vertex of verticies) {

@@ -13,20 +13,39 @@ button.addEventListener('click', function() {
   let bigEdge = 5
   
   let dodecEdges = addDodecagon([0,0,0], [smallEdge, bigEdge])
-  let parity = false
-  for (let edge of dodecEdges) {
-    if (!parity) {
+  let removalEdges = []
+  for (let i = 0; i < dodecEdges.length; i++) {
+    let edge = dodecEdges[i]
+    if (i%2 == 1) {
       extrudePolygon(edge, 4, [bigEdge, smallEdge])
     } else {
       hexEdges = extrudePolygon(edge, 6)
-      extrudePolygon(hexEdges[0], 3, null, true)
-      extrudePolygon(hexEdges[2], 3)
-      extrudePolygon(hexEdges[3], 3)
-      extrudePolygon(hexEdges[4], 3)
+
+      console.log(i)
+      if (i == 2 || i == 10) {
+        removalEdges.push(hexEdges[0])
+        extrudePolygon(hexEdges[0], 3)
+        removalEdges.push(hexEdges[1])
+        removalEdges.push(hexEdges[5])
+        removalEdges.push(hexEdges[3])
+        extrudePolygon(hexEdges[3], 3)
+      } else if (i == 6) {
+        removalEdges.push(hexEdges[1])
+        removalEdges.push(hexEdges[5])
+        removalEdges.push(hexEdges[3])
+        extrudePolygon(hexEdges[3], 3)
+      } else {
+        extrudePolygon(hexEdges[0], 3, null, true)
+        extrudePolygon(hexEdges[2], 3)
+        extrudePolygon(hexEdges[3], 3)
+        extrudePolygon(hexEdges[4], 3)
+      }
     }
-    parity = !parity
+  }
+  for (let edge of removalEdges) {
+    removeEdge(edge)
   }
 
   console.log(edges.length)
-  path = EulerianPath([0], verticies[0])
+  EulerianPath(verticies[0], [0])
 })

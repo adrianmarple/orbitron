@@ -83,10 +83,10 @@ function addPolygon(sideCount, center, edgeLengths) {
   let point = [0,0,0]
   let points = []
   for (let i = 0; i < sideCount; i++) {
-    points.push(point)
     edgeVector = normalize(edgeVector)
     edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
     point = add(point, edgeVector)
+    points.push(point)
     edgeVector = rotateZ(edgeVector, Math.PI*2 / sideCount)
   }
 
@@ -112,7 +112,6 @@ function extrudePolygon(startingEdge, sideCount, edgeLengths, negate) {
   if (!edgeLengths) {
     edgeLengths = [magnitude(edgeVector)]
   }
-  console.log(edgeLengths[0], magnitude(edgeVector))
   if (!epsilonEquals(edgeLengths[0], magnitude(edgeVector))) {
     console.error("First edge length must match extrusion edge.")
     return
@@ -149,9 +148,8 @@ function addVertex(coordinates) {
   }
   let ogCoords = scale(coordinates, 1) // copy
   let vertex = {
-    adjacentVertices: [],
-    edges: [],
     index: verticies.length,
+    edges: [],
     coordinates,
     ogCoords,
   }
@@ -180,11 +178,32 @@ function addEdge(vertex1, vertex2) {
     verticies: [vertex1, vertex2],
   }
   edges.push(edge)
-  vertex1.adjacentVertices.push(vertex2)
-  vertex2.adjacentVertices.push(vertex1)
   vertex1.edges.push(edge)
   vertex2.edges.push(edge)
   return edge
+}
+
+
+function removeEdge(edge) {
+  remove(edges, edge)
+  for (let vertex of edge.verticies) {
+    remove(vertex.edges, edge)
+    if (vertex.edges.length == 0) {
+      remove(verticies, vertex)
+      for (let i = 0; i < verticies.length; i++) {
+        verticies[i].index = i
+      }
+    }
+  }
+  for (let i = 0; i < edges.length; i++) {
+    edges[i].index = i
+  }
+}
+function remove(array, element)  {
+  let index = array.indexOf(element)
+  if (index >= 0) {
+    array.splice(index, 1)
+  }
 }
 
 
@@ -192,15 +211,20 @@ function addEdge(vertex1, vertex2) {
 
 noncovergenceGuard = 1e4
 start = null
-function EulerianPath(path, currentVertex) {
+async function EulerianPath(currentVertex, pathOverride) {
+  if (!currentVertex.index)  {
+  }
+  if (pathOverride) {
+    path = pathOverride
+  }
   noncovergenceGuard -= 1
   if (noncovergenceGuard < 0) {
     path.length = 0
     noncovergenceGuard = 1e4
-    return path
+    return true
   }
   if (path.length >= edges.length) {
-    return path
+    return true
   }
   let edgesCopy = currentVertex.edges.slice()
   shuffle(edgesCopy)
@@ -212,7 +236,7 @@ function EulerianPath(path, currentVertex) {
     return d(previousVertex.coordinates, nextVertex.coordinates)
   }
 
-  // For wall sort by straightest path
+  // Sort by straightest path
   if (name != "rhombicosidodecahedron") {
     edgesCopy.sort((a,b) => distance(b) - distance(a))
   }
@@ -225,15 +249,16 @@ function EulerianPath(path, currentVertex) {
       }
 
       path.push(edge.index);
-      if (hasFreeEdge(currentVertex, path) &&
-          !isConnectedToStart(currentVertex, path)) {
+      if (hasFreeEdge(currentVertex) &&
+          !isConnectedToStart(currentVertex)) {
         path.pop()
         continue
       }
       let nextVertex = otherVertex(edge, currentVertex)
-      let finalPath = EulerianPath(path, nextVertex);
-      if (finalPath) {
-        return finalPath
+      await delay(33)
+      let finished = await EulerianPath(nextVertex);
+      if (finished) {
+        return true
       } else {
         path.pop()
       }
@@ -241,7 +266,8 @@ function EulerianPath(path, currentVertex) {
   }
 }
 
-function startVertex(path) {
+function startVertex() {
+  if (path.length == 0) console.error("not more path!")
   let e0 = edges[path[0]]
   let e1 = edges[path[1]]
   let v = e0.verticies[0]
@@ -252,14 +278,14 @@ function startVertex(path) {
   }
 }
 
-function hasFreeEdge(vertex, path) {
+function hasFreeEdge(vertex) {
   for (let edge of vertex.edges) {
     if (!path.includes(edge.index)) return true
   }
   return false
 }
 
-function isConnectedToStart(vertex, path) {
+function isConnectedToStart(vertex) {
   let accessibleVertices = [vertex]
   let verticiesToProcess = [vertex]
   let start = startVertex(path)
@@ -461,7 +487,7 @@ document.onmouseup = e => {
   previousXY = null
 }
 
-let pathIndex = 1;
+let pathIndex = -1;
 document.onkeydown = e => {
   if (e.which === 39 || e.which === 38) {
     pathIndex += 1
@@ -602,13 +628,6 @@ function linearCombo(v1, v2, alpha) {
   ]
 }
 
-function remove(array, element)  {
-  let index = array.indexOf(element)
-  if (index >= 0) {
-    array.splice(index, 1)
-  }
-}
-
 function random() {
   let x = Math.sin(seed++) * 10000
   return x - Math.floor(x)
@@ -623,6 +642,10 @@ function shuffle(array) {
     array[randomIndex] = temporaryValue
   }
   return array
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 </script>
