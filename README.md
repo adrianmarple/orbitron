@@ -134,7 +134,7 @@ network={
 - `sudo pip3 install adafruit-circuitpython-neopixel websockets`
 - `sudo apt-get install libsdl2-2.0`
 - `sudo apt-get install libsdl2-mixer-2.0-0`
-- `sudo pip3 install pygame`
+- `sudo pip3 install pygame==2.4.0`
 
 ### Install Node
 
@@ -152,7 +152,7 @@ network={
 
 ### Setup to run on startup on Pi (still within orbitron directory)
 
-- `sudo pm2 start <server.js or orbclient/orbclient.js>`
+- `sudo pm2 start startscript.sh`
 - `sudo pm2 start wifisetup.js`
 - `sudo pm2 startup`
 - `sudo pm2 save`
