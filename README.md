@@ -16,7 +16,7 @@ See [the games folder README](games)
 
 # Getting Pi Hardware Set Up
 
-- Download SD card image from https://www.dropbox.com/s/gg0u2rp2sr6uatj/Orbitron.img.zip?dl=0
+- Download SD card image from https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/Orbitron.img.zip?rlkey=cfcn58lnl0pesi8mir0tjp9s4&dl=0
 - Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
 - `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
 - go to Download directory or wherever the SD image download is
