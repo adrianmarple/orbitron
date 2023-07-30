@@ -257,7 +257,8 @@ function bindRelayRequester(socket, orbID) {
     console.log("Got Message from relay requester: ", orbID, data)
     if(data instanceof Buffer){
       try {
-        fs.writeFile(`${homedir}/${orbID}_logs.zip`, data)
+        fs.writeFileSync(`${homedir}/${orbID}_logs.zip`, data)
+        console.log("Wrote logs for " + orbID)
       } catch(error) {
         console.error("Error writing log file", error)
       }
