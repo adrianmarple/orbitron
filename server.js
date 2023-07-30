@@ -680,9 +680,9 @@ const rootServer = http.createServer(function (request, response) {
       filePath = filePath.slice(0, filePath.length - 5)
     filePath = `/pixels/${filePath}/${filePath}.json`
   }
-  else if (Object.keys(connectedOrbs).includes(filePath.split("/")[0]))
+  else if (Object.keys(connectedOrbs).includes(filePath.split("/")[1]))
     if(filePath.includes("/logs")){
-      let orbID = filePath.split("/")[0]
+      let orbID = filePath.split("/")[1]
       connectedOrbs[orbID].send("GET_LOGS")
       response.writeHead(200)
       response.end('Logs requested to be sent to server from ' + orbID)
