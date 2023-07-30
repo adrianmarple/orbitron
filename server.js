@@ -254,7 +254,14 @@ function bindRelayRequester(socket, orbID) {
     socket.send("PING")
   }, 3000)
   socket.on('message', data => {
-    console.log("Got Message from relay requester: ", orbID, data)
+    console.log("Got Message from relay requester: ", orbID, typeof(data), data)
+    if(typeof(data) == "Buffer"){
+      try {
+        fs.writeFile(`${homedir}/${orbID}_logs.zip`, data)
+      } catch(error) {
+        console.error("Error writing log file", error)
+      }
+    }
   })
   socket.on('close', () => {
     console.log("Closing relay requester socket", orbID)
@@ -686,6 +693,7 @@ const rootServer = http.createServer(function (request, response) {
       connectedOrbs[orbID].send("GET_LOGS")
       response.writeHead(200)
       response.end('Logs requested to be sent to server from ' + orbID)
+      return
     } else{
       filePath = "/controller/controller.html"
     }
