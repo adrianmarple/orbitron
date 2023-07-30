@@ -1,2 +1,2 @@
-rm ~/logs.zip
-zip -r ~/logs.zip ~/.pm2/logs
+sudo rm ~/logs.zip
+sudo zip -r ~/logs.zip ~/.pm2/logs
