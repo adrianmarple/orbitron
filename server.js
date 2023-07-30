@@ -254,8 +254,8 @@ function bindRelayRequester(socket, orbID) {
     socket.send("PING")
   }, 3000)
   socket.on('message', data => {
-    console.log("Got Message from relay requester: ", orbID, typeof(data), data)
-    if(typeof(data) == "Buffer"){
+    console.log("Got Message from relay requester: ", orbID, data)
+    if(data instanceof Buffer){
       try {
         fs.writeFile(`${homedir}/${orbID}_logs.zip`, data)
       } catch(error) {
