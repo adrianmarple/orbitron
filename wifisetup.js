@@ -3,7 +3,7 @@ const http = require('http')
 const path = require('path')
 const qs = require('querystring')
 const process = require('process')
-const { exec, execSync } = require('child_process')
+const { execSync } = require('child_process')
 
 let PORT = process.env.PORT || 9090
 

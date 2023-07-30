@@ -5,15 +5,10 @@ const http = require('http')
 const fs = require('fs')
 const path = require('path')
 const process = require('process')
-const { spawn, exec } = require('child_process')
+const { spawn, exec, execSync } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
 //const { v4: uuidv4 } = require('uuid')
-
-// Log to file and standard out
-const util = require('util')
-const log_file = __dirname + '/debug.log'
-const log_stdout = process.stdout
-const log_stderr = process.stderr
+const homedir = require('os').homedir();
 
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")
@@ -674,7 +669,8 @@ const rootServer = http.createServer(function (request, response) {
     if (filePath.endsWith(".json"))
       filePath = filePath.slice(0, filePath.length - 5)
     filePath = `/pixels/${filePath}/${filePath}.json`
-  } else if (Object.keys(connectedOrbs).includes(filePath.substr(1)))
+  }
+  else if (Object.keys(connectedOrbs).includes(filePath.substr(1)))
     filePath = "/controller/controller.html"
   else if (filePath.includes("/ip")) {
     let meta = filePath.split("/")
@@ -700,8 +696,18 @@ const rootServer = http.createServer(function (request, response) {
     }
     return
   }
-
-  filePath = `${__dirname}${filePath}`
+  
+  if(filePath.includes("/logs")){
+    try {
+      execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
+      filePath = `${homedir}/logs.zip`
+    } catch(error) {
+      response.writeHead(500)
+      response.end('Sorry, check with the site admin for error: '+error+' ..\n')
+    }
+  } else {
+    filePath = `${__dirname}${filePath}`
+  }
   //console.log(filePath);
 
   let extname = path.extname(filePath)
@@ -728,6 +734,8 @@ const rootServer = http.createServer(function (request, response) {
     case '.wav':
       contentType = 'audio/wav'
       break;
+    case '.zip':
+      contentType = 'application/zip'
   }
 
   fs.readFile(filePath, function(error, content) {
