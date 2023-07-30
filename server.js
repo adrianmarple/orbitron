@@ -424,6 +424,16 @@ function relayUpkeep() {
         relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
           if(clientID == "PING") return
+          if(clientID == "GET_LOGS"){
+            try {
+              execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
+              let logfile = fs.readFileSync(`${homedir}/logs.zip`)
+              relayRequesterSocket.send(logfile)
+            } catch(error) {
+              console.error("Error sending logs", error)
+            }
+            return
+          }
           console.log("Got relay request",clientID)
           let socket = new WebSocket.WebSocket(`${relayURL}/${clientID}`)
           socket.relayBound = false
@@ -670,8 +680,15 @@ const rootServer = http.createServer(function (request, response) {
       filePath = filePath.slice(0, filePath.length - 5)
     filePath = `/pixels/${filePath}/${filePath}.json`
   }
-  else if (Object.keys(connectedOrbs).includes(filePath.substr(1)))
-    filePath = "/controller/controller.html"
+  else if (Object.keys(connectedOrbs).includes(filePath.split("/")[0]))
+    if(filePath.includes("/logs")){
+      let orbID = filePath.split("/")[0]
+      connectedOrbs[orbID].send("GET_LOGS")
+      response.writeHead(200)
+      response.end('Logs requested to be sent to server from ' + orbID)
+    } else{
+      filePath = "/controller/controller.html"
+    }
   else if (filePath.includes("/ip")) {
     let meta = filePath.split("/")
     let orbID = meta[2]
