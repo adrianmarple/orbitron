@@ -189,6 +189,7 @@ const clientConnections = {}
 
 // Orb relay management
 const connectedOrbs = {}
+const logsRequested = {}
 const connectedRelays = {}
 const connectedClients = {}
 
@@ -263,6 +264,7 @@ function bindRelayRequester(socket, orbID) {
         console.error("Error writing log file", error)
       }
     }
+    logsRequested[orbID] = false
   })
   socket.on('close', () => {
     console.log("Closing relay requester socket", orbID)
@@ -676,6 +678,7 @@ const orbIPAddresses = {}
 const rootServer = http.createServer(function (request, response) {
   let filePath = request.url
 
+  let fileRelativeToScript = true
   if (filePath == '/')
     filePath = "/controller/controller.html"
   else if (filePath == '/dev' || filePath == '/view')
@@ -688,17 +691,54 @@ const rootServer = http.createServer(function (request, response) {
       filePath = filePath.slice(0, filePath.length - 5)
     filePath = `/pixels/${filePath}/${filePath}.json`
   }
-  else if (Object.keys(connectedOrbs).includes(filePath.split("/")[1]))
+  else if (Object.keys(connectedOrbs).includes(filePath.split("/")[1])){
     if(filePath.includes("/logs")){
+      if(logsRequested[orbID] || !connectedOrbs[orbID]){
+        response.writeHead(500)
+        response.end('Cannot fetch logs for ' + orbID + ` debug info - requested: ${logsRequested[orbID]} - connected: ${connectedOrbs[orbID] != null}`)
+        return
+      }
       let orbID = filePath.split("/")[1]
+      logsRequested[orbID] = true
       connectedOrbs[orbID].send("GET_LOGS")
-      response.writeHead(200)
-      response.end('Logs requested to be sent to server from ' + orbID)
+      let start_time = Date.now()
+      new Promise((resolve, reject) => {
+          let timer = setInterval(()=>{
+            if(logsRequested[orbID] == false){
+              resolve()
+              clearInterval(timer)
+            } else if(Date.now() - start_time > 30 * 1000) {
+              reject()
+              clearInterval(timer)
+              logsRequested[orbID] = false
+            }
+          },100)
+        }).then(()=>{
+          try {
+            filePath = `${homedir}/${orbID}_logs.zip`
+            let data = fs.readFileSync(filePath)
+            response.writeHead(200, { 'Content-Type': 'application/zip' })
+            response.end(data, 'utf-8')
+          } catch(error) {
+            console.error("Error sending log files for " + orbID, error)
+            if(error.code == 'ENOENT'){
+              response.writeHead(404)
+              response.end(`Unable to find log files on server for ${orbID}`, 'utf-8')
+            }
+            else {
+              response.writeHead(500)
+              response.end(`Error sending log files: ${error.code}`)
+            }
+          }
+        }).catch(()=>{
+          response.writeHead(500)
+          response.end('Timed out fetching logs for ' + orbID)
+        })
       return
-    } else{
+    } else {
       filePath = "/controller/controller.html"
     }
-  else if (filePath.includes("/ip")) {
+  } else if (filePath.includes("/ip")) {
     let meta = filePath.split("/")
     let orbID = meta[2]
     if(request.method == "GET") {
@@ -721,17 +761,18 @@ const rootServer = http.createServer(function (request, response) {
       })
     }
     return
-  }
-  
-  if(filePath.includes("/logs")){
+  } else if(filePath == "/logs") {
     try {
       execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
       filePath = `${homedir}/logs.zip`
+      fileRelativeToScript = false
     } catch(error) {
       response.writeHead(500)
       response.end('Sorry, check with the site admin for error: '+error+' ..\n')
     }
-  } else {
+  }
+
+  if(fileRelativeToScript) {
     filePath = `${__dirname}${filePath}`
   }
   //console.log(filePath);
