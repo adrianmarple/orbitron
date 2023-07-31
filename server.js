@@ -10,6 +10,16 @@ const pako = require('./thirdparty/pako.min.js')
 //const { v4: uuidv4 } = require('uuid')
 const homedir = require('os').homedir();
 
+//add timestamps to logs
+const clog = console.log
+const cerr = console.error
+console.log = function(){
+  clog(new Date().toISOString(), ...arguments)
+}
+console.error = function(){
+  cerr(new Date().toISOString(), ...arguments)
+}
+
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")
   if(python_process){
@@ -255,7 +265,6 @@ function bindRelayRequester(socket, orbID) {
     socket.send("PING")
   }, 3000)
   socket.on('message', data => {
-    console.log("Got Message from relay requester: ", orbID, data)
     if(data instanceof Buffer){
       try {
         fs.writeFileSync(`${homedir}/${orbID}_logs.zip`, data)
@@ -263,8 +272,8 @@ function bindRelayRequester(socket, orbID) {
       } catch(error) {
         console.error("Error writing log file", error)
       }
+      logsRequested[orbID] = false
     }
-    logsRequested[orbID] = false
   })
   socket.on('close', () => {
     console.log("Closing relay requester socket", orbID)
@@ -833,7 +842,7 @@ function statusLogging() {
   for(const orb in connectedOrbs) {
     _connectedOrbs[orb] = connectedOrbs[orb].classification
   }
-  console.log("STATUS",new Date(),{
+  console.log("STATUS",{
     devConnections,
     connectedOrbs: _connectedOrbs,
     connectedRelays,
@@ -853,4 +862,4 @@ function statusLogging() {
   })
 }
 statusLogging()
-setInterval(statusLogging,60 * 1000)
+setInterval(statusLogging,5 * 60 * 1000)

@@ -5,6 +5,17 @@ const qs = require('querystring')
 const process = require('process')
 const { execSync } = require('child_process')
 
+//add timestamps to logs
+const clog = console.log
+const cerr = console.error
+console.log = function(){
+  clog(new Date().toISOString(), ...arguments)
+}
+console.error = function(){
+  cerr(new Date().toISOString(), ...arguments)
+}
+
+
 let PORT = process.env.PORT || 9090
 
 let FORM = `

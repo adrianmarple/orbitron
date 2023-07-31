@@ -3,6 +3,17 @@ const process = require('process')
 const { spawn, exec } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
 
+//add timestamps to logs
+const clog = console.log
+const cerr = console.error
+console.log = function(){
+  clog(new Date().toISOString(), ...arguments)
+}
+console.error = function(){
+  cerr(new Date().toISOString(), ...arguments)
+}
+
+
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")
   if(audio_process){
