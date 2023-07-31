@@ -693,12 +693,12 @@ const rootServer = http.createServer(function (request, response) {
   }
   else if (Object.keys(connectedOrbs).includes(filePath.split("/")[1])){
     if(filePath.includes("/logs")){
+      let orbID = filePath.split("/")[1]
       if(logsRequested[orbID] || !connectedOrbs[orbID]){
         response.writeHead(500)
         response.end('Cannot fetch logs for ' + orbID + ` debug info - requested: ${logsRequested[orbID]} - connected: ${connectedOrbs[orbID] != null}`)
         return
       }
-      let orbID = filePath.split("/")[1]
       logsRequested[orbID] = true
       connectedOrbs[orbID].send("GET_LOGS")
       let start_time = Date.now()
