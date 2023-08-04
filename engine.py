@@ -65,8 +65,10 @@ if file_name.endswith(".json"):
   file_name = file_name[:-5]
 if file_name.startswith("/pixels/"):
   file_name = file_name[8:]
+if "/" not in file_name:
+  file_name = file_name + "/" + file_name
 
-file_name = "/pixels/" + file_name + "/" + file_name + ".json"
+file_name = "/pixels/" + file_name + ".json"
 f = open(os.path.dirname(__file__) + file_name, "r")
 pixel_info = json.loads(f.read())
 f.close()

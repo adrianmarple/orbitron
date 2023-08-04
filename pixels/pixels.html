@@ -31,6 +31,7 @@ canvas {
   position: absolute;
   right:  24px;
   top: 24px;
+  z-index: 1;
 }
 #download {
   position: absolute;
@@ -255,7 +256,7 @@ async function EulerianPath(currentVertex, pathOverride) {
         continue
       }
       let nextVertex = otherVertex(edge, currentVertex)
-      await delay(33)
+      // await delay(10)
       let finished = await EulerianPath(nextVertex);
       if (finished) {
         return true
@@ -620,6 +621,11 @@ function normalize(v) {
   return scale(v, 1/magnitude(v))
 }
 
+// Assume z coordinate is 0 or otherwise ignorable
+function signedAngle(v, w) {
+  return Math.atan2(w[1]*v[0] - w[0]*v[1], w[0]*v[0] + w[1]*v[1])
+}
+
 function linearCombo(v1, v2, alpha) {
   return [
     v1[0] * alpha + v2[0] * (1 - alpha),
@@ -656,5 +662,6 @@ function delay(ms) {
 <script type="text/javascript" src="diamond/button.js"></script>
 <script type="text/javascript" src="organic wall/button.js"></script>
 <script type="text/javascript" src="bramble/button.js"></script>
-<!-- <script type="text/javascript" src="test/simple.js"></script> -->
+<script type="text/javascript" src="test/simple.js"></script>
+<script type="text/javascript" src="test/starofdavid.js"></script>
 </body>

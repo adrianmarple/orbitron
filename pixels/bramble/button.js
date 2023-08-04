@@ -21,7 +21,6 @@ button.addEventListener('click', function() {
     } else {
       hexEdges = extrudePolygon(edge, 6)
 
-      console.log(i)
       if (i == 2 || i == 10) {
         removalEdges.push(hexEdges[0])
         extrudePolygon(hexEdges[0], 3)
@@ -47,5 +46,6 @@ button.addEventListener('click', function() {
   }
 
   console.log(edges.length)
-  EulerianPath(verticies[0], [0])
+  let startingEdge = 47
+  EulerianPath(edges[startingEdge].verticies[0], [startingEdge])
 })

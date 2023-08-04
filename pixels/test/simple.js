@@ -8,6 +8,7 @@ button.addEventListener('click', function() {
   name = "simple"
   reset()
   isWall = true
+  pixelDensity = 0.25
 
   for (let i = -3; i <= 3; i++) {
     for (let j = -3; j <= 3; j++) {

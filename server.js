@@ -698,7 +698,9 @@ const rootServer = http.createServer(function (request, response) {
       filePath = filePath.slice(8)
     if (filePath.endsWith(".json"))
       filePath = filePath.slice(0, filePath.length - 5)
-    filePath = `/pixels/${filePath}/${filePath}.json`
+    if (!filePath.includes("/"))
+      filePath = filePath + "/" + filePath
+    filePath = `/pixels/${filePath}.json`
   }
   else if (Object.keys(connectedOrbs).includes(filePath.split("/")[1])){
     if(filePath.includes("/logs")){
