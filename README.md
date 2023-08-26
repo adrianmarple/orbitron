@@ -55,6 +55,11 @@ See [the games folder README](games)
   - `sudo gdd if=/dev/disk2 of=Orbitron.img bs=1M status=progress`
 
 ## Adding WiFi network to Pi for auto connect
+- Connect to unsecure Wifi with SSID "Super Orbitron"
+- Go to `http://192.168.4.1:9090`
+- Enter SSID and password of desired wifi and submit
+
+### Manual edit
 - Edit `/etc/wpa_supplicant/wpa_supplicant.conf` with your editor of choice
 - Insert an entry at the bottom of the following format:
 ```
