@@ -719,6 +719,8 @@ class Idle(Game):
 
   def update_prefs(self):
     now_date = datetime.now().date()
+    self.midnight = datetime.combine(now_date + timedelta(days=1),
+      datetime.strptime("0:00", '%H:%M').time())
 
     start_string = prefs.get("startTime", "0:00")
     start_time = datetime.strptime(start_string, '%H:%M').time()
@@ -726,11 +728,9 @@ class Idle(Game):
 
     end_string = prefs.get("endTime", "23:59")
     end_time = datetime.strptime(end_string, '%H:%M').time()
-    if end_time < start_time:
-      now_date += timedelta(days=1)
     self.end = datetime.combine(now_date, end_time)
     
-    self.fade_duration = 40.0*60 # 40 minutes
+    self.fade_duration = 30.0*60 # 30 minutes
 
   def update(self):
     pass
@@ -743,6 +743,10 @@ class Idle(Game):
   previous_fluid_time = 0
   def render_fluid(self):
     global pixels
+
+    now = datetime.now()
+    if now > self.midnight:
+      self.update_prefs()
 
     head_ratio = len(self.fluid_heads) / target_head_count
     dampening_factor = (1 + head_ratio*head_ratio*5)
@@ -782,7 +786,10 @@ class Idle(Game):
     end_fade = (self.end - now).total_seconds() / self.fade_duration
     end_fade = min(end_fade, 1)
     end_fade = max(end_fade, 0)
-    fade = min(start_fade, end_fade)
+    if self.start < self.end:
+      fade = min(start_fade, end_fade)
+    else:
+      fade = max(start_fade, end_fade)
     fade *= fade
 
     pixels = np.outer(squares, phase_color() * 200 * fade)

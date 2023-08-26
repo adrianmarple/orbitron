@@ -1,8 +1,8 @@
 
-let BOTTOM_THICKNESS = 5.2
+let BOTTOM_THICKNESS = 5
 let TOP_THICKNESS = 2.9
 let WALL_THICKNESS = 2.35
-let BORDER = 5
+let BORDER = 6
 let DEFAULT_PIXEL_DIST = 16.6
 let PIXEL_DISTANCE = DEFAULT_PIXEL_DIST
 let CHANNEL_WIDTH = 12
@@ -11,9 +11,8 @@ let HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
 let NOTCH_DEPTH = 5
 let FASTENER_DEPTH = NOTCH_DEPTH + 3
 
-let WOOD_KERF = 0.16
-let ACRYLIC_KERF = -0.02
-let KERF = ACRYLIC_KERF
+let WOOD_KERF = 0.14
+let ACRYLIC_KERF = -0.06 // Use for hex cat recut
 
 
 let MM_TO_96DPI = 3.77952755906
@@ -32,10 +31,11 @@ NOTCH_DEPTH *= MM_TO_96DPI
 FASTENER_DEPTH *= MM_TO_96DPI
 WOOD_KERF *= MM_TO_96DPI
 ACRYLIC_KERF *= MM_TO_96DPI
-KERF *= MM_TO_96DPI
+let KERF = ACRYLIC_KERF
 
-let BALSA_LENGTH = 96*11.82
+let BALSA_LENGTH = 96*11.77 // A little more than 11' 3/4
 let WALL_SVG_PADDING = 24
+let WALL_SVG_GAP = 6
 
 const svgStyle = document.createElement("style")
 document.head.appendChild(svgStyle)
@@ -73,13 +73,13 @@ document.getElementById("download").addEventListener('click', function() {
   if (isWall) {
     KERF = ACRYLIC_KERF
     createCoverSVG()
-    downloadSVGAsText("cover", "top")
+    downloadSVGAsText("cover", "top (acrylic)")
     KERF = WOOD_KERF
     createCoverSVG()
-    downloadSVGAsText("cover", "bottom")
+    downloadSVGAsText("cover", "bottom (birch plywood)")
 
     createWallSVG()
-    downloadSVGAsText("wall", "walls")
+    downloadSVGAsText("wall", "walls (balsa wood)")
   }
 })
 
@@ -215,17 +215,22 @@ function createCoverSVG(showNumbers) {
       } else {
         lengthOffset2 *= w2
       }
+      w1 += KERF
+      w2 -= KERF
 
       // Extra gap for strip to enter in
       if (paths.indexOf(dPath) == 0 && i == dPath.length - 1) {
         lengthOffset1 += CHANNEL_WIDTH / Math.sin(Math.abs(a1))
       }
 
+      let x1 = lengthOffset1 + NOTCH_DEPTH + KERF
+      let x2 = edgeLength + lengthOffset2 - NOTCH_DEPTH - KERF
+
       points = [
-        [lengthOffset1 + NOTCH_DEPTH, w1],
-        [lengthOffset1 + NOTCH_DEPTH, w2],
-        [edgeLength + lengthOffset2 - NOTCH_DEPTH, w2],
-        [edgeLength + lengthOffset2 - NOTCH_DEPTH, w1],
+        [x1, w1],
+        [x1, w2],
+        [x2, w2],
+        [x2, w1],
       ]
       let wallLength = edgeLength + lengthOffset2 - lengthOffset1
       let edgeCenter = add(add(localOffset, scale(e1, edgeLength/2)), scale(n, w1*1.5))
@@ -288,10 +293,10 @@ function createWallSVG() {
     if (targetCount > 8) targetCount += 1
     if (targetCount > 30) targetCount += 1
     for (let i = 0; i < targetCount; i++) {
-      offset[0] += wallLength
+      offset[0] += wallLength + WALL_SVG_GAP
       if (offset[0] > panelCount*BALSA_LENGTH - WALL_SVG_PADDING) {
         offset[0] = (panelCount - 1)*BALSA_LENGTH + WALL_SVG_PADDING + wallLength
-        offset[1] += wallHeight
+        offset[1] += wallHeight + WALL_SVG_GAP
       }
       if (offset[1] + wallHeight > BALSA_LENGTH - WALL_SVG_PADDING) {
         offset = [panelCount*BALSA_LENGTH + WALL_SVG_PADDING + wallLength, WALL_SVG_PADDING]
