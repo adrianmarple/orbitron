@@ -52,7 +52,7 @@ See [the games folder README](games)
 - `sudo dd if=/dev/disk2 of=Orbitron.img bs=1M status=progress`
 - On MacOS use `gdd` instead
   - Install with `brew install coreutils`
-  - `sudo gdd if=/dev/disk2 of=Orbitron.img bs=1M status=progress`
+  - `sudo gdd if=/dev/disk2 of=Orbitron.img bs=1M status=progress bs=8M`
 
 ## Adding WiFi network to Pi for auto connect
 - Connect to unsecure Wifi with SSID "Super Orbitron"
