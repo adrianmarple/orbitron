@@ -265,6 +265,7 @@ function bindRelayRequester(socket, orbID) {
     socket.send("PING")
   }, 3000)
   socket.on('message', data => {
+    if (data == "PING") return
     if(data instanceof Buffer){
       try {
         fs.writeFileSync(`${homedir}/${orbID}_logs.zip`, data)
@@ -440,6 +441,11 @@ function relayUpkeep() {
         let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
         console.log("Initializing relay requester socket", relayURL)
         relayRequesterSocket = new WebSocket.WebSocket(relayURL)
+
+        relayRequesterSocket.pingInterval = setInterval(() => {
+          relayRequesterSocket.send("PING")
+        }, 3000)
+
         relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
           if(clientID == "PING") return
@@ -469,6 +475,7 @@ function relayUpkeep() {
         })
         relayRequesterSocket.on('close', () => {
           console.log("Relay requester socket closed")
+          clearInterval(relayRequesterSocket.pingInterval)
           relayRequesterSocket = null
         })
         relayRequesterSocket.on('error', (e) => {
