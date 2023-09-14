@@ -1,4 +1,3 @@
-
 let BOTTOM_THICKNESS = 5
 let TOP_THICKNESS = 2.9
 let WALL_THICKNESS = 2.35
@@ -112,6 +111,7 @@ function createCoverSVG(showNumbers) {
   let directedEdges = []
   for (let index of path) {
     let edge = edges[index]
+    if (edge.isDupe) continue;
     directedEdges.push([edge.verticies[0], edge.verticies[1]])
     directedEdges.push([edge.verticies[1], edge.verticies[0]])
   }
@@ -162,14 +162,18 @@ function createCoverSVG(showNumbers) {
   // Draw border and channels
   wallInfo = []
 
-  var offsetX = 0;
-  var offsetY = 0;
+  let offsetX = 0;
+  let offsetY = 0;
   for (let v of verticies) {
   	offsetX = Math.min(offsetX, v.ogCoords[0])
   	offsetY = Math.min(offsetY, v.ogCoords[1])
   }
   const SCALE = PIXEL_DISTANCE / pixelDensity
-  var offset = [2 - offsetX, 2 - offsetY, 0]
+  let offset = [2 - offsetX, 2 - offsetY, 0]
+
+  let start = startVertex().ogCoords
+  let penultimate = penultimateVertex().ogCoords
+  let finalEdgeDirection = normalize(delta(penultimate, start))
 
   let totalPathString = ""
   for (let dPath of paths) {
@@ -219,7 +223,8 @@ function createCoverSVG(showNumbers) {
       w2 -= KERF
 
       // Extra gap for strip to enter in
-      if (paths.indexOf(dPath) == 0 && i == dPath.length - 1) {
+      // note e1 has been normalized already
+      if (vectorEquals(v1, start) && vectorEquals(e1, finalEdgeDirection)) {
         lengthOffset1 += CHANNEL_WIDTH / Math.sin(Math.abs(a1))
       }
 

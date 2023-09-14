@@ -207,14 +207,23 @@ function remove(array, element)  {
   }
 }
 
+function doubleEdges() {
+  for (let edge of edges.slice()) {
+    var edgeCopy = {...edge}
+    for (let v of edge.verticies) {
+      v.edges.push(edgeCopy)
+    }
+    edgeCopy.index = edges.length
+    edgeCopy.isDupe = true
+    edges.push(edgeCopy)
+  }
+}
 
 // ===================== data creation =====================
 
+
 noncovergenceGuard = 1e4
-start = null
 async function EulerianPath(currentVertex, pathOverride) {
-  if (!currentVertex.index)  {
-  }
   if (pathOverride) {
     path = pathOverride
   }
@@ -222,6 +231,7 @@ async function EulerianPath(currentVertex, pathOverride) {
   if (noncovergenceGuard < 0) {
     path.length = 0
     noncovergenceGuard = 1e4
+    console.error("Eulerian path did not converge.")
     return true
   }
   if (path.length >= edges.length) {
@@ -230,11 +240,24 @@ async function EulerianPath(currentVertex, pathOverride) {
   let edgesCopy = currentVertex.edges.slice()
   shuffle(edgesCopy)
 
+  previousEdge = edges[path[path.length - 1]]
   function distance(edge) {
-    if (path.length == 0) console.log(path)
-    let previousVertex = otherVertex(edges[path[path.length - 1]], currentVertex)
-    let nextVertex = otherVertex(edge, currentVertex)
-    return d(previousVertex.coordinates, nextVertex.coordinates)
+    let v0 = otherVertex(previousEdge, currentVertex).coordinates
+    let v1 = currentVertex.coordinates
+    let v2 = otherVertex(edge, currentVertex).coordinates
+
+    let e0 = delta(v1, v0)
+  	let e1 = delta(v2, v1)
+    let angle = Math.abs(signedAngle(e1, e0))
+
+    if (edge.isDupe != previousEdge.isDupe) {
+      if (epsilonEquals(angle, Math.PI)) {
+        angle = Math.PI/5 
+      }
+      angle = -angle + 1e6
+    }
+    return -angle
+    // return d(v0, v2)
   }
 
   // Sort by straightest path
@@ -243,26 +266,26 @@ async function EulerianPath(currentVertex, pathOverride) {
   }
 
   for (let edge of edgesCopy) {
-    if (!path.includes(edge.index)) {
-      let dist = distance(edge)
-      if (name == "rhombicosidodecahedron" && (epsilonEquals(dist, 2) || epsilonEquals(dist, 3.236))) {
-        continue
-      }
+    if (path.includes(edge.index)) continue;
 
-      path.push(edge.index);
-      if (hasFreeEdge(currentVertex) &&
-          !isConnectedToStart(currentVertex)) {
-        path.pop()
-        continue
-      }
-      let nextVertex = otherVertex(edge, currentVertex)
-      // await delay(10)
-      let finished = await EulerianPath(nextVertex);
-      if (finished) {
-        return true
-      } else {
-        path.pop()
-      }
+    let dist = distance(edge)
+    if (name == "rhombicosidodecahedron" && (epsilonEquals(dist, 2) || epsilonEquals(dist, 3.236))) {
+      continue
+    }
+
+    path.push(edge.index);
+    if (hasFreeEdge(currentVertex) &&
+        !isConnectedToStart(currentVertex)) {
+      path.pop()
+      continue
+    }
+    let nextVertex = otherVertex(edge, currentVertex)
+    // await delay(10)
+    let finished = await EulerianPath(nextVertex);
+    if (finished) {
+      return true
+    } else {
+      path.pop()
     }
   }
 }
@@ -277,6 +300,9 @@ function startVertex() {
   } else {
     return v
   }
+}
+function penultimateVertex() {
+  return otherVertex(edges[path[path.length - 1]], startVertex())
 }
 
 function hasFreeEdge(vertex) {
@@ -470,18 +496,25 @@ document.getElementById("download").addEventListener('click', function() {
 
 const ROTATION_SCALE = 0.01
 let previousXY = null
-let isRotating = false
+let isDragging = false
 document.onmousedown = e => {
-  isRotating = true
+  isDragging = true
   previousXY = [e.clientX, e.clientY]
 }
 document.onmousemove = e => {
-  if (isRotating && previousXY) {
-    let newXY = [e.clientX, e.clientY]
-    rotateXAll(ROTATION_SCALE * (newXY[1] - previousXY[1]))
-    rotateYAll(-ROTATION_SCALE * (newXY[0] - previousXY[0]))
-    previousXY = newXY
+  if (!isDragging || !previousXY) return
+
+  let newXY = [e.clientX, e.clientY]
+  let deltaX = newXY[0] - previousXY[0]
+  let deltaY = newXY[1] - previousXY[1]
+  if (isWall) {
+    let vector = [deltaX, -deltaY, 0]
+    translateAll(scale(vector, 0.1))
+  } else {
+    rotateXAll(ROTATION_SCALE * deltaY)
+    rotateYAll(-ROTATION_SCALE * deltaX)
   }
+  previousXY = newXY
 }
 document.onmouseup = e => {
   isRotating = false
@@ -516,23 +549,31 @@ function render() {
     let point = vertex.coordinates
     maxMagnitude = Math.max(maxMagnitude, magnitude(point))
   }
-  let scale = 8 / (0.6 + maxMagnitude)
+  let projScale = 8 / (0.6 + maxMagnitude)
 
   let edgesCopy = edges.slice()
   edgesCopy.sort((a, b) => {
-    return b.verticies[0].coordinates[2] - a.verticies[0].coordinates[2]
+    let pathFactor = subPath.includes(a.index) ? 0.1 : 0
+    pathFactor += a.isDupe ? 0.01 : 0
+    pathFactor -= subPath.includes(b.index) ? 0.1 : 0
+    pathFactor -= b.isDupe ? 0.01 : 0
+    return pathFactor + b.verticies[0].coordinates[2] - a.verticies[0].coordinates[2]
   })
   for (let edge of edgesCopy) {
-    let xy0 = project(edge.verticies[0].coordinates, scale)
-    let xy1 = project(edge.verticies[1].coordinates, scale)
+    let xy0 = project(edge.verticies[0].coordinates, projScale)
+    let xy1 = project(edge.verticies[1].coordinates, projScale)
     let z = edge.verticies[0].coordinates[2] + 5.5
     ctx.beginPath()
 
     let alpha = 2/z
     if (subPath && subPath.includes(edge.index)) {
-      ctx.strokeStyle = `rgb(${255*alpha}, ${255*alpha}, ${255*alpha})`
+      alpha *= 1.5
+      ctx.strokeStyle = `rgba(255,255,185,${alpha})`
+      if (edge.isDupe) {
+        ctx.strokeStyle = `rgba(215,255,255,${alpha})`
+      }
     } else {
-      ctx.strokeStyle = `rgb(${255*alpha}, ${25*alpha}, ${255*alpha})`
+      ctx.strokeStyle = `rgba(255,25,255,${alpha})`
     }
     ctx.lineWidth = 100 / (z + 10)
     ctx.moveTo(xy0[0], xy0[1])
@@ -540,6 +581,23 @@ function render() {
     ctx.closePath()
     ctx.stroke()
   }
+
+  // ctx.fillStyle = "white"
+  // ctx.fontSize = 30
+  // for (let vertex of verticies) {
+  //   let xy0 = project(vertex.coordinates, projScale)
+  //   ctx.fillText(vertex.index, xy0[0] + 4, xy0[1] - 5)
+  // }
+  // for (let edge of edges) {
+  //   let center = add(edge.verticies[0].coordinates, edge.verticies[1].coordinates)
+  //   center = scale(center, 0.5)
+  //   let xy0 = project(center, projScale)
+  //   if (edge.isDupe) {
+  //     // ctx.fillText(edge.index, xy0[0] - 20, xy0[1] - 5)
+  //   } else {
+  //     ctx.fillText(edge.index, xy0[0] + 4, xy0[1] - 5)
+  //   }
+  // }
 }
 
 // ===================== vector utilities =====================
@@ -569,6 +627,34 @@ function project(v, scale) {
   const SCALE = 800 * scale
   let z = v[2] * scale + 15
   return [500 + v[0] * SCALE / z, 500 - v[1] * SCALE / z]
+}
+
+function translateAll(vector) {
+  console.log(vector)
+  for (let vertex of verticies) {
+    vertex.coordinates = add(vertex.coordinates, vector)
+  }
+}
+
+function center(permanently) {
+  let mins = [1e6, 1e6, 1e6]
+  let maxes = [-1e6, -1e6, -1e6]
+  
+  for (let vertex of verticies) {
+    let coord = vertex.coordinates
+    for (let i = 0; i < 3; i++) {
+      mins[i] = Math.min(mins[i], coord[i])
+      maxes[i] = Math.max(maxes[i], coord[i])
+    }
+  }
+
+  translateAll(scale(delta(mins, maxes), 0.5))
+
+  if (permanently) {
+    for (let vertex of verticies) {
+      vertex.ogCoords = scale(vertex.coordinates, 1)
+    }
+  }
 }
 
 function rotateXAll(theta) {
@@ -663,5 +749,5 @@ function delay(ms) {
 <script type="text/javascript" src="organic wall/button.js"></script>
 <script type="text/javascript" src="bramble/button.js"></script>
 <script type="text/javascript" src="test/square.js"></script>
-<script type="text/javascript" src="test/starofdavid.js"></script>
+<script type="text/javascript" src="spaceinvaders/button.js"></script>
 </body>
