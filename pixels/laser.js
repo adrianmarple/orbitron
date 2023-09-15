@@ -92,7 +92,7 @@ setTimeout(() => {
         createCoverSVG(true)
         // createWallSVG()
       }
-    }, 10)
+    }, 100)
   }))
 }, 100)
 
@@ -100,7 +100,7 @@ let wallInfo = []
 let maxX = 0
 let maxY = 0
 
-function createCoverSVG(showNumbers) {
+async function createCoverSVG(showNumbers) {
   maxX = 0
   maxY = 0
   console.log("creating svgs")
@@ -198,10 +198,10 @@ function createCoverSVG(showNumbers) {
       let n = cross(e1, [0,0,-1])
       let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
       let lengthOffset = width / -Math.tan((Math.PI - a1)/2)
+      let localOffset = scale(add(v1, offset), SCALE)
 
       // Border
       let points = [[lengthOffset, width]]
-      let localOffset = scale(add(v1, offset), SCALE)
       borderString += pointsToSVGString(points, [e1, n], localOffset)
 
       // Channels
@@ -223,7 +223,7 @@ function createCoverSVG(showNumbers) {
       w2 -= KERF
 
       // Extra gap for strip to enter in
-      // note e1 has been normalized already
+      // Note e1 has been normalized already
       if (vectorEquals(v1, start) && vectorEquals(e1, finalEdgeDirection)) {
         lengthOffset1 += CHANNEL_WIDTH / Math.sin(Math.abs(a1))
       }
@@ -255,7 +255,28 @@ function createCoverSVG(showNumbers) {
 
       channelString += "M" + pointsToSVGString(points, [e1, n], localOffset).substring(1) + "Z "
   	}
-  	totalPathString += "M" + borderString.substring(1) + "Z "
+
+    let skipBorder = false
+    if (imageUrl && dPath.length == 4) {
+      let center = [0,0,0]
+      for (let i = 0; i < 4; i++) {
+        center = add(center, dPath[i].ogCoords)
+      }
+      center = scale(center, 0.25)
+      let x = Math.round(center[0])
+      let y = -Math.round(center[1])
+      
+      let imageContext = await getImageContext()
+      let pixel = imageContext.getImageData(x, y, 1, 1).data
+      console.log(x,y,pixel[0],pixel[1],pixel[2])
+      if (pixel[0] + pixel[1] + pixel[2] == 0) { // skip border for black pixels
+        skipBorder = true
+      }
+    }
+
+    if (!skipBorder) {
+  	  totalPathString += "M" + borderString.substring(1) + "Z "
+    }
   	totalPathString += channelString
   }
   cover.querySelector("path").setAttribute("d", totalPathString)

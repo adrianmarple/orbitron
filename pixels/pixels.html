@@ -60,437 +60,9 @@ function reset() {
   path = []
   seed = initialSeed
   pixelDensity = 1
+  imageUrl = null
 }
 reset()
-
-// ===================== topology utilities =====================
-
-function addSquare(center, edgeLengths) {
-  return addPolygon(4, center, edgeLengths)
-}
-function addDodecagon(center, edgeLengths) {
-  return addPolygon(12, center, edgeLengths)
-}
-function addPolygon(sideCount, center, edgeLengths) {
-  if (!edgeLengths) {
-    edgeLengths = [1]
-  }
-  if (typeof edgeLengths == "number") {
-    edgeLengths = [edgeLengths]
-  }
-
-  let newEdges = []
-  let edgeVector = [1,0,0]
-  let point = [0,0,0]
-  let points = []
-  for (let i = 0; i < sideCount; i++) {
-    edgeVector = normalize(edgeVector)
-    edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
-    point = add(point, edgeVector)
-    points.push(point)
-    edgeVector = rotateZ(edgeVector, Math.PI*2 / sideCount)
-  }
-
-  let average = [0,0,0]
-  for (let point of points) {
-    average = add(average, point)
-  }
-  average = scale(average, 1.0/points.length)
-  center = delta(center, average)
-  let previousVertex = addVertex(add(points[points.length - 1], center))
-  for (let point of points) {
-    let vertex = addVertex(add(point, center))
-    newEdges.push(addEdge(previousVertex, vertex))
-    previousVertex = vertex
-  }
-  return newEdges
-}
-
-function extrudePolygon(startingEdge, sideCount, edgeLengths, negate) {
-  let newEdges = [startingEdge]
-  let vertex = startingEdge.verticies[0]
-  let edgeVector = delta(vertex.coordinates, startingEdge.verticies[1].coordinates)
-  if (!edgeLengths) {
-    edgeLengths = [magnitude(edgeVector)]
-  }
-  if (!epsilonEquals(edgeLengths[0], magnitude(edgeVector))) {
-    console.error("First edge length must match extrusion edge.")
-    return
-  }
-  if (negate) {
-    edgeVector = scale(edgeVector, -1)
-    vertex = startingEdge.verticies[1]
-  }
-  for (let i = 1; i < sideCount; i++) {
-    edgeVector = rotateZ(edgeVector, Math.PI*2 / sideCount)
-    edgeVector = normalize(edgeVector)
-    edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
-    newVertex = addVertex(add(vertex.coordinates, edgeVector))
-    newEdges.push(addEdge(vertex, newVertex))
-    vertex = newVertex
-  }
-  return newEdges
-}
-
-function addPlusMinusVertex(vertex) {
-  for (let i0 = -1; i0 <= 1; i0 += 2) {
-    for (let i1 = -1; i1 <= 1; i1 += 2) {
-      for (let i2 = -1; i2 <= 1; i2 += 2) {
-        addVertex([i0 * vertex[0], i1 * vertex[1], i2 * vertex[2]]);
-      }
-    }
-  }
-}
-function addVertex(coordinates) {
-  for (let existingVertex of verticies) {
-    if (epsilonEquals(d(existingVertex.coordinates, coordinates), 0)) {
-      return existingVertex
-    }
-  }
-  let ogCoords = scale(coordinates, 1) // copy
-  let vertex = {
-    index: verticies.length,
-    edges: [],
-    coordinates,
-    ogCoords,
-  }
-  verticies.push(vertex)
-  return vertex
-}
-
-function addEdge(vertex1, vertex2) {
-  var edgeCenter = scale(add(vertex1.coordinates, vertex2.coordinates), .5)
-  for (let center of edgeCentersBlacklist) {
-    if (vectorEquals(edgeCenter, center)) {
-      return
-    }
-  }
-
-  for (let existingEdge of edges) {
-    if (existingEdge.verticies[0] == vertex1 && existingEdge.verticies[1] == vertex2) {
-      return existingEdge
-    }
-    if (existingEdge.verticies[1] == vertex1 && existingEdge.verticies[0] == vertex2) {
-      return existingEdge
-    }
-  }
-  let edge = {
-    index: edges.length,
-    verticies: [vertex1, vertex2],
-  }
-  edges.push(edge)
-  vertex1.edges.push(edge)
-  vertex2.edges.push(edge)
-  return edge
-}
-
-
-function removeEdge(edge) {
-  remove(edges, edge)
-  for (let vertex of edge.verticies) {
-    remove(vertex.edges, edge)
-    if (vertex.edges.length == 0) {
-      remove(verticies, vertex)
-      for (let i = 0; i < verticies.length; i++) {
-        verticies[i].index = i
-      }
-    }
-  }
-  for (let i = 0; i < edges.length; i++) {
-    edges[i].index = i
-  }
-}
-function remove(array, element)  {
-  let index = array.indexOf(element)
-  if (index >= 0) {
-    array.splice(index, 1)
-  }
-}
-
-function doubleEdges() {
-  for (let edge of edges.slice()) {
-    var edgeCopy = {...edge}
-    for (let v of edge.verticies) {
-      v.edges.push(edgeCopy)
-    }
-    edgeCopy.index = edges.length
-    edgeCopy.isDupe = true
-    edges.push(edgeCopy)
-  }
-}
-
-// ===================== data creation =====================
-
-
-noncovergenceGuard = 1e4
-async function EulerianPath(currentVertex, pathOverride) {
-  if (pathOverride) {
-    path = pathOverride
-  }
-  noncovergenceGuard -= 1
-  if (noncovergenceGuard < 0) {
-    path.length = 0
-    noncovergenceGuard = 1e4
-    console.error("Eulerian path did not converge.")
-    return true
-  }
-  if (path.length >= edges.length) {
-    return true
-  }
-  let edgesCopy = currentVertex.edges.slice()
-  shuffle(edgesCopy)
-
-  previousEdge = edges[path[path.length - 1]]
-  function distance(edge) {
-    let v0 = otherVertex(previousEdge, currentVertex).coordinates
-    let v1 = currentVertex.coordinates
-    let v2 = otherVertex(edge, currentVertex).coordinates
-
-    let e0 = delta(v1, v0)
-  	let e1 = delta(v2, v1)
-    let angle = Math.abs(signedAngle(e1, e0))
-
-    if (edge.isDupe != previousEdge.isDupe) {
-      if (epsilonEquals(angle, Math.PI)) {
-        angle = Math.PI/5 
-      }
-      angle = -angle + 1e6
-    }
-    return -angle
-    // return d(v0, v2)
-  }
-
-  // Sort by straightest path
-  if (name != "rhombicosidodecahedron") {
-    edgesCopy.sort((a,b) => distance(b) - distance(a))
-  }
-
-  for (let edge of edgesCopy) {
-    if (path.includes(edge.index)) continue;
-
-    let dist = distance(edge)
-    if (name == "rhombicosidodecahedron" && (epsilonEquals(dist, 2) || epsilonEquals(dist, 3.236))) {
-      continue
-    }
-
-    path.push(edge.index);
-    if (hasFreeEdge(currentVertex) &&
-        !isConnectedToStart(currentVertex)) {
-      path.pop()
-      continue
-    }
-    let nextVertex = otherVertex(edge, currentVertex)
-    // await delay(10)
-    let finished = await EulerianPath(nextVertex);
-    if (finished) {
-      return true
-    } else {
-      path.pop()
-    }
-  }
-}
-
-function startVertex() {
-  if (path.length == 0) console.error("not more path!")
-  let e0 = edges[path[0]]
-  let e1 = edges[path[1]]
-  let v = e0.verticies[0]
-  if (e1.verticies[0] == v || e1.verticies[1] == v) {
-    return e0.verticies[1]
-  } else {
-    return v
-  }
-}
-function penultimateVertex() {
-  return otherVertex(edges[path[path.length - 1]], startVertex())
-}
-
-function hasFreeEdge(vertex) {
-  for (let edge of vertex.edges) {
-    if (!path.includes(edge.index)) return true
-  }
-  return false
-}
-
-function isConnectedToStart(vertex) {
-  let accessibleVertices = [vertex]
-  let verticiesToProcess = [vertex]
-  let start = startVertex(path)
-
-  while (verticiesToProcess.length > 0) {
-    let v = verticiesToProcess.pop()
-    for (let edge of v.edges) {
-      if (path.includes(edge.index)) continue
-      let v2 = otherVertex(edge, v)
-      if (v2 == start) return true
-      if (accessibleVertices.includes(v2)) continue
-
-      accessibleVertices.push(v2)
-      verticiesToProcess.push(v2)
-    }
-  }
-  return false
-}
-
-function otherVertex(edge, vertex) {
-  let otherVertex = edge.verticies[0]
-  if (otherVertex.index === vertex.index) {
-    otherVertex = edge.verticies[1]
-  }
-  return otherVertex
-}
-
-function generatePixelInfo() {
-  let neighbors = []
-  let coords = []
-  let nextPixel = {}
-  let uniqueToDupe = []
-  let dupeToUniques = []
-
-  let vertIndexToCoordIndex = {}
-
-  let previousVertex = startVertex(path)
-
-  for (let edgeIndex of path) {
-    let edge = edges[edgeIndex]
-    let nextVertex = otherVertex(edge, previousVertex)
-    let v1 = previousVertex.ogCoords
-    let v2 = nextVertex.ogCoords
-
-    if (typeof(vertIndexToCoordIndex[previousVertex.index]) != 'undefined') {
-      uniqueToDupe.push(vertIndexToCoordIndex[previousVertex.index])
-    } else {
-      vertIndexToCoordIndex[previousVertex.index] = coords.length
-      uniqueToDupe.push(coords.length)
-      coords.push(v1)
-    }
-    let edgeLength = d(v1,v2)
-    for (let alpha = pixelDensity; true; alpha += pixelDensity) {
-      if (epsilonEquals(edgeLength, alpha, 0.01)) break
-      if (alpha > edgeLength) {
-        console.error("Edge legnth not a integer multiple of pixel density")
-        return
-      }
-      uniqueToDupe.push(coords.length)
-      coords.push(linearCombo(v2, v1, alpha/edgeLength))
-    }
-
-    previousVertex = nextVertex
-  }
-
-  let SIZE = coords.length
-  for (let i = 0; i < SIZE; i++) {
-    neighbors.push([])
-    dupeToUniques.push([])
-  }
-  let previousIndex = coords.length - 1
-  for (let i = 0; i < uniqueToDupe.length; i++) {
-    let index = uniqueToDupe[i]
-    neighbors[index].push(previousIndex)
-    neighbors[previousIndex].push(index)
-    previousIndex = index
-
-    dupeToUniques[index].push(i)
-  }
-
-  for (let i = 0; i < coords.length; i++) {
-    let local_neighbors = neighbors[i]
-    for (let n of local_neighbors) {
-      furthest_neighbor = null
-      max_dist = 0
-      for (let n2 of neighbors[n]) {
-        let dist = d(coords[n2], coords[i])
-        if (dist > max_dist) {
-          max_dist = dist
-          furthest_neighbor = n2
-        }
-      }
-      nextPixel[`(${i}, ${n})`] = furthest_neighbor
-    }
-  }
-
-  let info = {
-    name,
-    SIZE: coords.length,
-    isWall,
-    coords,
-    uniqueToDupe,
-    dupeToUniques,
-    neighbors,
-    nextPixel,
-    defaultPulseDirection: [0,1,0],
-  }
-
-  if (name == "rhombicosidodecahedron") {
-    let antipodes = []
-    for (let i = 0; i < coords.length; i++) {
-      let coord = coords[i]
-      for (let j = 0; j < coords.length; j++) {
-        let coord2 = coords[j]
-        if (epsilonEquals(d(coord, scale(coord2, -1)), 0)) {
-          antipodes.push(j)
-          break
-        }
-      }
-      if (antipodes.length <= i) {
-        antipodes.push(-1)
-      }
-    }
-    info.antipodes = antipodes
-  }
-
-  if (!isWall) {
-    let northPole = []
-    let southPole = []
-    let threshold = 0.94
-    if (name == "helmet") {
-      threshold = 0.92
-    }
-    for (var i = 0; i < coords.length; i++) {
-      let val = coords[i][2]
-      if (val > threshold) {
-        northPole.push(i)
-      }
-      if (name == "helmet" && val < -0.6) {
-        southPole.push(i)
-      } else if (val < -threshold) {
-        southPole.push(i)
-      }
-    }
-    info.northPole = northPole
-    info.northPole = southPole
-  }
-
-  switch (name) {
-    case "rhombicosidodecahedron":
-      info.initialPositions = [105,157,117,24,50,202]
-      info.southerlyInitialPositions = [79,113,39,352,12,401]
-      info.defaultPulseDirection = [0,0,1]
-      break
-    case "wall":
-      info.initialPositions = [432,123,175,79,155,59]
-      break
-    case "helmet":
-      info.initialPositions = [181,155,279,191,255,12]
-      info.southerlyInitialPositions = [4,68,129,36,99,64]
-      info.defaultPulseDirection = [0,0,1]
-      break
-  }
-
-  return info
-}
-
-document.getElementById("download").addEventListener('click', function() {
-  let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
-  let blob = new Blob([fileContent], { type: 'text/plain' })
-  let a = document.createElement('a')
-  a.download = name + '.json'
-  a.href = window.URL.createObjectURL(blob)
-  a.textContent = 'Download ready';
-  a.style='display:none';
-  a.click()
-})
-
 
 // ===================== rendering and interaction =====================
 
@@ -582,142 +154,47 @@ function render() {
     ctx.stroke()
   }
 
-  // ctx.fillStyle = "white"
-  // ctx.fontSize = 30
-  // for (let vertex of verticies) {
-  //   let xy0 = project(vertex.coordinates, projScale)
-  //   ctx.fillText(vertex.index, xy0[0] + 4, xy0[1] - 5)
-  // }
-  // for (let edge of edges) {
-  //   let center = add(edge.verticies[0].coordinates, edge.verticies[1].coordinates)
-  //   center = scale(center, 0.5)
-  //   let xy0 = project(center, projScale)
-  //   if (edge.isDupe) {
-  //     // ctx.fillText(edge.index, xy0[0] - 20, xy0[1] - 5)
-  //   } else {
-  //     ctx.fillText(edge.index, xy0[0] + 4, xy0[1] - 5)
-  //   }
-  // }
-}
-
-// ===================== vector utilities =====================
-
-function epsilonEquals(a, b, epsilon=0.1) {
-  return a - b < epsilon && b - a < epsilon
-}
-function vectorEquals(v1, v2, epsilon=0.1) {
-  return epsilonEquals(d(v1,v2), 0, epsilon)
-}
-
-
-function d(v1, v2) {
-  let difference = delta(v1, v2);
-  return Math.sqrt(difference[0] * difference[0] +
-                   difference[1] * difference[1] +
-                   difference[2] * difference[2])
-}
-function add(v1,v2) {
-  return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
-}
-function delta(v1, v2) {
-  return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]]
-}
-
-function project(v, scale) {
-  const SCALE = 800 * scale
-  let z = v[2] * scale + 15
-  return [500 + v[0] * SCALE / z, 500 - v[1] * SCALE / z]
-}
-
-function translateAll(vector) {
-  console.log(vector)
+  ctx.fillStyle = "white"
+  ctx.fontSize = 30
   for (let vertex of verticies) {
-    vertex.coordinates = add(vertex.coordinates, vector)
+    let xy0 = project(vertex.coordinates, projScale)
+    ctx.fillText(vertex.index, xy0[0] + 4, xy0[1] - 5)
   }
-}
-
-function center(permanently) {
-  let mins = [1e6, 1e6, 1e6]
-  let maxes = [-1e6, -1e6, -1e6]
-  
-  for (let vertex of verticies) {
-    let coord = vertex.coordinates
-    for (let i = 0; i < 3; i++) {
-      mins[i] = Math.min(mins[i], coord[i])
-      maxes[i] = Math.max(maxes[i], coord[i])
-    }
-  }
-
-  translateAll(scale(delta(mins, maxes), 0.5))
-
-  if (permanently) {
-    for (let vertex of verticies) {
-      vertex.ogCoords = scale(vertex.coordinates, 1)
+  for (let edge of edges) {
+    let center = add(edge.verticies[0].coordinates, edge.verticies[1].coordinates)
+    center = scale(center, 0.5)
+    let xy0 = project(center, projScale)
+    if (edge.isDupe) {
+      // ctx.fillText(edge.index, xy0[0] - 20, xy0[1] - 5)
+    } else {
+      ctx.fillText(edge.index, xy0[0] + 4, xy0[1] - 5)
     }
   }
 }
 
-function rotateXAll(theta) {
-  for (let vertex of verticies) {
-    vertex.coordinates = rotateX(vertex.coordinates, theta)
+
+urlToContext = {}
+async function getImageContext(src) {
+  if (!src) src = imageUrl
+  if (!src) return null
+  if (urlToContext[src]) return urlToContext[src]
+
+  let img = new Image()
+  img.src = src
+  await new Promise(resolve => img.onload = resolve);
+  let canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = img.height
+  let ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(img, 0, 0)
+  try {
+    ctx.getImageData(0, 0, canvas.width, canvas.height).data
+  } catch (e) {
+    console.error("Make sure to use a local server to read pixels: python3 -m http.server")
+    return null
   }
-}
-function rotateYAll(theta) {
-  for (let vertex of verticies) {
-    vertex.coordinates = rotateY(vertex.coordinates, theta)
-  }
-}
-function rotateZAll(theta) {
-  for (let vertex of verticies) {
-    vertex.coordinates = rotateZ(vertex.coordinates, theta)
-  }
-}
-
-function rotateX(v, theta) {
-  return [v[0],
-          v[1] * Math.cos(theta) + v[2] * Math.sin(theta),
-          -v[1] * Math.sin(theta) + v[2] * Math.cos(theta)]
-}
-function rotateY(v, theta) {
-  return [v[0] * Math.cos(theta) + v[2] * Math.sin(theta),
-          v[1],
-          -v[0] * Math.sin(theta) + v[2] * Math.cos(theta)]
-}
-function rotateZ(v, theta) {
-  return [v[0] * Math.cos(theta) + v[1] * Math.sin(theta),
-          -v[0] * Math.sin(theta) + v[1] * Math.cos(theta),
-          v[2]]
-}
-
-function scale(v, scalar) {
-  return [v[0] * scalar, v[1] * scalar, v[2] * scalar]
-}
-function cross(v1, v2) {
-  return [v1[1]*v2[2] - v1[2]*v2[1],
-          v1[2]*v2[0] - v1[0]*v2[2],
-          v1[0]*v2[1] - v1[1]*v2[0]]
-}
-function dot(v1, v2) {
-  return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
-}
-function magnitude(v) {
-  return Math.sqrt(dot(v, v))
-}
-function normalize(v) {
-  return scale(v, 1/magnitude(v))
-}
-
-// Assume z coordinate is 0 or otherwise ignorable
-function signedAngle(v, w) {
-  return Math.atan2(w[1]*v[0] - w[0]*v[1], w[0]*v[0] + w[1]*v[1])
-}
-
-function linearCombo(v1, v2, alpha) {
-  return [
-    v1[0] * alpha + v2[0] * (1 - alpha),
-    v1[1] * alpha + v2[1] * (1 - alpha),
-    v1[2] * alpha + v2[2] * (1 - alpha),
-  ]
+  urlToContext[src] = ctx
+  return ctx
 }
 
 function random() {
@@ -742,7 +219,11 @@ function delay(ms) {
 
 </script>
 
+<script type="text/javascript" src="topology.js"></script>
+<script type="text/javascript" src="data.js"></script>
+<script type="text/javascript" src="vector.js"></script>
 <script type="text/javascript" src="laser.js"></script>
+
 <script type="text/javascript" src="rhombicosidodecahedron/button.js"></script>
 <script type="text/javascript" src="helmet/button.js"></script>
 <script type="text/javascript" src="diamond/button.js"></script>
@@ -750,4 +231,5 @@ function delay(ms) {
 <script type="text/javascript" src="bramble/button.js"></script>
 <script type="text/javascript" src="test/square.js"></script>
 <script type="text/javascript" src="spaceinvaders/button.js"></script>
+<script type="text/javascript" src="MADE/button.js"></script>
 </body>

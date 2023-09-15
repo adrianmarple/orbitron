@@ -1,19 +1,20 @@
 
 button = document.createElement("div")
-button.innerHTML = "Space Invader"
+button.innerHTML = "MADE"
 
 document.getElementById("type-buttons").appendChild(button)
 button.classList.add("button")
 button.addEventListener('click', async () => {
-  name = "invader"
+  name = "MADE"
   reset()
-  pixelDensity = 0.25
+  pixelDensity = 0.333333
+  // pixelDensity = 0.5
   isWall = true
 
-  imageUrl = "spaceinvaders/invader1A.png"
+  imageUrl = "MADE/made2D.png"
   await addSquaresFromPixels()
   doubleEdges()
   console.log(edges.length)
 
-  EulerianPath(verticies[16], [23])
+  EulerianPath(verticies[0], [1])
 })
