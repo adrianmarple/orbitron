@@ -261,9 +261,6 @@ function bindRelayRequester(socket, orbID) {
     }
   }
   connectedOrbs[orbID] = socket
-  socket.pingInterval = setInterval(() => {
-    socket.send("PING")
-  }, 3000)
   socket.on('message', data => {
     if (data == "PING") return
     if(data instanceof Buffer){
@@ -278,7 +275,6 @@ function bindRelayRequester(socket, orbID) {
   })
   socket.on('close', () => {
     console.log("Closing relay requester socket", orbID)
-    clearInterval(socket.pingInterval)
     delete connectedOrbs[orbID]
   })
   socket.on('error', (e) => {
@@ -442,13 +438,6 @@ function relayUpkeep() {
         console.log("Initializing relay requester socket", relayURL)
         relayRequesterSocket = new WebSocket.WebSocket(relayURL)
         relayRequesterSocket.lastPingReceived = Date.now()
-        relayRequesterSocket.pingInterval = setInterval(() => {
-          relayRequesterSocket.send("PING")
-          if(Date.now() - relayRequesterSocket.lastPingReceived > 60 * 1000){
-            relayRequesterSocket.close()
-          }
-        }, 3000)
-
         relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
           if(clientID == "PING"){
@@ -481,7 +470,6 @@ function relayUpkeep() {
         })
         relayRequesterSocket.on('close', () => {
           console.log("Relay requester socket closed")
-          clearInterval(relayRequesterSocket.pingInterval)
           relayRequesterSocket = null
         })
         relayRequesterSocket.on('error', (e) => {
@@ -495,11 +483,11 @@ function relayUpkeep() {
     }
   }
   if(config.ACT_AS_RELAY){
-    for(orbID of Object.keys(connectedOrbs)){
+    for(let orbID in connectedOrbs){
       let orbSocket = connectedOrbs[orbID]
       // Request relays for dangling clients
       if(orbSocket) {
-        for(clientID of Object.keys(connectedClients[orbID] || {})){
+        for(let clientID in (connectedClients[orbID] || {})){
           if(!connectedRelays[orbID] || !connectedRelays[orbID][clientID]){
             try {
               console.log("Requesting relay for client", orbID, clientID)
@@ -511,7 +499,7 @@ function relayUpkeep() {
         }
       }
       // Remove excess relays, if any
-      for(clientID of Object.keys(connectedRelays[orbID] || {})){
+      for(let clientID in (connectedRelays[orbID] || {})){
         if(!connectedClients[orbID] || !connectedClients[orbID][clientID]){
           try {
             console.log("Closing excess relay", orbID, clientID)
@@ -526,6 +514,20 @@ function relayUpkeep() {
 }
 
 setInterval(relayUpkeep, 500)
+
+function pingHandler() {
+  if(relayRequesterSocket){
+    relayRequesterSocket.send("PING")
+    if(Date.now() - relayRequesterSocket.lastPingReceived > 60 * 1000){
+      relayRequesterSocket.close()
+    }
+  }
+  for (const orbID in connectedOrbs) {
+    connectedOrbs[orbID].send("PING")
+  }
+}
+
+setInterval(pingHandler, 3000)
 
 function upkeep() {
   if(!gameState) return
@@ -653,7 +655,7 @@ const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...
 
 python_process.stdout.on('data', data => {
   messages = data.toString().trim().split("\n")
-  for(message of messages){
+  for(let message of messages){
     message = message.trim()
     if(!message) continue
     if (message.charAt(0) == "{") { // check is first char is '{'
@@ -715,7 +717,7 @@ const rootServer = http.createServer(function (request, response) {
       filePath = filePath + "/" + filePath
     filePath = `/pixels/${filePath}.json`
   }
-  else if (Object.keys(connectedOrbs).includes(filePath.split("/")[1])){
+  else if (connectedOrbs[filePath.split("/")[1]]){
     if(filePath.includes("/logs")){
       let orbID = filePath.split("/")[1]
       if(logsRequested[orbID] || !connectedOrbs[orbID]){
