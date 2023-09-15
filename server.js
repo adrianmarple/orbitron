@@ -441,14 +441,20 @@ function relayUpkeep() {
         let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
         console.log("Initializing relay requester socket", relayURL)
         relayRequesterSocket = new WebSocket.WebSocket(relayURL)
-
+        relayRequesterSocket.lastPingReceived = Date.now()
         relayRequesterSocket.pingInterval = setInterval(() => {
           relayRequesterSocket.send("PING")
+          if(Date.now() - relayRequesterSocket.lastPingReceived > 60 * 1000){
+            relayRequesterSocket.close()
+          }
         }, 3000)
 
         relayRequesterSocket.on('message', data => {
           let clientID = data.toString().trim()
-          if(clientID == "PING") return
+          if(clientID == "PING"){
+            relayRequesterSocket.lastPingReceived = Date.now()
+            return
+          }
           if(clientID == "GET_LOGS"){
             try {
               execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
