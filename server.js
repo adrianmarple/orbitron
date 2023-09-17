@@ -37,18 +37,19 @@ process.on('uncaughtException', function(err) {
 });
 
 //load and process config and environment variables
-
-config = require(__dirname + "/config.js")
+let config = require(__dirname + "/config.js")
 console.log(config)
 const NO_TIMEOUT = process.argv.includes('-t')
 let starting_game = null
-game_index = process.argv.indexOf('-g') + 1
+let game_index = process.argv.indexOf('-g') + 1
 if (game_index) {
   starting_game = process.argv[game_index]
   console.log("Starting with game: " + starting_game)
 }
+const IS_SERVER = !config.CONNECT_TO_RELAY
 
-// Dev Kit Websocket server
+
+// ---Dev Kit Websocket server---
 
 let devServer = http.createServer(function(request, response) {
   console.log('Dev Server Received request for ' + request.url)
@@ -76,7 +77,7 @@ wsDevServer.on('connection', socket => {
   })
 })
 
-devConnections = {}
+let devConnections = {}
 
 function devBroadcast(message) {
   for (let id in devConnections) {
@@ -84,184 +85,51 @@ function devBroadcast(message) {
   }
 }
 
-// Class that handles mutliple redundant connections between client and orb
-class ClientConnection {
-  constructor(id) {
-    this.id = id
-    this.sockets = []
-    this.callbacks = {}
-    this.latestMessage = 0
-    // used by business logic
-    this.pid = null
-    this.lastActivityTime = null
-    this.timeout = 10 * 1000
-    this.numSockets = 0
-  }
-
-  getID() {
-    return this.id
-  }
-
-  removeSocket(socket) {
-    let startLength = this.sockets.length
-    let index = this.sockets.indexOf(socket)
-    if(index >= 0) {
-      let removed = this.sockets.splice(index)[0]
-      if(removed){
-        this[removed.classification] = false
-      }
-    }
-    if(this.sockets.length <= 0 && startLength > 0){
-      if(this.callbacks.close){
-        this.callbacks.close()
-      }
-    }
-    this.numSockets = this.sockets.length
-  }
-
-  bindWebSocket(socket) {
-    // for stats logging
-    this[socket.classification] = true
-    let counter = socket.classification + " Count"
-    let skipped = socket.classification + " Skipped"
-    if(!this[counter]) {
-      this[counter] = 0
-    }
-    if(!this[skipped]) {
-      this[skipped] = 0
-    }
-
-    let self = this
-    this.sockets.push(socket)
-    this.numSockets = this.sockets.length
-    socket.on("message", (data, isBinary) => {
-      try {
-        let content = JSON.parse(data)
-        if(content.timestamp > self.latestMessage){
-          self.latestMessage = content.timestamp
-          if(self.callbacks.message){
-            self.callbacks.message(content)
-          }
-          //for logging of which sockets get used
-          self[counter] += 1
-        } else {
-          self[skipped] += 1
-        }
-      } catch(e) {
-        console.error("Error processing web socket message", e, socket.clientID, socket.classification)
-      }
-    })
-    socket.on("close", () => {
-      self.removeSocket(socket)
-    })
-    socket.on("error", () => {
-      socket.close()
-      self.removeSocket(socket)
-    })
-  }
-
-  // functions used by business logic
-  on(e, callback) {
-    this.callbacks[e] = callback
-  }
-
-  send(message) {
-    for(const socket of this.sockets){
-      try {
-        socket.send(message)
-      } catch(e) {
-        console.error("Error sending to client", e, socket.clientID, socket.classification)
-        setTimeout(() => {
-          try {
-            socket.close()
-          } catch(e) {
-            console.error("Error closing socket after failed message send", e, socket.clientID, socket.classification)
-          }
-        })
-      }
-    }
-  }
-
-  close() {
-    for(const socket of this.sockets){
-      setTimeout(() =>{
-        try {
-          socket.close()
-        } catch(e) {
-          console.error("Error closing socket from complete close call", e, socket.clientID, socket.classification)
-        }
-      })
-    }
-  }
-}
-
-const clientConnections = {}
-
-// Orb relay management
+// ---Server code---
 const connectedOrbs = {}
 const logsRequested = {}
-const connectedRelays = {}
 const connectedClients = {}
+if(IS_SERVER){
+  let server = http.createServer(function(request, response) {
+    console.log('Websocket Server received request for ' + request.url)
+    response.writeHead(404)
+    response.end()
+  })
+  server.listen(7777, "0.0.0.0", function() {
+    console.log('WebSocket Server is listening on port 7777')
+  })
 
-let server = http.createServer(function(request, response) {
-  console.log('Websocket Server received request for ' + request.url)
-  response.writeHead(404)
-  response.end()
-})
-server.listen(7777, "0.0.0.0", function() {
-  console.log('WebSocket Server is listening on port 7777')
-})
+  let wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
 
-wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
-
-wsServer.on('connection', (socket, request) => {
-  let url = request.url.trim()
-  console.log('WS connection request made to', request.url)
-  let meta = url.split("/")
-  let orbID = meta[1]
-  let clientID = meta[2]
-  if(orbID == "") { // direct client socket
-    socket.classification = "WS direct client to orb"
-    socket.clientID = clientID
-    let clientConnection = getClientConnection(clientID)
-    clientConnection.bindWebSocket(socket)
-    bindRemotePlayer(clientConnection)
-  } else if(orbID == "relay") { // relay socket from orb
-    orbID = meta[2]
-    if(meta.length > 3){ // actual relay socket for a client
-      clientID = meta[3]
-      socket.classification = "WS orb to relay"
-      bindRelay(socket, orbID, clientID)
-    } else { // socket to request relay sockets over
-      socket.classification = "WS orb relay requester"
-      bindRelayRequester(socket, orbID)
+  wsServer.on('connection', (socket, request) => {
+    let url = request.url.trim()
+    console.log('WS connection request made to', request.url)
+    let meta = url.split("/")
+    if(meta[1] == "relay") { // socket from orb to server
+      let orbID = meta[2]
+      socket.classification = "WS orb to server"
+      bindOrb(socket, orbID)
+    } else { // client socket connecting to server
+      let orbID = meta[1]
+      let clientID = meta[2]
+      socket.clientID = clientID
+      socket.classification = "WS client to server"
+      bindClient(socket, orbID, clientID)
     }
-  } else { // client socket connecting to relay
-    socket.clientID = clientID
-    socket.classification = "WS client to relay"
-    bindClient(socket, orbID, clientID)
-  }
-})
-
-function getClientConnection(clientID) {
-  if(!clientConnections[clientID]){
-    clientConnections[clientID] = new ClientConnection(clientID)
-  }
-  return clientConnections[clientID]
+  })
 }
-
-function bindRelayRequester(socket, orbID) {
-  console.log("Binding relay requester",orbID)
+function bindOrb(socket, orbID) {
+  console.log("Binding orb",orbID)
   if(connectedOrbs[orbID]){
-    console.log("Already an existing relay requester socket, closing it")
+    console.log("Already an existing orb socket, closing it")
     try {
       connectedOrbs[orbID].close()
     } catch(e) {
-      console.error("Error closing existing orb relay request socket",orbID, e)
+      console.error("Error closing existing orb socket",orbID, e)
     }
   }
   connectedOrbs[orbID] = socket
-  socket.on('message', data => {
+  socket.on('message', (data, isBinary) => {
     if (data == "PING") return
     if(data instanceof Buffer){
       try {
@@ -271,38 +139,14 @@ function bindRelayRequester(socket, orbID) {
         console.error("Error writing log file", error)
       }
       logsRequested[orbID] = false
+      return
     }
-  })
-  socket.on('close', () => {
-    console.log("Closing relay requester socket", orbID)
-    delete connectedOrbs[orbID]
-  })
-  socket.on('error', (e) => {
-    console.error("Error in relay requester socket", orbID, e)
-    socket.close()
-  })
-}
-
-function bindRelay(socket, orbID, clientID) {
-  console.log("Binding relay", orbID, clientID)
-  if(!connectedRelays[orbID]) {
-    connectedRelays[orbID] = {}
-  }
-  if(connectedRelays[orbID][clientID]){
-    console.log("Trying to close existing relay")
-    try {
-      connectedRelays[orbID][clientID].close()
-    } catch(e) {
-      console.error("Error closing existing relay", orbID, clientID, e)
-    }
-  }
-  connectedRelays[orbID][clientID] = socket
-  socket.clientID = clientID
-  socket.on('message', (data, isBinary) => {
     if(!isBinary){
-      data = data.toString()
+      data = data.toString().trim()
     }
     try {
+      data = JSON.parse(data);
+      let clientID = data.clientID;
       let client = connectedClients[orbID] && connectedClients[orbID][clientID]
       if(client){
         while(client.messageCache.length > 0) {
@@ -311,28 +155,22 @@ function bindRelay(socket, orbID, clientID) {
           try {
             socket.send(message)
           } catch(e) {
-            console.error("Error sending cached message to relay", orbID, clientID, e)
+            console.error("Error sending cached message to orb", orbID, clientID, e)
           }
         }
-        client.send(data)
+        client.send(data.message)
       }
     } catch(e) {
-      console.error("Relay to Client error:", orbID, clientID, e)
+      console.error("Orb to Client error:", orbID, clientID, e)
     }
+
   })
   socket.on('close', () => {
-    delete connectedRelays[orbID][clientID]
-    try {
-      let client = connectedClients[orbID] && connectedClients[orbID][clientID]
-      if(client) {
-        client.close()
-      }
-    } catch(e) {
-      console.error("Error closing client from relay:",orbID, clientID, e)
-    }
+    console.log("Closing orb socket", orbID)
+    delete connectedOrbs[orbID]
   })
   socket.on('error', (e) => {
-    console.error("Error in relay socket", orbID, clientID, e)
+    console.error("Error in orb socket", orbID, e)
     socket.close()
   })
 }
@@ -354,36 +192,38 @@ function bindClient(socket, orbID, clientID) {
   socket.messageCache = []
   socket.on('message', (data, isBinary) => {
     if(!isBinary){
-      data = data.toString()
+      data = data.toString().trim()
     }
     try {
-      let relay = connectedRelays[orbID] && connectedRelays[orbID][clientID]
-      if(relay){
-        relay.send(data)
+      data = {
+        clientID: clientID,
+        message: data,
+      }
+      data = JSON.stringify(data)
+      let orb = connectedOrbs[orbID]
+      if(orb){
+        orb.send(data)
       }else{
         console.log("CACHING MESSAGE",data)
         socket.messageCache.push(data)
         if(socket.messageCache.length > 16) {
           socket.messageCache.shift()
         }
-        if(connectedOrbs[orbID]) {
-          connectedOrbs[orbID].send(clientID)
-        }
       }
     } catch(e) {
-      console.error("Client to relay error:", orbID, clientID, e)
+      console.error("Client to orb error:", orbID, clientID, e)
     }
   })
   socket.on('close', () => {
-    delete connectedClients[orbID][clientID]
-    try {
-      relay = connectedRelays[orbID] && connectedRelays[orbID][clientID]
-      if(relay){
-        relay.close()
-      }
-    } catch(e) {
-      console.error("Error closing relay from client:", orbID, clientID, e)
+    console.log("Closing client socket", orbID)
+    let orb = connectedOrbs[orbID]
+    if(orb){
+      orb.send(JSON.stringify({
+        clientID: clientID,
+        closed: true,
+      }))
     }
+    delete connectedClients[orbID][clientID]
   })
   socket.on('error', (e) => {
     console.error("Error on client socket", orbID, clientID, e)
@@ -391,7 +231,158 @@ function bindClient(socket, orbID, clientID) {
   })
 }
 
-function bindRemotePlayer(socket) {
+function pingHandler() {
+  if(orbToServerSocket){
+    orbToServerSocket.send("PING")
+    if(Date.now() - orbToServerSocket.lastPingReceived > 60 * 1000){
+      orbToServerSocket.close()
+    }
+  }
+  for (const orbID in connectedOrbs) {
+    connectedOrbs[orbID].send("PING")
+  }
+}
+
+setInterval(pingHandler, 3000)
+
+// ---Orb code---
+
+let orbToServerSocket = null
+function relayUpkeep() {
+  if(IS_SERVER || orbToServerSocket) return
+  try {
+    let serverURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
+    console.log("Initializing orb to server socket", serverURL)
+    orbToServerSocket = new WebSocket.WebSocket(serverURL)
+    orbToServerSocket.lastPingReceived = Date.now()
+    orbToServerSocket.on('message', (data, isBinary) => {
+      if(!isBinary){
+        data = data.toString().trim()
+      }      
+      if(data == "PING"){
+        orbToServerSocket.lastPingReceived = Date.now()
+        return
+      }
+      if(data == "GET_LOGS"){
+        try {
+          execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
+          let logfile = fs.readFileSync(`${homedir}/logs.zip`)
+          orbToServerSocket.send(logfile)
+        } catch(error) {
+          console.error("Error sending logs", error)
+        }
+        return
+      }
+      // Actual Client message
+      data = JSON.parse(data)
+      let clientID = data.clientID
+      let clientConnection = getClientConnection(clientID)
+      if(!clientConnection && !data.closed){
+        clientConnection = createClientConnection(clientID, orbToServerSocket)
+      }
+      if(clientConnection) {
+        if(data.closed){
+          clientConnection.close()
+        } else {
+          clientConnection.processMessage(data.message)
+        }
+      }
+    })
+    orbToServerSocket.on('close', () => {
+      console.log("Relay requester socket closed")
+      orbToServerSocket = null
+    })
+    orbToServerSocket.on('error', (e) => {
+      console.log("Relay requester socket error", e)
+      orbToServerSocket.close()
+    })
+  } catch(e) {
+    console.error("Error connecting to relay:", e)
+    orbToServerSocket = null
+  }
+}
+
+setInterval(relayUpkeep, 500)
+
+// Class that handles connections between client and orb
+const clientConnections = {}
+function getClientConnection(clientID) {
+  return clientConnections[clientID]
+}
+function createClientConnection(clientID, socket){
+  if(!clientConnections[clientID]) {
+    let clientConnection = new ClientConnection(clientID)
+    clientConnection.on("close", ()=>{
+      delete clientConnections[clientID]
+    })
+    clientConnection.setSocket(socket)
+    bindPlayer(clientConnection)
+    clientConnections[clientID] = clientConnection
+  }
+  return clientConnections[clientID]
+}
+class ClientConnection {
+  constructor(id) {
+    this.id = id
+    this.callbacks = {}
+    this.latestMessage = 0
+    this.socket = null
+    // used by business logic
+    this.pid = null
+    this.lastActivityTime = null
+    this.timeout = 10 * 1000
+  }
+
+  setSocket(socket){
+    this.socket = socket
+  }
+
+  processMessage(data) {
+    try {
+      let content = JSON.parse(data)
+      if(content.timestamp > self.latestMessage){
+        self.latestMessage = content.timestamp
+        if(self.callbacks.message){
+          self.callbacks.message.forEach(callback => {
+            callback(content)
+          });
+        }
+      }
+    } catch(e) {
+      console.error("Error processing message", e)
+    }
+  }
+
+  // functions used by business logic
+  on(e, callback) {
+    if(!this.callbacks[e]){
+      this.callbacks[e] = []
+    }
+    this.callbacks[e].push(callback)
+  }
+
+  send(message) {
+    message = {
+      clientID: this.id,
+      message: message
+    }
+    try {
+      this.socket.send(JSON.stringify(message))
+    } catch(e) {
+      console.error("Error sending to client", e, this.id)
+    }
+  }
+
+  close() {
+    if(self.callbacks.close){
+      self.callbacks.close.forEach((callback)=>callback())
+    }
+  }
+}
+
+
+// Game Related Code
+function bindPlayer(socket) {
   if(connectionQueue.includes(socket) || Object.values(connections).includes(socket)){
     return
   }
@@ -423,111 +414,7 @@ function bindDataEvents(peer) {
       connectionQueue = connectionQueue.filter(elem => elem !== peer)
     }
   })
-  peer.on('error', (err) => {
-   console.error("ERROR",peer.pid,err)
-  })
 }
-
-// Relay Connection
-let relayRequesterSocket = null
-function relayUpkeep() {
-  if(config.CONNECT_TO_RELAY) {
-    if(!relayRequesterSocket){
-      try {
-        let relayURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
-        console.log("Initializing relay requester socket", relayURL)
-        relayRequesterSocket = new WebSocket.WebSocket(relayURL)
-        relayRequesterSocket.lastPingReceived = Date.now()
-        relayRequesterSocket.on('message', data => {
-          let clientID = data.toString().trim()
-          if(clientID == "PING"){
-            relayRequesterSocket.lastPingReceived = Date.now()
-            return
-          }
-          if(clientID == "GET_LOGS"){
-            try {
-              execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
-              let logfile = fs.readFileSync(`${homedir}/logs.zip`)
-              relayRequesterSocket.send(logfile)
-            } catch(error) {
-              console.error("Error sending logs", error)
-            }
-            return
-          }
-          console.log("Got relay request",clientID)
-          let socket = new WebSocket.WebSocket(`${relayURL}/${clientID}`)
-          socket.relayBound = false
-          socket.clientID = clientID
-          socket.classification = "WS orb to relay"
-          socket.on('open', () => {
-            if(!socket.relayBound){
-              socket.relayBound = true
-              let clientConnection = getClientConnection(clientID)
-              clientConnection.bindWebSocket(socket)
-              bindRemotePlayer(clientConnection)
-            }
-          })
-        })
-        relayRequesterSocket.on('close', () => {
-          console.log("Relay requester socket closed")
-          relayRequesterSocket = null
-        })
-        relayRequesterSocket.on('error', (e) => {
-          console.log("Relay requester socket error", e)
-          relayRequesterSocket.close()
-        })
-      } catch(e) {
-        console.error("Error connecting to relay:", e)
-        relayRequesterSocket = null
-      }
-    }
-  }
-  if(config.ACT_AS_RELAY){
-    for(let orbID in connectedOrbs){
-      let orbSocket = connectedOrbs[orbID]
-      // Request relays for dangling clients
-      if(orbSocket) {
-        for(let clientID in (connectedClients[orbID] || {})){
-          if(!connectedRelays[orbID] || !connectedRelays[orbID][clientID]){
-            try {
-              console.log("Requesting relay for client", orbID, clientID)
-              orbSocket.send(clientID)
-            } catch(e) {
-              console.error("Error requesting relay for client", orbID, clientID, e)
-            }
-          }
-        }
-      }
-      // Remove excess relays, if any
-      for(let clientID in (connectedRelays[orbID] || {})){
-        if(!connectedClients[orbID] || !connectedClients[orbID][clientID]){
-          try {
-            console.log("Closing excess relay", orbID, clientID)
-            connectedRelays[orbID][clientID].close()
-          } catch(e) {
-            console.error("Error closing excess relay", orbID, clientID)
-          }
-        }
-      }
-    }
-  }
-}
-
-setInterval(relayUpkeep, 500)
-
-function pingHandler() {
-  if(relayRequesterSocket){
-    relayRequesterSocket.send("PING")
-    if(Date.now() - relayRequesterSocket.lastPingReceived > 60 * 1000){
-      relayRequesterSocket.close()
-    }
-  }
-  for (const orbID in connectedOrbs) {
-    connectedOrbs[orbID].send("PING")
-  }
-}
-
-setInterval(pingHandler, 3000)
 
 function upkeep() {
   if(!gameState) return
@@ -573,41 +460,6 @@ setInterval(upkeep, 1000)
 let MAX_PLAYERS = 6
 let connections = {}
 let connectionQueue = []
-
-function ipUpdate(){
-  exec("ip addr | grep 'state UP' -A5 | grep 'inet ' | awk '{print $2}' | cut -f1 -d'/'", (error, stdout, stderr) => {
-    let ip=stdout.trim().split(/\s+/)[0]
-    //console.log(`Sending IP '${config.ORB_ID}':${ip}`)
-    let options = {
-      hostname: 'orbitron.games',
-      path: `/ip/${config.ORB_ID}`,
-      method: 'POST',
-      port: 80,
-      headers: {
-        'Content-Type': 'text',
-      },
-    }
-    let req = http.request(options, res => {
-      let rawData = '';
-      res.on('data', chunk => {
-        rawData += chunk;
-      });
-      res.on('end', () => {
-        localIP = ip
-        //console.log(`IP Send Response: ${rawData}`)
-        //console.log("Sending IP completed")
-      });
-    });
-    req.on('error', err => {
-      console.error(`IP Send Error: ${err}`)
-      console.error("Sending IP failed")
-    });
-    req.write(`${ip}`);
-    req.end();
-  })
-}
-ipUpdate()
-setInterval(ipUpdate, 30 * 1000)
 
 // Communications with python script
 
@@ -695,9 +547,6 @@ python_process.on('uncaughtException', function(err) {
 });
 
 
-// Orb IP address storage
-const orbIPAddresses = {}
-
 // Simple HTTP server
 const rootServer = http.createServer(function (request, response) {
   let filePath = request.url
@@ -764,29 +613,6 @@ const rootServer = http.createServer(function (request, response) {
     } else {
       filePath = "/controller/controller.html"
     }
-  } else if (filePath.includes("/ip")) {
-    let meta = filePath.split("/")
-    let orbID = meta[2]
-    if(request.method == "GET") {
-      let ip = orbIPAddresses[orbID]
-      response.writeHead(200, { 'Content-Type': 'text' })
-      response.end(ip, 'utf-8')
-    } else if(request.method == "POST") {
-      let postData = '';
-      request.on('data', function (chunk) {
-        postData += chunk;
-      });
-      request.on('end', function () {
-        let ip = postData.trim()
-        if(ip != orbIPAddresses[orbID]) {
-          console.log("Got orb IP update", orbID, ip);
-        }
-        orbIPAddresses[orbID] = ip
-        response.writeHead(200, { 'Content-Type': 'text' })
-        response.end(postData, 'utf-8')
-      })
-    }
-    return
   } else if(filePath == "/logs") {
     try {
       execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
@@ -855,16 +681,20 @@ rootServer.listen(rootServerPort, "0.0.0.0")
 
 // periodic status logging
 function statusLogging() {
-  let _connectedOrbs = {}
-  for(const orb in connectedOrbs) {
-    _connectedOrbs[orb] = connectedOrbs[orb].classification
+  let _connectedOrbs = null
+  let _connectedClients = null
+  if(IS_SERVER){
+    _connectedOrbs = {}
+    for(const orb in connectedOrbs) {
+      _connectedOrbs[orb] = connectedOrbs[orb].classification
+    }
+    _connectedClients = connectedClients
   }
   console.log("STATUS",{
     devConnections,
     connectedOrbs: _connectedOrbs,
-    connectedRelays,
-    connectedClients,
-    relayRequesterSocket: !relayRequesterSocket ? null : "connected",
+    connectedClients: _connectedClients,
+    orbToServerSocket: !orbToServerSocket ? null : "connected",
     connections,
     connectionQueue,
     game: !gameState ? null : {
@@ -875,7 +705,6 @@ function statusLogging() {
     //broadcastCounter,
     //lastMessageTimestamp,
     //lastMessageTimestampCount,
-    orbIPAddresses,
   })
 }
 statusLogging()
