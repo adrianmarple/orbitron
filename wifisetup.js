@@ -153,7 +153,7 @@ server.listen(PORT,function(err){
 // access point management
 const http2 = require('http2');
 
-function isConnected() {
+function checkConnection() {
   return new Promise((resolve) => {
     const client = http2.connect('https://www.google.com');
     client.setTimeout(5000)
@@ -173,12 +173,12 @@ function isConnected() {
 };
 
 function networkCheck(){
-  isConnected().then((connected)=>{
+  checkConnection().then((connected)=>{
     console.log("Internet Connected: ", connected)
     if(!connected){
       stopAccessPoint()
       setTimeout(() => {
-        isConnected().then((connected2)=>{
+        checkConnection().then((connected2)=>{
           if(!connected2){
             startAccessPoint()
             setTimeout(networkCheck, 10 * 60 * 1000);
@@ -192,4 +192,6 @@ function networkCheck(){
     }
   })
 }
-networkCheck()
+setTimeout(() => {
+  networkCheck()
+}, 2 * 60 * 1000);

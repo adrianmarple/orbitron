@@ -723,3 +723,58 @@ function statusLogging() {
 }
 statusLogging()
 setInterval(statusLogging,5 * 60 * 1000)
+
+//Update checking code
+const http2 = require('http2');
+
+function checkConnection() {
+  return new Promise((resolve) => {
+    const client = http2.connect('https://www.google.com');
+    client.setTimeout(5000)
+    client.on('connect', () => {
+      resolve(true);
+      client.destroy();
+    });
+    client.on('error', () => {
+      resolve(false);
+      client.destroy();
+    });
+    client.on('timeout', () => {
+      resolve(false);
+      client.destroy();
+    });
+  });
+};
+
+function timeUntilHour(hour) {
+  if (hour < 0 || hour > 24) throw new Error("Invalid hour format!");
+
+  const now = new Date();
+  const target = new Date(now);
+
+  if (now.getHours() >= hour)
+      target.setDate(now.getDate() + 1);
+
+  target.setHours(hour);
+  target.setMinutes(0);
+  target.setSeconds(0);
+  target.setMilliseconds(0);
+
+  return target.getTime() - 
+  now.getTime();
+}
+
+function checkForUpdates(){
+  checkConnection().then((connected)=>{
+    let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
+    console.log("hours until 2am", timeUntilHour(2) / 3600000)
+    setTimeout(() => {
+      checkForUpdates()
+    }, nextUpdateTime);
+    if(!connected) return
+    execSync("sudo git pull")
+    execSync("sudo pm2 restart")
+  })
+}
+
+checkForUpdates()
