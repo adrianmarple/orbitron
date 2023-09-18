@@ -352,10 +352,10 @@ class ClientConnection {
   processMessage(data) {
     try {
       let content = JSON.parse(data)
-      if(content.timestamp > self.latestMessage){
-        self.latestMessage = content.timestamp
-        if(self.callbacks.message){
-          self.callbacks.message.forEach(callback => {
+      if(content.timestamp > this.latestMessage){
+        this.latestMessage = content.timestamp
+        if(this.callbacks.message){
+          this.callbacks.message.forEach(callback => {
             callback(content)
           });
         }
@@ -386,8 +386,8 @@ class ClientConnection {
   }
 
   close() {
-    if(self.callbacks.close){
-      self.callbacks.close.forEach((callback)=>callback())
+    if(this.callbacks.close){
+      this.callbacks.close.forEach((callback)=>callback())
     }
   }
 }
