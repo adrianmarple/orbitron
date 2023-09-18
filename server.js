@@ -131,7 +131,8 @@ function bindOrb(socket, orbID) {
   connectedOrbs[orbID] = socket
   socket.on('message', (data, isBinary) => {
     if (data == "PING") return
-    if(data instanceof Buffer){
+    console.log(logsRequested, data, isBinary)
+    if(logsRequested[orbID] && data instanceof Buffer){
       try {
         fs.writeFileSync(`${homedir}/${orbID}_logs.zip`, data)
         console.log("Wrote logs for " + orbID)
