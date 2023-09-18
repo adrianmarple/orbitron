@@ -772,8 +772,9 @@ function checkForUpdates(){
       checkForUpdates()
     }, nextUpdateTime);
     if(!connected) return
+    console.log("Pulling git updates and restarting")
     execSync("sudo git pull")
-    execSync("sudo pm2 restart")
+    execSync("sudo pm2 restart all")
   })
 }
 
