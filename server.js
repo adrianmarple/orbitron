@@ -773,8 +773,11 @@ function checkForUpdates(){
     }, nextUpdateTime);
     if(!connected) return
     console.log("Pulling git updates and restarting")
-    execSync("sudo git pull")
-    execSync("sudo pm2 restart all")
+    execSync("git config pull.ff only")
+    let output = execSync("sudo git pull")
+    console.log("GIT OUTPUT", output)
+    if(output.toLowerCase().indexOf("already up to date") >= 0)
+      execSync("sudo pm2 restart all")
   })
 }
 
