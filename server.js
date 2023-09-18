@@ -229,13 +229,16 @@ function bindClient(socket, orbID, clientID) {
     console.error("Error on client socket", orbID, clientID, e)
     socket.close()
   })
-  let initial_message = {
-    clientID: clientID,
-    message: "",
-    closed:false,
-  }
-  try{
-    socket.send(JSON.stringify(initial_message))
+  try {
+    let orb = connectedOrbs[orbID]
+    if(orb) {
+      let initial_message = {
+        clientID: clientID,
+        message: "",
+        closed: false,
+      }  
+      orb.send(JSON.stringify(initial_message))
+    }
   } catch(e) {
     console.log("Error sending initial client message", e)
     socket.close()
