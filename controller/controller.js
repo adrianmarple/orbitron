@@ -26,11 +26,6 @@ var app = new Vue({
   el: '#app',
   data: {
     ws: null,
-    wrtcs: null,
-    signalSocket: null,
-    signalClient: null,
-    ls: null,
-    fetchingIP: false,
     state: {},
     localFlags: {},
     hasSeenGlobalRules: false,
@@ -61,9 +56,7 @@ var app = new Vue({
     GAMES_INFO,
     uuid: uuid(),
 
-    localSocketStatus: "CONNECTING",
-    webRTCStatus: "CONNECTING",
-    relaySocketStatus: "CONNECTING",
+    socketStatus: "CONNECTING",
 
     speedbumpCallback: null,
     speedbumpMessage: "",
@@ -73,7 +66,6 @@ var app = new Vue({
 
   created() {
     this.startWebsocket()
-    this.startLocalSocket()
     setInterval(() => {
       if(this.connectionStatus == "CONNECTED"){
         this.ping()
@@ -90,19 +82,10 @@ var app = new Vue({
         let self=this
         setTimeout(function(){self.startWebsocket();},10)
       }
-      if (!this.wrtcs) {
-        let self = this
-        setTimeout(function(){self.startWebRTCSocket();},10)
-      }
-      if (!this.ls) {
-        let self = this
-        setTimeout(function(){self.startLocalSocket();},10)
-      }
     };
     onblur = () => {
       if (!this.state.notimeout) {
         this.destroyWebsocket()
-        this.destroyLocalSocket()
         this.blurred = true
       }
     };
@@ -167,14 +150,10 @@ var app = new Vue({
       if(this.blurred){
         return "LOST FOCUS"
       } else {
-        if (this.relaySocketStatus == "CONNECTED" ||
-            this.webRTCStatus == "CONNECTED" ||
-            this.localSocketStatus == "CONNECTED") {
+        if (this.socketStatus == "CONNECTED") {
           return "CONNECTED"
         }
-        if (this.relaySocketStatus == "CONNECTING" ||
-            this.webRTCStatus == "CONNECTING" ||
-            this.localSocketStatus == "CONNECTING") {
+        if (this.socketStatus == "CONNECTING") {
           return "CONNECTING"
         }
         return "DISCONNECTED"
@@ -431,34 +410,6 @@ var app = new Vue({
           this.startWebsocket()
         }
       }
-      if(!this.wrtcs) {
-        try {
-          this.startWebRTCSocket()
-        } catch(e) {
-          console.log(e)
-        }
-      } else {
-        try {
-          this.wrtcs.send(message)
-        } catch(e) {
-          this.destroyWebRTCSocket()
-          this.startWebRTCSocket()
-        }
-      }
-      if(!this.ls) {
-        try {
-          this.startLocalSocket()
-        } catch(e) {
-          console.log(e)
-        }
-      } else {
-        try {
-          this.ls.send(message)
-        } catch(e) {
-          this.destroyLocalSocket()
-          this.startLocalSocket()
-        }
-      }
     },
 
     destroyWebsocket() {
@@ -490,49 +441,6 @@ var app = new Vue({
         console.error("ERROR",event)
         setTimeout(function(){ self.destroyWebsocket(); })
       }
-    },
-
-    destroyLocalSocket() {
-      if(this.ls) {
-        try {
-          this.ls.close()
-        } catch(e) {
-          console.log("Error closing local socket", e)
-        }
-        this.ls = null
-      }
-      this.localSocketStatus = "DISCONNECTED"
-    },
-    startLocalSocket() {
-      let self=this
-      if(self.ls || self.fetchingIP) {
-        return // Already trying to establish a connection
-      }
-      this.localSocketStatus == 'CONNECTING'
-      self.fetchingIP = true
-      fetch(`${location.origin}/ip${window.location.pathname}`,{method:"GET"})
-        .then((response) => {
-          self.fetchingIP = false
-          response.text().then((ip) => {
-            if(!ip) return
-            self.ls = new WebSocket(`ws://${ip}:7777//${self.uuid}`)
-            self.ls.onmessage = event => {
-              self.$set(self, 'localSocketStatus', 'CONNECTED')
-              self.handleMessage(event.data)
-            }
-            self.ls.onclose = event => {
-              setTimeout(function(){ self.destroyLocalSocket(); })
-            }
-            self.ls.onerror = event => {
-              console.error("ERROR",event)
-              setTimeout(function(){ self.destroyLocalSocket(); })
-            }
-          })
-        })
-        .catch((e) => {
-          self.fetchingIP = false
-          console.error("Error fecthing local IP", e)
-        })
     },
 
     handleMessage(data) {
