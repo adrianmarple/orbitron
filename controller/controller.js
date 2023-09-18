@@ -150,13 +150,7 @@ var app = new Vue({
       if(this.blurred){
         return "LOST FOCUS"
       } else {
-        if (this.socketStatus == "CONNECTED") {
-          return "CONNECTED"
-        }
-        if (this.socketStatus == "CONNECTING") {
-          return "CONNECTING"
-        }
-        return "DISCONNECTED"
+        return this.socketStatus
       }
     },
     gameStarted() {
@@ -421,17 +415,17 @@ var app = new Vue({
         }
         this.ws = null
       }
-      this.relaySocketStatus = "DISCONNECTED"
+      this.socketStatus = "DISCONNECTED"
     },
     startWebsocket() {
       let self=this
       if(self.ws) {
         return // Already trying to establish a connection
       }
-      this.relaySocketStatus == 'CONNECTING'
+      this.socketStatus == 'CONNECTING'
       this.ws = new WebSocket(`ws://${window.location.hostname}:7777${window.location.pathname}/${this.uuid}`)
       this.ws.onmessage = event => {
-        self.$set(self, 'relaySocketStatus', 'CONNECTED')
+        self.$set(self, 'socketStatus', 'CONNECTED')
         self.handleMessage(event.data)
       }
       this.ws.onclose = event => {
