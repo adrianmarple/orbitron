@@ -799,7 +799,9 @@ function checkForUpdates(){
   })
 }
 
-checkForUpdates()
+if (!config.DEV_MODE) {
+  checkForUpdates()
+}
 
 function pm2Cleanup(){
   let list = execSync("pm2 list")
