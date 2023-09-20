@@ -23,6 +23,8 @@ async function EulerianPath(currentVertex, pathOverride) {
     let v1 = currentVertex.coordinates
     let v2 = otherVertex(edge, currentVertex).coordinates
 
+    if (!isWall) return d(v0, v2)
+
     let e0 = delta(v1, v0)
   	let e1 = delta(v2, v1)
     let angle = Math.abs(signedAngle(e1, e0))
@@ -34,7 +36,6 @@ async function EulerianPath(currentVertex, pathOverride) {
       angle = -angle + 1e6
     }
     return -angle
-    // return d(v0, v2)
   }
 
   // Sort by straightest path
