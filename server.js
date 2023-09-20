@@ -816,7 +816,7 @@ function pm2Cleanup(){
   if(shouldRestart){
     execSync("pm2 startup")
     execSync("pm2 save")
-    execSync("sudo reboot")
+    execSync("reboot")
   }
 }
 pm2Cleanup()
