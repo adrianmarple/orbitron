@@ -293,12 +293,15 @@ async function createCoverSVG() {
     }
 
     let useMinimalBorder = minimalInnerBorder && dPath.length == 4 && !skipBorder
-    for (let i = 0; i < 4; i++) {
-  	  let v0 = dPath[i].ogCoords
-  	  let v1 = dPath[(i+1) % dPath.length].ogCoords
-  	  let e0 = delta(v1, v0)
-      if (magnitude(e0) > 1.1) {
-        useMinimalBorder = false
+    if (useMinimalBorder) {
+      for (let i = 0; i < 4; i++) {
+        console.log(dPath)
+        let v0 = dPath[i].ogCoords
+        let v1 = dPath[(i+1) % dPath.length].ogCoords
+        let e0 = delta(v1, v0)
+        if (magnitude(e0) > 1.1) {
+          useMinimalBorder = false
+        }
       }
     }
 
