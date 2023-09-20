@@ -799,12 +799,12 @@ function pm2Cleanup(){
   let list = execSync("pm2 list")
   let shouldRestart = false
   if(list.indexOf("wifisetup") >= 0){
-    execSync("pm2 delete wifisetup")
+    tryExecSync("pm2 delete wifisetup")
     shouldRestart = true
   }
   if(list.indexOf("server") >= 0){
-    execSync("pm2 delete server")
-    execSync("pm2 start startscript.sh")
+    tryExecSync("pm2 delete server")
+    tryExecSync("pm2 start startscript.sh")
     shouldRestart = true
   }
   if(shouldRestart){
