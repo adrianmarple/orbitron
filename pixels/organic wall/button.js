@@ -9,6 +9,7 @@ button.addEventListener('click', function() {
   reset()
   pixelDensity = 0.25
   isWall = true
+  minimalInnerBorder = true
 
   edgeCentersBlacklist = [
     [0, 3.5, 0],

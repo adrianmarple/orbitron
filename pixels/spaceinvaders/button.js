@@ -9,6 +9,7 @@ button.addEventListener('click', async () => {
   reset()
   pixelDensity = 0.25
   isWall = true
+  minimalInnerBorder = true
 
   imageUrl = "spaceinvaders/invader1A.png"
   await addSquaresFromPixels()

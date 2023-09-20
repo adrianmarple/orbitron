@@ -8,7 +8,7 @@ let CHANNEL_WIDTH = 12
 let CHANNEL_DEPTH = 10
 let HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
 let NOTCH_DEPTH = 5
-let FASTENER_DEPTH = NOTCH_DEPTH + 3
+let FASTENER_DEPTH = 3
 
 let WOOD_KERF = 0.14
 let ACRYLIC_KERF = -0.06 // Use for hex cat recut
@@ -32,9 +32,17 @@ WOOD_KERF *= MM_TO_96DPI
 ACRYLIC_KERF *= MM_TO_96DPI
 let KERF = ACRYLIC_KERF
 
-let BALSA_LENGTH = 96*11.77 // A little more than 11' 3/4
+let BALSA_LENGTH = 96*11.77 // A little more than 11 3/4 inches
 let WALL_SVG_PADDING = 24
 let WALL_SVG_GAP = 6
+
+let minimalInnerBorder = false
+
+let resetOG = reset
+reset = () => {
+  resetOG()
+  minimalInnerBorder = false
+}
 
 const svgStyle = document.createElement("style")
 document.head.appendChild(svgStyle)
@@ -177,8 +185,9 @@ async function createCoverSVG(showNumbers) {
 
   let totalPathString = ""
   for (let dPath of paths) {
-  	let borderString = ""
     let channelString = ""
+  	let borderString = ""
+  	let minimalBorderString = ""
     
    	for (let i = 0; i < dPath.length; i++) {
   	  let v0 = dPath[i].ogCoords
@@ -231,12 +240,6 @@ async function createCoverSVG(showNumbers) {
       let x1 = lengthOffset1 + NOTCH_DEPTH + KERF
       let x2 = edgeLength + lengthOffset2 - NOTCH_DEPTH - KERF
 
-      points = [
-        [x1, w1],
-        [x1, w2],
-        [x2, w2],
-        [x2, w1],
-      ]
       let wallLength = edgeLength + lengthOffset2 - lengthOffset1
       let edgeCenter = add(add(localOffset, scale(e1, edgeLength/2)), scale(n, w1*1.5))
       let addedToCount = false
@@ -253,8 +256,24 @@ async function createCoverSVG(showNumbers) {
         })
       }
 
+      points = [
+        [x1, w1],
+        [x1, w2],
+        [x2, w2],
+        [x2, w1],
+      ]
       channelString += "M" + pointsToSVGString(points, [e1, n], localOffset).substring(1) + "Z "
-  	}
+  	
+      points = [
+        [x1 + FASTENER_DEPTH, w2],
+        [x1, w2],
+        [x1, w1],
+        [x2, w1],
+        [x2, w2],
+        [x2 - FASTENER_DEPTH, w2],
+      ]
+      minimalBorderString += pointsToSVGString(points, [e1, n], localOffset)
+    }
 
     let skipBorder = false
     if (imageUrl && dPath.length == 4) {
@@ -273,10 +292,24 @@ async function createCoverSVG(showNumbers) {
       }
     }
 
-    if (!skipBorder) {
-  	  totalPathString += "M" + borderString.substring(1) + "Z "
+    let useMinimalBorder = minimalInnerBorder && dPath.length == 4 && !skipBorder
+    for (let i = 0; i < 4; i++) {
+  	  let v0 = dPath[i].ogCoords
+  	  let v1 = dPath[(i+1) % dPath.length].ogCoords
+  	  let e0 = delta(v1, v0)
+      if (magnitude(e0) > 1.1) {
+        useMinimalBorder = false
+      }
     }
-  	totalPathString += channelString
+
+    if (useMinimalBorder) {
+      totalPathString += "M" + minimalBorderString.substring(1) + "Z "
+    } else {
+      if (!skipBorder) {
+    	  totalPathString += "M" + borderString.substring(1) + "Z "
+      }
+  	  totalPathString += channelString
+    }
   }
   cover.querySelector("path").setAttribute("d", totalPathString)
 

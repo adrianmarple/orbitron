@@ -156,12 +156,9 @@ function doubleEdges() {
 async function addSquaresFromPixels(src) {
   if (!src) src = imageUrl
   let ctx = await getImageContext(src)
-  console.log(ctx)
-
   for (let x = 0; x < ctx.canvas.width; x++) {
     for (let y = 0; y < ctx.canvas.height; y++) {
       let pixel = ctx.getImageData(x, y, 1, 1).data
-      console.log(pixel[0])
       if (pixel[0] < 10 && pixel[3] > 0) {// very dark red component
         addSquare([x,-y,0])
       }

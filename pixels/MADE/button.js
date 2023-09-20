@@ -8,7 +8,7 @@ button.addEventListener('click', async () => {
   name = "MADE"
   reset()
   pixelDensity = 0.333333
-  // pixelDensity = 0.5
+  minimalInnerBorder = true
   isWall = true
 
   imageUrl = "MADE/made2D.png"
@@ -16,5 +16,5 @@ button.addEventListener('click', async () => {
   doubleEdges()
   console.log(edges.length)
 
-  EulerianPath(verticies[0], [1])
+  EulerianPath(verticies[0], [0])
 })
