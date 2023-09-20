@@ -57,6 +57,80 @@ execSync = (command) =>{
   return _execSync((IS_SERVER ? "" : "sudo ") + command)
 }
 
+//Update checking code
+function tryExecSync(command){
+  try {
+    return execSync(command)
+  } catch(err){
+    console.error(err)
+    return ""
+  }
+}
+
+function checkConnection() {
+  return new Promise((resolve) => {
+    const client = http2.connect('https://www.google.com');
+    client.setTimeout(5000)
+    client.on('connect', () => {
+      resolve(true);
+      client.destroy();
+    });
+    client.on('error', () => {
+      resolve(false);
+      client.destroy();
+    });
+    client.on('timeout', () => {
+      resolve(false);
+      client.destroy();
+    });
+  });
+};
+
+function timeUntilHour(hour) {
+  if (hour < 0 || hour > 24) throw new Error("Invalid hour format!");
+
+  const now = new Date();
+  const target = new Date(now);
+
+  if (now.getHours() >= hour)
+      target.setDate(now.getDate() + 1);
+
+  target.setHours(hour);
+  target.setMinutes(0);
+  target.setSeconds(0);
+  target.setMilliseconds(0);
+
+  return target.getTime() - 
+  now.getTime();
+}
+
+function checkForUpdates(){
+  checkConnection().then((connected)=>{
+    let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
+    console.log("hours until 2am", timeUntilHour(2) / 3600000)
+    setTimeout(() => {
+      checkForUpdates()
+    }, nextUpdateTime);
+    if(!connected) return
+    console.log("Pulling git updates...")
+    tryExecSync("git config pull.ff only")
+    let output = execSync("git pull")
+    if(output.toString().toLowerCase().indexOf("already up to date") < 0){
+      console.log("Has updates, restarting!")
+      execSync("pm2 restart all")
+    }
+  }).catch((error)=>{
+    console.error(error)
+    setTimeout(() => {
+      checkForUpdates()
+    }, 6e4);
+  })
+}
+
+if (!config.DEV_MODE) {
+  checkForUpdates()
+}
+
 // ---Dev Kit Websocket server---
 
 let devServer = http.createServer(function(request, response) {
@@ -729,100 +803,6 @@ function statusLogging() {
 statusLogging()
 setInterval(statusLogging,5 * 60 * 1000)
 
-//Update checking code
-function tryExecSync(command){
-  try {
-    return execSync(command)
-  } catch(err){
-    console.error(err)
-    return ""
-  }
-}
-
-function checkConnection() {
-  return new Promise((resolve) => {
-    const client = http2.connect('https://www.google.com');
-    client.setTimeout(5000)
-    client.on('connect', () => {
-      resolve(true);
-      client.destroy();
-    });
-    client.on('error', () => {
-      resolve(false);
-      client.destroy();
-    });
-    client.on('timeout', () => {
-      resolve(false);
-      client.destroy();
-    });
-  });
-};
-
-function timeUntilHour(hour) {
-  if (hour < 0 || hour > 24) throw new Error("Invalid hour format!");
-
-  const now = new Date();
-  const target = new Date(now);
-
-  if (now.getHours() >= hour)
-      target.setDate(now.getDate() + 1);
-
-  target.setHours(hour);
-  target.setMinutes(0);
-  target.setSeconds(0);
-  target.setMilliseconds(0);
-
-  return target.getTime() - 
-  now.getTime();
-}
-
-function checkForUpdates(){
-  checkConnection().then((connected)=>{
-    let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
-    console.log("hours until 2am", timeUntilHour(2) / 3600000)
-    setTimeout(() => {
-      checkForUpdates()
-    }, nextUpdateTime);
-    if(!connected) return
-    console.log("Pulling git updates...")
-    tryExecSync("git config pull.ff only")
-    let output = execSync("git pull")
-    if(output.toString().toLowerCase().indexOf("already up to date") < 0){
-      console.log("Has updates, restarting!")
-      execSync("pm2 restart all")
-    }
-  }).catch((error)=>{
-    console.error(error)
-    setTimeout(() => {
-      checkForUpdates()
-    }, 6e4);
-  })
-}
-
-if (!config.DEV_MODE) {
-  checkForUpdates()
-}
-
-function pm2Cleanup(){
-  let list = execSync("pm2 list")
-  let shouldRestart = false
-  if(list.indexOf("wifisetup") >= 0){
-    tryExecSync("pm2 delete wifisetup")
-    shouldRestart = true
-  }
-  if(list.indexOf("server") >= 0){
-    tryExecSync("pm2 delete server")
-    tryExecSync("pm2 start startscript.sh")
-    shouldRestart = true
-  }
-  if(shouldRestart){
-    execSync("pm2 startup")
-    execSync("pm2 save")
-    execSync("reboot")
-  }
-}
-pm2Cleanup()
-
 // ---Wifi Setup Code---
 let FORM = `
 <!DOCTYPE html>
@@ -983,3 +963,23 @@ if(!IS_SERVER){
     networkCheck()
   }, 6e4);
 }
+
+function pm2Cleanup(){
+  let list = execSync("pm2 list")
+  let shouldRestart = false
+  if(list.indexOf("wifisetup") >= 0){
+    tryExecSync("pm2 delete wifisetup")
+    shouldRestart = true
+  }
+  if(list.indexOf("server") >= 0){
+    tryExecSync("pm2 delete server")
+    tryExecSync("pm2 start startscript.sh")
+    shouldRestart = true
+  }
+  if(shouldRestart){
+    execSync("pm2 startup")
+    execSync("pm2 save")
+    execSync("reboot")
+  }
+}
+pm2Cleanup()
