@@ -85,13 +85,16 @@ DEFAULT_PULSE_DIRECTION = np.array(
   pixel_info.get("defaultPulseDirection", (0,0,1)),
   dtype=float)
 
-minPulseDot = 1000
-maxPulseDot = -1000
-for coord in coords:
-  d = np.dot(coord, DEFAULT_PULSE_DIRECTION)
-  minPulseDot = min(minPulseDot, d)
-  maxPulseDot = max(maxPulseDot, d)
-pulseRange = maxPulseDot - minPulseDot
+# minPulseDot = 1000
+# maxPulseDot = -1000
+# for coord in coords:
+#   d = np.dot(coord, DEFAULT_PULSE_DIRECTION)
+#   minPulseDot = min(minPulseDot, d)
+#   maxPulseDot = max(maxPulseDot, d)
+# pulseRange = maxPulseDot - minPulseDot
+
+minPulseDot = 1
+pulseRange = 2
 
 INITIAL_POSITIONS = pixel_info.get("initialPositions", [None]*6)
 antipodes = pixel_info.get("antipodes", None)
