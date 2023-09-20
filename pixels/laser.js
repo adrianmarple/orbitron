@@ -97,7 +97,7 @@ setTimeout(() => {
       document.querySelectorAll("path").forEach(path => path.setAttribute('d', ""))
       cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
       if (isWall) {
-        createCoverSVG(true)
+        createCoverSVG()
         // createWallSVG()
       }
     }, 100)
@@ -108,7 +108,7 @@ let wallInfo = []
 let maxX = 0
 let maxY = 0
 
-async function createCoverSVG(showNumbers) {
+async function createCoverSVG() {
   maxX = 0
   maxY = 0
   console.log("creating svgs")
@@ -315,7 +315,7 @@ async function createCoverSVG(showNumbers) {
 
   wallInfo.sort((a,b) => a.length - b.length)
 
-  if (showNumbers) {
+  if (generateWallNumbers) {
     for (let wallType of wallInfo) {
       let index = wallInfo.indexOf(wallType)
       wallType.id = index

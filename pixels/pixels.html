@@ -28,15 +28,32 @@ canvas {
   cursor: pointer;
 }
 #type-buttons {
-  position: absolute;
+  position: fixed;
   right:  24px;
   top: 24px;
   z-index: 1;
 }
 #download {
-  position: absolute;
+  position: fixed;
   right:  24px;
   bottom: 24px;
+}
+
+#settings {
+  position: fixed;
+  left:  24px;
+  top: 24px;
+  z-index: 10;
+}
+#settings > div {
+  display: flex;
+  font-size: 24px;
+  color: white;
+  cursor: pointer;
+}
+#settings input {
+  width: 1.3em;
+  margin-right: 12px;
 }
 
 </style>
@@ -46,8 +63,15 @@ canvas {
 
 <div id="type-buttons"></div>
 <div class="button" id="download">Download</div>
+
+<div id="settings">
+  <div>showVertexNumbers</div>
+  <div>showEdgeNumbers</div>
+  <div>showLaserSVG</div>
+  <div>generateWallNumbers</div>
+</div>
+
 <script>
-  
 const initialSeed = 3
 const PHI = (1 + Math.sqrt(5))/ 2
 
@@ -63,6 +87,19 @@ function reset() {
   imageUrl = null
 }
 reset()
+
+for (let setting of document.querySelectorAll("#settings > div")) {
+  let varName = setting.innerHTML
+  window[varName] = false
+  let checkbox = document.createElement("input")
+  checkbox.type = "checkbox"
+  setting.addEventListener("click", () => {
+    window[varName] = !window[varName]
+    checkbox.checked = window[varName]
+  })
+  setting.prepend(checkbox)
+}
+
 
 // ===================== rendering and interaction =====================
 
@@ -158,18 +195,21 @@ function render() {
   ctx.fontSize = 30
   for (let vertex of verticies) {
     let xy0 = project(vertex.coordinates, projScale)
-    ctx.fillText(vertex.index, xy0[0] + 4, xy0[1] - 5)
+    if (showVertexNumbers) {
+      ctx.fillText(vertex.index, xy0[0] + 4, xy0[1] - 5)
+    }
   }
   for (let edge of edges) {
     let center = add(edge.verticies[0].coordinates, edge.verticies[1].coordinates)
     center = scale(center, 0.5)
     let xy0 = project(center, projScale)
-    if (edge.isDupe) {
-      // ctx.fillText(edge.index, xy0[0] - 20, xy0[1] - 5)
-    } else {
+    if (showEdgeNumbers && !edge.isDupe) {
       ctx.fillText(edge.index, xy0[0] + 4, xy0[1] - 5)
     }
   }
+
+  document.getElementById("cover").style.display = showLaserSVG ? "block" : "none"
+  document.getElementById("cover").style.display = showLaserSVG ? "block" : "none"
 }
 
 
