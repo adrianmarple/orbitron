@@ -79,16 +79,6 @@ neighbors = pixel_info["neighbors"]
 next_pixel = pixel_info["nextPixel"]
 unique_to_dupe = pixel_info["uniqueToDupe"]
 coords = [np.array(coord) for coord in pixel_info["coords"]]
-mins = np.array((1e6,1e6,1e6))
-maxes = np.array((-1e6,-1e6,-1e6))
-for coord in coords:
-  mins = np.minimum(mins, coord)
-  maxes = np.maximum(maxes, coord)
-# Normalize to between -1 and 1
-for coord in coords:
-  coord -= mins
-  coord = np.multiply(coord, (maxes-mins)/2)
-  coord -= np.array((1,1,1))
 coord_matrix = np.matrix(coords).transpose()
 
 DEFAULT_PULSE_DIRECTION = np.array(
