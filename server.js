@@ -8,7 +8,9 @@ const process = require('process')
 const { spawn, execSync } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
 //const { v4: uuidv4 } = require('uuid')
-const homedir = require('os').homedir();
+const homedir = require('os').homedir()
+const qs = require('querystring')
+const http2 = require('http2')
 
 //add timestamps to logs
 const clog = console.log
@@ -48,6 +50,11 @@ if (game_index) {
 }
 const IS_SERVER = !config.CONNECT_TO_RELAY
 
+// mod exec sync to add sudo if running on an orb
+let _execSync = execSync
+execSync = (command) =>{
+  return _execSync((IS_SERVER ? "" : "sudo ") + command)
+}
 
 // ---Dev Kit Websocket server---
 
@@ -695,19 +702,15 @@ rootServer.listen(rootServerPort, "0.0.0.0")
 
 // periodic status logging
 function statusLogging() {
-  let _connectedOrbs = null
-  let _connectedClients = null
-  if(IS_SERVER){
-    _connectedOrbs = {}
-    for(const orb in connectedOrbs) {
-      _connectedOrbs[orb] = connectedOrbs[orb].classification
-    }
-    _connectedClients = connectedClients
+  let _connectedOrbs = {}
+  for(const orb in connectedOrbs) {
+    _connectedOrbs[orb] = connectedOrbs[orb].classification
   }
   console.log("STATUS",{
+    isServer: IS_SERVER,
     devConnections,
     connectedOrbs: _connectedOrbs,
-    connectedClients: _connectedClients,
+    connectedClients,
     orbToServerSocket: !orbToServerSocket ? null : "connected",
     connections,
     connectionQueue,
@@ -725,7 +728,14 @@ statusLogging()
 setInterval(statusLogging,5 * 60 * 1000)
 
 //Update checking code
-const http2 = require('http2');
+function tryExecSync(command){
+  try {
+    return execSync(command)
+  } catch(err){
+    console.log(err)
+    return ""
+  }
+}
 
 function checkConnection() {
   return new Promise((resolve) => {
@@ -773,13 +783,188 @@ function checkForUpdates(){
     }, nextUpdateTime);
     if(!connected) return
     console.log("Pulling git updates...")
-    execSync("git config pull.ff only")
-    let output = execSync("sudo git pull")
+    tryExecSync("git config pull.ff only")
+    let output = execSync("git pull")
     if(output.toString().toLowerCase().indexOf("already up to date") < 0){
       console.log("Has updates, restarting!")
-      execSync("sudo pm2 restart all")
+      execSync("pm2 restart all")
     }
   })
 }
 
 checkForUpdates()
+
+function pm2Cleanup(){
+  let list = execSync("pm2 list")
+  let shouldRestart = false
+  if(list.indexOf("wifisetup") >= 0){
+    execSync("pm2 delete wifisetup")
+    shouldRestart = true
+  }
+  if(list.indexOf("server") >= 0){
+    execSync("pm2 delete server")
+    execSync("pm2 start startscript.sh")
+    shouldRestart = true
+  }
+  if(shouldRestart){
+    execSync("pm2 startup")
+    execSync("pm2 save")
+    execSync("pm2 restart all")
+  }
+}
+pm2Cleanup()
+
+// ---Wifi Setup Code---
+let FORM = `
+<!DOCTYPE html>
+<html>
+
+   <head>
+      <title>Add Wifi Network</title>
+   </head>
+
+   <body>
+      <form action="/" method="post">
+         SSID: <input type = "text" name = "ssid" />
+         <br>
+         <br>
+         Password: <input type = "password" name = "password" />
+         <br>
+         <br>
+         Priority: <input type = "radio" name = "priority" value = "low" checked> Low
+         <input type = "radio" name = "priority" value = "high"> High
+         <br>
+         <br>
+         <input type = "submit" name = "submit" value = "Submit" />
+      </form>
+   </body>
+
+</html>
+`
+let SUBMITTED = `
+<!DOCTYPE html>
+<html>
+   <meta http-equiv="Refresh" content="3">
+   <head>
+      <title>Submission Completed</title>
+   </head>
+
+   <body>
+        SSID and Password submitted, WiFi will now restart to apply changes and the page will refresh.
+   </body>
+
+</html>
+`
+
+function startAccessPoint(){
+  console.log("STARTING ACCESS POINT")
+  tryExecSync("mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
+  tryExecSync("systemctl enable hostapd")
+  tryExecSync("systemctl restart networking.service")
+  tryExecSync("systemctl restart dhcpcd")
+  tryExecSync("systemctl restart hostapd")
+  console.log("FINISHED STARTING ACCESS POINT")
+}
+
+function stopAccessPoint(){
+  console.log("STOPPING ACCESS POINT")
+  tryExecSync("systemctl stop hostapd")
+  tryExecSync("systemctl disable hostapd")
+  tryExecSync("mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
+  tryExecSync("systemctl restart networking.service")
+  tryExecSync("systemctl restart dhcpcd")
+  tryExecSync("wpa_cli reconfigure")
+  console.log("FINISHED STOPPING ACCESS POINT")
+}
+
+function submitSSID(formData) {
+  let ssid = formData.ssid.replace(/'/g, "\\'")
+  console.log("Addind SSID: ", ssid)
+  if(ssid == ""){
+    stopAccessPoint()
+    return
+  }
+  let password = formData.password.replace(/'/g, "\\'")
+  let priority = formData.priority == 'low' ? 1 : 2
+  let append = ""
+  if(password.trim() == ""){
+    append = `
+network={
+    ssid="${ssid}"
+    key_mgmt=NONE
+    scan_ssid=1
+    id_str="${ssid}"
+    priority=${priority}
+}
+`
+  } else {
+    append = `
+network={
+    ssid="${ssid}"
+    psk="${password}"
+    key_mgmt=WPA-PSK
+    scan_ssid=1
+    id_str="${ssid}"
+    priority=${priority}
+}
+`
+  }
+  let toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
+  tryExecSync(toExec)
+  stopAccessPoint()
+}
+
+let isFirstNetworkCheck = true
+
+function networkCheck(){
+  checkConnection().then((connected)=>{
+    console.log("Internet Connected: ", connected)
+    if(!connected){
+      stopAccessPoint()
+      setTimeout(() => {
+        isFirstNetworkCheck = false
+        checkConnection().then((connected2)=>{
+          if(!connected2){
+            startAccessPoint()
+            setTimeout(networkCheck, 10 * 6e4);
+          } else {
+            setTimeout(networkCheck, 2 * 6e4);
+          }
+        })
+      }, isFirstNetworkCheck ? 3e4 : 3 * 6e4);
+    } else {
+      isFirstNetworkCheck = false
+      setTimeout(networkCheck, 2 * 6e4);
+    }
+  })
+}
+
+if(!IS_SERVER){
+  let wifiSetupServer = http.createServer(function (req, res) {
+    if (req.method === 'GET') { 
+      res.writeHead(200, { 'Content-Type': 'text/html' }) 
+      res.write(FORM)
+      res.end()
+    } else if (req.method === 'POST') {
+      let body = ""
+      req.on('data', function(data) {
+        body += data
+      })
+      req.on('end', function() {
+        let formData = qs.parse(body)
+        console.log(formData)
+        res.writeHead(200, {'Content-Type': 'text/html'})
+        res.write(SUBMITTED)
+        res.end()
+        submitSSID(formData)
+      })
+    }
+  })
+
+  wifiSetupServer.listen(9090,function(err){
+    console.log("wifi setup Listening on " + 9090,err)
+  })
+  setTimeout(() => {
+    networkCheck()
+  }, 6e4);
+}
