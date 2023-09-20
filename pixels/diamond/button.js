@@ -8,7 +8,6 @@ button.addEventListener('click', function() {
   name = "diamond"
   reset()
   pixelDensity = 0.25
-  isWall = true
 
   for (let i = -6; i <= 6; i++) {
     for (let j = -6; j <= 6; j++) {

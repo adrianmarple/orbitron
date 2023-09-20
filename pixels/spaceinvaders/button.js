@@ -8,7 +8,6 @@ button.addEventListener('click', async () => {
   name = "invader"
   reset()
   pixelDensity = 0.25
-  isWall = true
   minimalInnerBorder = true
 
   imageUrl = "spaceinvaders/invader1A.png"

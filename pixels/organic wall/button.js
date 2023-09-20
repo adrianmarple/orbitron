@@ -8,7 +8,6 @@ button.addEventListener('click', function() {
   name = "organic wall"
   reset()
   pixelDensity = 0.25
-  isWall = true
   minimalInnerBorder = true
 
   edgeCentersBlacklist = [

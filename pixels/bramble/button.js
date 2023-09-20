@@ -7,7 +7,6 @@ button.classList.add("button")
 button.addEventListener('click', function() {
   name = "bramble"
   reset()
-  isWall = true
 
   let smallEdge = 4
   let bigEdge = 5

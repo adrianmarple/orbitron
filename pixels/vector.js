@@ -33,24 +33,39 @@ function translateAll(vector) {
 }
 
 function center(permanently) {
+  let attribute = permanently ? "ogCoords" : "coordinates"
+
   let mins = [1e6, 1e6, 1e6]
   let maxes = [-1e6, -1e6, -1e6]
   
   for (let vertex of verticies) {
-    let coord = vertex.coordinates
+    let coord = vertex[attribute]
     for (let i = 0; i < 3; i++) {
       mins[i] = Math.min(mins[i], coord[i])
       maxes[i] = Math.max(maxes[i], coord[i])
     }
   }
-  translateAll(scale(add(mins, maxes), -0.5))
-
-  if (permanently) {
-    for (let vertex of verticies) {
-      vertex.ogCoords = scale(vertex.coordinates, 1)
-    }
+  let offset = scale(add(mins, maxes), -0.5)
+  for (let vertex of verticies) {
+    vertex[attribute] = add(vertex[attribute], offset)
   }
+  return offset
 }
+function resize(permanently) {
+  let attribute = permanently ? "ogCoords" : "coordinates"
+
+  let maxMagnitude = 0
+  
+  for (let vertex of verticies) {
+    let mag = magnitude(vertex[attribute])
+    maxMagnitude = Math.max(maxMagnitude, mag)
+  }
+  for (let vertex of verticies) {
+    vertex[attribute] = scale(vertex[attribute], 1/maxMagnitude)
+  }
+  return 1/maxMagnitude
+}
+
 
 function rotateXAll(theta) {
   for (let vertex of verticies) {

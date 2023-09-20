@@ -7,8 +7,10 @@ button.classList.add("button")
 button.addEventListener('click', function() {
   name = "helmet";
   reset()
-  pixelDensity = 0.4
+  pixelDensity = 0.5
   isWall = false
+  centerOffset = false
+
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
     [Math.pow(PHI, 2), PHI, 2 * PHI],

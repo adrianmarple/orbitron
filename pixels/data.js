@@ -128,6 +128,16 @@ function generatePixelInfo() {
 
   let previousVertex = startVertex(path)
 
+  let centerOffset = [0,0,0]
+  if (centerOnExport) {
+    centerOffset = center(true)
+  }
+  let resizeScale = 1
+  if (resizeOnExport) {
+    resizeScale = resize(true)
+  }
+  pixelDensity *= resizeScale
+
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
     let nextVertex = otherVertex(edge, previousVertex)
@@ -254,6 +264,13 @@ function generatePixelInfo() {
       info.defaultPulseDirection = [0,0,1]
       break
   }
+
+  // Undo centering and resizing
+  for (let vertex of verticies) {
+    vertex.ogCoords = scale(vertex.ogCoords, 1/resizeScale)
+    vertex.ogCoords = delta(vertex.ogCoords, centerOffset)
+  }
+  pixelDensity /= resizeScale
 
   return info
 }

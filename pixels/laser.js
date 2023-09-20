@@ -295,7 +295,6 @@ async function createCoverSVG() {
     let useMinimalBorder = minimalInnerBorder && dPath.length == 4 && !skipBorder
     if (useMinimalBorder) {
       for (let i = 0; i < 4; i++) {
-        console.log(dPath)
         let v0 = dPath[i].ogCoords
         let v1 = dPath[(i+1) % dPath.length].ogCoords
         let e0 = delta(v1, v0)

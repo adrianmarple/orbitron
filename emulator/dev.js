@@ -233,10 +233,10 @@ var app = new Vue({
         stand.translateY(-1.15)
         this.orbitronGroup.add(stand)
 
-        let innerSphereGeometry = new THREE.SphereGeometry( 0.95, 32, 16 )
+        let innerSphereGeometry = new THREE.SphereGeometry( 0.8, 32, 16 )
         let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
         innerSphereMaterial.transparent = true
-        innerSphereMaterial.opacity = 0.8
+        innerSphereMaterial.opacity = 0.6
         let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
         subGroup.add(innerSphere)
         subGroup.rotation.set(-Math.PI/2,0,0)
