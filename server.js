@@ -254,7 +254,7 @@ function bindClient(socket, orbID, clientID) {
 }
 
 function pingHandler() {
-  if(orbToServerSocket){
+  if(orbToServerSocket && orbToServerSocket.readyState === WebSocket.OPEN){
     orbToServerSocket.send("PING")
     if(Date.now() - orbToServerSocket.lastPingReceived > 60 * 1000){
       orbToServerSocket.close()
@@ -816,7 +816,7 @@ function pm2Cleanup(){
   if(shouldRestart){
     execSync("pm2 startup")
     execSync("pm2 save")
-    execSync("pm2 restart all")
+    execSync("sudo reboot")
   }
 }
 pm2Cleanup()
