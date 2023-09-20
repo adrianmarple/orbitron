@@ -43,8 +43,6 @@ function center(permanently) {
       maxes[i] = Math.max(maxes[i], coord[i])
     }
   }
-  console.log(mins, maxes, scale(add(mins, maxes), -0.5))
-
   translateAll(scale(add(mins, maxes), -0.5))
 
   if (permanently) {

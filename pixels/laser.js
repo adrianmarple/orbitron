@@ -268,7 +268,6 @@ async function createCoverSVG(showNumbers) {
       
       let imageContext = await getImageContext()
       let pixel = imageContext.getImageData(x, y, 1, 1).data
-      console.log(x,y,pixel[0],pixel[1],pixel[2])
       if (pixel[0] + pixel[1] + pixel[2] == 0) { // skip border for black pixels
         skipBorder = true
       }
