@@ -34,9 +34,9 @@ process.on('SIGINT', handleKill)
 process.on('SIGTERM', handleKill)
 process.on('SIGHUP', handleKill)
 
-// process.on('uncaughtException', function(err) {
-//   console.error('Uncaught exception: ' + err)
-// });
+process.on('uncaughtException', function(err, origin) {
+  console.error('Uncaught exception: ', err, origin)
+});
 
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
@@ -248,7 +248,7 @@ function bindClient(socket, orbID, clientID) {
       orb.send(JSON.stringify(initial_message))
     }
   } catch(e) {
-    console.log("Error sending initial client message", e)
+    console.error("Error sending initial client message", e)
     socket.close()
   }
 }
@@ -311,15 +311,15 @@ function relayUpkeep() {
       }
     })
     orbToServerSocket.on('close', () => {
-      console.log("Relay requester socket closed")
+      console.log("Orb to server socket closed")
       orbToServerSocket = null
     })
     orbToServerSocket.on('error', (e) => {
-      console.log("Relay requester socket error", e)
+      console.error("Orb to server socket error", e)
       orbToServerSocket.close()
     })
   } catch(e) {
-    console.error("Error connecting to relay:", e)
+    console.error("Error connecting to server:", e)
     orbToServerSocket = null
   }
 }
@@ -564,8 +564,8 @@ python_process.stderr.on('data', data => {
   }
 });
 
-python_process.on('uncaughtException', function(err) {
-  console.error('Caught python exception: ' + err);
+python_process.on('uncaughtException', function(err, origin) {
+  console.error('Caught python exception: ', err, origin);
 });
 
 
@@ -708,6 +708,7 @@ function statusLogging() {
     _connectedOrbs[orb] = connectedOrbs[orb].classification
   }
   console.log("STATUS",{
+    id: config.ORB_ID,
     isServer: IS_SERVER,
     devConnections,
     connectedOrbs: _connectedOrbs,
@@ -733,7 +734,7 @@ function tryExecSync(command){
   try {
     return execSync(command)
   } catch(err){
-    console.log(err)
+    console.error(err)
     return ""
   }
 }
@@ -790,6 +791,11 @@ function checkForUpdates(){
       console.log("Has updates, restarting!")
       execSync("pm2 restart all")
     }
+  }).catch((error)=>{
+    console.error(error)
+    setTimeout(() => {
+      checkForUpdates()
+    }, 6e4);
   })
 }
 
@@ -880,7 +886,7 @@ function stopAccessPoint(){
 
 function submitSSID(formData) {
   let ssid = formData.ssid.replace(/'/g, "\\'")
-  console.log("Addind SSID: ", ssid)
+  console.log("Adding SSID: ", ssid)
   if(ssid == ""){
     stopAccessPoint()
     return
@@ -931,12 +937,18 @@ function networkCheck(){
           } else {
             setTimeout(networkCheck, 2 * 6e4);
           }
+        }).catch((error)=>{
+          console.error(error)
+          setTimeout(networkCheck, 6e4);
         })
       }, isFirstNetworkCheck ? 3e4 : 3 * 6e4);
     } else {
       isFirstNetworkCheck = false
       setTimeout(networkCheck, 2 * 6e4);
     }
+  }).catch((error)=>{
+    console.error(error)
+    setTimeout(networkCheck, 6e4);
   })
 }
 
@@ -962,8 +974,8 @@ if(!IS_SERVER){
     }
   })
 
-  wifiSetupServer.listen(9090,function(err){
-    console.log("wifi setup Listening on " + 9090,err)
+  wifiSetupServer.listen(9090,function(){
+    console.log("wifi setup Listening on port 9090")
   })
   setTimeout(() => {
     networkCheck()
