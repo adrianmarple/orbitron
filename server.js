@@ -5,7 +5,7 @@ const http = require('http')
 const fs = require('fs')
 const path = require('path')
 const process = require('process')
-const { spawn, execSync } = require('child_process')
+const { spawn } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
 //const { v4: uuidv4 } = require('uuid')
 const homedir = require('os').homedir()
@@ -34,9 +34,9 @@ process.on('SIGINT', handleKill)
 process.on('SIGTERM', handleKill)
 process.on('SIGHUP', handleKill)
 
-process.on('uncaughtException', function(err) {
-  console.error('Uncaught exception: ' + err)
-});
+// process.on('uncaughtException', function(err) {
+//   console.error('Uncaught exception: ' + err)
+// });
 
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
@@ -51,6 +51,7 @@ if (game_index) {
 const IS_SERVER = !config.CONNECT_TO_RELAY
 
 // mod exec sync to add sudo if running on an orb
+let { execSync } = require('child_process')
 let _execSync = execSync
 execSync = (command) =>{
   return _execSync((IS_SERVER ? "" : "sudo ") + command)
