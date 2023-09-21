@@ -794,6 +794,9 @@ function statusLogging() {
       name: gameState.game,
       state: gameState.gameState,
     },
+    numTimesNetworkCheckFailed,
+    numTimesNetworkRestartWorked,
+    numTimesAccessPointStarted,
     //gameState,
     //broadcastCounter,
     //lastMessageTimestamp,
@@ -904,19 +907,25 @@ network={
 }
 
 let isFirstNetworkCheck = true
-
+let numTimesNetworkCheckFailed = 0
+let numTimesNetworkRestartWorked = 0
+let numTimesAccessPointStarted = 0
 function networkCheck(){
   checkConnection().then((connected)=>{
     console.log("Internet Connected: ", connected)
     if(!connected){
+      numTimesNetworkCheckFailed += 1
       stopAccessPoint()
       setTimeout(() => {
         isFirstNetworkCheck = false
         checkConnection().then((connected2)=>{
+          console.log("Internet Connected Second Check: ", connected2)
           if(!connected2){
+            numTimesAccessPointStarted += 1
             startAccessPoint()
             setTimeout(networkCheck, 10 * 6e4);
           } else {
+            numTimesNetworkRestartWorked += 1
             setTimeout(networkCheck, 2 * 6e4);
           }
         }).catch((error)=>{
