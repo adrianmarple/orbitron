@@ -316,7 +316,7 @@ function bindClient(socket, orbID, clientID) {
     if(orb) {
       let initial_message = {
         clientID: clientID,
-        message: "",
+        message: "{}",
         closed: false,
       }  
       orb.send(JSON.stringify(initial_message))
