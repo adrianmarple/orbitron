@@ -346,6 +346,13 @@ setInterval(pingHandler, 3000)
 let orbToServerSocket = null
 function relayUpkeep() {
   if(IS_SERVER || orbToServerSocket) return
+  checkConnection().then((connected)=>{
+    if(connected){
+      connectOrbToServer()
+    }
+  })
+}
+function connectOrbToServer(){
   try {
     let serverURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
     console.log("Initializing orb to server socket", serverURL)
@@ -398,7 +405,7 @@ function relayUpkeep() {
   }
 }
 
-setInterval(relayUpkeep, 500)
+setInterval(relayUpkeep, 5e3)
 
 // Class that handles connections between client and orb
 const clientConnections = {}
