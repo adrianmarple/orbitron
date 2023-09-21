@@ -93,7 +93,7 @@ DEFAULT_PULSE_DIRECTION = np.array(
 #   maxPulseDot = max(maxPulseDot, d)
 # pulseRange = maxPulseDot - minPulseDot
 
-minPulseDot = 1
+minPulseDot = -1
 pulseRange = 2
 
 INITIAL_POSITIONS = pixel_info.get("initialPositions", [None]*6)
