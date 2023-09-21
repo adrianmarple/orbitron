@@ -650,7 +650,7 @@ const rootServer = http.createServer(function (request, response) {
   let fileRelativeToScript = true
   if (filePath == '/')
     filePath = "/controller/controller.html"
-  else if (filePath == '/dev' || filePath == '/view')
+  else if (filePath == `/${config.ORB_ID}/dev` || filePath == `/${config.ORB_ID}/view`)
     filePath = "/emulator/dev.html"
   else if (filePath == '/pixels.json') {
     filePath = config.PIXELS || "rhombicosidodecahedron"
