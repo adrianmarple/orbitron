@@ -124,9 +124,6 @@ function generatePixelInfo() {
   let nextPixel = {}
   let uniqueToDupe = []
   let dupeToUniques = []
-
-  let vertIndexToCoordIndex = {}
-
   let previousVertex = startVertex(path)
 
   let centerOffset = [0,0,0]
@@ -144,23 +141,28 @@ function generatePixelInfo() {
     let nextVertex = otherVertex(edge, previousVertex)
     let v1 = previousVertex.ogCoords
     let v2 = nextVertex.ogCoords
-
-    if (typeof(vertIndexToCoordIndex[previousVertex.index]) != 'undefined') {
-      uniqueToDupe.push(vertIndexToCoordIndex[previousVertex.index])
-    } else {
-      vertIndexToCoordIndex[previousVertex.index] = coords.length
-      uniqueToDupe.push(coords.length)
-      coords.push(v1)
-    }
     let edgeLength = d(v1,v2)
-    for (let alpha = pixelDensity; true; alpha += pixelDensity) {
+    for (let alpha = 0; true; alpha += pixelDensity) {
       if (epsilonEquals(edgeLength, alpha, 0.01)) break
       if (alpha > edgeLength) {
         console.error("Edge legnth not a integer multiple of pixel density")
         return
       }
-      uniqueToDupe.push(coords.length)
-      coords.push(linearCombo(v2, v1, alpha/edgeLength))
+      let newCoord = linearCombo(v2, v1, alpha/edgeLength)
+      let dupeIndex = -1
+      for (let i = 0; i < coords.length; i++) {
+        let coord = coords[i]
+        if (vectorEquals(coord, newCoord)) {
+          dupeIndex = i
+          break
+        }
+      }
+      if (dupeIndex >= 0) {
+        uniqueToDupe.push(dupeIndex)
+      } else {
+        uniqueToDupe.push(coords.length)
+        coords.push(newCoord)
+      }
     }
 
     previousVertex = nextVertex
@@ -171,11 +173,13 @@ function generatePixelInfo() {
     neighbors.push([])
     dupeToUniques.push([])
   }
-  let previousIndex = coords.length - 1
+  let previousIndex = uniqueToDupe[uniqueToDupe.length - 1]
   for (let i = 0; i < uniqueToDupe.length; i++) {
     let index = uniqueToDupe[i]
-    neighbors[index].push(previousIndex)
-    neighbors[previousIndex].push(index)
+    if (!neighbors[index].includes(previousIndex))
+      neighbors[index].push(previousIndex)
+    if (!neighbors[previousIndex].includes(index))
+      neighbors[previousIndex].push(index)
     previousIndex = index
 
     dupeToUniques[index].push(i)
