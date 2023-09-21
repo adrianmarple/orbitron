@@ -1,8 +1,8 @@
 
-function epsilonEquals(a, b, epsilon=0.1) {
+function epsilonEquals(a, b, epsilon=0.01) {
   return a - b < epsilon && b - a < epsilon
 }
-function vectorEquals(v1, v2, epsilon=0.1) {
+function vectorEquals(v1, v2, epsilon=0.01) {
   return epsilonEquals(d(v1,v2), 0, epsilon)
 }
 

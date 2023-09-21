@@ -333,7 +333,6 @@ async function createCoverSVG() {
 }
 
 function createWallSVG() {
-  console.log(wallInfo)
   wall.querySelectorAll("text").forEach(elem => wall.removeChild(elem))
   let path = ""
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
