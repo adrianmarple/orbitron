@@ -775,37 +775,6 @@ const rootServer = http.createServer(function (request, response) {
 const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")
 
-// periodic status logging
-function statusLogging() {
-  let _connectedOrbs = {}
-  for(const orb in connectedOrbs) {
-    _connectedOrbs[orb] = connectedOrbs[orb].classification
-  }
-  console.log("STATUS",{
-    id: config.ORB_ID,
-    isServer: IS_SERVER,
-    devConnections,
-    connectedOrbs: _connectedOrbs,
-    connectedClients,
-    orbToServerSocket: !orbToServerSocket ? null : "connected",
-    connections,
-    connectionQueue,
-    game: !gameState ? null : {
-      name: gameState.game,
-      state: gameState.gameState,
-    },
-    numTimesNetworkCheckFailed,
-    numTimesNetworkRestartWorked,
-    numTimesAccessPointStarted,
-    //gameState,
-    //broadcastCounter,
-    //lastMessageTimestamp,
-    //lastMessageTimestampCount,
-  })
-}
-statusLogging()
-setInterval(statusLogging,5 * 60 * 1000)
-
 // ---Wifi Setup Code---
 let FORM = `
 <!DOCTYPE html>
@@ -992,3 +961,34 @@ function pm2Cleanup(){
   }
 }
 pm2Cleanup()
+
+// periodic status logging
+function statusLogging() {
+  let _connectedOrbs = {}
+  for(const orb in connectedOrbs) {
+    _connectedOrbs[orb] = connectedOrbs[orb].classification
+  }
+  console.log("STATUS",{
+    id: config.ORB_ID,
+    isServer: IS_SERVER,
+    devConnections,
+    connectedOrbs: _connectedOrbs,
+    connectedClients,
+    orbToServerSocket: !orbToServerSocket ? null : "connected",
+    connections,
+    connectionQueue,
+    game: !gameState ? null : {
+      name: gameState.game,
+      state: gameState.gameState,
+    },
+    numTimesNetworkCheckFailed,
+    numTimesNetworkRestartWorked,
+    numTimesAccessPointStarted,
+    //gameState,
+    //broadcastCounter,
+    //lastMessageTimestamp,
+    //lastMessageTimestampCount,
+  })
+}
+statusLogging()
+setInterval(statusLogging,5 * 60 * 1000)
