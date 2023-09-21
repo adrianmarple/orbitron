@@ -522,7 +522,7 @@ class SoundWrapper {
   constructor(file) {
     let name = file.slice(0,-4)
     let audio = document.createElement('audio')
-    audio.src = "audio/" + file
+    audio.src = "/audio/" + file
     audio.id = "audio-" + name
     //audio.clientWidth = 0
     //audio.clientHeight = 0
@@ -548,7 +548,7 @@ class MusicWrapper {
   constructor(file, loop, vampFile){
     let name = file.slice(0,-4)
     let audio = document.createElement('audio')
-    audio.src = "audio/" + file
+    audio.src = "/audio/" + file
     audio.id = "audio-" + name
     audio.loop = loop
     //audio.clientWidth = 0
@@ -566,7 +566,7 @@ class MusicWrapper {
       this.vampFile = vampFile
       let vampName = vampFile.slice(0,-4)
       let vamp = document.createElement('audio')
-      vamp.src = "audio/" + vampFile
+      vamp.src = "/audio/" + vampFile
       vamp.id = "audio-" + vampName
       vamp.loop = true
       //vamp.clientWidth = 0

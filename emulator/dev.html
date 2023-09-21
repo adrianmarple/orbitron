@@ -130,7 +130,7 @@ p {
       <div v-if="!showController" class="button" @click="showController = true">
         Summon Controller
       </div>
-      <iframe v-else src="/" frameBorder="0"></iframe>
+      <iframe v-else :src="'http://orbitron.games/' + window.location.pathname.split('/')[1]" frameBorder="0"></iframe>
     </div>
   </div>
   <script src="/emulator/dev.js"></script>
