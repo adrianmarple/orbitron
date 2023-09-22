@@ -10,7 +10,6 @@ const pako = require('./thirdparty/pako.min.js')
 //const { v4: uuidv4 } = require('uuid')
 const homedir = require('os').homedir()
 const qs = require('querystring')
-const http2 = require('http2')
 
 //add timestamps to logs
 const clog = console.log
@@ -69,21 +68,17 @@ function tryExecSync(command){
 
 function checkConnection() {
   return new Promise((resolve) => {
-    const client = http2.connect('https://www.google.com');
-    client.setTimeout(15e3)
-    client.on('connect', () => {
-      resolve(true);
-      client.destroy();
-    });
-    client.on('error', (e) => {
+    fetch("https://google.com", {
+      method: "FET",
+      cache: "no-cache",
+      headers: { "Content-Type": "application/json" },
+      referrerPolicy: "no-referrer",
+    }).then(() =>{
+      resolve(true)
+    })
+    .catch((e) =>{
       console.error("connection check error", e)
-      resolve(false);
-      client.destroy();
-    });
-    client.on('timeout', () => {
-      console.error('connection check timeout')
-      resolve(false);
-      client.destroy();
+      resolve(false)
     });
   });
 };
