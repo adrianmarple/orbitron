@@ -68,18 +68,17 @@ function tryExecSync(command){
 
 function checkConnection() {
   return new Promise((resolve) => {
-    fetch("https://google.com", {
-      method: "FET",
-      cache: "no-cache",
-      headers: { "Content-Type": "application/json" },
-      referrerPolicy: "no-referrer",
-    }).then(() =>{
-      resolve(true)
-    })
-    .catch((e) =>{
-      console.error("connection check error", e)
+    try{
+      let output = execSync('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
+      if(output.indexOf("200 OK") >= 0){
+        resolve(true)
+      } else {
+        resolve(false)
+      }
+    } catch(e) {
+      console.error("Error checking connection", e)
       resolve(false)
-    });
+    }
   });
 };
 
@@ -347,6 +346,8 @@ function relayUpkeep() {
     if(connected){
       connectOrbToServer()
     }
+  }).catch((e) => {
+    console.error("Error upkeeping orb to server socket", e)
   })
 }
 function connectOrbToServer(){
