@@ -70,16 +70,18 @@ function tryExecSync(command){
 function checkConnection() {
   return new Promise((resolve) => {
     const client = http2.connect('https://www.google.com');
-    client.setTimeout(5000)
+    client.setTimeout(15e3)
     client.on('connect', () => {
       resolve(true);
       client.destroy();
     });
-    client.on('error', () => {
+    client.on('error', (e) => {
+      console.error("connection check error", e)
       resolve(false);
       client.destroy();
     });
     client.on('timeout', () => {
+      console.error('connection check timeout')
       resolve(false);
       client.destroy();
     });
