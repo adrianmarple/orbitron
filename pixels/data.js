@@ -39,26 +39,36 @@ async function EulerianPath(currentVertex, pathOverride) {
   }
 
   // Sort by straightest path
-  if (name != "rhombicosidodecahedron") {
-    edgesCopy.sort((a,b) => distance(b) - distance(a))
-  }
+  edgesCopy.sort((a,b) => distance(b) - distance(a))
 
   for (let edge of edgesCopy) {
     if (path.includes(edge.index)) continue;
 
-    let dist = distance(edge)
-    if (name == "rhombicosidodecahedron" && (epsilonEquals(dist, 2) || epsilonEquals(dist, 3.236))) {
-      continue
-    }
-
     path.push(edge.index);
-    if (hasFreeEdge(currentVertex) &&
+    let remainingEdges = currentVertex.edges.filter(edge => !path.includes(edge.index))
+
+    if (remainingEdges.length > 0 &&
         !isConnectedToStart(currentVertex)) {
       path.pop()
       continue
     }
+    // Avoid a straight twist that is forced in a last pair of edges
+    if (remainingEdges.length == 2 &&
+        remainingEdges[0].isDupe != remainingEdges[1].isDupe) {
+      let v0 = otherVertex(remainingEdges[0], currentVertex).coordinates
+      let v1 = currentVertex.coordinates
+      let v2 = otherVertex(remainingEdges[1], currentVertex).coordinates
+      let e0 = delta(v1, v0)
+      let e1 = delta(v2, v1)
+      let edgeAngle = Math.abs(signedAngle(e0, e1))
+      if (edgeAngle < Math.PI/4) {
+        path.pop()
+        continue
+      }
+    }
+
     let nextVertex = otherVertex(edge, currentVertex)
-    // await delay(10)
+    await delay(10)
     let finished = await EulerianPath(nextVertex);
     if (finished) {
       return true
@@ -83,11 +93,8 @@ function penultimateVertex() {
   return otherVertex(edges[path[path.length - 1]], startVertex())
 }
 
-function hasFreeEdge(vertex) {
-  for (let edge of vertex.edges) {
-    if (!path.includes(edge.index)) return true
-  }
-  return false
+function remainingEdges(vertex) {
+  return 
 }
 
 function isConnectedToStart(vertex) {
