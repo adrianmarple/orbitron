@@ -605,7 +605,7 @@ function broadcast(baseMessage) {
 }
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
-
+let raw_pixels = null
 python_process.stdout.on('data', data => {
   messages = data.toString().trim().split("\n")
   for(let message of messages){
@@ -624,15 +624,24 @@ python_process.stdout.on('data', data => {
         connections[id].lastActivityTime = Date.now()
       }
     } else if(message.startsWith("raw_pixels=")) {
-      try {
-        //console.log(pako.inflate(pako.deflate(message.substr(11).trim()),{to:"string"}))
-        devBroadcast(pako.deflate(message.substr(11).trim()));
-      } catch(e) {
-        console.error(e);
-        console.error(message);
-      }
-    } else{
+      raw_pixels = ""
+      message = message.substr(11).trim()
+    } else if (raw_pixels === null) {
       console.log("UNHANDLED STDOUT MESSAGE: `" + message + "`")
+    }
+
+    if (raw_pixels !== null) {
+      raw_pixels += message
+      if (raw_pixels.endsWith(";")) {
+        try {
+          //console.log(pako.inflate(pako.deflate(message.substr(11).trim()),{to:"string"}))
+          devBroadcast(pako.deflate(raw_pixels.slice(0, -1)))
+        } catch(e) {
+          console.error(e)
+          console.error(raw_pixels)
+        }
+        raw_pixels = null
+      }
     }
   }
 });

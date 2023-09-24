@@ -19,7 +19,7 @@ from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
 
 if os.getenv("DEV_MODE"):
   def neopixel_write(data):
-    print("raw_pixels=%s" % data.hex())
+    print("raw_pixels=%s;" % data.hex())
 else:
   from orbclient.orbpixel import neopixel_write
 
