@@ -782,6 +782,17 @@ class Idle(Game):
     self.fluid_values *= 0.86
     squares = np.multiply(self.fluid_values, self.fluid_values)
 
+    if pixel_info["name"] == "MADE":
+      squares = np.maximum(squares, 0.02)
+      pixels = np.outer(squares, np.array((1,1,1)) * 200)
+      green = np.multiply(np.sign(coord_matrix[0]), np.sign(coord_matrix[1]))
+      green = (green + 1)/2
+      green = np.squeeze(np.asarray(green))
+      red = 1 - green
+      blue = np.array([1.0] * SIZE)
+      pixels = np.multiply(pixels, np.matrix([red, green, blue]).transpose())
+      return
+
     now = datetime.now()
     start_fade = (now - self.start).total_seconds() / self.fade_duration
     start_fade = min(start_fade, 1)
