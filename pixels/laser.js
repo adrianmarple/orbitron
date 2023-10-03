@@ -8,7 +8,7 @@ let CHANNEL_WIDTH = 12
 let CHANNEL_DEPTH = 10
 let HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
 let NOTCH_DEPTH = 5
-let FASTENER_DEPTH = 3
+let FASTENER_DEPTH = 2.5
 
 let WOOD_KERF = 0.14
 let ACRYLIC_KERF = -0.06 // Use for hex cat recut
@@ -76,13 +76,13 @@ cover.outerHTML = `
 cover = document.getElementById("cover")
 
 
-document.getElementById("download").addEventListener('click', function() {
+document.getElementById("download").addEventListener('click', async () => {
   if (isWall) {
     KERF = ACRYLIC_KERF
-    createCoverSVG()
+    await createCoverSVG()
     downloadSVGAsText("cover", "top (acrylic)")
     KERF = WOOD_KERF
-    createCoverSVG()
+    await createCoverSVG()
     downloadSVGAsText("cover", "bottom (birch plywood)")
 
     createWallSVG()
@@ -339,16 +339,8 @@ function createWallSVG() {
   let offset = [WALL_SVG_PADDING, WALL_SVG_PADDING]
   let panelCount = 1
   for (let wallType of wallInfo) {
-    // let txt = document.createElementNS("http://www.w3.org/2000/svg", "text")
-    // txt.setAttribute("x", offset[0] - 10)
-    // txt.setAttribute("y", offset[1] + wallHeight/2)
-    // txt.setAttribute("font-size", 20)
-    // txt.setAttribute("fill", "black")
-    // txt.innerHTML = "" + wallType.id
-    // wall.appendChild(txt)
-    
     let wallLength = wallType.length + 2*WOOD_KERF
-    let targetCount = wallType.edgeCenters.length + 1
+    let targetCount = wallType.edgeCenters.length
     if (targetCount > 8) targetCount += 1
     if (targetCount > 30) targetCount += 1
     for (let i = 0; i < targetCount; i++) {

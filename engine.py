@@ -789,7 +789,7 @@ class Idle(Game):
       green = (green + 1)/2
       green = np.squeeze(np.asarray(green))
       red = 1 - green
-      blue = np.array([1.0] * SIZE)
+      blue = 1 - 2*np.multiply(red, green)
       pixels = np.multiply(pixels, np.matrix([red, green, blue]).transpose())
       return
 
