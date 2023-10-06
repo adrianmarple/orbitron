@@ -61,7 +61,7 @@ function tryExecSync(command){
   try {
     return execSync(command)
   } catch(err){
-    console.error(err)
+    console.error("tryExecSync Error", err)
     return ""
   }
 }
@@ -103,20 +103,19 @@ function timeUntilHour(hour) {
 function checkForUpdates(){
   checkConnection().then((connected)=>{
     let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
-    console.log("hours until 2am", timeUntilHour(2) / 3600000)
+    //console.log("hours until 2am", timeUntilHour(2) / 3600000)
     setTimeout(() => {
       checkForUpdates()
     }, nextUpdateTime);
     if(!connected) return
-    console.log("Pulling git updates...")
     tryExecSync("git config pull.ff only")
     let output = execSync("git pull")
     if(output.toString().toLowerCase().indexOf("already up to date") < 0){
-      console.log("Has updates, restarting!")
+      console.log("Has git updates, restarting!")
       execSync("pm2 restart all")
     }
   }).catch((error)=>{
-    console.error(error)
+    console.error("checkForUpdates Error", error)
     setTimeout(() => {
       checkForUpdates()
     }, 6e4);
@@ -145,12 +144,10 @@ let wsDevServer = new WebSocket.Server({
 
 wsDevServer.on('connection', socket => {
   socket.binaryType = "arraybuffer"
-  console.log('Dev connection accepted.')
   let id = Math.floor(Math.random() * 1000000000) // change this to uuid?
   devConnections[id] = socket
   socket.id = id
   socket.on('close', () => {
-    console.log("Dev connection closed.")
     delete devConnections[id]
   })
 })
@@ -169,7 +166,7 @@ const logsRequested = {}
 const connectedClients = {}
 if(IS_SERVER){
   let server = http.createServer(function(request, response) {
-    console.log('Websocket Server received request for ' + request.url)
+    //console.log('Websocket Server received request for ' + request.url)
     response.writeHead(404)
     response.end()
   })
@@ -181,7 +178,7 @@ if(IS_SERVER){
 
   wsServer.on('connection', (socket, request) => {
     let url = request.url.trim()
-    console.log('WS connection request made to', request.url)
+    //console.log('WS connection request made to', request.url)
     let meta = url.split("/")
     if(meta[1] == "relay") { // socket from orb to server
       let orbID = meta[2]
@@ -197,9 +194,8 @@ if(IS_SERVER){
   })
 }
 function bindOrb(socket, orbID) {
-  console.log("Binding orb",orbID)
+  //console.log("Binding orb",orbID)
   if(connectedOrbs[orbID]){
-    console.log("Already an existing orb socket, closing it")
     try {
       connectedOrbs[orbID].close()
     } catch(e) {
@@ -229,7 +225,6 @@ function bindOrb(socket, orbID) {
       if(client){
         while(client.messageCache.length > 0) {
           let message = client.messageCache.shift()
-          console.log("SENDING CACHED", message)
           try {
             socket.send(message)
           } catch(e) {
@@ -244,7 +239,6 @@ function bindOrb(socket, orbID) {
 
   })
   socket.on('close', () => {
-    console.log("Closing orb socket", orbID)
     delete connectedOrbs[orbID]
   })
   socket.on('error', (e) => {
@@ -254,7 +248,7 @@ function bindOrb(socket, orbID) {
 }
 
 function bindClient(socket, orbID, clientID) {
-  console.log("Binding client",orbID,clientID)
+  //console.log("Binding client",orbID,clientID)
   if(!connectedClients[orbID]){
     connectedClients[orbID] = {}
   }
@@ -282,7 +276,6 @@ function bindClient(socket, orbID, clientID) {
       if(orb){
         orb.send(data)
       }else{
-        console.log("CACHING MESSAGE",data)
         socket.messageCache.push(data)
         if(socket.messageCache.length > 16) {
           socket.messageCache.shift()
@@ -293,7 +286,6 @@ function bindClient(socket, orbID, clientID) {
     }
   })
   socket.on('close', () => {
-    console.log("Closing client socket", orbID)
     let orb = connectedOrbs[orbID]
     if(orb){
       orb.send(JSON.stringify({
@@ -353,7 +345,7 @@ function relayUpkeep() {
 function connectOrbToServer(){
   try {
     let serverURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
-    console.log("Initializing orb to server socket", serverURL)
+    //console.log("Initializing orb to server socket", serverURL)
     orbToServerSocket = new WebSocket.WebSocket(serverURL)
     orbToServerSocket.lastPingReceived = Date.now()
     orbToServerSocket.on('message', (data, isBinary) => {
@@ -390,7 +382,6 @@ function connectOrbToServer(){
       }
     })
     orbToServerSocket.on('close', () => {
-      console.log("Orb to server socket closed")
       orbToServerSocket = null
     })
     orbToServerSocket.on('error', (e) => {
@@ -616,8 +607,7 @@ python_process.stdout.on('data', data => {
         broadcast(JSON.parse(message));
         devBroadcast(message);
       } catch(e) {
-        console.error(e);
-        console.error(message);
+        console.error("broadcast error", e, message);
       }
     } else if(message.startsWith("touchall")) {
       for (let id in connections) {
@@ -637,8 +627,7 @@ python_process.stdout.on('data', data => {
           //console.log(pako.inflate(pako.deflate(message.substr(11).trim()),{to:"string"}))
           devBroadcast(pako.deflate(raw_pixels.slice(0, -1)))
         } catch(e) {
-          console.error(e)
-          console.error(raw_pixels)
+          console.error("devBroadcast error", e, raw_pixels)
         }
         raw_pixels = null
       }
@@ -648,6 +637,7 @@ python_process.stdout.on('data', data => {
 python_process.stderr.on('data', data => {
   message = data.toString().trim()
   if(message){
+    // we use stderr for regular log messages from python
     console.log(message)
   }
 });
@@ -832,24 +822,22 @@ let SUBMITTED = `
 `
 
 function startAccessPoint(){
-  console.log("STARTING ACCESS POINT")
   tryExecSync("mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
   tryExecSync("systemctl enable hostapd")
   tryExecSync("systemctl restart networking.service")
   tryExecSync("systemctl restart dhcpcd")
   tryExecSync("systemctl restart hostapd")
-  console.log("FINISHED STARTING ACCESS POINT")
+  console.log("STARTED ACCESS POINT")
 }
 
 function stopAccessPoint(){
-  console.log("STOPPING ACCESS POINT")
   tryExecSync("systemctl stop hostapd")
   tryExecSync("systemctl disable hostapd")
   tryExecSync("mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
   tryExecSync("systemctl restart networking.service")
   tryExecSync("systemctl restart dhcpcd")
   tryExecSync("wpa_cli reconfigure")
-  console.log("FINISHED STOPPING ACCESS POINT")
+  console.log("STOPPED ACCESS POINT")
 }
 
 function submitSSID(formData) {
@@ -895,14 +883,12 @@ let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 function networkCheck(){
   checkConnection().then((connected)=>{
-    console.log("Internet Connected: ", connected)
     if(!connected){
       numTimesNetworkCheckFailed += 1
       stopAccessPoint()
       setTimeout(() => {
         isFirstNetworkCheck = false
         checkConnection().then((connected2)=>{
-          console.log("Internet Connected Second Check: ", connected2)
           if(!connected2){
             numTimesAccessPointStarted += 1
             startAccessPoint()
@@ -912,7 +898,7 @@ function networkCheck(){
             setTimeout(networkCheck, 2 * 6e4);
           }
         }).catch((error)=>{
-          console.error(error)
+          console.error("second network check error", error)
           setTimeout(networkCheck, 6e4);
         })
       }, isFirstNetworkCheck ? 3e4 : 3 * 6e4);
@@ -921,7 +907,7 @@ function networkCheck(){
       setTimeout(networkCheck, 2 * 6e4);
     }
   }).catch((error)=>{
-    console.error(error)
+    console.error("network check error", error)
     setTimeout(networkCheck, 6e4);
   })
 }
@@ -1005,4 +991,4 @@ function statusLogging() {
   })
 }
 statusLogging()
-setInterval(statusLogging,5 * 60 * 1000)
+setInterval(statusLogging,60 * 60 * 1000)

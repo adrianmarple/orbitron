@@ -360,7 +360,7 @@ var app = new Vue({
             try {
               self.gameState = JSON.parse(data)
             } catch(e) {
-              console.log(e)
+              console.error(e)
             }
           } else {
             self.rawPixels = event.data
@@ -375,7 +375,7 @@ var app = new Vue({
           self.ws = null
         }
       } catch(e) {
-        console.log(e)
+        console.error(e)
       }
     },
     followPlayer(player, index) {
@@ -539,7 +539,7 @@ class SoundWrapper {
     let self = this
     this.audio.volume = vol * this.volumeScale
     this.audio.play().catch(function(e){
-      console.log(e,self)
+      console.error(e,self)
     })
   }
 }
@@ -590,7 +590,7 @@ class MusicWrapper {
       this.stop()
       let self = this
       this.audio.play().catch(function(e){
-        console.log(e,self)
+        console.error(e,self)
       })
     }
     this.playing = true
