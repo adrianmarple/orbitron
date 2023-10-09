@@ -2,7 +2,7 @@ let BOTTOM_THICKNESS = 5
 let TOP_THICKNESS = 2.9
 let WALL_THICKNESS = 2.35
 let BORDER = 6
-let DEFAULT_PIXEL_DIST = 16.6
+let DEFAULT_PIXEL_DIST = 16.666 //16.6
 let PIXEL_DISTANCE = DEFAULT_PIXEL_DIST
 let CHANNEL_WIDTH = 12
 let CHANNEL_DEPTH = 10
@@ -11,7 +11,8 @@ let NOTCH_DEPTH = 5
 let FASTENER_DEPTH = 2.5
 
 let WOOD_KERF = 0.14
-let ACRYLIC_KERF = -0.06 // Use for hex cat recut
+let ACRYLIC_KERF = -0.03
+// let ACRYLIC_KERF = -0.06 // Used for hex cat recut
 
 
 let MM_TO_96DPI = 3.77952755906
@@ -32,7 +33,7 @@ WOOD_KERF *= MM_TO_96DPI
 ACRYLIC_KERF *= MM_TO_96DPI
 let KERF = ACRYLIC_KERF
 
-let BALSA_LENGTH = 96*11.77 // A little more than 11 3/4 inches
+let BALSA_LENGTH = 96*11.85 // A little more than 11 3/4 inches
 let WALL_SVG_PADDING = 24
 let WALL_SVG_GAP = 6
 
@@ -91,7 +92,6 @@ document.getElementById("download").addEventListener('click', async () => {
 })
 
 setTimeout(() => {
-  console.log(document.querySelectorAll(".button"))
   document.querySelectorAll(".button").forEach(elem => elem.addEventListener('click', function() {
     setTimeout(() => {
       document.querySelectorAll("path").forEach(path => path.setAttribute('d', ""))

@@ -7,7 +7,9 @@ button.classList.add("button")
 button.addEventListener('click', async () => {
   name = "MADE"
   reset()
-  pixelDensity = 0.5 //0.333333
+  pixelDensity = 0.5
+  // pixelDensity = 0.333333
+  BOTTOM_THICKNESS = TOP_THICKNESS
   minimalInnerBorder = true
   isWall = true
 
