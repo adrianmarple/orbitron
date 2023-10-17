@@ -109,8 +109,12 @@ function checkForUpdates(){
     }, nextUpdateTime);
     if(!connected) return
     tryExecSync("git config pull.ff only")
-    let output = execSync("git pull")
-    if(output.toString().toLowerCase().indexOf("already up to date") < 0){
+    let output = execSync("git pull").toString().toLowerCase()
+    if(output.indexOf("already up to date") >= 0){
+      console.log("Already has latest code from git")
+    } else if(output.indexOf("fatal") >= 0){
+      console.log("Git pull failed: " + output)
+    } else if(output.indexOf("fast-forward") >= 0 || output.indexOf("files changed") >= 0){
       console.log("Has git updates, restarting!")
       execSync("pm2 restart all")
     }
