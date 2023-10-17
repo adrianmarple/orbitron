@@ -942,26 +942,6 @@ if(!IS_SERVER){
   }, 6e4);
 }
 
-function pm2Cleanup(){
-  let list = execSync("pm2 list")
-  let shouldRestart = false
-  if(list.indexOf("wifisetup") >= 0){
-    tryExecSync("pm2 delete wifisetup")
-    shouldRestart = true
-  }
-  if(list.indexOf("server") >= 0){
-    tryExecSync("pm2 delete server")
-    tryExecSync("pm2 start startscript.sh")
-    shouldRestart = true
-  }
-  if(shouldRestart){
-    execSync("pm2 startup")
-    execSync("pm2 save")
-    execSync("reboot")
-  }
-}
-pm2Cleanup()
-
 // periodic status logging
 function statusLogging() {
   let _connectedOrbs = {}
