@@ -108,16 +108,7 @@ function checkForUpdates(){
       checkForUpdates()
     }, nextUpdateTime);
     if(!connected) return
-    tryExecSync("git config pull.ff only")
-    let output = execSync("git pull").toString().toLowerCase()
-    if(output.indexOf("already up to date") >= 0){
-      console.log("Already has latest code from git")
-    } else if(output.indexOf("fatal") >= 0){
-      console.log("Git pull failed: " + output)
-    } else if(output.indexOf("fast-forward") >= 0 || output.indexOf("files changed") >= 0){
-      console.log("Has git updates, restarting!")
-      execSync("pm2 restart all")
-    }
+    pullAndRestart()
   }).catch((error)=>{
     console.error("checkForUpdates Error", error)
     setTimeout(() => {
@@ -126,7 +117,20 @@ function checkForUpdates(){
   })
 }
 
-if (!config.DEV_MODE) {
+function pullAndRestart() {
+  tryExecSync("git config pull.ff only")
+  let output = execSync("git pull").toString().toLowerCase()
+  if(output.indexOf("already up to date") >= 0){
+    console.log("Already has latest code from git")
+  } else if(output.indexOf("fatal") >= 0){
+    console.log("Git pull failed: " + output)
+  } else if(output.indexOf("fast-forward") >= 0 || output.indexOf("files changed") >= 0){
+    console.log("Has git updates, restarting!")
+    execSync("pm2 restart all")
+  }
+}
+
+if (!config.DEV_MODE && !config.CONTINUOUS_INTEGRATION) {
   checkForUpdates()
 }
 
@@ -663,28 +667,29 @@ python_process.on('uncaughtException', function(err, origin) {
 // Simple HTTP server
 const rootServer = http.createServer(function (request, response) {
 
-  console.log(request.method)
+  // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
     console.log("Receiving github webhook update.")
     var body = ''
     request.on('data', function(data) {
       body += data
-      console.log('Partial body: ' + body)
     })
     request.on('end', function() {
-      console.log('Body: ' + body)
-      response.writeHead(200)
-      response.end('post received')
       payload = JSON.parse(body)
       console.log(payload)
+      response.writeHead(200)
+      response.end('post received')
+
+      // TODO also check secret: config.WEBHOOK_SECRET
+      if (payload.ref === 'refs/heads/master') {
+        pullAndRestart()
+      }
     })
-    console.log(request)
-    
     return
   }
 
+  // http GET stuff
   let filePath = request.url
-
   let fileRelativeToScript = true
   if (filePath == '/')
     filePath = "/controller/controller.html"
