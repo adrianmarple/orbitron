@@ -721,9 +721,8 @@ class Idle(Game):
   waiting_music = "idle"
 
   def update_prefs(self):
-    now_date = datetime.now().date()
-    self.midnight = datetime.combine(now_date + timedelta(days=1),
-      datetime.strptime("0:00", '%H:%M').time())
+    now = datetime.now()
+    now_date = now.date()
 
     start_string = prefs.get("startTime", "0:00")
     start_time = datetime.strptime(start_string, '%H:%M').time()
@@ -732,7 +731,11 @@ class Idle(Game):
     end_string = prefs.get("endTime", "23:59")
     end_time = datetime.strptime(end_string, '%H:%M').time()
     self.end = datetime.combine(now_date, end_time)
-    
+
+    if self.end < now:
+      self.end += timedelta(days=1)
+    if self.start > self.end:
+      self.start -= timedelta(days=1)
     self.fade_duration = 30.0*60 # 30 minutes
 
   def update(self):
@@ -748,7 +751,7 @@ class Idle(Game):
     global pixels
 
     now = datetime.now()
-    if now > self.midnight:
+    if now > self.end:
       self.update_prefs()
 
     head_ratio = len(self.fluid_heads) / target_head_count
@@ -793,17 +796,13 @@ class Idle(Game):
       pixels = np.multiply(pixels, np.matrix([red, green, blue]).transpose())
       return
 
-    now = datetime.now()
     start_fade = (now - self.start).total_seconds() / self.fade_duration
     start_fade = min(start_fade, 1)
     start_fade = max(start_fade, 0)
     end_fade = (self.end - now).total_seconds() / self.fade_duration
     end_fade = min(end_fade, 1)
     end_fade = max(end_fade, 0)
-    if self.start < self.end:
-      fade = min(start_fade, end_fade)
-    else:
-      fade = max(start_fade, end_fade)
+    fade = min(start_fade, end_fade)
     fade *= fade
 
     pixels = np.outer(squares, phase_color() * 200 * fade)
