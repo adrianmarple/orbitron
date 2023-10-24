@@ -667,7 +667,6 @@ const rootServer = http.createServer(function (request, response) {
   if (request.method === 'POST') {
     console.log("Received github webhook update.")
     console.log(request)
-    
     console.log(typeof request.payload)
     return
   }
