@@ -663,10 +663,12 @@ python_process.on('uncaughtException', function(err, origin) {
 // Simple HTTP server
 const rootServer = http.createServer(function (request, response) {
 
+  console.log(request.method)
   if (request.method === 'POST') {
     console.log("Received github webhook update.")
     console.log(request)
-    console.log(typeof request.message)
+    
+    console.log(typeof request.payload)
     return
   }
 
