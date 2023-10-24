@@ -1,12 +1,7 @@
 
-button = document.createElement("div")
-button.innerHTML = "Square"
 
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', function() {
+addButton("Square", () => {
   name = "square"
-  reset()
   isWall = true
   pixelDensity = 0.25
 

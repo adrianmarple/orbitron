@@ -1,12 +1,6 @@
 
-button = document.createElement("div")
-button.innerHTML = "Rhombicosidodecahedron"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', function() {
+addButton("Rhombicosidodecahedron", () => {
   name = "rhombicosidodecahedron"
-  reset()
   pixelDensity = 0.5
   isWall = false
   baseVerticies = [

@@ -1,12 +1,6 @@
 
-button = document.createElement("div")
-button.innerHTML = "Organic Wall"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', function() {
+addButton("Organic Wall", () => {
   name = "organic wall"
-  reset()
   pixelDensity = 0.25
   minimalInnerBorder = true
 

@@ -1,12 +1,6 @@
 
-button = document.createElement("div")
-button.innerHTML = "Space Invader"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', async () => {
+addButton("Space Invader", async () => {
   name = "invader"
-  reset()
   pixelDensity = 0.25
   BOTTOM_THICKNESS = TOP_THICKNESS
   WOOD_KERF = 0.12 * MM_TO_96DPI

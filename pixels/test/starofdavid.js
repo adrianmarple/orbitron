@@ -1,12 +1,6 @@
 
-button = document.createElement("div")
-button.innerHTML = "Star of David"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', function() {
+addButton("Star of David", () => {
   name = "sod"
-  reset()
   isWall = true
   pixelDensity = 0.25
 

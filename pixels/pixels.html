@@ -260,6 +260,18 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function addButton(name, onClick) {
+  button = document.createElement("div")
+  button.innerHTML = name
+
+  document.getElementById("type-buttons").appendChild(button)
+  button.classList.add("button")
+  button.addEventListener('click', () => {
+    reset()
+    onClick()
+  })
+}
+
 </script>
 
 <script type="text/javascript" src="topology.js"></script>

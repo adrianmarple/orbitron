@@ -1,12 +1,6 @@
 
-button = document.createElement("div")
-button.innerHTML = "Simple Grid"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', function() {
+addButton("Simple Grid", function() {
   name = "simple"
-  reset()
   isWall = true
   pixelDensity = 0.25
 
