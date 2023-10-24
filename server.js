@@ -680,9 +680,9 @@ const rootServer = http.createServer(function (request, response) {
       response.writeHead(200)
       response.end('post received')
 
-      let message = JSON.stringify({type: "pull"})
+      let message = {type: "pull"})
       broadcast(message)
-      devBroadcast(message)
+      devBroadcast(JSON.stringify(message))
       // TODO also check secret: config.WEBHOOK_SECRET
       if (payload.ref === 'refs/heads/master') {
         pullAndRestart()
