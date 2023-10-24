@@ -49,37 +49,23 @@ if (game_index) {
 }
 const IS_SERVER = !config.CONNECT_TO_RELAY
 
-// mod exec sync to add sudo if running on an orb
-let { execSync } = require('child_process')
-let _execSync = execSync
-execSync = (command) =>{
-  return _execSync((IS_SERVER ? "" : "sudo ") + command)
-}
-
-//Update checking code
-function tryExecSync(command){
-  try {
-    return execSync(command)
-  } catch(err){
-    console.error("tryExecSync Error", err)
-    return ""
-  }
-}
-
-function checkConnection() {
-  return new Promise((resolve) => {
-    try{
-      let output = execSync('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
-      if(output.indexOf("200 OK") >= 0){
-        resolve(true)
-      } else {
-        resolve(false)
+// mod exec to add sudo if running on an orb and to return a promise
+let { exec } = require('child_process')
+execute = (command) =>{
+  return new Promise((resolve,reject) => {
+    exec((IS_SERVER ? "" : "sudo ") + command,
+    (error, stdout, stderr) => {
+      if(error){
+        console.error("exec Error", command, error)
       }
-    } catch(e) {
-      console.error("Error checking connection", e)
-      resolve(false)
-    }
-  });
+      resolve(stdout.toString() + " " + stderr.toString())
+    })
+  })
+}
+
+async function checkConnection() {
+  let output = await execute('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
+  return output.indexOf("200 OK") >= 0
 };
 
 function timeUntilHour(hour) {
@@ -100,30 +86,24 @@ function timeUntilHour(hour) {
   now.getTime();
 }
 
-function checkForUpdates(){
-  checkConnection().then((connected)=>{
-    let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
-    //console.log("hours until 2am", timeUntilHour(2) / 3600000)
-    setTimeout(() => {
-      checkForUpdates()
-    }, nextUpdateTime);
-    if(!connected) return
-    tryExecSync("git config pull.ff only")
-    let output = execSync("git pull").toString().toLowerCase()
-    if(output.indexOf("already up to date") >= 0){
-      console.log("Already has latest code from git")
-    } else if(output.indexOf("fatal") >= 0){
-      console.log("Git pull failed: " + output)
-    } else if(output.indexOf("fast-forward") >= 0 || output.indexOf("files changed") >= 0){
-      console.log("Has git updates, restarting!")
-      execSync("pm2 restart all")
-    }
-  }).catch((error)=>{
-    console.error("checkForUpdates Error", error)
-    setTimeout(() => {
-      checkForUpdates()
-    }, 6e4);
-  })
+async function checkForUpdates(){
+  let connected = await checkConnection()
+  let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
+  //console.log("hours until 2am", timeUntilHour(2) / 3600000)
+  setTimeout(() => {
+    checkForUpdates()
+  }, nextUpdateTime);
+  if(!connected) return
+  await execute("git config pull.ff only")
+  let output = await execute("git pull").toLowerCase()
+  if(output.indexOf("already up to date") >= 0){
+    console.log("Already has latest code from git")
+  } else if(output.indexOf("fatal") >= 0){
+    console.log("Git pull failed: " + output)
+  } else if(output.indexOf("fast-forward") >= 0 || output.indexOf("files changed") >= 0){
+    console.log("Has git updates, restarting!")
+    execute("pm2 restart all")
+  }
 }
 
 if (!config.DEV_MODE) {
@@ -336,23 +316,21 @@ setInterval(pingHandler, 3000)
 // ---Orb code---
 
 let orbToServerSocket = null
-function relayUpkeep() {
+async function relayUpkeep() {
   if(IS_SERVER || orbToServerSocket) return
-  checkConnection().then((connected)=>{
-    if(connected){
-      connectOrbToServer()
-    }
-  }).catch((e) => {
-    console.error("Error upkeeping orb to server socket", e)
-  })
+  let connected = await checkConnection()
+  if(connected){
+    connectOrbToServer()
+  }
 }
+
 function connectOrbToServer(){
   try {
     let serverURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
     //console.log("Initializing orb to server socket", serverURL)
     orbToServerSocket = new WebSocket.WebSocket(serverURL)
     orbToServerSocket.lastPingReceived = Date.now()
-    orbToServerSocket.on('message', (data, isBinary) => {
+    orbToServerSocket.on('message', async (data, isBinary) => {
       if(!isBinary){
         data = data.toString().trim()
       }      
@@ -362,7 +340,7 @@ function connectOrbToServer(){
       }
       if(data == "GET_LOGS"){
         try {
-          execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
+          await execute(`${__dirname}/utility_scripts/zip_logs.sh`)
           let logfile = fs.readFileSync(`${homedir}/logs.zip`)
           orbToServerSocket.send(logfile)
         } catch(error) {
@@ -652,7 +630,7 @@ python_process.on('uncaughtException', function(err, origin) {
 
 
 // Simple HTTP server
-const rootServer = http.createServer(function (request, response) {
+const rootServer = http.createServer(async (request, response) => {
   let filePath = request.url
 
   let fileRelativeToScript = true
@@ -718,14 +696,9 @@ const rootServer = http.createServer(function (request, response) {
       filePath = "/controller/controller.html"
     }
   } else if(filePath == "/logs") {
-    try {
-      execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
-      filePath = `${homedir}/logs.zip`
-      fileRelativeToScript = false
-    } catch(error) {
-      response.writeHead(500)
-      response.end('Sorry, check with the site admin for error: '+error+' ..\n')
-    }
+    await execute(`${__dirname}/utility_scripts/zip_logs.sh`)
+    filePath = `${homedir}/logs.zip`
+    fileRelativeToScript = false
   }
 
   if(fileRelativeToScript) {
@@ -825,26 +798,27 @@ let SUBMITTED = `
 </html>
 `
 
-function startAccessPoint(){
-  tryExecSync("mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
-  tryExecSync("systemctl enable hostapd")
-  tryExecSync("systemctl restart networking.service")
-  tryExecSync("systemctl restart dhcpcd")
-  tryExecSync("systemctl restart hostapd")
+async function startAccessPoint(){
+  await execute("mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
+  await execute("systemctl restart networking.service")
+  await execute("systemctl restart dhcpcd")
+  await execute("systemctl restart hostapd")
   console.log("STARTED ACCESS POINT")
 }
 
-function stopAccessPoint(){
-  tryExecSync("systemctl stop hostapd")
-  tryExecSync("systemctl disable hostapd")
-  tryExecSync("mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
-  tryExecSync("systemctl restart networking.service")
-  tryExecSync("systemctl restart dhcpcd")
-  tryExecSync("wpa_cli reconfigure")
-  console.log("STOPPED ACCESS POINT")
+async function stopAccessPoint(){
+  let hostapdRunning = (await execute("ps -ea | grep hostapd")).indexOf("hostapd") >= 0
+  if(hostapdRunning){
+    await execute("systemctl stop hostapd")
+    await execute("systemctl restart networking.service")
+    await execute("systemctl restart dhcpcd")
+    await execute("wpa_cli reconfigure")
+    console.log("STOPPED ACCESS POINT")
+  }
+  await execute("mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
 }
 
-function submitSSID(formData) {
+async function submitSSID(formData) {
   let ssid = formData.ssid.replace(/'/g, "\\'")
   console.log("Adding SSID: ", ssid)
   if(ssid == ""){
@@ -877,43 +851,35 @@ network={
 `
   }
   let toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
-  tryExecSync(toExec)
-  stopAccessPoint()
+  await execute(toExec)
+  await stopAccessPoint()
 }
 
 let isFirstNetworkCheck = true
 let numTimesNetworkCheckFailed = 0
 let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
-function networkCheck(){
-  checkConnection().then((connected)=>{
-    if(!connected){
-      numTimesNetworkCheckFailed += 1
-      stopAccessPoint()
-      setTimeout(() => {
-        isFirstNetworkCheck = false
-        checkConnection().then((connected2)=>{
-          if(!connected2){
-            numTimesAccessPointStarted += 1
-            startAccessPoint()
-            setTimeout(networkCheck, 10 * 6e4);
-          } else {
-            numTimesNetworkRestartWorked += 1
-            setTimeout(networkCheck, 2 * 6e4);
-          }
-        }).catch((error)=>{
-          console.error("second network check error", error)
-          setTimeout(networkCheck, 6e4);
-        })
-      }, isFirstNetworkCheck ? 3e4 : 3 * 6e4);
-    } else {
+async function networkCheck(){
+  let connected = await checkConnection()
+  if(!connected){
+    numTimesNetworkCheckFailed += 1
+    await stopAccessPoint()
+    setTimeout(async () => {
       isFirstNetworkCheck = false
-      setTimeout(networkCheck, 2 * 6e4);
-    }
-  }).catch((error)=>{
-    console.error("network check error", error)
-    setTimeout(networkCheck, 6e4);
-  })
+      let connected2 = await checkConnection()
+      if(!connected2){
+        numTimesAccessPointStarted += 1
+        await startAccessPoint()
+        setTimeout(networkCheck, 10 * 6e4);
+      } else {
+        numTimesNetworkRestartWorked += 1
+        setTimeout(networkCheck, 2 * 6e4);
+      }
+    }, isFirstNetworkCheck ? 3e4 : 3 * 6e4);
+  } else {
+    isFirstNetworkCheck = false
+    setTimeout(networkCheck, 2 * 6e4);
+  }
 }
 
 if(!IS_SERVER){
@@ -938,7 +904,7 @@ if(!IS_SERVER){
     }
   })
 
-  wifiSetupServer.listen(9090,function(){
+  wifiSetupServer.listen(9090,() => {
     console.log("wifi setup Listening on port 9090")
   })
   setTimeout(() => {
