@@ -681,17 +681,17 @@ const rootServer = http.createServer(function (request, response) {
       body += data
     })
     request.on('end', function() {
+      console.log(body)
       payload = JSON.parse(body)
-      console.log(payload)
       response.writeHead(200)
       response.end('post received')
 
-      for (let orbID in connectedOrbs) {
-        let socket = connectedOrbs[orbID]
-        socket.send("GIT_HAS_UPDATE")
-      }
       // TODO also check secret: config.WEBHOOK_SECRET
       if (payload.ref === 'refs/heads/master') {
+        for (let orbID in connectedOrbs) {
+          let socket = connectedOrbs[orbID]
+          socket.send("GIT_HAS_UPDATE")
+        }
         pullAndRestart()
       }
     })
