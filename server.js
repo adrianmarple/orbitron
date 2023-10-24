@@ -364,6 +364,12 @@ function connectOrbToServer(){
         orbToServerSocket.lastPingReceived = Date.now()
         return
       }
+      if(data == "GIT_HAS_UPDATE"){
+        if (config.CONTINUOUS_INTEGRATION){
+          pullAndRestart()
+        }
+        return
+      }
       if(data == "GET_LOGS"){
         try {
           execSync(`${__dirname}/utility_scripts/zip_logs.sh`)
@@ -680,9 +686,10 @@ const rootServer = http.createServer(function (request, response) {
       response.writeHead(200)
       response.end('post received')
 
-      let message = {type: "pull"}
-      broadcast(message)
-      devBroadcast(JSON.stringify(message))
+      for (let orbID in connectedOrbs) {
+        let socket = connectedOrbs[orbID]
+        socket.send("GIT_HAS_UPDATE")
+      }
       // TODO also check secret: config.WEBHOOK_SECRET
       if (payload.ref === 'refs/heads/master') {
         pullAndRestart()
