@@ -601,27 +601,36 @@ function broadcast(baseMessage) {
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
 let raw_pixels = null
+let raw_json = null
 python_process.stdout.on('data', data => {
   messages = data.toString().trim().split("\n")
   for(let message of messages){
     message = message.trim()
     if(!message) continue
-    if (message.charAt(0) == "{") { // check is first char is '{'
-      try {
-        broadcast(JSON.parse(message));
-        devBroadcast(message);
-      } catch(e) {
-        console.error("broadcast error", e, message);
-      }
+    if (message.charAt(0) == "{") {
+      raw_json = ""
+    } else if(message.startsWith("raw_pixels=")) {
+      raw_pixels = ""
+      message = message.substr(11).trim()
     } else if(message.startsWith("touchall")) {
       for (let id in connections) {
         connections[id].lastActivityTime = Date.now()
       }
-    } else if(message.startsWith("raw_pixels=")) {
-      raw_pixels = ""
-      message = message.substr(11).trim()
     } else if (raw_pixels === null) {
       console.log("UNHANDLED STDOUT MESSAGE: `" + message + "`")
+    }
+
+    if (raw_json !== null) {
+      raw_json += message
+      if (raw_json.endsWith("}")) {
+        try {
+          broadcast(JSON.parse(message));
+          devBroadcast(message);
+        } catch(e) {
+          console.error("broadcast error", e, message);
+        }
+        raw_json = null
+      }
     }
 
     if (raw_pixels !== null) {
