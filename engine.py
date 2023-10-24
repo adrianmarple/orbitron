@@ -963,11 +963,23 @@ def broadcast_state():
 
 def run_core_loop():
   last_frame_time = time()
+  framerate_data = {
+    'start_time': last_frame_time,
+    'slow_frame_count': 0,
+    'very_slow_frame_count': 0,
+    'slowest_frame': 0,
+  }
   while True:
     time_to_wait = last_frame_time + 0.033 - time()
-    if time_to_wait > 0:
-      sleep(time_to_wait)
+
     frame_time = time() - last_frame_time
+    framerate_data['slowest_frame'] = max(frame_time, framerate_data['slowest_frame'])
+    if frame_time > 0.1:
+      framerate_data['slow_frame_count'] += 1
+    if frame_time > 1:
+      framerate_data['very_slow_frame_count'] += 1
+      print("Framerate Data: " + str(framerate_data), file=sys.stderr)
+
     # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
     update()
