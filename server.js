@@ -670,7 +670,7 @@ const rootServer = http.createServer(function (request, response) {
   // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
     console.log("Receiving github webhook update.")
-    var body = ''
+    let body = ''
     request.on('data', function(data) {
       body += data
     })
@@ -680,6 +680,9 @@ const rootServer = http.createServer(function (request, response) {
       response.writeHead(200)
       response.end('post received')
 
+      let message = JSON.stringify({type: "pull"})
+      broadcast(message)
+      devBroadcast(message)
       // TODO also check secret: config.WEBHOOK_SECRET
       if (payload.ref === 'refs/heads/master') {
         pullAndRestart()
