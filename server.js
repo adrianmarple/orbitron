@@ -680,7 +680,7 @@ const rootServer = http.createServer(function (request, response) {
       response.writeHead(200)
       response.end('post received')
 
-      let message = {type: "pull"})
+      let message = {type: "pull"}
       broadcast(message)
       devBroadcast(JSON.stringify(message))
       // TODO also check secret: config.WEBHOOK_SECRET
