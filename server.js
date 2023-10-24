@@ -662,6 +662,13 @@ python_process.on('uncaughtException', function(err, origin) {
 
 // Simple HTTP server
 const rootServer = http.createServer(function (request, response) {
+
+  if (request.method === 'POST') {
+    console.log("Received github webhook update.")
+    console.log(request)
+    return
+  }
+
   let filePath = request.url
 
   let fileRelativeToScript = true
