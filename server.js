@@ -665,9 +665,20 @@ const rootServer = http.createServer(function (request, response) {
 
   console.log(request.method)
   if (request.method === 'POST') {
-    console.log("Received github webhook update.")
+    console.log("Receiving github webhook update.")
+    var body = ''
+    request.on('data', function(data) {
+      body += data
+      console.log('Partial body: ' + body)
+    })
+    request.on('end', function() {
+      console.log('Body: ' + body)
+      response.writeHead(200)
+      response.end('post received')
+      payload = JSON.parse(body)
+      console.log(payload)
+    })
     console.log(request)
-    console.log(typeof request.payload)
     return
   }
 
