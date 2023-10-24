@@ -365,6 +365,7 @@ function connectOrbToServer(){
         return
       }
       if(data == "GIT_HAS_UPDATE"){
+        console.log("Received notice of git update")
         if (config.CONTINUOUS_INTEGRATION){
           pullAndRestart()
         }
