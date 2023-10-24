@@ -679,6 +679,7 @@ const rootServer = http.createServer(function (request, response) {
       console.log(payload)
     })
     console.log(request)
+    
     return
   }
 
