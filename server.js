@@ -12,31 +12,40 @@ function addListener(callback){
   listeners.push(callback)
 }
 
-function getContentType(extname){
+function getContentType(filePath){
+  let extname = path.extname(filePath)
+  let mime = 'text/html'
   switch (extname) {
     case '.js':
-      return 'text/javascript'
+      mime =  'text/javascript'
+      break
     case '.css':
-      return 'text/css'
+      mime = 'text/css'
+      break
     case '.json':
-      return 'application/json'
+      mime = 'application/json'
+      break
     case '.png':
-      return 'image/png'
+      mime = 'image/png'
+      break
     case '.jpg':
-      return 'image/jpg'
+      mime = 'image/jpg'
+      break
     case '.ico':
-      return 'image/x-icon'
+      mime = 'image/x-icon'
+      break
     case '.wav':
-      return 'audio/wav'
+      mime = 'audio/wav'
+      break
     case '.zip':
-      return 'application/zip'
-    default:
-      return 'text/html'
+      mime = 'application/zip'
+      break
   }
+  return mime
 }
 
 function respondWithFile(filePath, response){
-  let contentType = getContentType(path.extname(filePath))
+  let contentType = getContentType(filePath)
   fs.readFile('.'+filePath, function(error, content) {
     if (error) {
       if(error.code == 'ENOENT'){
