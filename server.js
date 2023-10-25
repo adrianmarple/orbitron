@@ -99,7 +99,7 @@ async function checkForUpdates(){
 
 async function pullAndRestart() {
   await execute("git config pull.ff only")
-  let output = await execute("git pull").toLowerCase()
+  let output = (await execute("git pull")).toLowerCase()
   if(output.indexOf("already up to date") >= 0){
     console.log("Already has latest code from git")
   } else if(output.indexOf("fatal") >= 0){
