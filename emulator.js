@@ -2,7 +2,7 @@
 const { config } = require('./lib')
 const WebSocket = require('ws')
 const http = require('http')
-const { addListener, respondWithFile } = require('./server')
+const { addGETListener, respondWithFile } = require('./server')
 
 // ---Orb Emulator Server---
 let orbEmulatorServer = http.createServer(function(request, response) {})
@@ -34,18 +34,18 @@ function orbEmulatorBroadcast(message) {
   }
 }
 
-addListener((orbID, filePath, response)=>{
+addGETListener((response, orbID, filePath)=>{
   if (filePath == '/pixels.json') {
-    respondWithFile(config.PIXELS, response)
+    respondWithFile(response, config.PIXELS)
     return true
   }
 })
 
-addListener((orbID, filePath, response) => {
+addGETListener((response, orbID, filePath) => {
   if(!orbID || orbID != config.ORB_ID) return
 
   if (filePath.includes('dev') || filePath.includes('view')){
-    respondWithFile("/emulator/emulator.html", response)
+    respondWithFile(response, "/emulator/emulator.html")
     return true
   }
 })

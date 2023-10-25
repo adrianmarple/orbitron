@@ -5,11 +5,11 @@ const fs = require('fs')
 const path = require('path')
 const homedir = require('os').homedir()
 
-const listeners = []
+const getListeners = []
 const postListeners = []
 
-function addListener(callback){
-  listeners.push(callback)
+function addGETListener(callback){
+  getListeners.push(callback)
 }
 
 function addPOSTListener(callback){
@@ -48,7 +48,7 @@ function getContentType(filePath){
   return contentType
 }
 
-function respondWithFile(filePath, response){
+function respondWithFile(response, filePath){
   filePath = `${__dirname}${filePath}`
   let contentType = getContentType(filePath)
   fs.readFile(filePath, function(error, content) {
@@ -82,7 +82,7 @@ const rootServer = http.createServer(async (request, response) => {
       console.log(body)
       let handled = false
       for (const listener of postListeners) {
-        handled = await listener(body, response)
+        handled = await listener(response, body)
         if(handled) break
       }
       if(!handled){
@@ -96,15 +96,17 @@ const rootServer = http.createServer(async (request, response) => {
 
   // http GET stuff
   let filePath = request.url
+  if(filePath.endsWith('/'))
+    filePath = filePath.substring(0,filePath.length-1)
   let handled = false
   let processed = filePath.split("/")
   let orbID = processed.length > 1 ? processed[1] : ''
-  for (const listener of listeners) {
-    handled = await listener(orbID, filePath, response)
+  for (const listener of getListeners) {
+    handled = await listener(response, orbID, filePath)
     if(handled) break
   }
   if(!handled){
-    respondWithFile(filePath, response)
+    respondWithFile(response, filePath)
   }
 })
 
@@ -112,5 +114,5 @@ const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")
 
 module.exports = {
-  addListener, addPOSTListener, respondWithFile
+  addGETListener, addPOSTListener, respondWithFile
 }

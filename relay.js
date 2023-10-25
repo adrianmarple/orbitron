@@ -5,7 +5,7 @@ const WebSocket = require('ws')
 const http = require('http')
 const fs = require('fs')
 const homedir = require('os').homedir()
-const { addListener, respondWithFile, addPOSTListener } = require('./server')
+const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 
 const connectedOrbs = {}
 const logsRequested = {}
@@ -165,7 +165,7 @@ function bindClient(socket, orbID, clientID) {
   }
 }
 
-addListener(async (orbID, filePath, response)=>{
+addGETListener(async (response, orbID, filePath)=>{
   if(!orbID || !connectedOrbs[orbID] || !filePath.includes("/logs")) return
 
   if(logsRequested[orbID]){
@@ -213,14 +213,13 @@ addListener(async (orbID, filePath, response)=>{
   return true
 })
 
-addListener(async (orbID, filePath, response)=>{
-  if(!orbID || !connectedOrbs[orbID] || filePath.includes("/logs")) return
-  console.log(orbID, filePath)
-  respondWithFile("/controller/controller.html",response)
+addGETListener(async (response, orbID, filePath)=>{
+  if(!orbID || !connectedOrbs[orbID] || !filePath.endsWith(orbID)) return
+  respondWithFile(response, "/controller/controller.html")
   return true
 })
 
-addPOSTListener(async (body, response) => {
+addPOSTListener(async (response, body) => {
   try {
     let payload = JSON.parse(body)
     response.writeHead(200)
