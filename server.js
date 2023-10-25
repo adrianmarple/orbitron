@@ -661,7 +661,11 @@ const rootServer = http.createServer(async (request, response) => {
     })
     request.on('end', function() {
       console.log(body)
-      payload = JSON.parse(body)
+      try {
+        payload = JSON.parse(body)
+      } catch(e) {
+        console.error("POST data didn't parse as JSON")
+      }
       response.writeHead(200)
       response.end('post received')
 
