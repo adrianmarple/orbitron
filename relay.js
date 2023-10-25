@@ -165,14 +165,15 @@ function bindClient(socket, orbID, clientID) {
 }
 
 addListener(async (orbID, filePath, response)=>{
-  if(!filePath.includes("/logs")){
-    respondWithFile("/controller/controller.html",response)
-    return true
-  }
+  if(!orbID || !connectedOrbs[orbID] || filePath.includes("/logs")) return
+
+  respondWithFile("/controller/controller.html",response)
+  return true
 })
 
 addListener(async (orbID, filePath, response)=>{
-  if(!orbID || !connectedOrbs[orbID] || !!filePath.includes("/logs")) return
+  if(!orbID || !connectedOrbs[orbID] || !filePath.includes("/logs")) return
+  
   if(logsRequested[orbID]){
     response.writeHead(500)
     response.end('Cannot fetch logs for ' + orbID + ` debug info - requested: ${logsRequested[orbID]} - connected: ${connectedOrbs[orbID] != null}`)
