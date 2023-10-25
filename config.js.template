@@ -6,4 +6,5 @@ module.exports={
   //PIXELS: "pixels-wall.json",
   CONNECT_TO_RELAY: "orbitron.games",
   AUTO_GAME: false,
+  IS_SERVER: false,
 }

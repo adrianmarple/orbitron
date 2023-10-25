@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+const { checkConnection, execute} = require('./lib')
+const { checkForUpdates, pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
 const http = require('http')
 //const https = require('https')
@@ -11,16 +13,6 @@ const pako = require('./thirdparty/pako.min.js')
 const homedir = require('os').homedir()
 const qs = require('querystring')
 
-//add timestamps to logs
-const clog = console.log
-const cerr = console.error
-console.log = function(){
-  clog(new Date().toISOString(), ...arguments)
-}
-console.error = function(){
-  cerr(new Date().toISOString(), ...arguments)
-}
-
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")
   if(python_process){
@@ -28,14 +20,9 @@ function handleKill(signal){
   }
   process.exit()
 }
-
 process.on('SIGINT', handleKill)
 process.on('SIGTERM', handleKill)
 process.on('SIGHUP', handleKill)
-
-process.on('uncaughtException', function(err, origin) {
-  console.error('Uncaught exception: ', err, origin)
-});
 
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
@@ -47,72 +34,11 @@ if (game_index) {
   starting_game = process.argv[game_index]
   console.log("Starting with game: " + starting_game)
 }
-const IS_SERVER = !config.CONNECT_TO_RELAY
-
-// mod exec to add sudo if running on an orb and to return a promise
-let { exec } = require('child_process')
-execute = (command) =>{
-  return new Promise((resolve,reject) => {
-    exec((IS_SERVER ? "" : "sudo ") + command,
-    (error, stdout, stderr) => {
-      if(error){
-        console.error("exec Error", command, error)
-      }
-      resolve(stdout.toString() + " " + stderr.toString())
-    })
-  })
-}
-
-async function checkConnection() {
-  let output = await execute('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
-  return output.indexOf("200 OK") >= 0
-};
-
-function timeUntilHour(hour) {
-  if (hour < 0 || hour > 24) throw new Error("Invalid hour format!");
-
-  const now = new Date();
-  const target = new Date(now);
-
-  if (now.getHours() >= hour)
-      target.setDate(now.getDate() + 1);
-
-  target.setHours(hour);
-  target.setMinutes(0);
-  target.setSeconds(0);
-  target.setMilliseconds(0);
-
-  return target.getTime() - 
-  now.getTime();
-}
-
-async function checkForUpdates(){
-  let connected = await checkConnection()
-  let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
-  //console.log("hours until 2am", timeUntilHour(2) / 3600000)
-  setTimeout(() => {
-    checkForUpdates()
-  }, nextUpdateTime);
-  if(!connected) return
-  pullAndRestart()
-}
-
-async function pullAndRestart() {
-  await execute("git config pull.ff only")
-  let output = (await execute("git pull")).toLowerCase()
-  if(output.indexOf("already up to date") >= 0){
-    console.log("Already has latest code from git")
-  } else if(output.indexOf("fatal") >= 0){
-    console.log("Git pull failed: " + output)
-  } else if(output.indexOf("fast-forward") >= 0 || output.indexOf("files changed") >= 0){
-    console.log("Has git updates, restarting!")
-    execute("pm2 restart all")
-  }
-}
 
 if (!config.DEV_MODE && !config.CONTINUOUS_INTEGRATION) {
   checkForUpdates()
 }
+
 
 // ---Dev Kit Websocket server---
 
@@ -148,11 +74,15 @@ function devBroadcast(message) {
   }
 }
 
+
+
+
 // ---Server code---
+
 const connectedOrbs = {}
 const logsRequested = {}
 const connectedClients = {}
-if(IS_SERVER){
+if(config.IS_SERVER){
   let server = http.createServer(function(request, response) {
     //console.log('Websocket Server received request for ' + request.url)
     response.writeHead(404)
@@ -161,9 +91,7 @@ if(IS_SERVER){
   server.listen(7777, "0.0.0.0", function() {
     console.log('WebSocket Server is listening on port 7777')
   })
-
   let wsServer = new WebSocket.Server({ server, autoAcceptConnections: true })
-
   wsServer.on('connection', (socket, request) => {
     let url = request.url.trim()
     //console.log('WS connection request made to', request.url)
@@ -180,7 +108,15 @@ if(IS_SERVER){
       bindClient(socket, orbID, clientID)
     }
   })
+
+  let serverPingHandler = () => {
+    for (const orbID in connectedOrbs) {
+      connectedOrbs[orbID].send("PING")
+    }
+  }
+  setInterval(serverPingHandler, 3000)  
 }
+
 function bindOrb(socket, orbID) {
   //console.log("Binding orb",orbID)
   if(connectedOrbs[orbID]){
@@ -303,30 +239,9 @@ function bindClient(socket, orbID, clientID) {
   }
 }
 
-function pingHandler() {
-  if(orbToServerSocket && orbToServerSocket.readyState === WebSocket.OPEN){
-    orbToServerSocket.send("PING")
-    if(Date.now() - orbToServerSocket.lastPingReceived > 60 * 1000){
-      orbToServerSocket.close()
-    }
-  }
-  for (const orbID in connectedOrbs) {
-    connectedOrbs[orbID].send("PING")
-  }
-}
-
-setInterval(pingHandler, 3000)
-
 // ---Orb code---
 
 let orbToServerSocket = null
-async function relayUpkeep() {
-  if(IS_SERVER || orbToServerSocket) return
-  let connected = await checkConnection()
-  if(connected){
-    connectOrbToServer()
-  }
-}
 
 function connectOrbToServer(){
   try {
@@ -387,7 +302,24 @@ function connectOrbToServer(){
   }
 }
 
+async function relayUpkeep() {
+  if(!config.CONNECT_TO_RELAY || orbToServerSocket) return
+  let connected = await checkConnection()
+  if(connected){
+    connectOrbToServer()
+  }
+}
 setInterval(relayUpkeep, 5e3)
+
+function orbPingHandler() {
+  if(orbToServerSocket && orbToServerSocket.readyState === WebSocket.OPEN){
+    orbToServerSocket.send("PING")
+    if(Date.now() - orbToServerSocket.lastPingReceived > 60 * 1000){
+      orbToServerSocket.close()
+    }
+  }
+}
+setInterval(orbPingHandler, 3000)
 
 // Class that handles connections between client and orb
 const clientConnections = {}
@@ -466,7 +398,11 @@ class ClientConnection {
 }
 
 
-// Game Related Code
+
+
+
+// ---Game Related Code---
+
 function bindPlayer(socket) {
   if(connectionQueue.includes(socket) || Object.values(connections).includes(socket)){
     return
@@ -806,133 +742,173 @@ const rootServer = http.createServer(async (request, response) => {
 const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")
 
+
+
+// ---periodic status logging---
+
+function statusLogging() {
+  let _connectedOrbs = {}
+  for(const orb in connectedOrbs) {
+    _connectedOrbs[orb] = connectedOrbs[orb].classification
+  }
+  console.log("STATUS",{
+    id: config.ORB_ID,
+    isServer: config.IS_SERVER,
+    devConnections,
+    connectedOrbs: _connectedOrbs,
+    connectedClients,
+    orbToServerSocket: orbToServerSocket ? "connected" : null,
+    connections,
+    connectionQueue,
+    game: !gameState ? null : {
+      name: gameState.game,
+      state: gameState.gameState,
+    },
+    numTimesNetworkCheckFailed,
+    numTimesNetworkRestartWorked,
+    numTimesAccessPointStarted,
+    //gameState,
+    //broadcastCounter,
+    //lastMessageTimestamp,
+    //lastMessageTimestampCount,
+  })
+}
+setTimeout(() => {
+  statusLogging()
+  setInterval(statusLogging,60 * 60 * 1000)
+}, 10);
+
+
+
+
+
 // ---Wifi Setup Code---
-let FORM = `
-<!DOCTYPE html>
-<html>
-
-   <head>
-      <title>Add Wifi Network</title>
-   </head>
-
-   <body>
-      <form action="/" method="post">
-         SSID: <input type = "text" name = "ssid" />
-         <br>
-         <br>
-         Password: <input type = "password" name = "password" />
-         <br>
-         <br>
-         Priority: <input type = "radio" name = "priority" value = "low" checked> Low
-         <input type = "radio" name = "priority" value = "high"> High
-         <br>
-         <br>
-         <input type = "submit" name = "submit" value = "Submit" />
-      </form>
-   </body>
-
-</html>
-`
-let SUBMITTED = `
-<!DOCTYPE html>
-<html>
-   <meta http-equiv="Refresh" content="3">
-   <head>
-      <title>Submission Completed</title>
-   </head>
-
-   <body>
-        SSID and Password submitted, WiFi will now restart to apply changes and the page will refresh.
-   </body>
-
-</html>
-`
-
-async function startAccessPoint(){
-  await execute("mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
-  await execute("systemctl restart networking.service")
-  await execute("systemctl restart dhcpcd")
-  await execute("systemctl restart hostapd")
-  console.log("STARTED ACCESS POINT")
-}
-
-async function stopAccessPoint(){
-  let hostapdRunning = (await execute("ps -ea | grep hostapd")).indexOf("hostapd") >= 0
-  if(hostapdRunning){
-    await execute("systemctl stop hostapd")
-    await execute("systemctl restart networking.service")
-    await execute("systemctl restart dhcpcd")
-    await execute("wpa_cli reconfigure")
-    console.log("STOPPED ACCESS POINT")
-  }
-  await execute("mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
-}
-
-async function submitSSID(formData) {
-  let ssid = formData.ssid.replace(/'/g, "\\'")
-  console.log("Adding SSID: ", ssid)
-  if(ssid == ""){
-    await stopAccessPoint()
-    return
-  }
-  let password = formData.password.replace(/'/g, "\\'")
-  let priority = formData.priority == 'low' ? 1 : 2
-  let append = ""
-  if(password.trim() == ""){
-    append = `
-network={
-    ssid="${ssid}"
-    key_mgmt=NONE
-    scan_ssid=1
-    id_str="${ssid}"
-    priority=${priority}
-}
-`
-  } else {
-    append = `
-network={
-    ssid="${ssid}"
-    psk="${password}"
-    key_mgmt=WPA-PSK
-    scan_ssid=1
-    id_str="${ssid}"
-    priority=${priority}
-}
-`
-  }
-  let toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
-  await execute(toExec)
-  await stopAccessPoint()
-}
-
-let isFirstNetworkCheck = true
 let numTimesNetworkCheckFailed = 0
 let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
-async function networkCheck(){
-  let connected = await checkConnection()
-  if(!connected){
-    numTimesNetworkCheckFailed += 1
-    await stopAccessPoint()
-    setTimeout(async () => {
-      isFirstNetworkCheck = false
-      let connected2 = await checkConnection()
-      if(!connected2){
-        numTimesAccessPointStarted += 1
-        await startAccessPoint()
-        setTimeout(networkCheck, 10 * 6e4);
-      } else {
-        numTimesNetworkRestartWorked += 1
-        setTimeout(networkCheck, 2 * 6e4);
-      }
-    }, isFirstNetworkCheck ? 3e4 : 3 * 6e4);
-  } else {
-    isFirstNetworkCheck = false
-    setTimeout(networkCheck, 2 * 6e4);
-  }
-}
+if(!config.IS_SERVER && !config.DEV_MODE){
+  let FORM = `
+  <!DOCTYPE html>
+  <html>
 
-if(!IS_SERVER){
+    <head>
+        <title>Add Wifi Network</title>
+    </head>
+
+    <body>
+        <form action="/" method="post">
+          SSID: <input type = "text" name = "ssid" />
+          <br>
+          <br>
+          Password: <input type = "password" name = "password" />
+          <br>
+          <br>
+          Priority: <input type = "radio" name = "priority" value = "low" checked> Low
+          <input type = "radio" name = "priority" value = "high"> High
+          <br>
+          <br>
+          <input type = "submit" name = "submit" value = "Submit" />
+        </form>
+    </body>
+
+  </html>
+  `
+  let SUBMITTED = `
+  <!DOCTYPE html>
+  <html>
+    <meta http-equiv="Refresh" content="3">
+    <head>
+        <title>Submission Completed</title>
+    </head>
+
+    <body>
+          SSID and Password submitted, WiFi will now restart to apply changes and the page will refresh.
+    </body>
+
+  </html>
+  `
+
+  async function startAccessPoint(){
+    await execute("mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
+    await execute("systemctl restart networking.service")
+    await execute("systemctl restart dhcpcd")
+    await execute("systemctl restart hostapd")
+    console.log("STARTED ACCESS POINT")
+  }
+
+  async function stopAccessPoint(){
+    let hostapdRunning = (await execute("ps -ea | grep hostapd")).indexOf("hostapd") >= 0
+    if(hostapdRunning){
+      await execute("systemctl stop hostapd")
+      await execute("systemctl restart networking.service")
+      await execute("systemctl restart dhcpcd")
+      await execute("wpa_cli reconfigure")
+      console.log("STOPPED ACCESS POINT")
+    }
+    await execute("mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
+  }
+
+  async function submitSSID(formData) {
+    let ssid = formData.ssid.replace(/'/g, "\\'")
+    console.log("Adding SSID: ", ssid)
+    if(ssid == ""){
+      await stopAccessPoint()
+      return
+    }
+    let password = formData.password.replace(/'/g, "\\'")
+    let priority = formData.priority == 'low' ? 1 : 2
+    let append = ""
+    if(password.trim() == ""){
+      append = `
+  network={
+      ssid="${ssid}"
+      key_mgmt=NONE
+      scan_ssid=1
+      id_str="${ssid}"
+      priority=${priority}
+  }
+  `
+    } else {
+      append = `
+  network={
+      ssid="${ssid}"
+      psk="${password}"
+      key_mgmt=WPA-PSK
+      scan_ssid=1
+      id_str="${ssid}"
+      priority=${priority}
+  }
+  `
+    }
+    let toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
+    await execute(toExec)
+    await stopAccessPoint()
+  }
+
+  let isFirstNetworkCheck = true
+  async function networkCheck(){
+    let connected = await checkConnection()
+    if(!connected){
+      numTimesNetworkCheckFailed += 1
+      await stopAccessPoint()
+      setTimeout(async () => {
+        isFirstNetworkCheck = false
+        let connected2 = await checkConnection()
+        if(!connected2){
+          numTimesAccessPointStarted += 1
+          await startAccessPoint()
+          setTimeout(networkCheck, 10 * 6e4);
+        } else {
+          numTimesNetworkRestartWorked += 1
+          setTimeout(networkCheck, 2 * 6e4);
+        }
+      }, isFirstNetworkCheck ? 3e4 : 3 * 6e4);
+    } else {
+      isFirstNetworkCheck = false
+      setTimeout(networkCheck, 2 * 6e4);
+    }
+  }
+
   let wifiSetupServer = http.createServer(function (req, res) {
     if (req.method === 'GET') { 
       res.writeHead(200, { 'Content-Type': 'text/html' }) 
@@ -961,34 +937,3 @@ if(!IS_SERVER){
     networkCheck()
   }, 6e4);
 }
-
-// periodic status logging
-function statusLogging() {
-  let _connectedOrbs = {}
-  for(const orb in connectedOrbs) {
-    _connectedOrbs[orb] = connectedOrbs[orb].classification
-  }
-  console.log("STATUS",{
-    id: config.ORB_ID,
-    isServer: IS_SERVER,
-    devConnections,
-    connectedOrbs: _connectedOrbs,
-    connectedClients,
-    orbToServerSocket: !orbToServerSocket ? null : "connected",
-    connections,
-    connectionQueue,
-    game: !gameState ? null : {
-      name: gameState.game,
-      state: gameState.gameState,
-    },
-    numTimesNetworkCheckFailed,
-    numTimesNetworkRestartWorked,
-    numTimesAccessPointStarted,
-    //gameState,
-    //broadcastCounter,
-    //lastMessageTimestamp,
-    //lastMessageTimestampCount,
-  })
-}
-statusLogging()
-setInterval(statusLogging,60 * 60 * 1000)
