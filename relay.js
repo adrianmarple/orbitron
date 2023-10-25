@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 const { config } = require('./lib')
+const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
 const http = require('http')
 const fs = require('fs')
 const homedir = require('os').homedir()
-const { addListener, respondWithFile } = require('./server')
+const { addListener, respondWithFile, addPOSTListener } = require('./server')
 
 const connectedOrbs = {}
 const logsRequested = {}
@@ -173,7 +174,7 @@ addListener(async (orbID, filePath, response)=>{
 
 addListener(async (orbID, filePath, response)=>{
   if(!orbID || !connectedOrbs[orbID] || !filePath.includes("/logs")) return
-  
+
   if(logsRequested[orbID]){
     response.writeHead(500)
     response.end('Cannot fetch logs for ' + orbID + ` debug info - requested: ${logsRequested[orbID]} - connected: ${connectedOrbs[orbID] != null}`)
@@ -217,4 +218,26 @@ addListener(async (orbID, filePath, response)=>{
     }
   }
   return true
+})
+
+addPOSTListener(async (body, response) => {
+  try {
+    let payload = JSON.parse(body)
+    response.writeHead(200)
+    response.end('post received')
+
+    // TODO also check secret: config.WEBHOOK_SECRET
+    if (payload.ref === 'refs/heads/master') {
+      for (let orbID in connectedOrbs) {
+        let socket = connectedOrbs[orbID]
+        socket.send("GIT_HAS_UPDATE")
+      }
+      pullAndRestart()
+      return true
+    }  
+  } catch(e) {
+    console.error("POST data didn't parse as JSON", e)
+    response.writeHead(500)
+    response.end('error parsing json')
+  }
 })

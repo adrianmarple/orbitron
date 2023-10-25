@@ -1,15 +1,19 @@
 #!/usr/bin/env node
-const { execute, config } = require('./lib')
-const { pullAndRestart } = require('./gitupdate')
+const { config } = require('./lib')
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
 const homedir = require('os').homedir()
 
 const listeners = []
+const postListeners = []
 
 function addListener(callback){
   listeners.push(callback)
+}
+
+function addPOSTListener(callback){
+  postListeners.push(callback)
 }
 
 function getContentType(filePath){
@@ -40,7 +44,7 @@ function getContentType(filePath){
     case '.zip':
       contentType = 'application/zip'
   }
-  console.log(filePath, extname, contentType)
+  //console.log(filePath, extname, contentType)
   return contentType
 }
 
@@ -74,25 +78,17 @@ const rootServer = http.createServer(async (request, response) => {
     request.on('data', function(data) {
       body += data
     })
-    request.on('end', function() {
+    request.on('end', async function() {
       console.log(body)
-      try {
-        let payload = JSON.parse(body)
-        response.writeHead(200)
-        response.end('post received')
-  
-        // TODO also check secret: config.WEBHOOK_SECRET
-        if (payload.ref === 'refs/heads/master') {
-          for (let orbID in connectedOrbs) {
-            let socket = connectedOrbs[orbID]
-            socket.send("GIT_HAS_UPDATE")
-          }
-          pullAndRestart()
-        }  
-      } catch(e) {
-        console.error("POST data didn't parse as JSON", e)
+      let handled = false
+      for (const listener of postListeners) {
+        handled = await listener(body, response)
+        if(handled) break
+      }
+      if(!handled){
+        console.error("UNHANDLED SERVER POST: ", request.url)
         response.writeHead(500)
-        response.end('error parsing json')
+        response.end('unhandled post')
       }
     })
     return
@@ -116,5 +112,5 @@ const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")
 
 module.exports = {
-  addListener, respondWithFile
+  addListener, addPOSTListener, respondWithFile
 }
