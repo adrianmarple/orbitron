@@ -40,6 +40,7 @@ function getContentType(filePath){
     case '.zip':
       contentType = 'application/zip'
   }
+  console.log(extname, contentType)
   return contentType
 }
 
@@ -89,7 +90,7 @@ const rootServer = http.createServer(async (request, response) => {
           pullAndRestart()
         }  
       } catch(e) {
-        console.error("POST data didn't parse as JSON")
+        console.error("POST data didn't parse as JSON", e)
         response.writeHead(500)
         response.end('error parsing json')
       }
