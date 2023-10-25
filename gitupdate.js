@@ -1,12 +1,15 @@
 let { execute, checkConnection, timeUntilHour } = require('./lib')
+let runDirectly = !module.parent
 
 async function checkForUpdates(){
   let connected = await checkConnection()
-  let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
-  //console.log("hours until 2am", timeUntilHour(2) / 3600000)
-  setTimeout(() => {
-    checkForUpdates()
-  }, nextUpdateTime);
+  if(!runDirectly){
+    let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
+    //console.log("hours until 2am", timeUntilHour(2) / 3600000)
+    setTimeout(() => {
+      checkForUpdates()
+    }, nextUpdateTime);
+  }
   if(!connected) return
   pullAndRestart()
 }
@@ -26,7 +29,7 @@ async function pullAndRestart() {
   }
 }
 
-if(!module.parent){
+if(runDirectly){
   checkForUpdates()
 }
 
