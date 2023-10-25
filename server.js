@@ -40,7 +40,7 @@ function getContentType(filePath){
     case '.zip':
       contentType = 'application/zip'
   }
-  console.log(extname, contentType)
+  console.log(filePath, extname, contentType)
   return contentType
 }
 
