@@ -598,20 +598,22 @@ const rootServer = http.createServer(async (request, response) => {
     request.on('end', function() {
       console.log(body)
       try {
-        payload = JSON.parse(body)
+        let payload = JSON.parse(body)
+        response.writeHead(200)
+        response.end('post received')
+  
+        // TODO also check secret: config.WEBHOOK_SECRET
+        if (payload.ref === 'refs/heads/master') {
+          for (let orbID in connectedOrbs) {
+            let socket = connectedOrbs[orbID]
+            socket.send("GIT_HAS_UPDATE")
+          }
+          pullAndRestart()
+        }  
       } catch(e) {
         console.error("POST data didn't parse as JSON")
-      }
-      response.writeHead(200)
-      response.end('post received')
-
-      // TODO also check secret: config.WEBHOOK_SECRET
-      if (payload.ref === 'refs/heads/master') {
-        for (let orbID in connectedOrbs) {
-          let socket = connectedOrbs[orbID]
-          socket.send("GIT_HAS_UPDATE")
-        }
-        pullAndRestart()
+        response.writeHead(500)
+        response.end('error parsing json')
       }
     })
     return
