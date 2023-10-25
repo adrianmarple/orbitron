@@ -240,25 +240,23 @@ function generatePixelInfo() {
   }
 
   if (!isWall) {
+    minV = 0
     let northPole = []
     let southPole = []
     let threshold = 0.94
     if (name == "helmet") {
-      threshold = 0.92
+      threshold = 0.74
     }
     for (var i = 0; i < coords.length; i++) {
       let val = coords[i][2]
       if (val > threshold) {
         northPole.push(i)
-      }
-      if (name == "helmet" && val < -0.6) {
-        southPole.push(i)
       } else if (val < -threshold) {
         southPole.push(i)
       }
     }
     info.northPole = northPole
-    info.northPole = southPole
+    info.southPole = southPole
   }
 
   switch (name) {

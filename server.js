@@ -94,6 +94,10 @@ async function checkForUpdates(){
     checkForUpdates()
   }, nextUpdateTime);
   if(!connected) return
+  pullAndRestart()
+}
+
+async function pullAndRestart() {
   await execute("git config pull.ff only")
   let output = await execute("git pull").toLowerCase()
   if(output.indexOf("already up to date") >= 0){
@@ -106,7 +110,7 @@ async function checkForUpdates(){
   }
 }
 
-if (!config.DEV_MODE) {
+if (!config.DEV_MODE && !config.CONTINUOUS_INTEGRATION) {
   checkForUpdates()
 }
 
@@ -336,6 +340,13 @@ function connectOrbToServer(){
       }      
       if(data == "PING"){
         orbToServerSocket.lastPingReceived = Date.now()
+        return
+      }
+      if(data == "GIT_HAS_UPDATE"){
+        console.log("Received notice of git update.")
+        if (config.CONTINUOUS_INTEGRATION) {
+          pullAndRestart()
+        }
         return
       }
       if(data == "GET_LOGS"){
@@ -579,27 +590,36 @@ function broadcast(baseMessage) {
 
 const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
 let raw_pixels = null
+let raw_json = null
 python_process.stdout.on('data', data => {
   messages = data.toString().trim().split("\n")
   for(let message of messages){
     message = message.trim()
     if(!message) continue
-    if (message.charAt(0) == "{") { // check is first char is '{'
-      try {
-        broadcast(JSON.parse(message));
-        devBroadcast(message);
-      } catch(e) {
-        console.error("broadcast error", e, message);
-      }
+    if (message.charAt(0) == "{") {
+      raw_json = ""
+    } else if(message.startsWith("raw_pixels=")) {
+      raw_pixels = ""
+      message = message.substr(11).trim()
     } else if(message.startsWith("touchall")) {
       for (let id in connections) {
         connections[id].lastActivityTime = Date.now()
       }
-    } else if(message.startsWith("raw_pixels=")) {
-      raw_pixels = ""
-      message = message.substr(11).trim()
     } else if (raw_pixels === null) {
       console.log("UNHANDLED STDOUT MESSAGE: `" + message + "`")
+    }
+
+    if (raw_json !== null) {
+      raw_json += message
+      if (raw_json.endsWith("}")) {
+        try {
+          broadcast(JSON.parse(message));
+          devBroadcast(message);
+        } catch(e) {
+          console.error("broadcast error", e, message);
+        }
+        raw_json = null
+      }
     }
 
     if (raw_pixels !== null) {
@@ -631,8 +651,34 @@ python_process.on('uncaughtException', function(err, origin) {
 
 // Simple HTTP server
 const rootServer = http.createServer(async (request, response) => {
-  let filePath = request.url
 
+  // Github webhook to restart pm2 after a push
+  if (request.method === 'POST') {
+    console.log("Receiving github webhook update.")
+    let body = ''
+    request.on('data', function(data) {
+      body += data
+    })
+    request.on('end', function() {
+      console.log(body)
+      payload = JSON.parse(body)
+      response.writeHead(200)
+      response.end('post received')
+
+      // TODO also check secret: config.WEBHOOK_SECRET
+      if (payload.ref === 'refs/heads/master') {
+        for (let orbID in connectedOrbs) {
+          let socket = connectedOrbs[orbID]
+          socket.send("GIT_HAS_UPDATE")
+        }
+        pullAndRestart()
+      }
+    })
+    return
+  }
+
+  // http GET stuff
+  let filePath = request.url
   let fileRelativeToScript = true
   if (filePath == '/')
     filePath = "/controller/controller.html"
@@ -822,7 +868,7 @@ async function submitSSID(formData) {
   let ssid = formData.ssid.replace(/'/g, "\\'")
   console.log("Adding SSID: ", ssid)
   if(ssid == ""){
-    stopAccessPoint()
+    await stopAccessPoint()
     return
   }
   let password = formData.password.replace(/'/g, "\\'")

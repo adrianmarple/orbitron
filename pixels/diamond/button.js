@@ -1,12 +1,6 @@
 
-button = document.createElement("div")
-button.innerHTML = "Diamond"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', function() {
+addButton("Diamond", () => {
   name = "diamond"
-  reset()
   pixelDensity = 0.25
 
   for (let i = -6; i <= 6; i++) {

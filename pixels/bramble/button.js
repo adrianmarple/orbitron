@@ -1,12 +1,6 @@
 
-button = document.createElement("div")
-button.innerHTML = "Bramble Hex"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', function() {
+addButton("Bramble Hex", () => {
   name = "bramble"
-  reset()
 
   let smallEdge = 4
   let bigEdge = 5

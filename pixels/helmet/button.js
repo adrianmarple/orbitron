@@ -1,12 +1,6 @@
 
-let button = document.createElement("div")
-button.innerHTML = "Helmet"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', function() {
+addButton("Helmet", () => {
   name = "helmet";
-  reset()
   pixelDensity = 0.4
   isWall = false
   centerOffset = false
