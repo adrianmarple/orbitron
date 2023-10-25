@@ -234,7 +234,7 @@ addPOSTListener(async (body, response) => {
       }
       pullAndRestart()
       return true
-    }  
+    }
   } catch(e) {
     console.error("POST data didn't parse as JSON", e)
     response.writeHead(500)
