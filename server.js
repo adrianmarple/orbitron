@@ -14,39 +14,39 @@ function addListener(callback){
 
 function getContentType(filePath){
   let extname = path.extname(filePath)
-  let mime = 'text/html'
+  let contentType = 'text/html'
   switch (extname) {
     case '.js':
-      mime =  'text/javascript'
-      break
+      contentType = 'text/javascript'
+      break;
     case '.css':
-      mime = 'text/css'
-      break
+      contentType = 'text/css'
+      break;
     case '.json':
-      mime = 'application/json'
-      break
+      contentType = 'application/json'
+      break;
     case '.png':
-      mime = 'image/png'
-      break
+      contentType = 'image/png'
+      break;      
     case '.jpg':
-      mime = 'image/jpg'
-      break
+      contentType = 'image/jpg'
+      break;    
     case '.ico':
-      mime = 'image/x-icon'
-      break
+      contentType = 'image/x-icon'
+      break;
     case '.wav':
-      mime = 'audio/wav'
-      break
+      contentType = 'audio/wav'
+      break;
     case '.zip':
-      mime = 'application/zip'
-      break
+      contentType = 'application/zip'
   }
-  return mime
+  return contentType
 }
 
 function respondWithFile(filePath, response){
+  filePath = `${__dirname}${filePath}`
   let contentType = getContentType(filePath)
-  fs.readFile('.'+filePath, function(error, content) {
+  fs.readFile(filePath, function(error, content) {
     if (error) {
       if(error.code == 'ENOENT'){
         response.writeHead(404)
