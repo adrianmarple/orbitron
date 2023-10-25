@@ -2,8 +2,8 @@
 echo "Staring server"
 if [ $(whoami) = 'root' ]; then
   node gitupdate.js
-	node server.js
+	node main.js
 else
   sudo node gitupdate.js
-  sudo node server.js
+  sudo node main.js
 fi

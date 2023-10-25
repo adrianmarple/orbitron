@@ -1,5 +1,23 @@
-let { execute, checkConnection, timeUntilHour } = require('./lib')
+let { execute, checkConnection } = require('./lib')
 let runDirectly = !module.parent
+
+function timeUntilHour(hour) {
+  if (hour < 0 || hour > 24) throw new Error("Invalid hour format!");
+
+  const now = new Date();
+  const target = new Date(now);
+
+  if (now.getHours() >= hour)
+      target.setDate(now.getDate() + 1);
+
+  target.setHours(hour);
+  target.setMinutes(0);
+  target.setSeconds(0);
+  target.setMilliseconds(0);
+
+  return target.getTime() - 
+  now.getTime();
+}
 
 async function checkForUpdates(){
   let connected = await checkConnection()

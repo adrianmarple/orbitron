@@ -1,5 +1,19 @@
 let { exec, execSync } = require('child_process')
 
+//load and process config and environment variables
+let config = require(__dirname + "/config.js")
+console.log(config)
+
+let filePath = config.PIXELS || "rhombicosidodecahedron"
+if (filePath.startsWith("/pixels/"))
+  filePath = filePath.slice(8)
+if (filePath.endsWith(".json"))
+  filePath = filePath.slice(0, filePath.length - 5)
+if (!filePath.includes("/"))
+  filePath = filePath + "/" + filePath
+filePath = `/pixels/${filePath}.json`
+config.PIXELS = filePath
+
 //add timestamps to logs
 const clog = console.log
 const cerr = console.error
@@ -39,24 +53,7 @@ async function checkConnection() {
   return output.indexOf("200 OK") >= 0
 };
 
-function timeUntilHour(hour) {
-  if (hour < 0 || hour > 24) throw new Error("Invalid hour format!");
-
-  const now = new Date();
-  const target = new Date(now);
-
-  if (now.getHours() >= hour)
-      target.setDate(now.getDate() + 1);
-
-  target.setHours(hour);
-  target.setMinutes(0);
-  target.setSeconds(0);
-  target.setMilliseconds(0);
-
-  return target.getTime() - 
-  now.getTime();
-}
 
 module.exports = {
-  execute, checkConnection, timeUntilHour
+  execute, checkConnection, config
 }
