@@ -157,3 +157,4 @@ if(!config.IS_SERVER){
   setTimeout(() => {
     networkCheck()
   }, 6e4)
+}
