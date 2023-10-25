@@ -6,14 +6,14 @@ if (!config.DEV_MODE && !config.CONTINUOUS_INTEGRATION) {
   checkForUpdates()
 }
 
-if(config.IS_SERVER){
-  require('./relay')
-}
-
 if(!config.IS_SERVER || config.DEV_MODE){
   require('./orb')
 }
 
 if(!config.IS_SERVER && !config.DEV_MODE){
   require('./accesspoint')
+}
+
+if(config.IS_SERVER){
+  require('./relay')
 }

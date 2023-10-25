@@ -166,13 +166,6 @@ function bindClient(socket, orbID, clientID) {
 }
 
 addListener(async (orbID, filePath, response)=>{
-  if(!orbID || !connectedOrbs[orbID] || filePath.includes("/logs")) return
-  console.log(orbID, filePath)
-  respondWithFile("/controller/controller.html",response)
-  return true
-})
-
-addListener(async (orbID, filePath, response)=>{
   if(!orbID || !connectedOrbs[orbID] || !filePath.includes("/logs")) return
 
   if(logsRequested[orbID]){
@@ -217,6 +210,13 @@ addListener(async (orbID, filePath, response)=>{
       response.end(`Error sending log files: ${error.code}`)
     }
   }
+  return true
+})
+
+addListener(async (orbID, filePath, response)=>{
+  if(!orbID || !connectedOrbs[orbID] || filePath.includes("/logs")) return
+  console.log(orbID, filePath)
+  respondWithFile("/controller/controller.html",response)
   return true
 })
 
