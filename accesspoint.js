@@ -58,7 +58,7 @@ if(!config.IS_SERVER){
   }
 
   async function stopAccessPoint(){
-    let hostapdRunning = (await execute("ps -ea | grep hostapd")).indexOf("hostapd") >= 0
+    let hostapdRunning = (await execute("ps -ea")).indexOf("hostapd") >= 0
     if(hostapdRunning){
       await execute("systemctl stop hostapd")
       await execute("systemctl restart networking.service")
