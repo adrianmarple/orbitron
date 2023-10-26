@@ -423,8 +423,7 @@ var app = new Vue({
         return // Already trying to establish a connection
       }
       this.socketStatus == 'CONNECTING'
-      console.log(window.location)
-      this.ws = new WebSocket(`ws://orbitron.games:7777/${window.location.pathname.split('/')[1]}/${this.uuid}`)
+      this.ws = new WebSocket(`ws://${location.hostname}:7777/${location.pathname.split('/')[1]}/${this.uuid}`)
       this.ws.onmessage = event => {
         self.$set(self, 'socketStatus', 'CONNECTED')
         self.handleMessage(event.data)

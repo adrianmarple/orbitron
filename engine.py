@@ -738,7 +738,7 @@ class Idle(Game):
       self.start -= timedelta(days=1)
     if self.end - self.start > timedelta(days=1):
       self.start += timedelta(days=1)
-    self.fade_duration = prefs.get("fadeDuration", 30)*60.0
+    self.fade_duration = float(prefs.get("fadeDuration", 30))*60
 
   def update(self):
     pass
@@ -814,7 +814,7 @@ class Idle(Game):
 
     brightness = prefs.get("brightness", 100) / 100.0
     pixels = np.outer(squares, phase_color() * (255 * brightness * fade))
-    pixels = np.maximum(pixels, prefs.get("idleMin", 0))
+    pixels = np.maximum(pixels, prefs.get("idleMin", 0) * fade)
 
 idle = Idle()
 idle.generate_players(Player)
