@@ -227,18 +227,13 @@ var app = new Vue({
       subGroup.add(line)
 
       if (!this.pixelData.isWall) {
-        let standGeometry = new THREE.CylinderGeometry( 0.2, 0.2, 0.4, 32 )
-        let standMaterial = new THREE.MeshBasicMaterial( {color: standColor} )
-        let stand = new THREE.Mesh( standGeometry, standMaterial )
-        stand.translateY(-1.15)
-        this.orbitronGroup.add(stand)
-
-        let innerSphereGeometry = new THREE.SphereGeometry( 0.8, 32, 16 )
+        let innerSphereGeometry = new THREE.SphereGeometry( 0.8 * scale, 32, 16 )
         let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
         innerSphereMaterial.transparent = true
-        innerSphereMaterial.opacity = 0.6
+        innerSphereMaterial.opacity = 0.7
         let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
         subGroup.add(innerSphere)
+
         subGroup.rotation.set(-Math.PI/2,0,0)
       }
       const SCALE = 4.4
