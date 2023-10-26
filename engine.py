@@ -790,6 +790,7 @@ class Idle(Game):
 
     self.fluid_values *= 0.86
     squares = np.multiply(self.fluid_values, self.fluid_values)
+    squares = np.maximum(prefs.get("idleMin", 0)/100.0, squares)
 
     if pixel_info["name"] == "MADE":
       squares = np.maximum(squares, 0.02)
