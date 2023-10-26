@@ -738,7 +738,7 @@ class Idle(Game):
       self.start -= timedelta(days=1)
     if self.end - self.start > timedelta(days=1):
       self.start += timedelta(days=1)
-    self.fade_duration = 30.0*60 # 30 minutes
+    self.fade_duration = prefs.get("fadeDuration", 30)*60.0
 
   def update(self):
     pass
@@ -752,13 +752,21 @@ class Idle(Game):
   def render_fluid(self):
     global pixels
 
-    now = datetime.now()
-    if now > self.end:
-      self.update_prefs()
-
-    if now < self.start:
-      pixels *= 0
-      return
+    fade = 1
+    if prefs.get("hasStartAndEnd", False):
+      now = datetime.now()
+      if now > self.end:
+        self.update_prefs()
+      if now < self.start:
+        pixels *= 0
+        return
+      start_fade = (now - self.start).total_seconds() / self.fade_duration
+      start_fade = min(start_fade, 1)
+      end_fade = (self.end - now).total_seconds() / self.fade_duration
+      end_fade = min(end_fade, 1)
+      end_fade = max(end_fade, 0)
+      fade = min(start_fade, end_fade)
+      fade *= fade
 
     head_ratio = len(self.fluid_heads) / target_head_count
     dampening_factor = (1 + head_ratio*head_ratio*5)
@@ -790,7 +798,7 @@ class Idle(Game):
 
     self.fluid_values *= 0.86
     squares = np.multiply(self.fluid_values, self.fluid_values)
-    squares = np.maximum(prefs.get("idleMin", 0)/100.0, squares)
+    # squares = np.maximum(squares, prefs.get("idleMin", 0)/100.0)
 
     if pixel_info["name"] == "MADE":
       squares = np.maximum(squares, 0.02)
@@ -803,15 +811,10 @@ class Idle(Game):
       pixels = np.multiply(pixels, np.matrix([red, green, blue]).transpose())
       return
 
-    start_fade = (now - self.start).total_seconds() / self.fade_duration
-    start_fade = min(start_fade, 1)
-    end_fade = (self.end - now).total_seconds() / self.fade_duration
-    end_fade = min(end_fade, 1)
-    end_fade = max(end_fade, 0)
-    fade = min(start_fade, end_fade)
-    fade *= fade
 
-    pixels = np.outer(squares, phase_color() * 200 * fade)
+    brightness = prefs.get("brightness", 100) / 100.0
+    pixels = np.outer(squares, phase_color() * (255 * brightness * fade))
+    pixels = np.maximum(pixels, prefs.get("idleMin", 0))
 
 idle = Idle()
 idle.generate_players(Player)
