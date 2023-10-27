@@ -812,7 +812,7 @@ class Idle(Game):
       return
 
 
-    brightness = prefs.get("brightness", 100) / 100.0
+    brightness = max(0, float(prefs.get("brightness", 100)) / 100)
     pixels = np.outer(squares, phase_color() * (255 * brightness * fade))
     pixels = np.maximum(pixels, prefs.get("idleMin", 0) * fade)
 

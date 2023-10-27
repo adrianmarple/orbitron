@@ -47,30 +47,44 @@
   <div v-else-if="!gameStarted" id="home" :style="homeStyle">
     <div class="header">
 
-      <div>
+      <div class="row">
         <input type="checkbox" v-model="prefs.hasStartAndEnd"
         @change="updatePrefs('hasStartAndEnd')">
         Use Timer
       </div>
       <div v-if="prefs.hasStartAndEnd">
-        <div>
-          Start Time:
-          <input type="time" v-model="prefs.startTime"
-            @change="updatePrefs('startTime')">
-          </input>
+        <div class="row">
+          <div>
+            Start Time:
+            <input type="time" v-model="prefs.startTime"
+              @change="updatePrefs('startTime')">
+            </input>
+          </div>
+          <div>
+            End Time:
+            <input type="time" v-model="prefs.endTime"
+              @change="updatePrefs('endTime')">
+            </input>
+          </div>
         </div>
-        <div>
-          End Time:
-          <input type="time" v-model="prefs.endTime"
-            @change="updatePrefs('endTime')">
-          </input>
-        </div>
-        <div>
-          Fade Duration (minutes):
+        <div class="row">
+          Fade Duration (min):
           <input type="number" v-model="prefs.fadeDuration"
             @change="updatePrefs('fadeDuration')">
           </input>
         </div>
+      </div>
+      <div class="row">
+        Min pixel brightness:
+        <input type="number" v-model="prefs.idleMin"
+          @change="updatePrefs('idleMin')">
+        </input>
+      </div>
+      <div class="row">
+        Brightness:
+        <input type="number" v-model="prefs.brightness"
+          @change="updatePrefs('brightness')">
+        </input>
       </div>
 
       <div class="button" @click="startGames" >

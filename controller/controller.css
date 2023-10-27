@@ -22,7 +22,7 @@ body, #app, .main {
 #home, #about {
   width: 100vw;
   height: 100vh;
-  position: fixed;
+  position: absolute;
   z-index: 3;
   box-shadow: inset 0 0 5vw 5vw rgba(255,255,255,0.8);
 }
@@ -184,6 +184,16 @@ body, #app, .main {
   display: flex;
   flex-direction: column;
 }
+.header .row {
+  display: flex;
+  flex-direction: row;
+}
+.header .column {
+  display: flex;
+  flex-direction: column;
+}
+
+
 .card {
   background: rgba(255,255,255, 0.8);
   border-radius: 1rem;
@@ -355,6 +365,7 @@ a:active {
   margin: 1rem;
   font-size: 2.5rem;
 }
+
 
 .choice {
   width: 45rem;
