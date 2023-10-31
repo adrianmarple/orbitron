@@ -208,10 +208,16 @@ function generatePixelInfo() {
     }
   }
 
+  let RAW_SIZE = uniqueToDupe.length
+  if (RAW_SIZE > 2728) {
+    console.error(`Too many LED pixels: ${RAW_SIZE}. Maximum is 2728`)
+    return
+  }
+
   let info = {
     name,
     SIZE,
-    RAW_SIZE: uniqueToDupe.length,
+    RAW_SIZE,
     isWall,
     coords,
     uniqueToDupe,
