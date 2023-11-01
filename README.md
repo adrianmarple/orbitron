@@ -34,7 +34,7 @@ See [the games folder README](games)
 
 ## SSH
 
-- `ssh pi@orbitron.local` or get IP address from `avahi-browse -ar` and go to `ssh pi@<IP address>`
+- `ssh pi@orbitron.local` or get IP address from `avahi-browse -ar` or `sudo nmap -sn 192.168.1.0/24` and go to `ssh pi@<IP address>`
 - `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
 
 ## Running on PI hardware
@@ -93,14 +93,8 @@ network={
 - You will need to power cycle the Vonets device after all this is done and then plug it into the Pi to test
 - Manual available [here](http://www.vonets.com/download/VAP11G-300/VAP11G-300%E2%80%94%E2%80%94Quick%20Setting%20Guide.pdf)
 
-## Unmount sshfs so you can remount
-
-- `sudo diskutil umount force ~/orbitron`
-- `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
 
 # OG/Fresh Setup on Pi Hardware
-
-## Basics
 
 ### Image an SSD
 
@@ -112,10 +106,6 @@ network={
 - Connect USB keyboard to PI as well
 - Login with username `pi` password `raspberry`
 - Change password with `passwd`
-
-### Change hostname
-
-- Edit `/etc/hostname` and change `raspberrypi` to `orbitron`
 
 ### Connect to WiFi
 
@@ -131,34 +121,8 @@ network={
 - Ensure Bonjour is running `sudo apt-get install avahi-daemon`
 - `ssh pi@orbitron.local`
 
-### Install Python
-
-- `sudo apt-get update`
-- `sudo apt-get install python3-pip`
-- `sudo apt-get install python3-numpy`
-- `sudo pip3 install adafruit-circuitpython-neopixel websockets`
-- `sudo apt-get install libsdl2-2.0`
-- `sudo apt-get install libsdl2-mixer-2.0-0`
-- `sudo pip3 install pygame==2.4.0`
-
-### Install Node
-
-- `sudo apt-get install nodejs`
-- `sudo apt-get install npm`
-- `sudo npm install -g pm2`
-- `sudo pm2 install pm2-logrotate`
-
-### Clone Repo
+### Clone Repo and run installer
 
 - `git clone https://github.com/adrianmarple/orbitron`
-- `cd orbitron`
-- `npm install`
-- `cp config.js.template config.js`
-
-### Setup to run on startup on Pi (still within orbitron directory)
-
-- `sudo pm2 start startscript.sh`
-- `sudo pm2 start wifisetup.js`
-- `sudo pm2 startup`
-- `sudo pm2 save`
-
+- `~/orbitron/utility_scripts/base_install.sh`
+- `~/orbitron/utility_scripts/pm2_setup.sh`
