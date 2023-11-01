@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
-from scipy import sparse
+# from scipy import sparse
 from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
@@ -107,7 +107,7 @@ SOUTHERLY_INITIAL_POSITIONS = pixel_info.get("southerlyInitialPositions", [None]
 dupe_matrix = np.zeros((len(unique_to_dupe), SIZE),dtype="<u1")
 for (i, dupe) in enumerate(unique_to_dupe):
   dupe_matrix[i, dupe] = 1
-dupe_matrix = sparse.csr_matrix(dupe_matrix)
+# dupe_matrix = sparse.csr_matrix(dupe_matrix)
 
 pixels = np.zeros((SIZE, 3),dtype="<u1")
 print("Running %s pixels" % len(unique_to_dupe), file=sys.stderr)
@@ -184,8 +184,8 @@ def update():
 
     pixels = np.minimum(pixels, 255)
     pixels = np.maximum(pixels, 0)
-    # raw_pixels = np.matmul(dupe_matrix,pixels)
-    raw_pixels = dupe_matrix * pixels
+    raw_pixels = np.matmul(dupe_matrix,pixels)
+    # raw_pixels = dupe_matrix * pixels # for sparse matrix
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
     output=np.array(raw_pixels,dtype="<u1").tobytes()
     neopixel_write(output)
