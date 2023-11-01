@@ -25,6 +25,9 @@ process.on('SIGTERM', handleKill)
 process.on('SIGHUP', handleKill)
 
 const NO_TIMEOUT = process.argv.includes('-t')
+if (process.argv.includes('-f')) {
+  config.SHOW_FRAME_INFO = true
+}
 let starting_game = null
 let game_index = process.argv.indexOf('-g') + 1
 if (game_index) {

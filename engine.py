@@ -992,7 +992,8 @@ def run_core_loop():
       framerate_data['very_slow_frame_count'] += 1
       print("Framerate Data: " + str(framerate_data), file=sys.stderr)
 
-    # print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
+    if os.getenv("SHOW_FRAME_INFO"):
+      print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
     update()
 
