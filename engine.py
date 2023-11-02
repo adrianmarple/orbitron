@@ -79,8 +79,9 @@ SIZE = pixel_info["SIZE"]
 neighbors = pixel_info["neighbors"]
 next_pixel = pixel_info["nextPixel"]
 unique_to_dupe = pixel_info["uniqueToDupe"]
+RAW_SIZE = len(unique_to_dupe)
 coords = [np.array(coord) for coord in pixel_info["coords"]]
-coord_matrix = np.matrix(coords).transpose()
+coord_matrix = np.matrix(coords)
 
 DEFAULT_PULSE_DIRECTION = np.array(
   pixel_info.get("defaultPulseDirection", (0,0,1)),
@@ -104,14 +105,25 @@ north_pole = pixel_info.get("northPole", None)
 south_pole = pixel_info.get("southPole", None)
 SOUTHERLY_INITIAL_POSITIONS = pixel_info.get("southerlyInitialPositions", [None]*6)
 
-dupe_matrix = np.zeros((len(unique_to_dupe), SIZE),dtype="<u1")
+dupe_matrix = np.zeros((RAW_SIZE, SIZE),dtype="<u1")
+dupe_to_uniques = []
+for dupe in range(SIZE):
+  dupe_to_uniques.append([])
+unique_coord_matrix = np.zeros((RAW_SIZE, 3))
 for (i, dupe) in enumerate(unique_to_dupe):
   dupe_matrix[i, dupe] = 1
+  dupe_to_uniques[dupe].append(i)
+  unique_coord_matrix[i] = coord_matrix[dupe]
 # dupe_matrix = sparse.csr_matrix(dupe_matrix)
 
+coord_matrix = coord_matrix.transpose()
+unique_coord_matrix = unique_coord_matrix.transpose()
+
 pixels = np.zeros((SIZE, 3),dtype="<u1")
-raw_pixels = np.zeros((len(unique_to_dupe), 3),dtype="<u1")
-print("Running %s pixels" % len(unique_to_dupe), file=sys.stderr)
+dirty_pixels = set()
+old_pixels = np.zeros((SIZE, 3),dtype="<u1")
+raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
+print("Running %s pixels" % RAW_SIZE, file=sys.stderr)
 
 game = None
 next_game = None
@@ -170,7 +182,9 @@ def start(new_game):
 
 def update():
   global pixels
+  global old_pixels
   global raw_pixels
+  global dirty_pixels
   try:
     if game is None:
       start(idle)
@@ -186,10 +200,29 @@ def update():
 
     pixels = np.minimum(pixels, 255)
     pixels = np.maximum(pixels, 0)
-    for (i, dupe) in enumerate(unique_to_dupe):
-      raw_pixels[i] = pixels[dupe]
+
+    t = time()
+    diff = pixels - old_pixels
+    diff = np.multiply(diff, diff)
+    diff = np.sum(diff, axis=1)
+    diff = np.sign(diff)
+    # print(np.sum(diff), file=sys.stderr)
+    index_changes = []
+    for i in range(SIZE):
+      if diff[i] != 0:
+        i
+
+    temp = old_pixels * 0
+    old_pixels = pixels
+    pixels = temp
+
+    for index in dirty_pixels:
+      for unique in dupe_to_uniques[index]:
+        raw_pixels[unique] = pixels[index]
+    dirty_pixels.clear()
     # raw_pixels = np.matmul(dupe_matrix,pixels)
     # raw_pixels = dupe_matrix * pixels # for sparse matrix
+    print(time() - t, file=sys.stderr)
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
     output=np.array(raw_pixels,dtype="<u1").tobytes()
     neopixel_write(output)
@@ -769,10 +802,11 @@ class Idle(Game):
 
 
   fluid_heads = [0]
-  fluid_values = np.array([1.0] + [0.0] * (SIZE - 1))
+  fluid_values = np.array([1.0] + [0.0] * (RAW_SIZE - 1))
   previous_fluid_time = 0
   def render_fluid(self):
     global pixels
+    global raw_pixels
 
     fade = 1
     if prefs.get("hasStartAndEnd", False):
@@ -805,11 +839,12 @@ class Idle(Game):
         continue
 
       for n in neighbors[head]:
-        x = self.fluid_values[n] + 0.01
+        x = self.fluid_values[dupe_to_uniques[n][0]] + 0.01
         x *= dampening_factor
         if x < random():
           new_heads.append(n)
-          self.fluid_values[n] = 1
+          for unique in dupe_to_uniques[n]:
+            self.fluid_values[unique] = 1
 
     spontaneous_combustion_chance = 0.01 / (head_ratio * head_ratio)
     if spontaneous_combustion_chance > random():
@@ -823,23 +858,23 @@ class Idle(Game):
 
     if pixel_info["name"] == "MADE":
       squares = np.maximum(squares, 0.02)
-      pixels = np.outer(squares, np.array((1,1,1)) * 200)
-      green = np.multiply(np.sign(coord_matrix[0]), np.sign(coord_matrix[1]))
+      raw_pixels = np.outer(squares, np.array((1,1,1)) * 200)
+      green = np.multiply(np.sign(unique_coord_matrix[0]), np.sign(unique_coord_matrix[1]))
       green = (green + 1)/2
       green = np.squeeze(np.asarray(green))
       red = 1 - green
       blue = 1 - 2*np.multiply(red, green)
-      pixels = np.multiply(pixels, np.matrix([red, green, blue]).transpose())
+      raw_pixels = np.multiply(raw_pixels, np.matrix([red, green, blue]).transpose())
       return
 
 
     brightness = max(0, float(prefs.get("brightness", 100)) / 100)
     if prefs.get("applyIdleMinBefore", False):
       squares = np.maximum(squares, float(prefs.get("idleMin", 0))/255)
-      pixels = np.outer(squares, self.color() * (255 * brightness * fade))
+      raw_pixels = np.outer(squares, self.color() * (255 * brightness * fade))
     else:
-      pixels = np.outer(squares, self.color() * (255 * brightness * fade))
-      pixels = np.maximum(pixels, float(prefs.get("idleMin", 0)) * fade)
+      raw_pixels = np.outer(squares, self.color() * (255 * brightness * fade))
+      raw_pixels = np.maximum(raw_pixels, float(prefs.get("idleMin", 0)) * fade)
 
 idle = Idle()
 idle.generate_players(Player)
@@ -849,9 +884,11 @@ idle.generate_players(Player)
 
 def color_pixel(index, color):
   pixels[index] = color
+  dirty_pixels.add(index)
 
 def add_color_to_pixel(index, color):
   pixels[index] += np.array(color,dtype="<u1")
+  dirty_pixels.add(index)
 
 def latlong_delta(ll0, ll1):
   delta = [ll0[0] - ll1[0], ll0[1] - ll1[1]]
