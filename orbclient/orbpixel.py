@@ -91,10 +91,10 @@ def neopixel_write(buf):
         raise RuntimeError("Raspberry Pi neopixel support is for one strip only!")
 
     # assign all colors!
-    for i in range(len(buf) // bpp):
-        r = buf[bpp * i]
-        g = buf[bpp * i + 1]
-        b = buf[bpp * i + 2]
+    for i in range(len(buf) // 3):
+        r = buf[3 * i]
+        g = buf[3 * i + 1]
+        b = buf[3 * i + 2]
         pixel = (r << 16) | (g << 8) | b
         ws.ws2811_led_set(channel, i, pixel)
 
