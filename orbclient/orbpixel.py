@@ -3,6 +3,7 @@ import atexit
 import digitalio
 import board
 import _rpi_ws281x as ws
+import sys
 from time import time, sleep
 from threading import Thread
 
