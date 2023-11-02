@@ -95,14 +95,17 @@ const rootServer = http.createServer(async (request, response) => {
   }
 
   // http GET stuff
-  let filePath = request.url
+  let [filePath, queryParams] = request.url.split("?")
+  if (queryParams) {
+    queryParams = queryParams.split("&")
+  }
   if(filePath.endsWith('/'))
     filePath = filePath.substring(0,filePath.length-1)
   let handled = false
   let processed = filePath.split("/")
   let orbID = processed.length > 1 ? processed[1] : ''
   for (const listener of getListeners) {
-    handled = await listener(response, orbID, filePath)
+    handled = await listener(response, orbID, filePath, queryParams)
     if(handled) break
   }
   if(!handled){

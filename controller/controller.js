@@ -22,6 +22,8 @@ function isNothing(val) {
   return val === undefined || val === null
 }
 
+const searchParams = new URLSearchParams(location.search)
+
 var app = new Vue({
   el: '#app',
   data: {
@@ -523,7 +525,12 @@ var app = new Vue({
           this.startLocation[1] = Math.min(this.startLocation[1], innerHeight - joystickWidth/2)
         }
 
-        this.send({type: "move", move: this.move})
+        let [x,y] = this.move
+        if (searchParams.has("mirror")) {
+          x *= -1
+        }
+
+        this.send({type: "move", move: [x,y]})
       }
     },
     // displaySignup() {

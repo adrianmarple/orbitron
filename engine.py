@@ -976,7 +976,7 @@ def broadcast_state():
 def run_core_loop():
   last_frame_time = time()
   framerate_data = {
-    'start_time': last_frame_time,
+    'start_time': datetime.fromtimestamp(int(last_frame_time)).strftime("%m/%d/%Y, %H:%M:%S"),
     'slow_frame_count': 0,
     'very_slow_frame_count': 0,
     'slowest_frame': 0,
@@ -992,8 +992,7 @@ def run_core_loop():
       framerate_data['very_slow_frame_count'] += 1
       print("Framerate Data: " + str(framerate_data), file=sys.stderr)
 
-    if os.getenv("SHOW_FRAME_INFO"):
+    if os.getenv("SHOW_FRAME_INFO") == "true":
       print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
     update()
-
