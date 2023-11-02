@@ -19,6 +19,7 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 # a 'static' object that we will use to manage our PWM DMA channel
 # we only support one LED strip per raspi
 _led_strip = None
+ready_to_render = False
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
