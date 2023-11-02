@@ -80,7 +80,6 @@ next_pixel = pixel_info["nextPixel"]
 unique_to_dupe = pixel_info["uniqueToDupe"]
 RAW_SIZE = len(unique_to_dupe)
 coords = [np.array(coord) for coord in pixel_info["coords"]]
-coord_matrix = np.matrix(coords)
 
 DEFAULT_PULSE_DIRECTION = np.array(
   pixel_info.get("defaultPulseDirection", (0,0,1)),
@@ -110,14 +109,9 @@ for dupe in range(SIZE):
 unique_coord_matrix = np.zeros((RAW_SIZE, 3))
 for (i, dupe) in enumerate(unique_to_dupe):
   dupe_to_uniques[dupe].append(i)
-  unique_coord_matrix[i] = coord_matrix[dupe]
-
-
-coord_matrix = coord_matrix.transpose()
+  unique_coord_matrix[i] = coords[dupe]
 unique_coord_matrix = unique_coord_matrix.transpose()
 
-pixels = np.zeros((SIZE, 3),dtype="<u1")
-dirty_pixels = set()
 raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
 print("Running %s pixels" % RAW_SIZE, file=sys.stderr)
 
@@ -177,9 +171,7 @@ def start(new_game):
 # ================================ UPDATE =========================================
 
 def update():
-  global pixels
   global raw_pixels
-  global dirty_pixels
   try:
     if game is None:
       start(idle)
@@ -193,21 +185,13 @@ def update():
       game.ontimeout()
     game.render()
 
-    pixels = np.minimum(pixels, 255)
-    pixels = np.maximum(pixels, 0)
-
-    for index in dirty_pixels:
-      for unique in dupe_to_uniques[index]:
-        raw_pixels[unique] = pixels[index]
+    raw_pixels = np.minimum(raw_pixels, 255)
+    raw_pixels = np.maximum(raw_pixels, 0)
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
-    t = time()
     output=np.array(raw_pixels,dtype="<u1").tobytes()
     display_pixels(output)
-    # print(time() - t, file=sys.stderr)
     broadcast_state()
 
-    dirty_pixels.clear()
-    pixels *= 0
     raw_pixels *= 0
   except Exception:
     print(traceback.format_exc(), file=sys.stderr)
@@ -614,9 +598,6 @@ class Game:
 
 
   def render(self):
-    global pixels
-    pixels *= 0
-
     if self.state == "start":
       for player in self.claimed_players():
         player.render_ready()
@@ -865,12 +846,12 @@ idle.generate_players(Player)
 # ================================ MISC =========================================
 
 def color_pixel(index, color):
-  pixels[index] = color
-  dirty_pixels.add(index)
+  for unique in dupe_to_uniques[index]:
+    raw_pixels[unique] = color
 
 def add_color_to_pixel(index, color):
-  pixels[index] += np.array(color,dtype="<u1")
-  dirty_pixels.add(index)
+  for unique in dupe_to_uniques[index]:
+    raw_pixels[unique] += np.array(color,dtype="<u1")
 
 def latlong_delta(ll0, ll1):
   delta = [ll0[0] - ll1[0], ll0[1] - ll1[1]]
