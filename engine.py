@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
-# from scipy import sparse
 from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
@@ -105,23 +104,21 @@ north_pole = pixel_info.get("northPole", None)
 south_pole = pixel_info.get("southPole", None)
 SOUTHERLY_INITIAL_POSITIONS = pixel_info.get("southerlyInitialPositions", [None]*6)
 
-dupe_matrix = np.zeros((RAW_SIZE, SIZE),dtype="<u1")
 dupe_to_uniques = []
 for dupe in range(SIZE):
   dupe_to_uniques.append([])
 unique_coord_matrix = np.zeros((RAW_SIZE, 3))
 for (i, dupe) in enumerate(unique_to_dupe):
-  dupe_matrix[i, dupe] = 1
   dupe_to_uniques[dupe].append(i)
   unique_coord_matrix[i] = coord_matrix[dupe]
-# dupe_matrix = sparse.csr_matrix(dupe_matrix)
+
 
 coord_matrix = coord_matrix.transpose()
 unique_coord_matrix = unique_coord_matrix.transpose()
 
 pixels = np.zeros((SIZE, 3),dtype="<u1")
 dirty_pixels = set()
-old_pixels = np.zeros((SIZE, 3),dtype="<u1")
+previous_dirty_pixels = set()
 raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
 print("Running %s pixels" % RAW_SIZE, file=sys.stderr)
 
@@ -182,9 +179,9 @@ def start(new_game):
 
 def update():
   global pixels
-  global old_pixels
   global raw_pixels
   global dirty_pixels
+  global previous_dirty_pixels
   try:
     if game is None:
       start(idle)
@@ -202,31 +199,24 @@ def update():
     pixels = np.maximum(pixels, 0)
 
     t = time()
-    diff = pixels - old_pixels
-    diff = np.multiply(diff, diff)
-    diff = np.sum(diff, axis=1)
-    diff = np.sign(diff)
-    # print(np.sum(diff), file=sys.stderr)
-    index_changes = []
-    for i in range(SIZE):
-      if diff[i] != 0:
-        i
-
-    temp = old_pixels * 0
-    old_pixels = pixels
-    pixels = temp
-
+    for index in previous_dirty_pixels:
+      for unique in dupe_to_uniques[index]:
+        raw_pixels[unique] *= 0
     for index in dirty_pixels:
       for unique in dupe_to_uniques[index]:
         raw_pixels[unique] = pixels[index]
-    dirty_pixels.clear()
-    # raw_pixels = np.matmul(dupe_matrix,pixels)
-    # raw_pixels = dupe_matrix * pixels # for sparse matrix
-    print(time() - t, file=sys.stderr)
+    # print(time() - t, file=sys.stderr)
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
     output=np.array(raw_pixels,dtype="<u1").tobytes()
     neopixel_write(output)
     broadcast_state()
+
+    previous_dirty_pixels.clear()
+    temp = previous_dirty_pixels
+    previous_dirty_pixels = dirty_pixels
+    dirty_pixels = temp
+    pixels *= 0
+    raw_pixels *= 0
   except Exception:
     print(traceback.format_exc(), file=sys.stderr)
 
@@ -985,13 +975,13 @@ def time_of_day_color():
 
 def render_pulse(direction=None, color=(200,200,200),
     start_time=0, duration=READY_PULSE_DURATION):
-  global pixels
+  global raw_pixels
   t = (time() - start_time) / duration
   if (t >= 1):
     return
 
   if IS_WALL and direction is not None:
-    deltas = np.dot(np.asmatrix(direction).T, np.ones((1, SIZE))) - coord_matrix
+    deltas = np.dot(np.asmatrix(direction).T, np.ones((1, RAW_SIZE))) - unique_coord_matrix
     ds = np.sum(np.multiply(deltas, deltas), axis=0).T
     ds = np.sqrt(ds)
     # ds = 1 - ds/2
@@ -999,21 +989,21 @@ def render_pulse(direction=None, color=(200,200,200),
   else:
     if direction is None:
       direction = DEFAULT_PULSE_DIRECTION
-    ds = direction * coord_matrix / 2 + 0.5
+    ds = np.matmul(direction, unique_coord_matrix) / 2 + 0.5
     ds -= minPulseDot
     ds /= pulseRange
       
   ds = 12*ds - 7*t - 5
   ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
-  pixels += np.array(np.outer(ds, color), dtype="<u1")
+  raw_pixels += np.array(np.outer(ds, color), dtype="<u1")
 
 # Assume direction is normalized
 def render_ring(direction, color, width):
-  global pixels
-  ds = direction * coord_matrix
+  global raw_pixels
+  ds = direction * unique_coord_matrix
   ds = ds * 6 + width/2
   ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
-  pixels += np.array(np.outer(ds, color), dtype="<u1")
+  raw_pixels += np.array(np.outer(ds, color), dtype="<u1")
 
 def multi_lerp(x, control_points):
   if x < 0:
