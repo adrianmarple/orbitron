@@ -931,12 +931,12 @@ def rainbow_phase_color():
 
 
 tod_colors = [
-  [0, np.array((0.6, 0.2, 0))],
-  [0.2, np.array((0.6, 0.2, 0))],
+  [0, np.array((0.6, 0.1, 0))],
+  [0.2, np.array((0.6, 0.1, 0))],
   [0.3, np.array((0.7, 0.7, 0.7))],
   [0.2, np.array((0.7, 0.7, 0.7))],
   [0.15, np.array((0.7, 0.5, 0.1))],
-  [0.15, np.array((0.6, 0.2, 0))],
+  [0.15, np.array((0.6, 0.1, 0))],
 ]
 def time_of_day_color():
   color_phase = (time()/10) % 1
