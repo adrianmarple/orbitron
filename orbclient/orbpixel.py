@@ -4,6 +4,7 @@ import atexit
 import digitalio
 import board
 import _rpi_ws281x as ws
+from threading import Thread
 
 # LED configuration.
 # pylint: disable=redefined-outer-name,too-many-branches,too-many-statements
@@ -22,15 +23,32 @@ _led_strip = None
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
 
+# NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
+
+
+def render_loop():
+    global _led_strip
+    global ready_to_render
+    while True:
+        if not ready_to_render:
+            sleep(0.0001)
+        else:
+            resp = ws.ws2811_render(_led_strip)
+            print(time() - t, file=sys.stderr)
+            if resp != ws.WS2811_SUCCESS:
+                message = ws.ws2811_get_return_t_str(resp)
+                raise RuntimeError(
+                    "ws2811_render failed with code {0} ({1})".format(resp, message)
+                )
+            ready_to_render = False
 
 def display_pixels(buf):
-    neopixel_write(buf)
-
-def neopixel_write(buf):
     """NeoPixel Writing Function"""
     global _led_strip  # we'll have one strip we init if its not at first
 
     if _led_strip is None:
+        render_thread = Thread(target=render_loop)
+        render_thread.start()
         # This is safe to call since it doesn't do anything if _led_strip is None
         neopixel_cleanup()
 
@@ -98,14 +116,17 @@ def neopixel_write(buf):
         pixel = (r << 16) | (g << 8) | b
         ws.ws2811_led_set(channel, i, pixel)
 
-    resp = ws.ws2811_render(_led_strip)
-    if resp != ws.WS2811_SUCCESS:
-        message = ws.ws2811_get_return_t_str(resp)
-        raise RuntimeError(
-            "ws2811_render failed with code {0} ({1})".format(resp, message)
-        )
-    #time.sleep(0.001 * ((len(buf) // 100) + 1))  # about 1ms per 100 bytes
-
+    t = time()
+    while ready_to_render:
+        sleep(0.0001)
+    ready_to_render = True
+    print(time() - t, file=sys.stderr)
+    # resp = ws.ws2811_render(_led_strip)
+    # if resp != ws.WS2811_SUCCESS:
+    #     message = ws.ws2811_get_return_t_str(resp)
+    #     raise RuntimeError(
+    #         "ws2811_render failed with code {0} ({1})".format(resp, message)
+    #     )
 
 def neopixel_cleanup():
     """Cleanup when we're done"""

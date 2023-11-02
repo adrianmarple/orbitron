@@ -203,7 +203,7 @@ def update():
     t = time()
     output=np.array(raw_pixels,dtype="<u1").tobytes()
     display_pixels(output)
-    print(time() - t, file=sys.stderr)
+    # print(time() - t, file=sys.stderr)
     broadcast_state()
 
     dirty_pixels.clear()
