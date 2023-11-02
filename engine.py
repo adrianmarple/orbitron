@@ -18,10 +18,10 @@ from time import sleep, time
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
 
 if os.getenv("DEV_MODE"):
-  def neopixel_write(data):
+  def display_pixels(data):
     print("raw_pixels=%s;" % data.hex())
 else:
-  from orbclient.orbpixel import neopixel_write
+  from orbclient.orbpixel import display_pixels
 
 prewarm_audio()
 
@@ -196,14 +196,14 @@ def update():
     pixels = np.minimum(pixels, 255)
     pixels = np.maximum(pixels, 0)
 
-    t = time()
     for index in dirty_pixels:
       for unique in dupe_to_uniques[index]:
         raw_pixels[unique] = pixels[index]
-    # print(time() - t, file=sys.stderr)
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
+    t = time()
     output=np.array(raw_pixels,dtype="<u1").tobytes()
-    neopixel_write(output)
+    print(time() - t, file=sys.stderr)
+    display_pixels(output)
     broadcast_state()
 
     dirty_pixels.clear()
