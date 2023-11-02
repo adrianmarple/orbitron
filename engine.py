@@ -992,7 +992,7 @@ def render_pulse(direction=None, color=(200,200,200),
 # Assume direction is normalized
 def render_ring(direction, color, width):
   global raw_pixels
-  ds = direction * unique_coord_matrix
+  ds = np.matmul(direction, unique_coord_matrix)
   ds = ds * 6 + width/2
   ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
   raw_pixels += np.array(np.outer(ds, color), dtype="<u1")
@@ -1062,7 +1062,7 @@ def run_core_loop():
     time_to_wait = last_frame_time + 0.033 - time()
     if time_to_wait > 0:
       sleep(time_to_wait)
-      
+
     frame_time = time() - last_frame_time
     framerate_data['slowest_frame'] = max(frame_time, framerate_data['slowest_frame'])
     if frame_time > 0.1:
