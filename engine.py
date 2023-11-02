@@ -118,7 +118,6 @@ unique_coord_matrix = unique_coord_matrix.transpose()
 
 pixels = np.zeros((SIZE, 3),dtype="<u1")
 dirty_pixels = set()
-previous_dirty_pixels = set()
 raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
 print("Running %s pixels" % RAW_SIZE, file=sys.stderr)
 
@@ -181,7 +180,6 @@ def update():
   global pixels
   global raw_pixels
   global dirty_pixels
-  global previous_dirty_pixels
   try:
     if game is None:
       start(idle)
@@ -199,9 +197,6 @@ def update():
     pixels = np.maximum(pixels, 0)
 
     t = time()
-    for index in previous_dirty_pixels:
-      for unique in dupe_to_uniques[index]:
-        raw_pixels[unique] *= 0
     for index in dirty_pixels:
       for unique in dupe_to_uniques[index]:
         raw_pixels[unique] = pixels[index]
@@ -211,10 +206,7 @@ def update():
     neopixel_write(output)
     broadcast_state()
 
-    previous_dirty_pixels.clear()
-    temp = previous_dirty_pixels
-    previous_dirty_pixels = dirty_pixels
-    dirty_pixels = temp
+    dirty_pixels.clear()
     pixels *= 0
     raw_pixels *= 0
   except Exception:
@@ -1068,7 +1060,9 @@ def run_core_loop():
   }
   while True:
     time_to_wait = last_frame_time + 0.033 - time()
-
+    if time_to_wait > 0:
+      sleep(time_to_wait)
+      
     frame_time = time() - last_frame_time
     framerate_data['slowest_frame'] = max(frame_time, framerate_data['slowest_frame'])
     if frame_time > 0.1:
