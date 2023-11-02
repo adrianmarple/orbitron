@@ -1,9 +1,13 @@
 """BCM283x NeoPixel Driver Class"""
-import time
 import atexit
 import digitalio
 import board
 import _rpi_ws281x as ws
+import sys
+from time import time, sleep
+# from threading import Thread
+
+# NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
 
 # LED configuration.
 # pylint: disable=redefined-outer-name,too-many-branches,too-many-statements
@@ -18,26 +22,22 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 # a 'static' object that we will use to manage our PWM DMA channel
 # we only support one LED strip per raspi
 _led_strip = None
-_buf = None
+pixel_thread = None
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
 
-def neopixel_write(buf):
+def display_pixels(buf):
     """NeoPixel Writing Function"""
     global _led_strip  # we'll have one strip we init if its not at first
-    global _buf  # we save a reference to the buf, and if it changes we will cleanup and re-init.
+    global pixel_thread
 
-    if _led_strip is None or buf is not _buf:
-        # This is safe to call since it doesn't do anything if _led_strip is None
-        neopixel_cleanup()
-
+    if _led_strip is None:
         # Create a ws2811_t structure from the LED configuration.
         # Note that this structure will be created on the heap so you
         # need to be careful that you delete its memory by calling
         # delete_ws2811_t when it's not needed.
         _led_strip = ws.new_ws2811_t()
-        _buf = buf
 
         # Initialize all channels to off
         for channum in range(2):
@@ -89,30 +89,27 @@ def neopixel_write(buf):
     if gpio._pin.id != ws.ws2811_channel_t_gpionum_get(channel):
         raise RuntimeError("Raspberry Pi neopixel support is for one strip only!")
 
-    if ws.ws2811_channel_t_strip_type_get(channel) == ws.WS2811_STRIP_RGB:
-        bpp = 3
-    else:
-        bpp = 4
     # assign all colors!
-    for i in range(len(buf) // bpp):
-        r = buf[bpp * i]
-        g = buf[bpp * i + 1]
-        b = buf[bpp * i + 2]
-        if bpp == 3:
-            pixel = (r << 16) | (g << 8) | b
-        else:
-            w = buf[bpp * i + 3]
-            pixel = (w << 24) | (r << 16) | (g << 8) | b
+    for i in range(len(buf) // 3):
+        r = buf[3 * i]
+        g = buf[3 * i + 1]
+        b = buf[3 * i + 2]
+        pixel = (r << 16) | (g << 8) | b
         ws.ws2811_led_set(channel, i, pixel)
 
-    resp = ws.ws2811_render(_led_strip)
+    # if pixel_thread is not None:
+    #     pixel_thread.join()
+    # pixel_thread = Thread(target=pixels_to_strip, args=(_led_strip,))
+    # pixel_thread.start()
+    pixels_to_strip(_led_strip)
+
+def pixels_to_strip(led_strip):
+    resp = ws.ws2811_render(led_strip)
     if resp != ws.WS2811_SUCCESS:
         message = ws.ws2811_get_return_t_str(resp)
         raise RuntimeError(
             "ws2811_render failed with code {0} ({1})".format(resp, message)
         )
-    #time.sleep(0.001 * ((len(buf) // 100) + 1))  # about 1ms per 100 bytes
-
 
 def neopixel_cleanup():
     """Cleanup when we're done"""
