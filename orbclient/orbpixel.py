@@ -6,6 +6,8 @@ import _rpi_ws281x as ws
 import sys
 from time import time, sleep
 from threading import Thread
+from multiprocessing import Process
+
 
 # LED configuration.
 # pylint: disable=redefined-outer-name,too-many-branches,too-many-statements
@@ -101,7 +103,8 @@ def display_pixels(buf):
     t = time()
     if pixel_thread is not None:
         pixel_thread.join()
-    pixel_thread = Thread(target=pixels_to_strip)
+    # pixel_thread = Thread(target=pixels_to_strip, args=[_led_strip])
+    pixel_thread = Process(target=pixels_to_strip, args=[_led_strip])
     pixel_thread.start()
     print(time() - t, file=sys.stderr)
     # resp = ws.ws2811_render(_led_strip)
@@ -111,9 +114,8 @@ def display_pixels(buf):
     #         "ws2811_render failed with code {0} ({1})".format(resp, message)
     #     )
 
-def pixels_to_strip():
-    global _led_strip
-    resp = ws.ws2811_render(_led_strip)
+def pixels_to_strip(led_strip):
+    resp = ws.ws2811_render(led_strip)
     if resp != ws.WS2811_SUCCESS:
         message = ws.ws2811_get_return_t_str(resp)
         raise RuntimeError(
