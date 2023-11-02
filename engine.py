@@ -202,8 +202,8 @@ def update():
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
     t = time()
     output=np.array(raw_pixels,dtype="<u1").tobytes()
-    print(time() - t, file=sys.stderr)
     display_pixels(output)
+    print(time() - t, file=sys.stderr)
     broadcast_state()
 
     dirty_pixels.clear()
