@@ -110,6 +110,7 @@ for (i, dupe) in enumerate(unique_to_dupe):
 # dupe_matrix = sparse.csr_matrix(dupe_matrix)
 
 pixels = np.zeros((SIZE, 3),dtype="<u1")
+raw_pixels = np.zeros((len(unique_to_dupe), 3),dtype="<u1")
 print("Running %s pixels" % len(unique_to_dupe), file=sys.stderr)
 
 game = None
@@ -169,6 +170,7 @@ def start(new_game):
 
 def update():
   global pixels
+  global raw_pixels
   try:
     if game is None:
       start(idle)
@@ -184,7 +186,6 @@ def update():
 
     pixels = np.minimum(pixels, 255)
     pixels = np.maximum(pixels, 0)
-    raw_pixels = np.zeros((len(unique_to_dupe), 3),dtype="<u1")
     for (i, dupe) in enumerate(unique_to_dupe):
       raw_pixels[i] = pixels[dupe]
     # raw_pixels = np.matmul(dupe_matrix,pixels)
