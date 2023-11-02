@@ -743,11 +743,26 @@ class Idle(Game):
       self.start += timedelta(days=1)
     self.fade_duration = float(prefs.get("fadeDuration", 30))*60
 
+    self.fixed_color = None
+
   def update(self):
     pass
 
   def render(self):
     self.render_fluid()
+
+  def color(self):
+    if self.fixed_color is not None:
+      return self.fixed_color
+    color_string = prefs.get("idleColor", "rainbow")
+    if color_string == "rainbow":
+      return rainbow_phase_color()
+    elif color_string == "timeofday":
+      return time_of_day_color()
+    else:
+      color_string = color_string.lstrip('#')
+      return np.array(tuple(int(color_string[i:i+2], 16) for i in (0, 2, 4)))
+
 
   fluid_heads = [0]
   fluid_values = np.array([1.0] + [0.0] * (SIZE - 1))
@@ -801,7 +816,6 @@ class Idle(Game):
 
     self.fluid_values *= 0.86
     squares = np.multiply(self.fluid_values, self.fluid_values)
-    # squares = np.maximum(squares, prefs.get("idleMin", 0)/100.0)
 
     if pixel_info["name"] == "MADE":
       squares = np.maximum(squares, 0.02)
@@ -816,8 +830,12 @@ class Idle(Game):
 
 
     brightness = max(0, float(prefs.get("brightness", 100)) / 100)
-    pixels = np.outer(squares, phase_color() * (255 * brightness * fade))
-    pixels = np.maximum(pixels, float(prefs.get("idleMin", 0)) * fade)
+    if prefs.get("applyIdleMinBefore", False):
+      squares = np.maximum(squares, float(prefs.get("idleMin", 0))/255)
+      pixels = np.outer(squares, self.color() * (255 * brightness * fade))
+    else:
+      pixels = np.outer(squares, self.color() * (255 * brightness * fade))
+      pixels = np.maximum(pixels, float(prefs.get("idleMin", 0)) * fade)
 
 idle = Idle()
 idle.generate_players(Player)
@@ -891,7 +909,7 @@ def projection(u, v): # assume v is normalized
 def ortho_proj(u, v):
   return u - projection(u,v)
 
-def phase_color():
+def rainbow_phase_color():
   color_phase = (time()/10) % 1
   if color_phase < 0.333:
     r = 1 - 3 * color_phase
@@ -906,6 +924,23 @@ def phase_color():
     g = 0
     b = 3 - 3 * color_phase
   return np.array((r,g,b))
+
+
+tod_colors = [
+  [0, np.array((0.6, 0.2, 0))],
+  [0.2, np.array((0.6, 0.2, 0))],
+  [0.3, np.array((1.0, 1.0, 1.0))],
+  [0.2, np.array((1.0, 1.0, 1.0))],
+  [0.15, np.array((0.9, 0.7, 0.1))],
+  [0.15, np.array((0.6, 0.2, 0))],
+]
+def time_of_day_color():
+  color_phase = (time()/10) % 1
+  now = datetime.now()
+  seconds_since_midnight = (now - now.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()
+  color_phase = seconds_since_midnight / 86400.0
+  return multi_lerp(color_phase, tod_colors)
+
 
 def render_pulse(direction=None, color=(200,200,200),
     start_time=0, duration=READY_PULSE_DURATION):
@@ -939,6 +974,25 @@ def render_ring(direction, color, width):
   ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
   pixels += np.array(np.outer(ds, color), dtype="<u1")
 
+def multi_lerp(x, control_points):
+  if x < 0:
+    return control_points[0][1]
+
+  index = 1
+  prev_v = control_points[0][1]
+  while index < len(control_points):
+    max_x = control_points[index][0]
+    next_v = control_points[index][1]
+    if x > max_x:
+      x -= max_x
+      prev_v = next_v
+      index += 1
+      continue
+
+    alpha = x / max_x
+    return alpha * next_v + (1-alpha) * prev_v
+
+  return control_points[index - 1][1]
 
 # ================================ Communication with node.js =========================================
 
