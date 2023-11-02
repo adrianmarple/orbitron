@@ -184,7 +184,10 @@ def update():
 
     pixels = np.minimum(pixels, 255)
     pixels = np.maximum(pixels, 0)
-    raw_pixels = np.matmul(dupe_matrix,pixels)
+    raw_pixels = np.zeros((len(unique_to_dupe), 3),dtype="<u1")
+    for (i, dupe) in enumerate(unique_to_dupe):
+      raw_pixels[i] = pixels[dupe]
+    # raw_pixels = np.matmul(dupe_matrix,pixels)
     # raw_pixels = dupe_matrix * pixels # for sparse matrix
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
     output=np.array(raw_pixels,dtype="<u1").tobytes()
