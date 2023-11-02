@@ -1,9 +1,9 @@
 """BCM283x NeoPixel Driver Class"""
-import time
 import atexit
 import digitalio
 import board
 import _rpi_ws281x as ws
+from time import time, sleep
 from threading import Thread
 
 # LED configuration.
@@ -34,7 +34,6 @@ def render_loop():
             sleep(0.0001)
         else:
             resp = ws.ws2811_render(_led_strip)
-            print(time() - t, file=sys.stderr)
             if resp != ws.WS2811_SUCCESS:
                 message = ws.ws2811_get_return_t_str(resp)
                 raise RuntimeError(
