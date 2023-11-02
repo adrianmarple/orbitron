@@ -98,6 +98,7 @@ def display_pixels(buf):
         pixel = (r << 16) | (g << 8) | b
         ws.ws2811_led_set(channel, i, pixel)
 
+    t = time()
     if pixel_thread is not None:
         pixel_thread.join()
     pixel_thread = Thread(target=pixels_to_strip)
