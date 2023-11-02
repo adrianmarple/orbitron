@@ -44,6 +44,7 @@ def render_loop():
 def display_pixels(buf):
     """NeoPixel Writing Function"""
     global _led_strip  # we'll have one strip we init if its not at first
+    global ready_to_render
 
     if _led_strip is None:
         render_thread = Thread(target=render_loop)
