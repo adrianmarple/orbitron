@@ -34,9 +34,6 @@ def display_pixels(buf):
     global pixel_thread
 
     if _led_strip is None:
-        render_thread = Thread(target=render_loop)
-        render_thread.start()
-
         # Create a ws2811_t structure from the LED configuration.
         # Note that this structure will be created on the heap so you
         # need to be careful that you delete its memory by calling
