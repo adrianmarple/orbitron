@@ -84,6 +84,7 @@ coords = [np.array(coord) for coord in pixel_info["coords"]]
 DEFAULT_PULSE_DIRECTION = np.array(
   pixel_info.get("defaultPulseDirection", (0,0,1)),
   dtype=float)
+UP = 1 if IS_WALL else 2 # TODO use default pulse direction (or make defaultPulseDirection use UP)
 
 # minPulseDot = 1000
 # maxPulseDot = -1000
@@ -96,12 +97,6 @@ DEFAULT_PULSE_DIRECTION = np.array(
 minPulseDot = -1
 pulseRange = 2
 
-INITIAL_POSITIONS = pixel_info.get("initialPositions", [None]*6)
-antipodes = pixel_info.get("antipodes", None)
-# Expect these pole based concepts to exist together
-north_pole = pixel_info.get("northPole", None)
-south_pole = pixel_info.get("southPole", None)
-SOUTHERLY_INITIAL_POSITIONS = pixel_info.get("southerlyInitialPositions", [None]*6)
 
 dupe_to_uniques = []
 for dupe in range(SIZE):
@@ -111,6 +106,44 @@ for (i, dupe) in enumerate(unique_to_dupe):
   dupe_to_uniques[dupe].append(i)
   unique_coord_matrix[i] = coords[dupe]
 unique_coord_matrix = unique_coord_matrix.transpose()
+
+INITIAL_POSITIONS = pixel_info.get("initialPositions", [None]*6)
+SOUTHERLY_INITIAL_POSITIONS = pixel_info.get("southerlyInitialPositions", [None]*6)
+antipodes = pixel_info.get("antipodes", None)
+
+north_pole = pixel_info.get("northPole", None)
+if north_pole is None:
+  pole_threshold = 1
+  while True:
+    pole_threshold -= 0.01
+    ups = np.matmul(DEFAULT_PULSE_DIRECTION, unique_coord_matrix)
+    ups -= pole_threshold
+    ups = np.maximum(ups, 0)
+    ups = np.sign(ups)
+    pole_size = np.sum(ups)
+    if pole_size > RAW_SIZE / 20:
+      break
+  north_pole = []
+  for (i, coord) in enumerate(coords):
+    if coord[UP] > pole_threshold:
+      north_pole.append(i)
+
+south_pole = pixel_info.get("southPole", None)
+if south_pole is None:
+  pole_threshold = -1
+  while True:
+    pole_threshold += 0.01
+    ups = np.matmul(-DEFAULT_PULSE_DIRECTION, unique_coord_matrix)
+    ups += pole_threshold
+    ups = np.maximum(ups, 0)
+    ups = np.sign(ups)
+    pole_size = np.sum(ups)
+    if pole_size > RAW_SIZE / 20:
+      break
+  south_pole = []
+  for (i, coord) in enumerate(coords):
+    if coord[UP] < pole_threshold:
+      south_pole.append(i)
 
 raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
 print("Running %s pixels" % RAW_SIZE, file=sys.stderr)
@@ -357,7 +390,7 @@ class Player:
     if not (self.move_direction == ZERO_2D).all():
       self.buffered_move = self.move_direction
       self.last_move_input_time = time()
-    elif time() - self.last_move_input_time > game.MOVE_FREQ * 2:
+    elif time() - self.last_move_input_time > game.MOVE_FREQ:
       self.buffered_move = ZERO_2D
 
     new_pos = self.get_next_position()

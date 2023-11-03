@@ -18,14 +18,14 @@ Player = engine.Player
 additional_config = {
   "CONTINUOUS_MOVEMENT": True,
   "LIVES": 5,
-  "STARTING_SPAWN_DELAY": 8,
+  "STARTING_SPAWN_DELAY": 6,
   "ENDING_SPAWN_DELAY": 5,
-  "MIN_INVADER_MOVE_FREQ": 0.5,
-  "MAX_INVADER_MOVE_FREQ": 1,
+  "MIN_INVADER_MOVE_FREQ": 0.4,
+  "MAX_INVADER_MOVE_FREQ": 0.9,
   "PULSE_DURATION": 0.75,
   "ROUND_TIME": 90,
   "SELECTION_WEIGHTS": [0, 0.5, 1, 1, 1, 1],
-  "REQUIREMENTS": ["north_pole"],
+  "REQUIREMENTS": ["north_pole", "south_pole"],
 }
 
 
@@ -99,17 +99,19 @@ class Invader(Player):
     self.hit_time = time()
 
   def get_next_position(self):
-    my_z = engine.coords[self.position][2]
+    my_up = engine.coords[self.position][engine.UP]
     weights = []
     neighbors = engine.neighbors[self.position]
     for neighbor in neighbors:
+      if neighbor == self.prev_pos:
+        weights.append(0)
+        continue
       n_coord = engine.coords[neighbor]
-      sq_radius = pow(n_coord[0],2) + pow(n_coord[1],2)
-      weight = my_z - n_coord[2] + sq_radius/100
+      weight = my_up - n_coord[engine.UP] + 0.02
       if weight > 0:
         weights.append(weight)
       else:
-        weights.append(0)
+        weights.append(1e-6)
 
     next_pos = engine.weighted_random(weights=weights, values=neighbors)
     if next_pos is None:

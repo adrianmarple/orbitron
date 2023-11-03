@@ -35,7 +35,7 @@ additional_config = {
   "PULSE_DURATION": 0.75,
   "GHOST_STUN_TIME": 5,
   "SELECTION_WEIGHTS": [0, 0.5, 0.5, 0.5, 0.5, 0],
-  "REQUIREMENTS": ["north_pole", "antipodes"],
+  "REQUIREMENTS": ["north_pole"],
 }
 
 
@@ -145,7 +145,7 @@ class Pacman(Player):
       if ghost.position == self.position:
         if ghost.is_scared():
           sounds["kick"].play()
-          ghost.position = engine.antipodes[ghost.position]
+          ghost.position = choice(engine.north_pole)
           ghost.hit_time = time()
           ghost.power_pellet_end_time = 0 # ghost no longer scared
           game.data["score"] += game.GHOST_KILL_SCORE
