@@ -5,7 +5,7 @@ import board
 import _rpi_ws281x as ws
 import sys
 from time import time, sleep
-# from threading import Thread
+from multiprocessing import Process
 
 # NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
 
@@ -97,9 +97,9 @@ def display_pixels(buf):
         pixel = (r << 16) | (g << 8) | b
         ws.ws2811_led_set(channel, i, pixel)
 
-    # if pixel_thread is not None:
-    #     pixel_thread.join()
-    # pixel_thread = Thread(target=pixels_to_strip, args=(_led_strip,))
+    if pixel_thread is not None:
+        pixel_thread.join()
+    # pixel_thread = Process(target=pixels_to_strip, args=(_led_strip,))
     # pixel_thread.start()
     pixels_to_strip(_led_strip)
 
