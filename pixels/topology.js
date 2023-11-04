@@ -118,8 +118,22 @@ function addEdge(vertex1, vertex2) {
   return edge
 }
 
+function findEdgeFromCenter(center) {
+  for (let edge of edges) {
+    var edgeCenter = scale(
+      add(edge.verticies[0].coordinates,
+          edge.verticies[1].coordinates),
+      .5)
+    if (vectorEquals(edgeCenter, center)) {
+      return edge
+    }
+  }
+  return null
+}
+
 
 function removeEdge(edge) {
+  if (!edges) return
   remove(edges, edge)
   for (let vertex of edge.verticies) {
     remove(vertex.edges, edge)
@@ -153,16 +167,45 @@ function doubleEdges() {
   }
 }
 
-async function addSquaresFromPixels(src) {
-  if (!src) src = imageUrl
-  let ctx = await getImageContext(src)
+async function addSquaresFromPixels(halfTime, skips) {
+  // if (!src) src = imageUrl
+  let ctx = await getImageContext(imageUrl)
   for (let x = 0; x < ctx.canvas.width; x++) {
     for (let y = 0; y < ctx.canvas.height; y++) {
       let pixel = ctx.getImageData(x, y, 1, 1).data
-      if (pixel[0] < 10 && pixel[3] > 0) {// very dark red component
+      if (isFilledPixel(pixel)) {
         addSquare([x,-y,0])
       }
     }
   }
+
+  if (halfTime) {
+    for (let x = 0; x < ctx.canvas.width - 1; x += 2) {
+      if (skips && skips.x.includes(x)) x += 1
+      for (let y = 0; y < ctx.canvas.height; y++) {
+        let pixel1 = ctx.getImageData(x, y, 1, 1).data
+        let pixel2 = ctx.getImageData(x+1, y, 1, 1).data
+        if (isFilledPixel(pixel1) && isFilledPixel(pixel2)) {
+          removeEdge(findEdgeFromCenter([x+0.5, -y, 0]))
+        }
+      }
+    }
+    for (let y = 0; y < ctx.canvas.width - 1; y += 2) {
+      if (skips && skips.y.includes(y)) y += 1
+      for (let x = 0; x < ctx.canvas.height; x++) {
+        let pixel1 = ctx.getImageData(x, y, 1, 1).data
+        let pixel2 = ctx.getImageData(x, y+1, 1, 1).data
+        if (isFilledPixel(pixel1) && isFilledPixel(pixel2)) {
+          removeEdge(findEdgeFromCenter([x, -(y+0.5), 0]))
+        }
+      }
+    }
+  }
+
   center()
+}
+
+function isFilledPixel(pixel) {
+  // very dark red component & not transparent
+  return pixel[0] < 10 && pixel[3] > 0
 }

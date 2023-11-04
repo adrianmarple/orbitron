@@ -14,7 +14,16 @@ button.addEventListener('click', async () => {
   isWall = true
 
   imageUrl = "MADE/made2D.png"
-  await addSquaresFromPixels()
+
+  edgeCentersBlacklist = [
+    [12.5, -4, 0],
+    [12.5, -5, 0],
+    [18.5, -4, 0],
+    [18.5, -5, 0],
+  ]
+
+  await addSquaresFromPixels(true, {x:[10], y:[10]})
+  // await addSquaresFromPixels(})
   doubleEdges()
   console.log(edges.length)
 
