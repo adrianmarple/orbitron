@@ -104,6 +104,7 @@ def display_pixels(buf):
     pixels_to_strip(_led_strip)
 
 def pixels_to_strip(led_strip):
+    
     resp = ws.ws2811_render(led_strip)
     if resp != ws.WS2811_SUCCESS:
         message = ws.ws2811_get_return_t_str(resp)

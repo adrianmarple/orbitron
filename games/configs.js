@@ -5,7 +5,7 @@ GAMES_INFO = [
     rules: [
       {
         words: [
-          "You are currently playing Snektron.",
+          "You are currently playing Snake.",
         ],
       },
       {
@@ -160,7 +160,7 @@ GLOBAL_RULES = [
   {
     words: [
       "Welcome!",
-      "You are playing Super Orbiton!",
+      "You are playing Super Orbitron!",
     ]
   },
   {
