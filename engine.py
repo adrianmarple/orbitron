@@ -1097,8 +1097,7 @@ def run_core_loop():
     last_frame_time = time()
 
     if is_off:
-      raw_pixels *= 0
-      display_pixels(np.array(raw_pixels,dtype="<u1").tobytes())
+      display_pixels(bytearray(RAW_SIZE * 3))
     else:
       update()
 
