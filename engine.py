@@ -829,7 +829,7 @@ class Idle(Game):
     self.render_values = np.maximum(self.render_values, float(prefs.get("idleMin", 0))/255)
 
   def apply_brightness(self):
-    self.render_values *= float(prefs.get("brightness", 0)) / 100
+    self.render_values *= float(prefs.get("brightness", 100)) / 100
 
 
   fluid_heads = [0]

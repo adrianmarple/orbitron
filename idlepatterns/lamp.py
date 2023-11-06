@@ -11,7 +11,6 @@ class Lamp(engine.Idle):
     spotlight = np.matmul(-engine.coords[0], engine.unique_coord_matrix)
     spotlight = np.maximum(spotlight, 0)
     spotlight = np.multiply(spotlight, spotlight)
-    spotlight = np.maximum(spotlight, 0)
     self.render_values += spotlight
     self.render_values = np.minimum(self.render_values, 1)
 
