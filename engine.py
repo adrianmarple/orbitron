@@ -1063,7 +1063,7 @@ def broadcast_state():
 
 # ================================ Core loop =========================================
 
-if os.getenv("TOGGLE_SWITCH") == "true":
+if os.getenv("SWITCH_MODE"):
   TOGGLE_PIN = 15 # board pin 10/GPIO pin 15
   import RPi.GPIO as GPIO
   GPIO.setwarnings(False)
@@ -1078,6 +1078,7 @@ def run_core_loop():
     'slowest_frame': 0,
   }
   is_toggling = False
+  is_off = False
   while True:
     time_to_wait = last_frame_time + 0.033 - time()
     if time_to_wait > 0:
@@ -1094,16 +1095,15 @@ def run_core_loop():
     if os.getenv("SHOW_FRAME_INFO") == "true":
       print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
-    update()
 
-    if os.getenv("TOGGLE_SWITCH") == "true":
+    if not is_off:
+      update()
+
+    if os.getenv("SWITCH_MODE") == "toggle":
+      is_off = GPIO.input(TOGGLE_PIN) == GPIO.HIGH
+    if os.getenv("SWITCH_MODE") == "push":
       if not is_toggling and GPIO.input(TOGGLE_PIN) == GPIO.HIGH:
-        brightness = int(prefs.get("brightness", 100))
-        if brightness > 0:
-          brightness = 0
-        else:
-          brightness = 100
-        update_prefs({"brightness": brightness})
+        is_off = not is_off
         is_toggling = True
       if GPIO.input(TOGGLE_PIN) == GPIO.LOW:
         is_toggling = False
