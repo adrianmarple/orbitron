@@ -11,6 +11,7 @@ class Idle(engine.Idle):
       self.apply_min()
     if engine.prefs.get("hasStartAndEnd", False):
       self.apply_fade()
+    self.apply_brightness()
     self.apply_color()
     if not engine.prefs.get("applyIdleMinBefore", False):
       self.apply_min()

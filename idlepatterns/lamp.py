@@ -15,7 +15,10 @@ class Lamp(engine.Idle):
     spotlight = np.maximum(spotlight, 0)
     self.render_values += spotlight
     self.render_values = np.minimum(self.render_values, 1)
+
+    self.apply_min()
     self.apply_color()
+    self.apply_brightness()
 
     engine.raw_pixels = self.render_values * 255
 

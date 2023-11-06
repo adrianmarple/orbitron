@@ -790,6 +790,7 @@ class Idle(Game):
       self.apply_min()
     if prefs.get("hasStartAndEnd", False):
       self.apply_fade()
+    self.apply_brightness()
     self.apply_color()
     if not prefs.get("applyIdleMinBefore", False):
       self.apply_min()
@@ -822,11 +823,13 @@ class Idle(Game):
     end_fade = max(end_fade, 0)
     fade = min(start_fade, end_fade)
     fade *= fade
-    self.render_values = self.render_values * fade
+    self.render_values *= fade
 
   def apply_min(self):
     self.render_values = np.maximum(self.render_values, float(prefs.get("idleMin", 0))/255)
 
+  def apply_brightness(self):
+    self.render_values *= float(prefs.get("brightness", 0)) / 100
 
 
   fluid_heads = [0]
