@@ -5,8 +5,6 @@ from time import time
 import engine
 
 class MADE(engine.Idle):
-  name = __name__
-
   def render(self):
     self.init_values()
     self.render_values = np.maximum(self.render_values, 0.02)

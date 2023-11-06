@@ -5,8 +5,6 @@ from time import time
 import engine
 
 class Idle(engine.Idle):
-  name = __name__
-
   def render(self):
     self.init_values()
     if engine.prefs.get("applyIdleMinBefore", False):
