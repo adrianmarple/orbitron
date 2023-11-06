@@ -1096,7 +1096,10 @@ def run_core_loop():
       print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
 
-    if not is_off:
+    if is_off:
+      raw_pixels *= 0
+      display_pixels(np.array(raw_pixels,dtype="<u1").tobytes())
+    else:
       update()
 
     if os.getenv("SWITCH_MODE") == "toggle":
