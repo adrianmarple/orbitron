@@ -1061,13 +1061,13 @@ def broadcast_state():
   }
   print(json.dumps(message))
 
+# ================================ Core loop =========================================
+
 if os.getenv("TOGGLE_SWITCH") == "true":
+  TOGGLE_PIN = 15 # board pin 10/GPIO pin 15
   import RPi.GPIO as GPIO
   GPIO.setwarnings(False)
-  GPIO.setmode(GPIO.BOARD)
-  GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-
-# ================================ Core loop =========================================
+  GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def run_core_loop():
   last_frame_time = time()
@@ -1097,9 +1097,14 @@ def run_core_loop():
     update()
 
     if os.getenv("TOGGLE_SWITCH") == "true":
-      if not is_toggling and GPIO.input(10) == GPIO.HIGH:
-        update_prefs({"brightness": 100 - prefs.get("brightness", 100)})
+      if not is_toggling and GPIO.input(TOGGLE_PIN) == GPIO.HIGH:
+        brightness = int(prefs.get("brightness", 100))
+        if brightness > 0:
+          brightness = 0
+        else:
+          brightness = 100
+        update_prefs({"brightness": brightness})
         is_toggling = True
-      if GPIO.input(10) == GPIO.LOW:
+      if GPIO.input(TOGGLE_PIN) == GPIO.LOW:
         is_toggling = False
 
