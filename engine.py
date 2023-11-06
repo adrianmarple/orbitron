@@ -755,6 +755,7 @@ target_head_count = SIZE / 32.0
 class Idle(Game):
   name = "idle"
   waiting_music = "idle"
+  render_values = None
 
   def update_prefs(self):
     now = datetime.now()
@@ -782,7 +783,18 @@ class Idle(Game):
     pass
 
   def render(self):
-    self.render_fluid()
+    global raw_pixels
+
+    self.init_values()
+    if prefs.get("applyIdleMinBefore", False):
+      self.apply_min()
+    if prefs.get("hasStartAndEnd", False):
+      self.apply_fade()
+    self.apply_color()
+    if not prefs.get("applyIdleMinBefore", False):
+      self.apply_min()
+
+    raw_pixels = self.render_values * 255
 
   def color(self):
     if self.fixed_color is not None:
@@ -796,30 +808,31 @@ class Idle(Game):
       color_string = color_string.lstrip('#')
       return np.array(tuple(int(color_string[i:i+2], 16) for i in (0, 2, 4)))
 
+  def apply_color(self):
+    self.render_values = np.outer(self.render_values, self.color())
+
+  def apply_fade(self):
+    now = datetime.now()
+    if now > self.end:
+      self.update_prefs()
+    start_fade = (now - self.start).total_seconds() / self.fade_duration
+    start_fade = min(start_fade, 1)
+    end_fade = (self.end - now).total_seconds() / self.fade_duration
+    end_fade = min(end_fade, 1)
+    end_fade = max(end_fade, 0)
+    fade = min(start_fade, end_fade)
+    fade *= fade
+    self.render_values = self.render_values * fade
+
+  def apply_min(self):
+    self.render_values = np.maximum(self.render_values, float(prefs.get("idleMin", 0))/255)
+
+
 
   fluid_heads = [0]
   fluid_values = np.array([1.0] + [0.0] * (RAW_SIZE - 1))
   previous_fluid_time = 0
-  def render_fluid(self):
-    global pixels
-    global raw_pixels
-
-    fade = 1
-    if prefs.get("hasStartAndEnd", False):
-      now = datetime.now()
-      if now > self.end:
-        self.update_prefs()
-      if now < self.start:
-        pixels *= 0
-        return
-      start_fade = (now - self.start).total_seconds() / self.fade_duration
-      start_fade = min(start_fade, 1)
-      end_fade = (self.end - now).total_seconds() / self.fade_duration
-      end_fade = min(end_fade, 1)
-      end_fade = max(end_fade, 0)
-      fade = min(start_fade, end_fade)
-      fade *= fade
-
+  def init_values(self):
     head_ratio = len(self.fluid_heads) / target_head_count
     dampening_factor = (1 + head_ratio*head_ratio*5)
 
@@ -850,27 +863,7 @@ class Idle(Game):
       self.fluid_heads = new_heads
 
     self.fluid_values *= 0.86
-    squares = np.multiply(self.fluid_values, self.fluid_values)
-
-    if pixel_info["name"] == "MADE":
-      squares = np.maximum(squares, 0.02)
-      raw_pixels = np.outer(squares, np.array((1,1,1)) * 200)
-      green = np.multiply(np.sign(unique_coord_matrix[0]), np.sign(unique_coord_matrix[1]))
-      green = (green + 1)/2
-      green = np.squeeze(np.asarray(green))
-      red = 1 - green
-      blue = 1 - 2*np.multiply(red, green)
-      raw_pixels = np.multiply(raw_pixels, np.matrix([red, green, blue]).transpose())
-      return
-
-
-    brightness = max(0, float(prefs.get("brightness", 100)) / 100)
-    if prefs.get("applyIdleMinBefore", False):
-      squares = np.maximum(squares, float(prefs.get("idleMin", 0))/255)
-      raw_pixels = np.outer(squares, self.color() * (255 * brightness * fade))
-    else:
-      raw_pixels = np.outer(squares, self.color() * (255 * brightness * fade))
-      raw_pixels = np.maximum(raw_pixels, float(prefs.get("idleMin", 0)) * fade)
+    self.render_values = np.multiply(self.fluid_values, self.fluid_values)
 
 idle = Idle()
 idle.generate_players(Player)
