@@ -60,7 +60,7 @@ def update_prefs(update):
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
 
-file_name = os.environ.get("PIXELS", "rhombicosidodecahedron")
+file_name = os.getenv("PIXELS", "rhombicosidodecahedron")
 if file_name.endswith(".json"):
   file_name = file_name[:-5]
 if file_name.startswith("/pixels/"):
@@ -1061,7 +1061,11 @@ def broadcast_state():
   }
   print(json.dumps(message))
 
-
+if os.getenv("TOGGLE_SWITCH") == "true":
+  import RPi.GPIO as GPIO
+  GPIO.setwarnings(False)
+  GPIO.setmode(GPIO.BOARD)
+  GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # ================================ Core loop =========================================
 
@@ -1073,6 +1077,7 @@ def run_core_loop():
     'very_slow_frame_count': 0,
     'slowest_frame': 0,
   }
+  is_toggling = False
   while True:
     time_to_wait = last_frame_time + 0.033 - time()
     if time_to_wait > 0:
@@ -1090,3 +1095,11 @@ def run_core_loop():
       print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
     update()
+
+    if os.getenv("TOGGLE_SWITCH") == "true":
+      if not is_toggling and GPIO.input(10) == GPIO.HIGH:
+        update_prefs({"brightness": 100 - prefs.get("brightness", 100)})
+        is_toggling = True
+      if GPIO.input(10) == GPIO.LOW:
+        is_toggling = False
+
