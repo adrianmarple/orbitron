@@ -818,6 +818,7 @@ class Idle(Game):
       self.update_prefs()
     start_fade = (now - self.start).total_seconds() / self.fade_duration
     start_fade = min(start_fade, 1)
+    start_fade = max(start_fade, 0)
     end_fade = (self.end - now).total_seconds() / self.fade_duration
     end_fade = min(end_fade, 1)
     end_fade = max(end_fade, 0)
