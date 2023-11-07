@@ -22,8 +22,8 @@ button.addEventListener('click', async () => {
     [18.5, -5, 0],
   ]
 
-  await addSquaresFromPixels(true, {x:[10], y:[10]})
-  // await addSquaresFromPixels(})
+  // await addSquaresFromPixels(true, {x:[10], y:[10]})
+  await addSquaresFromPixels()
   doubleEdges()
   console.log(edges.length)
 

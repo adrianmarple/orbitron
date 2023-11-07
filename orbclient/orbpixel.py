@@ -38,8 +38,10 @@ def start_pixel_output_process():
 
 def pixel_output_loop(conn):
     print("Pixel process stared", file=sys.stderr)
+    conn.send("started")
     while True:
         neopixel_write(conn.recv())
+        conn.send("done")
 
 def display_pixels(pixels):
     pixels = np.uint32(pixels)
@@ -48,6 +50,7 @@ def display_pixels(pixels):
     if process_conn is None:
         neopixel_write(buf)
     else:
+        process_conn.recv()
         process_conn.send(buf)
 
 def neopixel_write(buf):
