@@ -2,6 +2,7 @@
 import atexit
 import digitalio
 import board
+import numpy as np
 import _rpi_ws281x as ws
 import sys
 from time import time, sleep
@@ -37,10 +38,16 @@ def start_pixel_output_process():
 
 def pixel_output_loop(conn):
     while True:
-        pixels_to_strip(conn.recv())
+        neopixel_write(conn.recv())
 
-def display_pixels(buf):
-    """NeoPixel Writing Function"""
+def display_pixels(pixels):
+    buf = pixels[:,0]*1<<16 + pixels[:,1]*1<<8 + pixels[:,2]
+    if process_conn is None:
+        neopixel_write(buf)
+    else:
+        process_conn.send(buf)
+
+def neopixel_write(buf):
     global _led_strip  # we'll have one strip we init if its not at first
 
     if _led_strip is None:
@@ -62,7 +69,7 @@ def display_pixels(buf):
 
         # Initialize the channel in use
         LED_STRIP = ws.WS2811_STRIP_RGB
-        count = len(buf) // 3
+        count = len(buf)
 
         ws.ws2811_channel_t_count_set(
             channel, count
@@ -93,20 +100,9 @@ def display_pixels(buf):
         raise RuntimeError("Raspberry Pi neopixel support is for one strip only!")
 
     # assign all colors!
-    for i in range(len(buf) // 3):
-        r = buf[3 * i]
-        g = buf[3 * i + 1]
-        b = buf[3 * i + 2]
-        pixel = (r << 16) | (g << 8) | b
-        ws.ws2811_led_set(channel, i, pixel)
+    for i in count:
+        ws.ws2811_led_set(channel, i, buf[i])
 
-    
-    if process_conn is None:
-        pixels_to_strip(_led_strip)
-    else:
-        process_conn.send(_led_strip)
-
-def pixels_to_strip(led_strip):
     resp = ws.ws2811_render(led_strip)
     if resp != ws.WS2811_SUCCESS:
         message = ws.ws2811_get_return_t_str(resp)

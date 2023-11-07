@@ -18,8 +18,9 @@ from time import sleep, time
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
 
 if os.getenv("DEV_MODE"):
-  def display_pixels(data):
-    print("raw_pixels=%s;" % data.hex())
+  def display_pixels(pixels):
+    output = np.array(pixels,dtype="<u1").tobytes()
+    print("raw_pixels=%s;" % output.hex())
 else:
   from orbclient.orbpixel import display_pixels, start_pixel_output_process
   #start_pixel_output_process()
@@ -222,8 +223,7 @@ def update():
     raw_pixels = np.minimum(raw_pixels, 255)
     raw_pixels = np.maximum(raw_pixels, 0)
     raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
-    output=np.array(raw_pixels,dtype="<u1").tobytes()
-    display_pixels(output)
+    display_pixels(raw_pixels)
     broadcast_state()
 
     raw_pixels *= 0
