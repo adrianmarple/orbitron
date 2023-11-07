@@ -41,7 +41,8 @@ def pixel_output_loop(conn):
         neopixel_write(conn.recv())
 
 def display_pixels(pixels):
-    buf = pixels[:,0]*1<<16 + pixels[:,1]*1<<8 + pixels[:,2]
+    buf = pixels[:,0]*(1<<16) + pixels[:,1]*(1<<8) + pixels[:,2]
+    buf = np.uint32(buf).tolist()
     if process_conn is None:
         neopixel_write(buf)
     else:
@@ -69,10 +70,8 @@ def neopixel_write(buf):
 
         # Initialize the channel in use
         LED_STRIP = ws.WS2811_STRIP_RGB
-        count = len(buf)
-
         ws.ws2811_channel_t_count_set(
-            channel, count
+            channel, len(buf)
         )  # we manage 4 vs 3 bytes in the library
         ws.ws2811_channel_t_gpionum_set(channel, gpio._pin.id)
         ws.ws2811_channel_t_invert_set(channel, LED_INVERT)
@@ -100,7 +99,7 @@ def neopixel_write(buf):
         raise RuntimeError("Raspberry Pi neopixel support is for one strip only!")
 
     # assign all colors!
-    for i in count:
+    for i in range(len(buf)):
         ws.ws2811_led_set(channel, i, buf[i])
 
     resp = ws.ws2811_render(led_strip)
