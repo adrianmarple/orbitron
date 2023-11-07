@@ -18,7 +18,9 @@ class Lamp(engine.Idle):
     self.apply_color()
     self.apply_brightness()
 
-    engine.raw_pixels = self.render_values * 255
+    self.render_values *= 255
+    self.render_values = np.maximum(self.render_values, 1)
+    engine.raw_pixels = self.render_values
 
 idle = Lamp()
 idle.generate_players(engine.Player)
