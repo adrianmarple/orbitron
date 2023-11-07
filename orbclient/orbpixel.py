@@ -23,9 +23,22 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 # we only support one LED strip per raspi
 _led_strip = None
 pixel_thread = None
+process_conn = None
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
+
+
+def start_pixel_output_process():
+    global process_conn
+    parent_conn, child_conn = Pipe()
+    process_conn = child_conn
+    p = Process(target=f, args=(child_conn,))
+    p.start()
+
+def pixel_output_loop(conn):
+    while True:
+        pixels_to_strip(conn.recv())
 
 def display_pixels(buf):
     """NeoPixel Writing Function"""
@@ -97,14 +110,13 @@ def display_pixels(buf):
         pixel = (r << 16) | (g << 8) | b
         ws.ws2811_led_set(channel, i, pixel)
 
-    if pixel_thread is not None:
-        pixel_thread.join()
-    # pixel_thread = Process(target=pixels_to_strip, args=(_led_strip,))
-    # pixel_thread.start()
-    pixels_to_strip(_led_strip)
+    
+    if process_conn is None:
+        pixels_to_strip(_led_strip)
+    else:
+        process_conn.send(_led_strip)
 
 def pixels_to_strip(led_strip):
-    
     resp = ws.ws2811_render(led_strip)
     if resp != ws.WS2811_SUCCESS:
         message = ws.ws2811_get_return_t_str(resp)
