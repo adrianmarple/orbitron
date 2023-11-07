@@ -5,7 +5,7 @@ import board
 import _rpi_ws281x as ws
 import sys
 from time import time, sleep
-from multiprocessing import Process
+from multiprocessing import Process, Pipe
 
 # NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
 
@@ -22,7 +22,6 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 # a 'static' object that we will use to manage our PWM DMA channel
 # we only support one LED strip per raspi
 _led_strip = None
-pixel_thread = None
 process_conn = None
 
 gpio = digitalio.DigitalInOut(board.D18)
@@ -33,7 +32,7 @@ def start_pixel_output_process():
     global process_conn
     parent_conn, child_conn = Pipe()
     process_conn = child_conn
-    p = Process(target=f, args=(child_conn,))
+    p = Process(target=pixel_output_loop, args=(child_conn,))
     p.start()
 
 def pixel_output_loop(conn):
@@ -43,7 +42,6 @@ def pixel_output_loop(conn):
 def display_pixels(buf):
     """NeoPixel Writing Function"""
     global _led_strip  # we'll have one strip we init if its not at first
-    global pixel_thread
 
     if _led_strip is None:
         # Create a ws2811_t structure from the LED configuration.
@@ -63,16 +61,8 @@ def display_pixels(buf):
         channel = ws.ws2811_channel_get(_led_strip, LED_CHANNEL)
 
         # Initialize the channel in use
-        count = 0
-        if len(buf) % 3 == 0:
-            # most common, divisible by 3 is likely RGB
-            LED_STRIP = ws.WS2811_STRIP_RGB
-            count = len(buf) // 3
-        elif len(buf) % 4 == 0:
-            LED_STRIP = ws.SK6812_STRIP_RGBW
-            count = len(buf) // 4
-        else:
-            raise RuntimeError("We only support 3 or 4 bytes-per-pixel")
+        LED_STRIP = ws.WS2811_STRIP_RGB
+        count = len(buf) // 3
 
         ws.ws2811_channel_t_count_set(
             channel, count

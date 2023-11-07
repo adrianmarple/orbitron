@@ -22,7 +22,7 @@ if os.getenv("DEV_MODE"):
     print("raw_pixels=%s;" % data.hex())
 else:
   from orbclient.orbpixel import display_pixels, start_pixel_output_process
-  start_pixel_output_process()
+  #start_pixel_output_process()
 
 prewarm_audio()
 
