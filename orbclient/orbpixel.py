@@ -32,17 +32,19 @@ gpio.direction = digitalio.Direction.OUTPUT
 def start_pixel_output_process():
     global process_conn
     parent_conn, child_conn = Pipe()
-    process_conn = child_conn
+    process_conn = parent_conn
     p = Process(target=pixel_output_loop, args=(child_conn,))
     p.start()
 
 def pixel_output_loop(conn):
+    print("Pixel process stared", file=sys.stderr)
     while True:
         neopixel_write(conn.recv())
 
 def display_pixels(pixels):
+    pixels = np.uint32(pixels)
     buf = pixels[:,0]*(1<<16) + pixels[:,1]*(1<<8) + pixels[:,2]
-    buf = np.uint32(buf).tolist()
+    buf = buf.tolist()
     if process_conn is None:
         neopixel_write(buf)
     else:
@@ -102,7 +104,7 @@ def neopixel_write(buf):
     for i in range(len(buf)):
         ws.ws2811_led_set(channel, i, buf[i])
 
-    resp = ws.ws2811_render(led_strip)
+    resp = ws.ws2811_render(_led_strip)
     if resp != ws.WS2811_SUCCESS:
         message = ws.ws2811_get_return_t_str(resp)
         raise RuntimeError(
