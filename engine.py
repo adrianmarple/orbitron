@@ -808,7 +808,7 @@ class Idle(Game):
       return time_of_day_color()
     else:
       color_string = color_string.lstrip('#')
-      return np.array(tuple(int(color_string[i:i+2], 16) for i in (0, 2, 4)))
+      return np.array(tuple(int(color_string[i:i+2], 16) for i in (0, 2, 4)))/255
 
   def apply_color(self):
     self.render_values = np.outer(self.render_values, self.color())
