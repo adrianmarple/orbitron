@@ -45,13 +45,22 @@
   </div>
 
   <div v-else-if="!gameStarted" id="home" :style="homeStyle">
+    <!-- GAMES MENU -->
     <div v-if="nav=='games'" class="nav-page">
       <div class="button" @click="startGames" >
         Play Games
       </div>
     </div>
+
+    <!-- TIMING MENU -->
     <div v-else-if="nav=='timing'" class="nav-page">
       <div v-if="prefs.hasStartAndEnd" class="column" style="align-items: center; width: 100%;">
+        <div class="row">
+          Fade Duration (min):
+          <input type="number" v-model="prefs.fadeDuration"
+            @change="updatePrefs('fadeDuration')">
+          </input>
+        </div>
         <div class="row">
           <div>
             Start Time:
@@ -66,25 +75,41 @@
             </input>
           </div>
         </div>
-        <div class="row">
-          Fade Duration (min):
-          <input type="number" v-model="prefs.fadeDuration"
-            @change="updatePrefs('fadeDuration')">
-          </input>
-        </div>
       </div>
       <div class="pure-material-checkbox" @click="togglePref('hasStartAndEnd')">
         <input type="checkbox" v-model="prefs.hasStartAndEnd">
         <span>Use Timer</span>
       </div>
     </div>
+    <!-- COLORS MENU -->
     <div v-else-if="nav=='colors'" class="nav-page">
+      <div class="color-component"
+        v-for="component in ['red','green','blue']"
+        v-if="prefs.idleColor == 'fixed'">
+        <div class="label">
+          <div>{{component[0]}}: {{prefs['fixed.' + component]}}</div>
+        </div>
+        <input type="range" min="0" max="255" class="slider"
+          v-model="prefs['fixed.' + component]"
+          @change="updatePrefs('fixed.' + component)"
+          :style="{'accent-color': component}"
+        >
+        </input>
+      </div>
+      <div class="space-between">
+        <label for="color">Color:</label>
+        <select name="color" v-model="prefs.idleColor" @change="updatePrefs('idleColor')">
+          <option value="rainbow">Rainbow</option>
+          <option value="timeofday">Nightshift</option>
+          <option value="fixed">Fixed color</option>
+        </select>
+      </div>
       <div class="slider-container">
         <div class="label">
           <div>Min pixel brightness:</div>
           <div>{{prefs.idleMin}}</div>
         </div>
-        <input type="range" min="1" max="6.357" step="0.01" class="slider" type="number"
+        <input type="range" min="1" max="6.357" step="0.01" class="slider"
           v-model="warpedPrefs.idleMin.value"
           @change="updateWarpedPref($event, 'idleMin')">
         </input>

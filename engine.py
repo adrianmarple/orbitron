@@ -43,21 +43,40 @@ base_config = {
   "INTERSECTION_PAUSE_FACTOR": 0.2,
 }
 
-prefs = {"startTime": "0:00", "endTime": "23:59"}
+default_prefs = {
+  "startTime": "0:00",
+  "endTime": "23:59",
+  "idleColor": "rainbow",
+  "idleMin": 0,
+  "applyIdleMinBefore": False,
+  "hasStartAndEnd": False,
+  "brightness": 100,
+  "fadeDuration": 30,
+  "fixed.blue": 255,
+  "fixed.green": 255,
+  "fixed.red": 255,
+}
 pref_path = os.path.dirname(__file__) + "/prefs.json"
 if os.path.exists(pref_path):
   f = open(pref_path, "r")
   prefs = json.loads(f.read())
+  default_prefs.update(prefs)
   f.close()
+else:
+  prefs = {}
 
 def update_prefs(update):
   prefs.update(update)
+  default_prefs.update(update)
   idle.update_prefs()
   for game in games.values():
     game.update_prefs()
   f = open(pref_path, "w")
   f.write(json.dumps(prefs, indent=2))
   f.close()
+
+def get_pref(pref_name):
+  return default_prefs[pref_name]
 
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
@@ -762,11 +781,11 @@ class Idle(Game):
     now = datetime.now()
     now_date = now.date()
 
-    start_string = prefs.get("startTime", "0:00")
+    start_string = get_pref("startTime")
     start_time = datetime.strptime(start_string, '%H:%M').time()
     self.start = datetime.combine(now_date, start_time)
 
-    end_string = prefs.get("endTime", "23:59")
+    end_string = get_pref("endTime")
     end_time = datetime.strptime(end_string, '%H:%M').time()
     self.end = datetime.combine(now_date, end_time)
 
@@ -776,7 +795,7 @@ class Idle(Game):
       self.start -= timedelta(days=1)
     if self.end - self.start > timedelta(days=1):
       self.start += timedelta(days=1)
-    self.fade_duration = float(prefs.get("fadeDuration", 30))*60
+    self.fade_duration = float(get_pref("fadeDuration"))*60
 
     self.fixed_color = None
 
@@ -787,13 +806,13 @@ class Idle(Game):
     global raw_pixels
 
     self.init_values()
-    if prefs.get("applyIdleMinBefore", False):
+    if get_pref("applyIdleMinBefore"):
       self.apply_min()
-    if prefs.get("hasStartAndEnd", False):
+    if get_pref("hasStartAndEnd"):
       self.apply_fade()
     self.apply_brightness()
     self.apply_color()
-    if not prefs.get("applyIdleMinBefore", False):
+    if not get_pref("applyIdleMinBefore"):
       self.apply_min()
 
     raw_pixels = self.render_values * 255
@@ -801,14 +820,17 @@ class Idle(Game):
   def color(self):
     if self.fixed_color is not None:
       return self.fixed_color
-    color_string = prefs.get("idleColor", "rainbow")
+    color_string = get_pref("idleColor")
     if color_string == "rainbow":
       return rainbow_phase_color()
     elif color_string == "timeofday":
       return time_of_day_color()
     else:
       color_string = color_string.lstrip('#')
-      return np.array(tuple(int(color_string[i:i+2], 16) for i in (0, 2, 4)))/255
+      r = int(get_pref("fixed.red"))
+      g = int(get_pref("fixed.green"))
+      b = int(get_pref("fixed.blue"))
+      return np.array((r,g,b))/255
 
   def apply_color(self):
     self.render_values = np.outer(self.render_values, self.color())
@@ -828,10 +850,10 @@ class Idle(Game):
     self.render_values *= fade
 
   def apply_min(self):
-    self.render_values = np.maximum(self.render_values, float(prefs.get("idleMin", 0))/255)
+    self.render_values = np.maximum(self.render_values, float(get_pref("idleMin"))/255)
 
   def apply_brightness(self):
-    self.render_values *= float(prefs.get("brightness", 100)) / 100
+    self.render_values *= float(get_pref("brightness")) / 100
 
 
   fluid_heads = [0]
@@ -1055,7 +1077,7 @@ def broadcast_state():
     "data": game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
-    "prefs": prefs,
+    "prefs": default_prefs,
   }
   print(json.dumps(message))
 
