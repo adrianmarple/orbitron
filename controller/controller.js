@@ -55,6 +55,14 @@ var app = new Vue({
 
     config: {},
     prefs: {},
+    warpedPrefs: {
+      idleMin: {
+        // f: x => Math.log(x + 1)/Math.log(2),
+        // inverseF: x => Math.round(Math.pow(2, x) - 1),
+        f: x => Math.pow(x + 1,1/3),
+        inverseF: x => Math.round(Math.pow(x,3) - 1),
+      },
+    },
     GAMES_INFO,
     uuid: uuid(),
 
@@ -64,6 +72,7 @@ var app = new Vue({
     speedbumpMessage: "",
 
     homeStyle: {background: "blue"},
+    nav: "timing",
   },
 
   created() {
@@ -126,12 +135,22 @@ var app = new Vue({
     "state.prefs": function(val, oldValue) {
       if (!oldValue) {
         this.prefs = { ...val }
+        for (let key in this.warpedPrefs) {
+          this.warpedPrefs[key].value = this.warpedPrefs[key].f(val[key])
+        }
         return
       }
       for (let key in val) {
+        let hasChange = false
         if (val[key] != oldValue[key]) {
+          hasChange = true
+          if (this.warpedPrefs[key]) {
+            console.log(this.prefs[key])
+            this.warpedPrefs[key].value = this.warpedPrefs[key].f(val[key])
+          }
+        }
+        if (hasChange) {
           this.prefs = { ...val }
-          return
         }
       }
     },
@@ -284,6 +303,9 @@ var app = new Vue({
   },
 
   methods: {
+    lg(x) {
+      return Math.log(x)/Math.log(2)
+    },
     preciseTime() {
       let t = Date.now()
       if(t != this.lastMessageTimestamp){
@@ -553,6 +575,17 @@ var app = new Vue({
     updatePrefs(prefName) {
       this.send({ type: "prefs", update: {[prefName]: this.prefs[prefName] }})
     },
+    togglePref(prefName) {
+      this.prefs[prefName] = !this.prefs[prefName]
+      this.updatePrefs(prefName)
+    },
+    updateWarpedPref(event, prefName) {
+      let value = event.target.value
+      this.prefs[prefName] = this.warpedPrefs[prefName].inverseF(value)
+      this.updatePrefs(prefName)
+    },
+
+
     prettifySettingName(name) {
       return name.toLowerCase().replaceAll("_", " ")
     },

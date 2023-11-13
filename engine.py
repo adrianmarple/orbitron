@@ -962,7 +962,7 @@ def rainbow_phase_color():
 
 
 tod_colors = [
-  [0, np.array((0.5, 0.1, 0))],
+  [0, np.array((0.6, 0.1, 0))],
   [0.1, np.array((0.5, 0.05, 0))],
   [0.2, np.array((0.5, 0.05, 0))],
   [0.2, np.array((0.8, 0.8, 0.8))],

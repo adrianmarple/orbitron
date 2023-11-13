@@ -45,14 +45,13 @@
   </div>
 
   <div v-else-if="!gameStarted" id="home" :style="homeStyle">
-    <div class="header">
-
-      <div class="row">
-        <input type="checkbox" v-model="prefs.hasStartAndEnd"
-        @change="updatePrefs('hasStartAndEnd')">
-        Use Timer
+    <div v-if="nav=='games'" class="nav-page">
+      <div class="button" @click="startGames" >
+        Play Games
       </div>
-      <div v-if="prefs.hasStartAndEnd">
+    </div>
+    <div v-else-if="nav=='timing'" class="nav-page">
+      <div v-if="prefs.hasStartAndEnd" class="column" style="align-items: center; width: 100%;">
         <div class="row">
           <div>
             Start Time:
@@ -74,22 +73,40 @@
           </input>
         </div>
       </div>
-      <div class="row">
-        Min pixel brightness:
-        <input type="number" v-model="prefs.idleMin"
-          @change="updatePrefs('idleMin')">
+      <div class="pure-material-checkbox" @click="togglePref('hasStartAndEnd')">
+        <input type="checkbox" v-model="prefs.hasStartAndEnd">
+        <span>Use Timer</span>
+      </div>
+    </div>
+    <div v-else-if="nav=='colors'" class="nav-page">
+      <div class="slider-container">
+        <div class="label">
+          <div>Min pixel brightness:</div>
+          <div>{{prefs.idleMin}}</div>
+        </div>
+        <input type="range" min="1" max="6.357" step="0.01" class="slider" type="number"
+          v-model="warpedPrefs.idleMin.value"
+          @change="updateWarpedPref($event, 'idleMin')">
         </input>
       </div>
-      <div class="row">
-        Brightness:
-        <input type="number" v-model="prefs.brightness"
+      <div class="slider-container">
+        <div class="label">
+          <div>Brightness:</div>
+          <div>{{prefs.brightness}}</div>
+        </div>
+        <input type="range" min="0" max="100" class="slider" v-model="prefs.brightness"
           @change="updatePrefs('brightness')">
         </input>
       </div>
+    </div>
 
-      <div class="button" @click="startGames" >
-        Play Games
-      </div>
+
+    <div class="nav-bar">
+      <img v-for="name in ['timing', 'colors', 'games']"
+        :src="`/controller/${name}.svg`"
+        @click="nav=name"
+        :style="{filter: nav == name ? 'invert(12%) sepia(98%) saturate(4397%) hue-rotate(265deg) brightness(98%) contrast(130%)' : ''}"
+      >
     </div>
   </div>
 
