@@ -26,7 +26,7 @@ body, #app, .main {
   align-items: center;
 }
 
-#home, #about {
+#loading, #home, #about{
   width: 100vw;
   height: 100vh;
   position: absolute;
@@ -37,6 +37,19 @@ body, #app, .main {
   padding-bottom: 0;
   box-sizing: border-box;
 }
+
+#loading {
+  background: white;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+}
+#loading canvas {
+  width: 15rem;
+  height: 15rem;
+  margin-top: 15rem;
+}
+
 #home .header {
   align-items: center;
 }
@@ -532,14 +545,6 @@ a:active {
 .carousel-dots .dot .inner {
   width: 1.2rem;
   height: 1.2rem;
-}
-
-#loading {
-  font-size: 10em;
-  display: flex;
-  align-items: center;
-  justify-content: left;
-  width: 25vw;
 }
 
 #speedbump p:first-child {

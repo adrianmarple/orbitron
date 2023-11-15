@@ -14,18 +14,8 @@
 </head>
 <body>
 <div id=app :style="{ '--self-color': self.color }">
-  <div v-if="connectionStatus == 'CONNECTING'" class="header">
-    {{connectionStatus}}
-  </div>
 
-  <div v-else-if="connectionStatus != 'CONNECTED'" class="header">
-    {{connectionStatus}}
-    <br/>
-    <br/>
-    Tap To Reconnect
-  </div>
-
-  <div v-else-if="showAboutPage" id="about" :style="homeStyle">
+  <div v-if="showAboutPage" id="about" :style="homeStyle">
     <div>
       <p>
         Super Orbitron and its variants were created by
@@ -42,6 +32,9 @@
         </a>
       </div>
     </div>
+  </div>
+  <div v-else-if="connectionStatus == 'CONNECTING'" id="loading" :style="homeStyle">
+    <canvas id="loading-ball" width="256" height="256"></canvas>
   </div>
 
   <div v-else-if="!gameStarted" id="home" :style="homeStyle">
@@ -191,11 +184,6 @@
     </div>
   </div>
 
-  <div v-else-if="!self.isReady" id="loading" class="main">
-    <!-- Server hasn't caught up yet. Show loading animation. -->
-    <span v-for="i in loadingDotCount">.</span>
-  </div>
-
   <div v-else-if="speedbumpCallback" id="speedbump" class="header" @click="clearSpeedbump">
     <p>{{speedbumpMessage}}</p>
     <p>Are you sure?</p>
@@ -262,6 +250,7 @@
           You lost...
         </div>
         <br/>
+        <div class="button" @click.stop="skipvictory">Continue</div>
         <div class="button" @click.stop="playagain">Play again</div>
         <div>Next game is {{nextGameName}}</div>
         <br/>
@@ -318,6 +307,7 @@
 </svg>
 <div id="about-button" @click="showAboutPage = !showAboutPage">?</div>
 
+<script type="text/javascript" src="/controller/loadingball.js"></script>
 <script type="text/javascript" src="/games/configs.js"></script>
 <script type="text/javascript" src="/controller/controller.js"></script>
 </body>

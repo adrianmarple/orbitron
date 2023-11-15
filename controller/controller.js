@@ -157,6 +157,11 @@ var app = new Vue({
     "state.gameId": function(val, oldValue) {
       this.isReadyLocal = false
     },
+    "state.victory": function(val, oldValue) {
+      if (!val && oldValue) {
+        this.speedbumpCallback = null
+      }
+    },
     localFlags: {
       handler: function (val) {
         localStorage.setItem('flags', JSON.stringify(val))
@@ -349,6 +354,13 @@ var app = new Vue({
       this.speedbumpMessage = `This will skip ${this.gameInfo.label} for everyone.`
       this.speedbumpCallback = () => {
         self.send({type: "skip"})
+      }
+    },
+    skipvictory() {
+      let self = this
+      this.speedbumpMessage = `Continue on to ${this.nextGameName}?`
+      this.speedbumpCallback = () => {
+        self.send({type: "advance", from: "victory"})
       }
     },
     playagain() {
