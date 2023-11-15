@@ -350,8 +350,12 @@ class Player:
       return continuation_pos
 
     up = coords[pos]
-    up = up / np.linalg.norm(up)
-    north = np.array((0, 0, 1))
+    up_magnitude = np.linalg.norm(up)
+    if up_magnitude == 0:
+      up = np.array((0.0, 1.0, 0.0))
+    else:
+      up = up / up_magnitude
+    north = np.array((0.0, 0.0, 1.0))
     north = ortho_proj(north, up)
     north /= np.linalg.norm(north) # normalize
     east = np.cross(up, north)
@@ -556,21 +560,21 @@ class Game:
       ),
       player_class(
         position=positions[3],
-        color=(70, 0, 255),
-        color_string="#6f00ff",
-        color_name="Violet"
-      ),
-      player_class(
-        position=positions[4],
         color=(255, 255, 0),
         color_string="#ffff00",
         color_name="Yellow"
       ),
       player_class(
-        position=positions[5],
+        position=positions[4],
         color=(0, 255, 255),
         color_string="#00ffff",
         color_name="Cyan"
+      ),
+      player_class(
+        position=positions[5],
+        color=(70, 0, 255),
+        color_string="#6f00ff",
+        color_name="Violet"
       ),
     ]
     self.restart()
