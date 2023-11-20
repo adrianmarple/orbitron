@@ -213,6 +213,7 @@ function generatePixelInfo() {
     console.error(`Too many LED pixels: ${RAW_SIZE}. Maximum is 2728`)
     return
   }
+  console.log(RAW_SIZE, SIZE)
 
   let info = {
     name,

@@ -67,20 +67,24 @@ function resize(permanently) {
 }
 
 
-function rotateXAll(theta) {
-  for (let vertex of verticies) {
-    vertex.coordinates = rotateX(vertex.coordinates, theta)
-  }
+function rotateXAll(theta, permanently) {
+  rotateAll(rotateX, theta, permanently)
 }
-function rotateYAll(theta) {
-  for (let vertex of verticies) {
-    vertex.coordinates = rotateY(vertex.coordinates, theta)
-  }
+function rotateYAll(theta, permanently) {
+  rotateAll(rotateY, theta, permanently)
 }
-function rotateZAll(theta) {
+function rotateZAll(theta, permanently) {
+  rotateAll(rotateZ, theta, permanently)
+}
+
+function rotateAll(func, theta, permanently) {
   for (let vertex of verticies) {
-    vertex.coordinates = rotateZ(vertex.coordinates, theta)
+    vertex.coordinates = func(vertex.coordinates, theta)
+    if (permanently) {
+      vertex.ogCoords = func(vertex.ogCoords, theta)
+    }
   }
+
 }
 
 function rotateX(v, theta) {

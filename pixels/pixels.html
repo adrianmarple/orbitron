@@ -260,15 +260,17 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function addButton(name, onClick) {
+function addButton(displayName, onClick) {
   button = document.createElement("div")
-  button.innerHTML = name
+  button.innerHTML = displayName
 
   document.getElementById("type-buttons").appendChild(button)
   button.classList.add("button")
-  button.addEventListener('click', () => {
+  button.addEventListener('click', async () => {
+    name = displayName
     reset()
-    onClick()
+    await onClick()
+    generatePixelInfo()
   })
 }
 
@@ -287,4 +289,6 @@ function addButton(name, onClick) {
 <script type="text/javascript" src="test/square.js"></script>
 <script type="text/javascript" src="spaceinvaders/button.js"></script>
 <script type="text/javascript" src="MADE/button.js"></script>
+<script type="text/javascript" src="crest/button.js"></script>
+<script type="text/javascript" src="crest/spiral.js"></script>
 </body>

@@ -1,12 +1,5 @@
 
-button = document.createElement("div")
-button.innerHTML = "MADE"
-
-document.getElementById("type-buttons").appendChild(button)
-button.classList.add("button")
-button.addEventListener('click', async () => {
-  name = "MADE"
-  reset()
+addButton("MADE", async () => {
   pixelDensity = 0.5
   // pixelDensity = 0.333333
   BOTTOM_THICKNESS = TOP_THICKNESS
@@ -25,7 +18,5 @@ button.addEventListener('click', async () => {
   // await addSquaresFromPixels(true, {x:[10], y:[10]})
   await addSquaresFromPixels()
   doubleEdges()
-  console.log(edges.length)
-
   EulerianPath(verticies[0], [0])
 })

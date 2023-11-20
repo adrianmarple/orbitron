@@ -103,8 +103,8 @@ setTimeout(() => {
       cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
       if (isWall) {
         KERF = ACRYLIC_KERF
-        console.log(ACRYLIC_KERF)
         createCoverSVG()
+        console.log(`SVG is ${(maxX/96).toFixed(1)}" by ${(maxY/96).toFixed(1)}"`)
         // createWallSVG()
       }
     }, 100)
@@ -118,10 +118,8 @@ let maxY = 0
 async function createCoverSVG() {
   maxX = 0
   maxY = 0
-  console.log("creating svgs")
-
+  
   // Gather paths
-
   let paths = []
   let directedEdges = []
   for (let index of path) {

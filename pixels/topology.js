@@ -131,6 +131,24 @@ function findEdgeFromCenter(center) {
   return null
 }
 
+// Based on Futurologist's answer from https://math.stackexchange.com/questions/2228018/how-to-calculate-the-third-point-if-two-points-and-all-distances-between-the-poi
+// Assumes z coordinate is always 0
+function addTriangulation(v1, v2, a, b) {
+  let A = v1.coordinates
+  let B = v2.coordinates
+  let c = d(A,B)
+  let AtoB = delta(B,A)
+  s = Math.sqrt((a+b+c)*(a+b-c)*(a-b+c)*(-a+b+c)) / 4
+  x = A[0] + (c*c + b*b - a*a)/(2*c*c) * AtoB[0] - 2*s*AtoB[1]/(c*c)
+  y = A[1] + (c*c + b*b - a*a)/(2*c*c) * AtoB[1] + 2*s*AtoB[0]/(c*c)
+
+  v = addVertex([x,y,0])
+  addEdge(v,v1)
+  addEdge(v,v2)
+
+  return v
+}
+
 
 function removeEdge(edge) {
   if (!edges) return

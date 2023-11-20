@@ -9,7 +9,5 @@ addButton("Space Invader", async () => {
   imageUrl = "spaceinvaders/invader1A.png"
   await addSquaresFromPixels()
   doubleEdges()
-  console.log(edges.length)
-
   EulerianPath(verticies[16], [23])
 })
