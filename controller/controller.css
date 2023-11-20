@@ -72,6 +72,7 @@ body, #app, .main {
   background-color: white;
   height: 10rem;
   margin-top: 5rem;
+  padding-bottom: 8rem;
   display: flex;
   justify-content: center;
   align-items: center;
