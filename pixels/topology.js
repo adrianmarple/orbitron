@@ -77,7 +77,7 @@ function addPlusMinusVertex(vertex) {
 }
 function addVertex(coordinates) {
   for (let existingVertex of verticies) {
-    if (epsilonEquals(d(existingVertex.coordinates, coordinates), 0)) {
+    if (vectorEquals(existingVertex.coordinates, coordinates)) {
       return existingVertex
     }
   }
@@ -134,6 +134,7 @@ function findEdgeFromCenter(center) {
 // Based on Futurologist's answer from https://math.stackexchange.com/questions/2228018/how-to-calculate-the-third-point-if-two-points-and-all-distances-between-the-poi
 // Assumes z coordinate is always 0
 function addTriangulation(v1, v2, a, b) {
+  if (!b) b = a
   let A = v1.coordinates
   let B = v2.coordinates
   let c = d(A,B)
@@ -143,12 +144,38 @@ function addTriangulation(v1, v2, a, b) {
   y = A[1] + (c*c + b*b - a*a)/(2*c*c) * AtoB[1] + 2*s*AtoB[0]/(c*c)
 
   v = addVertex([x,y,0])
-  addEdge(v,v1)
+  addEdge(v1,v)
   addEdge(v,v2)
 
   return v
 }
+// Assumes z coordinate is always 0
+function addSquareulation(v1, v2, a, b) {
+  let A = v1.coordinates
+  let B = v2.coordinates
+  let AtoB = delta(B,A)
+  let c = magnitude(AtoB)
+  let b0 = scale(AtoB, 1/c)
+  let b1 = cross([0,0,1], b0)
+  let x = (c - b) / 2
+  let theta = Math.acos(x/a)
+  let y = Math.sin(theta) * a
+  let C = add(A, scale(b0, x))
+  C = add(C, scale(b1, y))
+  let D = add(B, scale(b0, -x))
+  D = add(D, scale(b1, y))
 
+  console.log(d(C,A))
+  console.log(d(D,B))
+
+  v3 = addVertex(C)
+  v4 = addVertex(D)
+  addEdge(v1,v3)
+  addEdge(v3,v4)
+  addEdge(v4,v2)
+
+  return [v3,v4]
+}
 
 function removeEdge(edge) {
   if (!edges) return
