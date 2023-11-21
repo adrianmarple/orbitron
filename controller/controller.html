@@ -73,9 +73,29 @@
         <input type="checkbox" v-model="prefs.hasStartAndEnd">
         <span>Use Timer</span>
       </div>
+      
+      <div class="slider-container" v-if="prefs.idleColor == 'rainbow'">
+        <!-- Idle speed:
+        <input type="number" v-model="prefs.idleFrameRate"
+          @change="updatePrefs('idleFrameRate')">
+        </input> -->
+        <div class="label">
+          <div>Idle speed:</div>
+          <div>{{prefs.idleFrameRate}}</div>
+        </div>
+        <input type="range" min="5" max="60" class="slider" v-model="prefs.idleFrameRate"
+          @change="updatePrefs('idleFrameRate')">
+        </input>
+      </div>
     </div>
     <!-- COLORS MENU -->
     <div v-else-if="nav=='colors'" class="nav-page">
+      <div class="row" v-if="prefs.idleColor == 'rainbow'">
+        Rainbow time (sec):
+        <input type="number" v-model="prefs.rainbowDuration"
+          @change="updatePrefs('rainbowDuration')">
+        </input>
+      </div>
       <div class="color-component"
         v-for="component in ['red','green','blue']"
         v-if="prefs.idleColor == 'fixed'">

@@ -6,6 +6,7 @@ import engine
 
 class Idle(engine.Idle):
   def render(self):
+    self.wait_for_frame_end()
     self.init_values()
     if engine.prefs.get("applyIdleMinBefore", False):
       self.apply_min()

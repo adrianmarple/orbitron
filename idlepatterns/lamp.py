@@ -6,6 +6,7 @@ import engine
 
 class Lamp(engine.Idle):
   def render(self):
+    self.wait_for_frame_end()
     self.init_values()
     self.render_values *= 0.5
     spotlight = np.matmul(-engine.coords[0], engine.unique_coord_matrix)

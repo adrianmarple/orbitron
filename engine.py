@@ -43,19 +43,31 @@ base_config = {
   "INTERSECTION_PAUSE_FACTOR": 0.2,
 }
 
+
+# USER PREFENCES
 default_prefs = {
+  # TIMING
   "startTime": "0:00",
   "endTime": "23:59",
   "idleColor": "rainbow",
   "idleMin": 0,
   "applyIdleMinBefore": False,
   "hasStartAndEnd": False,
+
+  "idleFrameRate": 15.0,
+
+  # COLOR
   "brightness": 100,
   "fadeDuration": 30,
   "fixed.blue": 255,
   "fixed.green": 255,
   "fixed.red": 255,
+  "rainbowDuration": 10,
 }
+pref_type = {}
+for (key, value) in default_prefs.items():
+  pref_type[key] = type(value)
+
 pref_path = os.path.dirname(__file__) + "/prefs.json"
 if os.path.exists(pref_path):
   f = open(pref_path, "r")
@@ -76,7 +88,15 @@ def update_prefs(update):
   f.close()
 
 def get_pref(pref_name):
-  return default_prefs[pref_name]
+  pref = default_prefs[pref_name]
+  if (pref_type[pref_name] == int):
+    return int(pref)
+  if (pref_type[pref_name] == float):
+    return float(pref)
+  else:
+    return pref
+
+
 
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
@@ -799,7 +819,7 @@ class Idle(Game):
       self.start -= timedelta(days=1)
     if self.end - self.start > timedelta(days=1):
       self.start += timedelta(days=1)
-    self.fade_duration = float(get_pref("fadeDuration"))*60
+    self.fade_duration = get_pref("fadeDuration")*60
 
     self.fixed_color = None
 
@@ -809,6 +829,7 @@ class Idle(Game):
   def render(self):
     global raw_pixels
 
+    self.wait_for_frame_end()
     self.init_values()
     if get_pref("applyIdleMinBefore"):
       self.apply_min()
@@ -821,57 +842,20 @@ class Idle(Game):
 
     raw_pixels = self.render_values * 255
 
-  def color(self):
-    if self.fixed_color is not None:
-      return self.fixed_color
-    color_string = get_pref("idleColor")
-    if color_string == "rainbow":
-      return rainbow_phase_color()
-    elif color_string == "timeofday":
-      return time_of_day_color()
-    else:
-      color_string = color_string.lstrip('#')
-      r = int(get_pref("fixed.red"))
-      g = int(get_pref("fixed.green"))
-      b = int(get_pref("fixed.blue"))
-      return np.array((r,g,b))/255
-
-  def apply_color(self):
-    self.render_values = np.outer(self.render_values, self.color())
-
-  def apply_fade(self):
-    now = datetime.now()
-    if now > self.end:
-      self.update_prefs()
-    start_fade = (now - self.start).total_seconds() / self.fade_duration
-    start_fade = min(start_fade, 1)
-    start_fade = max(start_fade, 0)
-    end_fade = (self.end - now).total_seconds() / self.fade_duration
-    end_fade = min(end_fade, 1)
-    end_fade = max(end_fade, 0)
-    fade = min(start_fade, end_fade)
-    fade *= fade
-    self.render_values *= fade
-
-  def apply_min(self):
-    self.render_values = np.maximum(self.render_values, float(get_pref("idleMin"))/255)
-
-  def apply_brightness(self):
-    self.render_values *= float(get_pref("brightness")) / 100
-
+  
+  previous_fluid_time = 0
+  def wait_for_frame_end(self):
+    time_to_wait = self.previous_fluid_time + 1.0/get_pref("idleFrameRate") - time()
+    if time_to_wait > 0:
+      sleep(time_to_wait)
+    self.previous_fluid_time = time()
 
   fluid_heads = [0]
   fluid_values = np.array([1.0] + [0.0] * (RAW_SIZE - 1))
-  previous_fluid_time = 0
   def init_values(self):
     head_ratio = len(self.fluid_heads) / target_head_count
     dampening_factor = (1 + head_ratio*head_ratio*5)
 
-    time_to_wait = self.previous_fluid_time + 0.066 - time()
-    if time_to_wait > 0:
-      sleep(time_to_wait)
-
-    self.previous_fluid_time = time()
     new_heads = []
     for head in self.fluid_heads:
       if random() < 0.1:
@@ -895,6 +879,45 @@ class Idle(Game):
 
     self.fluid_values *= 0.86
     self.render_values = np.multiply(self.fluid_values, self.fluid_values)
+
+  def color(self):
+    if self.fixed_color is not None:
+      return self.fixed_color
+    color_string = get_pref("idleColor")
+    if color_string == "rainbow":
+      return rainbow_phase_color()
+    elif color_string == "timeofday":
+      return time_of_day_color()
+    else:
+      color_string = color_string.lstrip('#')
+      r = get_pref("fixed.red")
+      g = get_pref("fixed.green")
+      b = get_pref("fixed.blue")
+      return np.array((r,g,b))/255
+
+  def apply_color(self):
+    self.render_values = np.outer(self.render_values, self.color())
+
+  def apply_fade(self):
+    now = datetime.now()
+    if now > self.end:
+      self.update_prefs()
+    start_fade = (now - self.start).total_seconds() / self.fade_duration
+    start_fade = min(start_fade, 1)
+    start_fade = max(start_fade, 0)
+    end_fade = (self.end - now).total_seconds() / self.fade_duration
+    end_fade = min(end_fade, 1)
+    end_fade = max(end_fade, 0)
+    fade = min(start_fade, end_fade)
+    fade *= fade
+    self.render_values *= fade
+
+  def apply_min(self):
+    self.render_values = np.maximum(self.render_values, get_pref("idleMin")/255)
+
+  def apply_brightness(self):
+    self.render_values *= get_pref("brightness") / 100
+
 
 idle = Idle()
 idle.generate_players(Player)
@@ -971,7 +994,7 @@ def ortho_proj(u, v):
   return u - projection(u,v)
 
 def rainbow_phase_color():
-  color_phase = (time()/10) % 1
+  color_phase = (time()/get_pref("rainbowDuration")) % 1
   if color_phase < 0.333:
     r = 1 - 3 * color_phase
     g = 3 * color_phase

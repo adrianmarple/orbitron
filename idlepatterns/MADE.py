@@ -6,6 +6,7 @@ import engine
 
 class MADE(engine.Idle):
   def render(self):
+    self.wait_for_frame_end()
     self.init_values()
     self.render_values = np.maximum(self.render_values, 0.02)
     self.render_values = np.outer(self.render_values, np.array((1,1,1)))
