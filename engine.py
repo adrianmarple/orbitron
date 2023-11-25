@@ -31,6 +31,7 @@ GOOD_COLOR = np.array((255, 0, 255))
 GOOD_COLOR_STRING = "#ff00ff"
 BAD_COLOR = np.array((255, 0, 0))
 BAD_COLOR_STRING = "#ff0000"
+FRAMERATE = 30
 
 base_config = {
   "SELECTION_WEIGHTS": [0, 1, 1, 1, 1, 1],
@@ -801,6 +802,10 @@ class Idle(Game):
   waiting_music = "idle"
   render_values = None
 
+  previous_render_time = 0
+  previous_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
+  target_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
+
   def update_prefs(self):
     now = datetime.now()
     now_date = now.date()
@@ -827,9 +832,10 @@ class Idle(Game):
     pass
 
   def render(self):
-    global raw_pixels
+    if not self.wait_for_frame_end():
+      self.blend_pixels()
+      return
 
-    self.wait_for_frame_end()
     self.init_values()
     if get_pref("applyIdleMinBefore"):
       self.apply_min()
@@ -840,15 +846,19 @@ class Idle(Game):
     if not get_pref("applyIdleMinBefore"):
       self.apply_min()
 
-    raw_pixels = self.render_values * 255
+    self.target_pixels = self.render_values * 255
+    self.blend_pixels()
 
   
   previous_fluid_time = 0
   def wait_for_frame_end(self):
     time_to_wait = self.previous_fluid_time + 1.0/get_pref("idleFrameRate") - time()
+    # if time_to_wait > 2.0/FRAMERATE:
+    #   return False
     if time_to_wait > 0:
       sleep(time_to_wait)
     self.previous_fluid_time = time()
+    return True
 
   fluid_heads = [0]
   fluid_values = np.array([1.0] + [0.0] * (RAW_SIZE - 1))
@@ -918,6 +928,17 @@ class Idle(Game):
   def apply_brightness(self):
     self.render_values *= get_pref("brightness") / 100
 
+  def blend_pixels(self):
+    global raw_pixels
+    frame_delta = time() - self.previous_render_time
+    if frame_delta < 1:
+      alpha = exp(-6 * frame_delta)
+      raw_pixels = self.target_pixels * alpha + self.previous_pixels * (1-alpha)
+    else:
+      raw_pixels = self.target_pixels * 1
+
+    self.previous_render_time = time()
+    self.previous_pixels = raw_pixels * 1
 
 idle = Idle()
 idle.generate_players(Player)
@@ -1127,7 +1148,7 @@ def run_core_loop():
   is_toggling = False
   is_off = False
   while True:
-    time_to_wait = last_frame_time + 0.033 - time()
+    time_to_wait = last_frame_time + 1.0/FRAMERATE - time()
     if time_to_wait > 0:
       sleep(time_to_wait)
 
