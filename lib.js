@@ -1,3 +1,4 @@
+const PYTHON_EXECUTABLE = '/home/pi/.env/bin/python3'
 let { exec, execSync } = require('child_process')
 
 //load and process config and environment variables
@@ -55,5 +56,5 @@ async function checkConnection() {
 
 
 module.exports = {
-  execute, checkConnection, config
+  execute, checkConnection, config, PYTHON_EXECUTABLE
 }

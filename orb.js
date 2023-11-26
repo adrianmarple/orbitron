@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { checkConnection, execute, config} = require('./lib')
+const { checkConnection, execute, config, PYTHON_EXECUTABLE} = require('./lib')
 const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
 const fs = require('fs')
@@ -319,7 +319,7 @@ function broadcast(baseMessage) {
   delete baseMessage.timestamp
 }
 
-const python_process = spawn('python3', ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
+const python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
 let raw_pixels = null
 let raw_json = null
 python_process.stdout.on('data', data => {

@@ -50,23 +50,15 @@ if(!config.IS_SERVER){
   `
 
   async function startAccessPoint(){
-    await execute("mv /etc/dhcpcd.conf.accesspoint /etc/dhcpcd.conf")
-    await execute("systemctl restart networking.service")
-    await execute("systemctl restart dhcpcd")
-    await execute("systemctl restart hostapd")
+    await execute("sudo nmcli device wifi hotspot ssid Orbitron")
     console.log("STARTED ACCESS POINT")
   }
 
   async function stopAccessPoint(){
-    let hostapdRunning = (await execute("ps -ea")).indexOf("hostapd") >= 0
-    if(hostapdRunning){
-      await execute("systemctl stop hostapd")
-      await execute("systemctl restart networking.service")
-      await execute("systemctl restart dhcpcd")
-      await execute("wpa_cli reconfigure")
-      console.log("STOPPED ACCESS POINT")
-    }
-    await execute("mv /etc/dhcpcd.conf /etc/dhcpcd.conf.accesspoint")
+    //let hostapdRunning = (await execute("ps -ea")).indexOf("hostapd") >= 0
+    await execute("sudo nmcli device disconnect wlan0")
+    await execute("sudo nmcli device up wlan0")
+    console.log("STOPPED ACCESS POINT")
   }
 
   async function submitSSID(formData) {
@@ -79,29 +71,11 @@ if(!config.IS_SERVER){
     let password = formData.password.replace(/'/g, "\\'")
     let priority = formData.priority == 'low' ? 1 : 2
     let append = ""
-    if(password.trim() == ""){
-      append = `
-  network={
-      ssid="${ssid}"
-      key_mgmt=NONE
-      scan_ssid=1
-      id_str="${ssid}"
-      priority=${priority}
-  }
-  `
-    } else {
-      append = `
-  network={
-      ssid="${ssid}"
-      psk="${password}"
-      key_mgmt=WPA-PSK
-      scan_ssid=1
-      id_str="${ssid}"
-      priority=${priority}
-  }
-  `
+    if(password.trim() != ""){
+      append = `password ${password}`
     }
-    let toExec=`echo '${append}' | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf`
+  
+    let toExec=`sudo nmcli dev wifi connect ${ssid} ${append}`
     await execute(toExec)
     await stopAccessPoint()
   }

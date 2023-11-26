@@ -76,6 +76,10 @@ network={
 
 # Other useful things
 
+## Circuit Python on Feather RP2040 SCORPIO
+
+- Follow instructions here: `https://learn.adafruit.com/introducing-feather-rp2040-scorpio/overview`
+
 ## Vonets Hardware Setup
 
 - Plug the USB and LAN cables into your computer
@@ -99,13 +103,24 @@ network={
 ### Image an SSD
 
 - Download Raspberry Pi Imager: https://www.raspberrypi.org/software/
+- Select the latest 64-bit Raspberry PI OS
+- Click the gear icon to change the settings of the install
+- Set hostname to `orbitron`
+- Enable SSH with password authentication
+- enter pi as the username and enter a password
+- Configure wireless LAN to connect to your local wifi
+- Set timezone and select us Keyboard layout
+- Save and click `WRITE` to burn the image
+- Plug SD Card into PI
 
 ### Getting connected
 
-- Connect PI to monitor/TV vio HDMI cable
+- Connect PI to monitor/TV via HDMI cable
 - Connect USB keyboard to PI as well
-- Login with username `pi` password `raspberry`
-- Change password with `passwd`
+- Power on the PI
+- Wait for some time, it may need to reboot 2 or more times
+- You should see `orbitron login:` when it is readyz
+- Login with the username and password you set
 
 ### Connect to WiFi
 
@@ -117,9 +132,37 @@ network={
 ### Configure SSH
 
 - Run `sudo raspi-config`
-- SSH is in Interfacing Options
-- Ensure Bonjour is running `sudo apt-get install avahi-daemon`
-- `ssh pi@orbitron.local`
+- Select `Interface Options` and `SSH`
+- Select `Yes` to turn on SSH service
+
+### Configure SPI
+
+- Run `sudo raspi-config`
+- Select `Interface Options` and `SPI`
+- Select `Yes` to turn on SPI service
+
+### Configure I2C
+
+- Run `sudo raspi-config`
+- Select `Interface Options` and `I2C`
+- Select `Yes` to turn on I2C service
+
+### Configure Serial
+
+- Run `sudo raspi-config`
+- Select `Interface Options` and `Serial Port`
+- Select `No` to disable serial login shell
+- Select `Yes` to turn on serial port communication
+
+
+### Configure Bonjour
+
+- Ensure Bonjour is running `sudo apt install avahi-daemon`
+- You should be able to ssh in to the pi with `ssh pi@orbitron.local`
+
+### Install git
+
+- `sudo apt install git`
 
 ### Clone Repo and run installer
 

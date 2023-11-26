@@ -1,3 +1,5 @@
+const PYTHON_EXECUTABLE = '/home/pi/.env/bin/python3'
+
 const WebSocket = require('ws')
 const process = require('process')
 const { spawn, exec } = require('child_process')
@@ -81,7 +83,7 @@ function startWebsocket() {
   }
 }
 
-const python_process = spawn('python3', ['-u', `${__dirname}/orbclient.py`],{env:{...process.env,...config}});
+const python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/orbclient.py`],{env:{...process.env,...config}});
 python_process.stdout.on('data', data => {
   message = data.toString().trim()
   if (message) {
@@ -98,7 +100,7 @@ python_process.on('uncaughtException', function(err) {
   console.log('Caught python exception: ' + err);
 });
 
-const audio_process = spawn('python3', ['-u', `${__dirname}/orbclientaudio.py`],{env:{...process.env,...config}});
+const audio_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/orbclientaudio.py`],{env:{...process.env,...config}});
 audio_process.stdout.on('data', data => {
   message = data.toString().trim()
   if (message) {
