@@ -56,7 +56,7 @@ See [the games folder README](games)
 
 ## Adding WiFi network to Pi for auto connect
 - Connect to unsecure Wifi with SSID "Super Orbitron"
-- Go to `http://192.168.4.1:9090`
+- Go to `orbitron.games` or `http://10.42.0.1`
 - Enter SSID and password of desired wifi and submit
 
 
