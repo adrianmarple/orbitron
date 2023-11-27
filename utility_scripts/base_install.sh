@@ -11,12 +11,9 @@ sudo raspi-config nonint do_serial 0
 sudo raspi-config nonint do_ssh 0
 sudo raspi-config nonint disable_raspi_config_at_boot 0
 
-# Set up captive portal
-cd ~
-git clone https://github.com/nodogsplash/nodogsplash.git
-cd ~/nodogsplash
-make
-sudo make install
+# Set up dnsmasq redirects for hotspot
+sudo cp /home/pi/orbitron/utility_scripts/00-dnsmasq.conf /etc/NetworkManager/conf.d/
+sudo cp /home/pi/orbitron/utility_scripts/00-orb.conf /etc/NetworkManager/dnsmasq-shared.d/
 
 # Set up python
 sudo python -m venv --system-site-packages ~/.env
