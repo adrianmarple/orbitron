@@ -50,7 +50,12 @@ if(!config.IS_SERVER){
   `
 
   async function startAccessPoint(){
-    await execute("sudo nmcli device wifi hotspot ssid Orbitron")
+    let connectionExists = (await execute("sudo nmcli connection show")).indexOf("OrbHotspot") >= 0
+    if(connectionExists){
+      await execute('sudo nmcli connection delete OrbHotspot')
+    }
+    await execute('sudo nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Super Orbitron" ipv4.method shared ipv6.method shared')
+    await execute('sudo nmcli connection up OrbHotspot')
     console.log("STARTED ACCESS POINT")
   }
 
@@ -74,10 +79,9 @@ if(!config.IS_SERVER){
     if(password.trim() != ""){
       append = `password ${password}`
     }
-  
-    let toExec=`sudo nmcli dev wifi connect ${ssid} ${append}`
-    await execute(toExec)
+
     await stopAccessPoint()
+    await execute(`sudo nmcli dev wifi connect ${ssid} ${append}`)
   }
 
   let isFirstNetworkCheck = true

@@ -59,20 +59,6 @@ See [the games folder README](games)
 - Go to `http://192.168.4.1:9090`
 - Enter SSID and password of desired wifi and submit
 
-### Manual edit
-- Edit `/etc/wpa_supplicant/wpa_supplicant.conf` with your editor of choice
-- Insert an entry at the bottom of the following format:
-```
-network={
-	ssid="SSID"
-	psk="PASSWORD"
-	key_mgmt=WPA-PSK
-	scan_ssid=1
-	id_str="UNIQUE_ID"
-	priority=1
-}
-```
-- Save the file and restart, it should auto connect to the network (provided it doesn't find another one in the list)
 
 # Other useful things
 
@@ -80,25 +66,7 @@ network={
 
 - Follow instructions here: `https://learn.adafruit.com/introducing-feather-rp2040-scorpio/overview`
 
-## Vonets Hardware Setup
-
-- Plug the USB and LAN cables into your computer
-- Hold down reset button for some time to reset the device
-- Power Cycle the device (unplug and replug USB)
-- Navigate to `192.168.254.254`
-- Log in with `admin` as username and password
-- Select the `Operative Status` button
-- Click the `Scan Hotspots` tab and select your hotspot from the list, then click `Next`
-- Enter the hotpsot's password, uncheck `The configuration parameters of WiFi repeater security is synchronized with source hotspot` enter `Super Orbitron` into the `Repeater SSID` field and click `Apply`
-- Click `To Connect` when it loads
-- Click `Start Connect` and wait for the page to reload and show that it is connected to the hotspot
-- Click the `WiFi Repeater` tab and then `WiFi Security`
-- Change `Security Mode` to `Disable` and hit `Apply`
-- You will need to power cycle the Vonets device after all this is done and then plug it into the Pi to test
-- Manual available [here](http://www.vonets.com/download/VAP11G-300/VAP11G-300%E2%80%94%E2%80%94Quick%20Setting%20Guide.pdf)
-
-
-# OG/Fresh Setup on Pi Hardware
+# Fresh Setup on Pi Hardware
 
 ### Image an SSD
 
@@ -119,7 +87,7 @@ network={
 - Connect USB keyboard to PI as well
 - Power on the PI
 - Wait for some time, it may need to reboot 2 or more times
-- You should see `orbitron login:` when it is readyz
+- You should see `orbitron login:` when it is ready
 - Login with the username and password you set
 
 ### Connect to WiFi
@@ -128,37 +96,6 @@ network={
 - Select `System Options` and `Wireless LAN`
 - Select the appropriate country from the list
 - Enter SSID and password of wifi network
-
-### Configure SSH
-
-- Run `sudo raspi-config`
-- Select `Interface Options` and `SSH`
-- Select `Yes` to turn on SSH service
-
-### Configure SPI
-
-- Run `sudo raspi-config`
-- Select `Interface Options` and `SPI`
-- Select `Yes` to turn on SPI service
-
-### Configure I2C
-
-- Run `sudo raspi-config`
-- Select `Interface Options` and `I2C`
-- Select `Yes` to turn on I2C service
-
-### Configure Serial
-
-- Run `sudo raspi-config`
-- Select `Interface Options` and `Serial Port`
-- Select `No` to disable serial login shell
-- Select `Yes` to turn on serial port communication
-
-
-### Configure Bonjour
-
-- Ensure Bonjour is running `sudo apt install avahi-daemon`
-- You should be able to ssh in to the pi with `ssh pi@orbitron.local`
 
 ### Install git
 
