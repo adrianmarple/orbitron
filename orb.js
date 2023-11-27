@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { checkConnection, execute, config, PYTHON_EXECUTABLE} = require('./lib')
+let { checkConnection, execute, config, PYTHON_EXECUTABLE} = require('./lib')
 const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
 const fs = require('fs')
@@ -11,7 +11,7 @@ let orbEmulatorBroadcast = () => {}
 if(config.DEV_MODE){
   orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
 } // TODO refactor to fix this garbage
-
+PYTHON_EXECUTABLE = config.PYTHON_EXECUTABLE || PYTHON_EXECUTABLE
 
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")

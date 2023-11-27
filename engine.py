@@ -1100,6 +1100,27 @@ def multi_lerp(x, control_points):
 
   return control_points[index - 1][1]
 
+# ================================ Text display =========================================
+
+current_text = ""
+display_type = os.getenv("TEXT_DISPLAY", "")
+display = None
+if display_type == "Seg14x4":
+  import board
+  from adafruit_ht16k33.segments import Seg14x4
+  i2c = board.I2C()
+  display = Seg14x4(i2c)
+
+def display_text(text):
+  global current_text
+  if display is not None:
+    if len(text) <= 4:
+      display.print(text)
+    else:
+      display.print(text + "  ")
+  current_text = text
+
+
 # ================================ Communication with node.js =========================================
 
 def touchall():
@@ -1126,6 +1147,7 @@ def broadcast_state():
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
     "prefs": default_prefs,
+    "currentText": current_text,
   }
   print(json.dumps(message))
 
@@ -1138,6 +1160,8 @@ if os.getenv("SWITCH_MODE"):
   GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def run_core_loop():
+  display_text("STARTED")
+
   last_frame_time = time()
   framerate_data = {
     'start_time': datetime.fromtimestamp(int(last_frame_time)).strftime("%m/%d/%Y, %H:%M:%S"),
