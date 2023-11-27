@@ -252,10 +252,13 @@ display = None
 text_index = 0
 display_type = os.getenv("TEXT_DISPLAY", "")
 if display_type == "Seg14x4":
-  import board
-  i2c = board.I2C()
-  from adafruit_ht16k33.segments import Seg14x4
-  display = Seg14x4(i2c)
+  try:
+    import board
+    i2c = board.I2C()
+    from adafruit_ht16k33.segments import Seg14x4
+    display = Seg14x4(i2c)
+  except Exception:
+    print("Error initializing TEXT_DISPLAY %s" % display_type, file=sys.stderr)
 
 def display_text(text):
   global current_text
