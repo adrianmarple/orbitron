@@ -129,8 +129,8 @@ if(!config.IS_SERVER){
     }
   })
 
-  wifiSetupServer.listen(9090,() => {
-    console.log("wifi setup Listening on port 9090")
+  wifiSetupServer.listen(80,() => {
+    console.log("wifi setup Listening on port 80")
   })
   setTimeout(() => {
     networkCheck()
