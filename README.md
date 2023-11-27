@@ -49,10 +49,10 @@ See [the games folder README](games)
 - Just use normal git commands with within directory `~/orbitron`
 - If you edit outside the version controlled directory create a new SD card image
 - Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
-- `sudo dd if=/dev/disk2 of=Orbitron.img bs=1M status=progress`
+- `sudo dd if=/dev/disk2 of=Orbitron.img bs=8M count=820 status=progress`
 - On MacOS use `gdd` instead
   - Install with `brew install coreutils`
-  - `sudo gdd if=/dev/disk2 of=Orbitron.img bs=1M status=progress bs=8M`
+  - `sudo gdd if=/dev/disk2 of=Orbitron.img bs=8M count=820 status=progress`
 
 ## Adding WiFi network to Pi for auto connect
 - Connect to unsecure Wifi with SSID "Super Orbitron"
