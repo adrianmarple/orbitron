@@ -48,7 +48,7 @@ base_config = {
 # USER PREFENCES
 default_prefs = {
   # TIMING
-  "startTime": "0:00",
+  "startTime": "00:00",
   "endTime": "23:59",
   "idleColor": "rainbow",
   "idleMin": 0,
@@ -243,6 +243,25 @@ def start(new_game):
     if i < len(claimed):
       player.is_claimed = claimed[i]
 
+
+# ================================ Text display =========================================
+
+previous_text = ""
+current_text = ""
+display = None
+text_index = 0
+display_type = os.getenv("TEXT_DISPLAY", "")
+if display_type == "Seg14x4":
+  import board
+  i2c = board.I2C()
+  from adafruit_ht16k33.segments import Seg14x4
+  display = Seg14x4(i2c)
+
+def display_text(text):
+  global current_text
+  current_text = text
+
+
 # ================================ UPDATE =========================================
 
 def update():
@@ -267,6 +286,35 @@ def update():
     broadcast_state()
 
     raw_pixels *= 0
+
+    # Text display update tick
+    if display is None:
+      return
+
+    global text_index
+    global previous_text
+    global previous_scroll_time
+
+    if current_text != previous_text:
+      display.print(current_text[:4])
+      text_index = 4
+      previous_text = current_text
+      previous_scroll_time = time()
+
+    if len(current_text) <= 4: # Don't scroll if entire text can fit on display
+      return
+    if time() - previous_scroll_time < 0.25:
+      return
+
+    display.scroll(1)
+    if text_index < len(current_text):
+      display[3] = current_text[text_index]
+    else:
+      display[3] = " "
+    display.show()
+    text_index = (text_index + 1) % (len(current_text) + 3)
+    previous_scroll_time = time()
+
   except Exception:
     print(traceback.format_exc(), file=sys.stderr)
 
@@ -1099,26 +1147,6 @@ def multi_lerp(x, control_points):
     return alpha * next_v + (1-alpha) * prev_v
 
   return control_points[index - 1][1]
-
-# ================================ Text display =========================================
-
-current_text = ""
-display_type = os.getenv("TEXT_DISPLAY", "")
-display = None
-if display_type == "Seg14x4":
-  import board
-  from adafruit_ht16k33.segments import Seg14x4
-  i2c = board.I2C()
-  display = Seg14x4(i2c)
-
-def display_text(text):
-  global current_text
-  if display is not None:
-    if len(text) <= 4:
-      display.print(text)
-    else:
-      display.print(text + "  ")
-  current_text = text
 
 
 # ================================ Communication with node.js =========================================

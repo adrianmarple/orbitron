@@ -87,6 +87,8 @@ def consume_input():
         engine.game.update_config(message["update"])
       elif message["type"] == "prefs":
         engine.update_prefs(message["update"])
+      elif message["type"] == "text":
+        engine.display_text(message["text"])
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 
