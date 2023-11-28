@@ -77,21 +77,21 @@ bpp = 3
 
 while True:
     sync = uart.read(1)
-    if sync != 0xff:
+    if sync and sync[0] != 0xff:
         continue
     else:
         while strand_count == -1:
-            uart.write([0xf8])
+            uart.write(bytearray([0xf8]))
             response = uart.read(1)
-            if response[0] != 0xf8:
+            if not response or response[0] != 0xf8:
                 continue
             count = uart.read(1)
             strand_count = count[0]
         
         while pixels_per_strand == -1:
-            uart.write([0xf0])
+            uart.write(bytearray([0xf0]))
             response = uart.read(1)
-            if response[0] != 0xf0:
+            if not response or response[0] != 0xf0:
                 continue
             count = uart.read(2)
             pixels_per_strand = (count[0]<<8) + count[1]
@@ -100,7 +100,7 @@ while True:
             total_pixel_bytes = strand_count * pixels_per_strand * bpp
             state_machine = initialize_state_machine(strand_count)
         
-        uart.write([0xff])
+        uart.write(bytearray([0xff]))
         
     #t0 = adafruit_ticks.ticks_ms()
     if total_pixel_bytes <= max_uart_buf_size:

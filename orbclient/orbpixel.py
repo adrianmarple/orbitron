@@ -44,6 +44,7 @@ def start_external_pixel_board():
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
         external_board = serial.Serial("/dev/ttyS0")
         external_board.baudrate = 2000000
+        external_board.timeout = 1
         
 
 def pixel_output_loop(conn):
@@ -55,21 +56,24 @@ def pixel_output_loop(conn):
 
 def display_pixels(pixels):
     if external_board:
-        while True:
-            external_board.write([0xff])
-            response = external_board.read(1)
-            if response == 0xf8:
-                strand_count = int(os.getenv("STRAND_COUNT")).to_bytes(1,'big')
-                external_board.write(strand_count)
-                print("sent strand count", file=sys.stderr)
-            elif response == 0xf0:
-                pixels_per_strand = int(os.getenv("PIXELS_PER_STRAND")).to_bytes(2,'big')
-                external_board.write(pixels_per_strand)
-                print("sent pixels per strand", file=sys.stderr)
-            elif response == 0xff:
-                break
-        external_board.write(pixels.tobytes())
-        print("wrote to external", file=sys.stderr)
+        try:
+            while True:
+                external_board.write([0xff])
+                response = external_board.read(1)
+                if response == 0xf8:
+                    strand_count = int(os.getenv("STRAND_COUNT")).to_bytes(1,'big')
+                    external_board.write(strand_count)
+                    print("sent strand count", file=sys.stderr)
+                elif response == 0xf0:
+                    pixels_per_strand = int(os.getenv("PIXELS_PER_STRAND")).to_bytes(2,'big')
+                    external_board.write(pixels_per_strand)
+                    print("sent pixels per strand", file=sys.stderr)
+                elif response == 0xff:
+                    break
+            external_board.write(pixels.tobytes())
+            print("wrote to external", file=sys.stderr)
+        except Exception:
+            print("error writing to external", file=sys.stderr)
         return
     pixels = np.uint32(pixels)
     buf = pixels[:,0]*(1<<16) + pixels[:,1]*(1<<8) + pixels[:,2]
