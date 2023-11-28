@@ -43,7 +43,7 @@ def start_external_pixel_board():
     global external_board
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
         external_board = serial.Serial("/dev/ttyS0")
-        external_board.baudrate = 9600
+        external_board.baudrate = 2000000
         
 
 def pixel_output_loop(conn):
@@ -55,8 +55,7 @@ def pixel_output_loop(conn):
 
 def display_pixels(pixels):
     if external_board:
-        #external_board.xfer3(pixels.tobytes())
-        external_board.write([0x01,0x02,0x03,0x04])
+        external_board.write(pixels.tobytes())
         print("wrote to external", file=sys.stderr)
         return
     pixels = np.uint32(pixels)
