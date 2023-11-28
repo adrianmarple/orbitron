@@ -274,7 +274,7 @@ def display_text(text, priority=2):
     if txt != "":
       current_text = txt
       return
-  current_text = ""
+  current_text = "    "
 
 # ================================ UPDATE =========================================
 
