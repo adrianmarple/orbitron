@@ -7,7 +7,7 @@ import _rpi_ws281x as ws
 import sys
 from time import time, sleep
 from multiprocessing import Process, Pipe
-import spidev
+import serial
 import os
 
 # NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
@@ -42,9 +42,9 @@ def start_pixel_output_process():
 def start_external_pixel_board():
     global external_board
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
-        external_board = spidev.SpiDev()
-        external_board.open(0,0)
-        external_board.max_speed_hz = 1000000
+        external_board = serial.Serial("/dev/ttyS0")
+        external_board.baudrate = 9600
+        
 
 def pixel_output_loop(conn):
     print("Pixel process stared", file=sys.stderr)
@@ -55,7 +55,9 @@ def pixel_output_loop(conn):
 
 def display_pixels(pixels):
     if external_board:
-        external_board.xfer3(pixels.tobytes())
+        #external_board.xfer3(pixels.tobytes())
+        external_board.write([0x01,0x02,0x03,0x04])
+        print("wrote to external", file=sys.stderr)
         return
     pixels = np.uint32(pixels)
     buf = pixels[:,0]*(1<<16) + pixels[:,1]*(1<<8) + pixels[:,2]
