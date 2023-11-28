@@ -1,7 +1,3 @@
-# Making a new Game
-
-See [the games folder README](games)
-
 # Using the Emulator
 
 - Clone the repo somewhere for you to work from
@@ -16,37 +12,33 @@ See [the games folder README](games)
 
 # Getting Pi Hardware Set Up
 
-- Download SD card image from [https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/Orbitron.img.zip?rlkey=cfcn58lnl0pesi8mir0tjp9s4&dl=0](https://www.dropbox.com/scl/fi/ozr9dnu158dimkmprlhe0/orbitron.zip?rlkey=098ywe4ws95k9ho0lqi6p5suq&dl=0)
-- Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
-- `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
-- go to Download directory or wherever the SD image download is
-- `sudo dd if=Orbitron.img of=/dev/disk2 status=progress`
-- On MacOS use `gdd` instead
-  - Install with `brew install coreutils`
-  - `sudo gdd if=Orbitron.img of=/dev/disk2 status=progress`
+- Download SD card image from https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/Orbitron.img.zip?rlkey=cfcn58lnl0pesi8mir0tjp9s4&dl=0
+- Burn to SD card using `dd` or Balena Etcher (https://etcher.balena.io/)
+- Using `dd`
+  - Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
+  - `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
+  - go to Download directory or wherever the SD image download is
+  - `sudo dd if=Orbitron.img of=/dev/disk2 status=progress`
+  - On MacOS use `gdd` instead
+    - Install with `brew install coreutils`
+    - `sudo gdd if=Orbitron.img of=/dev/disk2 status=progress`
 
-## SSHFS
+# Making a new Game
 
-- Download sshfs from https://osxfuse.github.io/ and install
-- `mkdir ~/orbitron`
+See [the games folder README](games)
 
 # Editing on the Pi
 
-## SSH
-
-- `ssh pi@orbitron.local` or get IP address from `avahi-browse -ar` or `sudo nmap -sn 192.168.1.0/24` and go to `ssh pi@<IP address>`
-- `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
-
 ## Running on PI hardware
 
-- ssh into the pi
+- `ssh pi@orbitron.local` or get IP address from `avahi-browse -ar` or `sudo nmap -sn 192.168.1.0/24` and go to `ssh pi@<IP address>`
 - `cd orbitron`
-- `sudo pm2 restart <server or orbclient>`
+- `sudo pm2 restart all`
 - Visit `http://orbitron.local:1337` or get IP address from `avahi-browse -ar` and go to `http://<IP address>:1337`
 - `sudo pm2 log` to tail logs. Log files are stored in `/root/.pm2/logs`
 
 ## Saving
-- Just use normal git commands with within directory `~/orbitron`
+- Just use normal git commands within directory `~/orbitron`
 - If you edit outside the version controlled directory create a new SD card image
 - Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
 - `sudo dd if=/dev/disk2 of=Orbitron.img bs=8M count=820 status=progress`
@@ -58,13 +50,6 @@ See [the games folder README](games)
 - Connect to unsecure Wifi with SSID "Super Orbitron"
 - Go to `orbitron.games` or `http://10.42.0.1`
 - Enter SSID and password of desired wifi and submit
-
-
-# Other useful things
-
-## Circuit Python on Feather RP2040 SCORPIO
-
-- Follow instructions here: `https://learn.adafruit.com/introducing-feather-rp2040-scorpio/overview`
 
 # Fresh Setup on Pi Hardware
 
@@ -105,4 +90,22 @@ See [the games folder README](games)
 
 - `git clone https://github.com/adrianmarple/orbitron`
 - `~/orbitron/utility_scripts/base_install.sh`
+
+
+# Other useful things
+
+## Circuit Python on Feather RP2040 SCORPIO
+
+- Follow instructions here: https://learn.adafruit.com/introducing-feather-rp2040-scorpio/overview
+
+## 14 segment display wiring diagram
+
+- https://learn.adafruit.com/adafruit-led-backpack/0-54-alphanumeric-python-wiring-and-setup#wiring-original-version-3128023
+
+## SSHFS
+
+- Download sshfs from https://osxfuse.github.io/ and install
+- `mkdir ~/orbitron`
+- `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
+
 - `~/orbitron/utility_scripts/pm2_setup.sh`
