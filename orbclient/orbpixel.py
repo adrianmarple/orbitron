@@ -55,6 +55,19 @@ def pixel_output_loop(conn):
 
 def display_pixels(pixels):
     if external_board:
+        while True:
+            external_board.write([0xff])
+            response = external_board.read(1)
+            if response == 0xf8:
+                strand_count = int(os.getenv("STRAND_COUNT")).to_bytes(1,'big')
+                external_board.write(strand_count)
+                print("sent strand count", file=sys.stderr)
+            elif response == 0xf0:
+                pixels_per_strand = int(os.getenv("PIXELS_PER_STRAND")).to_bytes(2,'big')
+                external_board.write(pixels_per_strand)
+                print("sent pixels per strand", file=sys.stderr)
+            elif response == 0xff:
+                break
         external_board.write(pixels.tobytes())
         print("wrote to external", file=sys.stderr)
         return
