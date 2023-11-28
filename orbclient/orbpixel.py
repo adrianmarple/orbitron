@@ -7,6 +7,7 @@ import _rpi_ws281x as ws
 import sys
 from time import time, sleep
 from multiprocessing import Process, Pipe
+import spidev
 
 # NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
 
@@ -24,6 +25,7 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 # we only support one LED strip per raspi
 _led_strip = None
 process_conn = None
+external_board = None
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
@@ -36,6 +38,13 @@ def start_pixel_output_process():
     p = Process(target=pixel_output_loop, args=(child_conn,))
     p.start()
 
+def start_external_pixel_board():
+    global external_board
+    if os.getenv("EXTERNAL_PIXEL_BOARD"):
+        external_board = spidev.SpiDev()
+        external_board.open(0,0)
+        external_board.max_speed_hz = 1000000
+
 def pixel_output_loop(conn):
     print("Pixel process stared", file=sys.stderr)
     conn.send("started")
@@ -44,14 +53,17 @@ def pixel_output_loop(conn):
         conn.send("done")
 
 def display_pixels(pixels):
+    if external_board:
+        spi.xfer3(pixels.tobytes())
+        return
     pixels = np.uint32(pixels)
     buf = pixels[:,0]*(1<<16) + pixels[:,1]*(1<<8) + pixels[:,2]
     buf = buf.tolist()
-    if process_conn is None:
-        neopixel_write(buf)
-    else:
+    if process_conn:
         process_conn.recv()
         process_conn.send(buf)
+    else:
+        neopixel_write(buf)
 
 def neopixel_write(buf):
     global _led_strip  # we'll have one strip we init if its not at first

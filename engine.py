@@ -22,8 +22,9 @@ if os.getenv("DEV_MODE"):
     output = np.array(pixels,dtype="<u1").tobytes()
     print("raw_pixels=%s;" % output.hex())
 else:
-  from orbclient.orbpixel import display_pixels, start_pixel_output_process
+  from orbclient.orbpixel import display_pixels, start_pixel_output_process, start_external_pixel_board
   start_pixel_output_process()
+  start_external_pixel_board()
 
 prewarm_audio()
 
