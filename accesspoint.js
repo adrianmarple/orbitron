@@ -2,6 +2,7 @@
 const { checkConnection, execute, config} = require('./lib')
 const http = require('http')
 const qs = require('querystring')
+const { displayText } = requite('./orb')
 
 // ---Wifi Setup Code---
 let numTimesNetworkCheckFailed = 0
@@ -57,6 +58,7 @@ if(!config.IS_SERVER){
     await execute('sudo nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Super Orbitron" ipv4.method shared ipv6.method shared')
     await execute('sudo nmcli connection up OrbHotspot')
     console.log("STARTED ACCESS POINT")
+    displayText("JOIN WIFI SUPER ORBITRON")
   }
 
   async function stopAccessPoint(){
@@ -64,6 +66,7 @@ if(!config.IS_SERVER){
     await execute("sudo nmcli device disconnect wlan0")
     await execute("sudo nmcli device up wlan0")
     console.log("STOPPED ACCESS POINT")
+    displayText("")
   }
 
   async function submitSSID(formData) {

@@ -132,6 +132,10 @@ var app = new Vue({
     musicReady:false,
     musicVolume: 50,
     sfxVolume: 50,
+
+    previousText: "",
+    previousScrollTime: 0,
+    textIndex: 0,
   },
   async created() {
     let self = this
@@ -340,6 +344,46 @@ var app = new Vue({
       }
 
       this.composer.render()
+
+      // Render Text Display
+      let textDisplay = document.getElementById("text-display")
+      let currentText = this.gameState.currentText
+      console.log(currentText)
+      if (!currentText) {
+        textDisplay.innerHTML = ""
+        return
+      }
+      if (currentText != this.previousText) {
+        textDisplay.innerHTML = currentText.slice(0,4)
+        this.textIndex = 4
+        this.previousText = currentText
+        this.previousScrollTime = Date.now()
+      }
+
+      if (currentText.length <= 4) // Don't scroll if entire text can fit on display
+        return
+      if (Date.now() - this.previousScrollTime < 250)
+        return
+
+      let inner = textDisplay.innerHTML
+      if (inner[0] == '&') {
+        inner = inner.slice(6)
+      } else {
+        inner = inner.slice(1)
+      }
+      
+      if (this.textIndex < currentText.length) {
+        let chr = currentText[this.textIndex]
+        if (chr == " ") chr = "&nbsp;"
+        inner += chr
+      }
+      else {
+        inner += "&nbsp;"
+      }
+
+      textDisplay.innerHTML = inner
+      this.textIndex = (this.textIndex + 1) % (currentText.length + 3)
+      this.previousScrollTime = Date.now()
     },
     startWebsocket() {
       if(this.ws) {

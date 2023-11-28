@@ -249,6 +249,7 @@ def start(new_game):
 
 previous_text = ""
 current_text = ""
+priory_texts = []
 display = None
 text_index = 0
 display_type = os.getenv("TEXT_DISPLAY", "")
@@ -261,10 +262,19 @@ if display_type == "Seg14x4":
   except Exception:
     print("Error initializing TEXT_DISPLAY %s" % display_type, file=sys.stderr)
 
-def display_text(text):
+def display_text(text, priority=2):
   global current_text
-  current_text = text
+  if len(priory_texts) < priority+1:
+    for i in range(len(priory_texts), priority+1):
+      priory_texts.append("")
 
+  priory_texts[priority] = text
+
+  for txt in priory_texts:
+    if txt != "":
+      current_text = txt
+      return
+  current_text = ""
 
 # ================================ UPDATE =========================================
 
@@ -1192,7 +1202,7 @@ if os.getenv("SWITCH_MODE"):
   GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def run_core_loop():
-  display_text("STARTED")
+  display_text(os.getenv("DEFAULT_TEXT_DISPLAY", ""), 3)
 
   last_frame_time = time()
   framerate_data = {

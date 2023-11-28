@@ -82,8 +82,20 @@
 #controller iframe {
   width: 100%;
   height: 100%;
-
 }
+
+#text-display {
+  position: fixed;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: xx-large;
+  display: flex;
+  color: white;
+  text-align: center;
+  width: 80px;
+  left: calc(50% - 40px);
+  bottom: 30px;
+}
+
 .button {
   border: 2px solid black;
   border-radius: 2.5rem;
@@ -126,6 +138,7 @@ p {
           @click="followPlayer(player,index)"
           ></span>
     </div>
+    <div id="text-display"></div>
     <div id="controller">
       <div v-if="!showController" class="button" @click="showController = true">
         Summon Controller

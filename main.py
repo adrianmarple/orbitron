@@ -46,12 +46,16 @@ def consume_input():
     try:
       message = json.loads(line)
 
+      # Commands from orb.js
       if message["type"] == "start":
         engine.start(engine.games[message["game"]])
+        continue
+      elif message["type"] == "text":
+        engine.display_text(message["text"], priority=0)
+        continue
 
       if "self" not in message:
         continue
-
       if not engine.game:
         continue
 
@@ -87,8 +91,6 @@ def consume_input():
         engine.game.update_config(message["update"])
       elif message["type"] == "prefs":
         engine.update_prefs(message["update"])
-      elif message["type"] == "text":
-        engine.display_text(message["text"])
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

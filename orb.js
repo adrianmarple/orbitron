@@ -40,11 +40,13 @@ let orbToServerSocket = null
 
 function connectOrbToServer(){
   try {
+    displayText("CONNECTING")
     let serverURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
     //console.log("Initializing orb to server socket", serverURL)
     orbToServerSocket = new WebSocket.WebSocket(serverURL)
     orbToServerSocket.lastPingReceived = Date.now()
     orbToServerSocket.on('message', async (data, isBinary) => {
+      displayText("")
       if(!isBinary){
         data = data.toString().trim()
       }      
@@ -88,10 +90,12 @@ function connectOrbToServer(){
       orbToServerSocket = null
     })
     orbToServerSocket.on('error', (e) => {
+      displayText("CONNECTION ERROR")
       console.error("Orb to server socket error", e)
       orbToServerSocket.close()
     })
   } catch(e) {
+    displayText("CONNECTION ERROR")
     console.error("Error connecting to server:", e)
     orbToServerSocket = null
   }
@@ -319,6 +323,14 @@ function broadcast(baseMessage) {
   delete baseMessage.timestamp
 }
 
+let currentText = ""
+function displayText(text) {
+  if (text == currentText) return
+  currentText = text
+  message = { text, type: "text" }
+  python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
+}
+
 const python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
 let raw_pixels = null
 let raw_json = null
@@ -399,3 +411,8 @@ function statusLogging() {
 }
 statusLogging()
 setInterval(statusLogging,60 * 60 * 1000)
+
+
+module.exports = {
+  displayText,
+}
