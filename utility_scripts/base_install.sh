@@ -7,7 +7,7 @@ sudo apt-get install python3-pip python3-numpy python3-scipy libsdl2-2.0 libsdl2
 # Set up communications
 sudo raspi-config nonint do_i2c 0
 sudo raspi-config nonint do_spi 0
-sudo raspi-config nonint do_serial 0
+sudo raspi-config nonint do_serial 2
 sudo raspi-config nonint do_ssh 0
 sudo raspi-config nonint disable_raspi_config_at_boot 0
 

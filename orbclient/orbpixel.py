@@ -42,9 +42,9 @@ def start_pixel_output_process():
 def start_external_pixel_board():
     global external_board
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
-        external_board = serial.Serial("/dev/ttyS0")
+        external_board = serial.Serial("/dev/serial0")
         external_board.baudrate = 2000000
-        external_board.timeout = 1
+        external_board.timeout = 0.6
         
 
 def pixel_output_loop(conn):
@@ -58,13 +58,15 @@ def display_pixels(pixels):
     if external_board:
         try:
             while True:
-                external_board.write([0xff])
+                external_board.write(bytearray([0xff]))
                 response = external_board.read(1)
                 if response == 0xf8:
+                    external_board.write(bytearray([0xf8]))
                     strand_count = int(os.getenv("STRAND_COUNT")).to_bytes(1,'big')
                     external_board.write(strand_count)
                     print("sent strand count", file=sys.stderr)
                 elif response == 0xf0:
+                    external_board.write(bytearray([0xf0]))
                     pixels_per_strand = int(os.getenv("PIXELS_PER_STRAND")).to_bytes(2,'big')
                     external_board.write(pixels_per_strand)
                     print("sent pixels per strand", file=sys.stderr)
@@ -72,8 +74,9 @@ def display_pixels(pixels):
                     break
             external_board.write(pixels.tobytes())
             print("wrote to external", file=sys.stderr)
-        except Exception:
+        except Exception as e:
             print("error writing to external", file=sys.stderr)
+            print(e, file=sys.stderr)
         return
     pixels = np.uint32(pixels)
     buf = pixels[:,0]*(1<<16) + pixels[:,1]*(1<<8) + pixels[:,2]

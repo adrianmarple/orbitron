@@ -77,7 +77,7 @@ bpp = 3
 
 while True:
     sync = uart.read(1)
-    if sync and sync[0] != 0xff:
+    if not sync or sync[0] != 0xff:
         continue
     else:
         while strand_count == -1:
@@ -86,7 +86,9 @@ while True:
             if not response or response[0] != 0xf8:
                 continue
             count = uart.read(1)
-            strand_count = count[0]
+            if count and count[0] > 0:
+                strand_count = count[0]
+                print("STRAND COUNT ", strand_count) 
         
         while pixels_per_strand == -1:
             uart.write(bytearray([0xf0]))
@@ -94,7 +96,9 @@ while True:
             if not response or response[0] != 0xf0:
                 continue
             count = uart.read(2)
-            pixels_per_strand = (count[0]<<8) + count[1]
+            if count and count[0] > 0:
+                pixels_per_strand = (count[0]<<8) + count[1]
+                print("PIXELS PER STRAND ", pixels_per_strand) 
         
         if state_machine == None:
             total_pixel_bytes = strand_count * pixels_per_strand * bpp
