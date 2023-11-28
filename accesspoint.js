@@ -2,7 +2,7 @@
 const { checkConnection, execute, config} = require('./lib')
 const http = require('http')
 const qs = require('querystring')
-const { displayText } = requite('./orb')
+const { displayText } = require('./orb')
 
 // ---Wifi Setup Code---
 let numTimesNetworkCheckFailed = 0
