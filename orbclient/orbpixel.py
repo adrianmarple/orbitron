@@ -55,7 +55,7 @@ def pixel_output_loop(conn):
 
 def display_pixels(pixels):
     if external_board:
-        spi.xfer3(pixels.tobytes())
+        external_board.xfer3(pixels.tobytes())
         return
     pixels = np.uint32(pixels)
     buf = pixels[:,0]*(1<<16) + pixels[:,1]*(1<<8) + pixels[:,2]
