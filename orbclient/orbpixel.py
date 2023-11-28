@@ -60,11 +60,11 @@ def display_pixels(pixels):
     if external_board:
         try:
             while True:
-                external_board.reset_input_buffer()
-                external_board.reset_output_buffer()
                 external_board.write(bytearray([0xff]))
                 external_board.flush()
                 response = external_board.read(1)
+                if not response:
+                    continue
                 if response[0] == 0xf8:
                     external_board.write(bytearray([0xf8]))
                     external_board.flush()
@@ -81,7 +81,8 @@ def display_pixels(pixels):
                     print("sent pixels per strand", file=sys.stderr)
                 elif response[0] == 0xff:
                     break
-            external_board.write(pixels.tobytes())
+            out = np.clip(pixels,0,0xfe).tobytes()
+            external_board.write(out)
             external_board.flush()
             print("wrote to external", file=sys.stderr)
         except Exception as e:

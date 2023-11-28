@@ -105,10 +105,10 @@ while True:
             print("TOTAL PIXEL BYTES ", total_pixel_bytes)
             state_machine = initialize_state_machine(strand_count)
         
+        uart.reset_input_buffer()
         uart.write(bytearray([0xff]))
         
     #t0 = adafruit_ticks.ticks_ms()
-    uart.reset_input_buffer()
     if total_pixel_bytes <= max_uart_buf_size:
         pixels = uart.read(total_pixel_bytes)
     else:
