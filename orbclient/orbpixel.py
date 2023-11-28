@@ -8,6 +8,7 @@ import sys
 from time import time, sleep
 from multiprocessing import Process, Pipe
 import spidev
+import os
 
 # NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
 
