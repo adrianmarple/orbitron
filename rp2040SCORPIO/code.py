@@ -8,7 +8,7 @@ import adafruit_pioasm
 import usb_cdc
 
 first_led_pin = NEOPIXEL0
-max_uart_buf_size = 4092
+max_uart_buf_size = 16384 #4092
 
 def initialize_state_machine(num_strands):
     _PROGRAM = """
@@ -79,7 +79,7 @@ fits_in_buffer = False
 time.sleep(1) #for some reason this is necessary to prevent hard faults, probably from accessing USB stuff too quickly
 
 usb = usb_cdc.data
-usb.timeout = 1
+usb.timeout = 0.033
 usb.write_timeout = 0
 
 uart = usb
@@ -88,8 +88,10 @@ uart.reset_input_buffer()
 uart.reset_output_buffer()
 
 print("READY")
-
+tc = 0
+dt = 0
 while True:
+    t0 = adafruit_ticks.ticks_ms()
     if not uart.connected:
         print("No Sreial Connection!")
         time.sleep(1)
@@ -97,11 +99,9 @@ while True:
     if not sync or sync[0] != 0xff:
         continue
     else:
-        print("got sync")
         while strand_count == -1:
             uart.write(bytearray([0xf8]))
             response = uart.read(1)
-            print("strands ", response)
             if not response or response[0] != 0xf8:
                 continue
             count = uart.read(1)
@@ -112,7 +112,6 @@ while True:
         while pixels_per_strand == -1:
             uart.write(bytearray([0xf0]))
             response = uart.read(1)
-            print("pixels per ", response)
             if not response or response[0] != 0xf0:
                 continue
             count = uart.read(2)
@@ -130,7 +129,6 @@ while True:
         uart.reset_input_buffer()
         uart.write(bytearray([0xff]))
 
-    t0 = adafruit_ticks.ticks_ms()
     if fits_in_buffer:
         pixels = None
         data = uart.read(total_pixel_bytes)
@@ -158,4 +156,9 @@ while True:
             #    time.sleep(10)
         except Exception as e:
             print(e)
-    print("delta ", adafruit_ticks.ticks_ms() - t0)
+    dt = (tc * dt + adafruit_ticks.ticks_ms() - t0)/(tc+1)
+    tc += 1
+    if tc == 120:
+        print("avg frame time last 120 frames: ", dt)
+        tc = 0
+        dt = 0
