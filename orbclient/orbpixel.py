@@ -60,6 +60,7 @@ def pixel_output_loop(conn):
         conn.send("done")
 
 def display_pixels(pixels):
+    global external_board
     if external_board:
         try:
             out = np.clip(np.uint8(pixels),0,0xfe).tobytes()
