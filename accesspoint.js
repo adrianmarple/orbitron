@@ -66,7 +66,6 @@ if(!config.IS_SERVER){
     await execute("sudo nmcli device disconnect wlan0")
     await execute("sudo nmcli device up wlan0")
     console.log("STOPPED ACCESS POINT")
-    displayText("ADDED SSID")
   }
 
   async function submitSSID(formData) {
@@ -85,6 +84,7 @@ if(!config.IS_SERVER){
 
     await stopAccessPoint()
     await execute(`sudo nmcli dev wifi connect ${ssid} ${append}`)
+    displayText("ADDED SSID")
   }
 
   let isFirstNetworkCheck = true
@@ -104,7 +104,7 @@ if(!config.IS_SERVER){
           numTimesNetworkRestartWorked += 1
           setTimeout(networkCheck, 2 * 6e4);
         }
-      }, isFirstNetworkCheck ? 3e4 : 3 * 6e4);
+      }, isFirstNetworkCheck ? 1e4 : 3 * 6e4);
     } else {
       isFirstNetworkCheck = false
       setTimeout(networkCheck, 2 * 6e4);
@@ -137,5 +137,5 @@ if(!config.IS_SERVER){
   })
   setTimeout(() => {
     networkCheck()
-  }, 6e4)
+  }, 2e4)
 }
