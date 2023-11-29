@@ -27,7 +27,7 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 _led_strip = None
 process_conn = None
 external_board = None
-serial_buf_size = 4092
+serial_buf_size = 2048 #4092
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
@@ -45,7 +45,7 @@ def start_external_pixel_board():
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
         while external_board == None:
             try:
-                external_board = serial.Serial("/dev/ttyACM1", timeout=0.6)
+                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.6)
                 #print("BAUD RATES ", external_board.BAUDRATES, file=sys.stderr)
             except Exception as e:
                 print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
@@ -94,7 +94,7 @@ def display_pixels(pixels):
                     external_board.write(out[start:start+write])
                     start = write
                     sleep(1e-4)
-            print("wrote to external", file=sys.stderr)
+            #print("wrote to external", file=sys.stderr)
         except Exception as e:
             print("error writing to external", file=sys.stderr)
             print(e, file=sys.stderr)
