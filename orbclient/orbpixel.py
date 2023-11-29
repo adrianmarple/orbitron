@@ -81,7 +81,6 @@ def display_pixels(pixels):
                     print("sent pixels per strand", file=sys.stderr)
                 elif response[0] == 0xff:
                     break
-            external_board.reset_output_buffer()
             if len(out) <= serial_buf_size:
                 external_board.write(out)
             else:
