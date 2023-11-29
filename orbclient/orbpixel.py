@@ -27,6 +27,7 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 _led_strip = None
 process_conn = None
 external_board = None
+serial_buf_size = 4092
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
@@ -42,13 +43,8 @@ def start_pixel_output_process():
 def start_external_pixel_board():
     global external_board
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
-        external_board = serial.Serial("/dev/serial1")
-        print(external_board.BAUDRATES)
-        print(external_board.BAUDRATE_CONSTANTS)
-        external_board.baudrate = 1152000
-        external_board.timeout = 0.6
-        external_board.stopbits = serial.STOPBITS_TWO
-        
+        external_board = serial.Serial("/dev/ttyACM1", timeout=0.6)
+        #print(external_board.BAUDRATES)
 
 def pixel_output_loop(conn):
     print("Pixel process stared", file=sys.stderr)
@@ -79,13 +75,14 @@ def display_pixels(pixels):
                     print("sent pixels per strand", file=sys.stderr)
                 elif response[0] == 0xff:
                     break
-            if len(out) <= 4092:
+            external_board.reset_output_buffer()
+            if len(out) <= serial_buf_size:
                 external_board.write(out)
             else:
                 start = 0
-                write = 4092
+                write = serial_buf_size
                 length = len(out)
-                while write == 4092:
+                while write == serial_buf_size:
                     if start + write > length:
                         write = length - start
                     external_board.write(out[start:start+write])
