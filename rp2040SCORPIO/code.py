@@ -5,7 +5,7 @@ from board import *
 import busio
 import rp2pio
 import adafruit_pioasm
-
+import usb_cdc
 
 first_led_pin = NEOPIXEL0
 max_uart_buf_size = 4092
@@ -68,8 +68,7 @@ def transmit(sm, num_strands, buffer):
     #    bitops.bit_transpose(buffer, self._pixels, self._num_strands)
     #    self._sm.background_write(self._data32)
 
-uart = busio.UART(TX, RX, baudrate=1152000, receiver_buffer_size=4096, timeout=0.004, stop=2) #parity=busio.UART.Parity.ODD
-uart.reset_input_buffer()
+
 state_machine = None
 strand_count = -1
 pixels_per_strand = -1
@@ -77,28 +76,47 @@ total_pixel_bytes = -1
 bpp = 3
 fits_in_buffer = False
 
+time.sleep(1) #for some reason this is necessary to prevent hard faults, probably from accessing USB stuff too quickly
+
+usb = usb_cdc.data
+usb.timeout = 1
+usb.write_timeout = 0
+
+uart = usb
+#uart = busio.UART(TX, RX, baudrate=1152000, receiver_buffer_size=4096, timeout=0.004, stop=2) #parity=busio.UART.Parity.ODD
+uart.reset_input_buffer()
+uart.reset_output_buffer()
+
+print("READY")
+
 while True:
+    if not uart.connected:
+        print("No Sreial Connection!")
+        time.sleep(1)
     sync = uart.read(1)
     if not sync or sync[0] != 0xff:
         continue
     else:
+        print("got sync")
         while strand_count == -1:
             uart.write(bytearray([0xf8]))
             response = uart.read(1)
+            print("strands ", response)
             if not response or response[0] != 0xf8:
                 continue
             count = uart.read(1)
-            if count and count[0] > 0:
+            if count and count[0] > 0 and count[0] <= 8:
                 strand_count = count[0]
                 print("STRAND COUNT ", strand_count)
 
         while pixels_per_strand == -1:
             uart.write(bytearray([0xf0]))
             response = uart.read(1)
+            print("pixels per ", response)
             if not response or response[0] != 0xf0:
                 continue
             count = uart.read(2)
-            if count and count[0] > 0:
+            if count and len(count) == 2 and count[1] > 0:
                 pixels_per_strand = (count[0]<<8) + count[1]
                 print("PIXELS PER STRAND ", pixels_per_strand)
 
@@ -108,10 +126,11 @@ while True:
             fits_in_buffer = total_pixel_bytes <= max_uart_buf_size
             print("FITS IN BUFFER ", fits_in_buffer)
             state_machine = initialize_state_machine(strand_count)
+        uart.reset_output_buffer()
         uart.reset_input_buffer()
         uart.write(bytearray([0xff]))
 
-    #t0 = adafruit_ticks.ticks_ms()
+    t0 = adafruit_ticks.ticks_ms()
     if fits_in_buffer:
         pixels = None
         data = uart.read(total_pixel_bytes)
@@ -139,4 +158,4 @@ while True:
             #    time.sleep(10)
         except Exception as e:
             print(e)
-    #print(adafruit_ticks.ticks_ms() - t0)
+    print("delta ", adafruit_ticks.ticks_ms() - t0)

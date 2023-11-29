@@ -43,8 +43,14 @@ def start_pixel_output_process():
 def start_external_pixel_board():
     global external_board
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
-        external_board = serial.Serial("/dev/ttyACM1", timeout=0.6)
-        #print(external_board.BAUDRATES)
+        while external_board == None:
+            try:
+                external_board = serial.Serial("/dev/ttyACM1", timeout=0.6)
+                #print("BAUD RATES ", external_board.BAUDRATES, file=sys.stderr)
+            except Exception as e:
+                print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
+                print("will retry...")
+                sleep(1)
 
 def pixel_output_loop(conn):
     print("Pixel process stared", file=sys.stderr)
