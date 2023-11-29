@@ -45,7 +45,7 @@ def start_external_pixel_board():
         external_board = serial.Serial("/dev/serial1")
         print(external_board.BAUDRATES)
         print(external_board.BAUDRATE_CONSTANTS)
-        external_board.baudrate = 2000000
+        external_board.baudrate = 1152000
         external_board.timeout = 0.6
         external_board.stopbits = serial.STOPBITS_TWO
         
@@ -91,8 +91,6 @@ def display_pixels(pixels):
                     external_board.write(out[start:start+write])
                     start = write
                     sleep(1e-4)
-                    
-
             print("wrote to external", file=sys.stderr)
         except Exception as e:
             print("error writing to external", file=sys.stderr)

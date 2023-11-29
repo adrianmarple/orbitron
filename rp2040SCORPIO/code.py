@@ -68,12 +68,14 @@ def transmit(sm, num_strands, buffer):
     #    bitops.bit_transpose(buffer, self._pixels, self._num_strands)
     #    self._sm.background_write(self._data32)
 
-uart = busio.UART(TX, RX, baudrate=2000000)
+uart = busio.UART(TX, RX, baudrate=1152000, receiver_buffer_size=4096, timeout=0.004, stop=2) #parity=busio.UART.Parity.ODD
+uart.reset_input_buffer()
 state_machine = None
 strand_count = -1
 pixels_per_strand = -1
 total_pixel_bytes = -1
 bpp = 3
+fits_in_buffer = False
 
 while True:
     sync = uart.read(1)
@@ -88,8 +90,8 @@ while True:
             count = uart.read(1)
             if count and count[0] > 0:
                 strand_count = count[0]
-                print("STRAND COUNT ", strand_count) 
-        
+                print("STRAND COUNT ", strand_count)
+
         while pixels_per_strand == -1:
             uart.write(bytearray([0xf0]))
             response = uart.read(1)
@@ -98,34 +100,43 @@ while True:
             count = uart.read(2)
             if count and count[0] > 0:
                 pixels_per_strand = (count[0]<<8) + count[1]
-                print("PIXELS PER STRAND ", pixels_per_strand) 
-        
+                print("PIXELS PER STRAND ", pixels_per_strand)
+
         if state_machine == None:
             total_pixel_bytes = strand_count * pixels_per_strand * bpp
             print("TOTAL PIXEL BYTES ", total_pixel_bytes)
+            fits_in_buffer = total_pixel_bytes <= max_uart_buf_size
+            print("FITS IN BUFFER ", fits_in_buffer)
             state_machine = initialize_state_machine(strand_count)
-        
         uart.reset_input_buffer()
         uart.write(bytearray([0xff]))
-        
+
     #t0 = adafruit_ticks.ticks_ms()
-    if total_pixel_bytes <= max_uart_buf_size:
-        pixels = uart.read(total_pixel_bytes)
+    if fits_in_buffer:
+        pixels = None
+        data = uart.read(total_pixel_bytes)
+        if data:
+            pixels = bytearray(data)
     else:
-        pixels = []
+        pixels = bytearray([])
         remaining = total_pixel_bytes
         while remaining > 0:
             to_read = min(max_uart_buf_size,remaining)
             data = uart.read(to_read)
-            if data and len(data) == to_read:
+            if data:
+                pixels += data
                 remaining -= to_read
-                pixels.append(data)
-            else:
-                break
-
-    if pixels and len(pixels) == total_pixel_bytes:
+            if not data or len(data) < to_read:
+                print("read too little")
+    if pixels:
         try:
+            dosleep = len(pixels) != total_pixel_bytes
+            if dosleep:
+                print("pixel problem", len(pixels))
+                pixels += bytearray([0]*(total_pixel_bytes - len(pixels)))
             transmit(state_machine, strand_count, memoryview(pixels).cast("L"))
-        except Exception:
-            pass # do something here?
+            #if dosleep:
+            #    time.sleep(10)
+        except Exception as e:
+            print(e)
     #print(adafruit_ticks.ticks_ms() - t0)
