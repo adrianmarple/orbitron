@@ -47,6 +47,7 @@ def start_external_pixel_board():
         print(external_board.BAUDRATE_CONSTANTS)
         external_board.baudrate = 2000000
         external_board.timeout = 0.6
+        external_board.stopbits = serial.STOPBITS_TWO
         
 
 def pixel_output_loop(conn):
@@ -78,7 +79,20 @@ def display_pixels(pixels):
                     print("sent pixels per strand", file=sys.stderr)
                 elif response[0] == 0xff:
                     break
-            external_board.write(out)
+            if len(out) <= 4092:
+                external_board.write(out)
+            else:
+                start = 0
+                write = 4092
+                length = len(out)
+                while write == 4092:
+                    if start + write > length:
+                        write = length - start
+                    external_board.write(out[start:start+write])
+                    start = write
+                    sleep(1e-4)
+                    
+
             print("wrote to external", file=sys.stderr)
         except Exception as e:
             print("error writing to external", file=sys.stderr)
