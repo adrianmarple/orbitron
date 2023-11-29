@@ -66,7 +66,7 @@ if(!config.IS_SERVER){
     await execute("sudo nmcli device disconnect wlan0")
     await execute("sudo nmcli device up wlan0")
     console.log("STOPPED ACCESS POINT")
-    displayText("")
+    displayText("ADDED SSID")
   }
 
   async function submitSSID(formData) {
