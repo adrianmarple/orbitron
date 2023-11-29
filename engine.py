@@ -1202,6 +1202,7 @@ if os.getenv("SWITCH_MODE"):
   GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def run_core_loop():
+  display_text("0000", 0)
   display_text(os.getenv("DEFAULT_TEXT_DISPLAY", ""), 3)
 
   last_frame_time = time()
