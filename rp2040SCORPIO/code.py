@@ -93,7 +93,7 @@ def do_loop():
         if not response or response[0] != 0xf0:
             continue
         count = usb.read(2)
-        if count and len(count) == 2 and count[1] > 0:
+        if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
             pixels_per_strand = (count[0]<<8) + count[1]
             print("PIXELS PER STRAND ", pixels_per_strand)
     
@@ -103,7 +103,7 @@ def do_loop():
         if not response or response[0] != 0xe8:
             continue
         count = usb.read(2)
-        if count and len(count) == 2 and count[1] > 0:
+        if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
             max_usb_buf_size = (count[0]<<8) + count[1]
             print("BUF SIZE ", max_usb_buf_size)
 
