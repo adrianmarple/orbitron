@@ -296,7 +296,6 @@ def update():
 
     raw_pixels = np.minimum(raw_pixels, 255)
     raw_pixels = np.maximum(raw_pixels, 0)
-    raw_pixels[:, [0, 1]] = raw_pixels[:, [1, 0]]
     display_pixels(raw_pixels)
     broadcast_state()
 

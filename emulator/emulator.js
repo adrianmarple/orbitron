@@ -335,7 +335,7 @@ var app = new Vue({
         for(let i = 0 ; i < this.pixels.length ; i++){
           let pixel = this.pixels[i]
           let j = i*6
-          let color = `#${rp.slice(j+2,j+4)}${rp.slice(j+0,j+2)}${rp.slice(j+4,j+6)}`
+          let color = `#${rp.slice(j+0,j+2)}${rp.slice(j+2,j+4)}${rp.slice(j+4,j+6)}`
           let c = new THREE.Color()
           c.setStyle(color, THREE.LinearSRGBColorSpace)
           c.setRGB(Math.pow(c.r,0.6), Math.pow(c.g, 0.6), Math.pow(c.b, 0.6))
@@ -371,7 +371,7 @@ var app = new Vue({
       } else {
         inner = inner.slice(1)
       }
-      
+
       if (this.textIndex < currentText.length) {
         let chr = currentText[this.textIndex]
         if (chr == " ") chr = "&nbsp;"

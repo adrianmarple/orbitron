@@ -117,7 +117,7 @@ def display_pixels(pixels):
             start_external_pixel_board()
         return
     pixels = np.uint32(pixels)
-    buf = pixels[:,0]*(1<<16) + pixels[:,1]*(1<<8) + pixels[:,2]
+    buf = pixels[:,1]*(1<<16) + pixels[:,0]*(1<<8) + pixels[:,2]
     buf = buf.tolist()
     if process_conn:
         process_conn.recv()
