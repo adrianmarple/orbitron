@@ -91,7 +91,7 @@
     <!-- COLORS MENU -->
     <div v-else-if="nav=='colors'" class="nav-page">
       <div class="row" v-if="prefs.idleColor == 'rainbow'">
-        Rainbow time (sec):
+        Cycle time (sec):
         <input type="number" v-model="prefs.rainbowDuration"
           @change="updatePrefs('rainbowDuration')">
         </input>

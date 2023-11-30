@@ -994,8 +994,11 @@ class Idle(Game):
     global raw_pixels
     frame_delta = time() - self.previous_render_time
     if frame_delta < 1:
-      alpha = exp(-6 * frame_delta)
-      raw_pixels = self.target_pixels * alpha + self.previous_pixels * (1-alpha)
+      alpha = exp(-5 * frame_delta)
+      raw_pixels = self.target_pixels * (1-alpha) + self.previous_pixels * alpha
+      pixel_delta = raw_pixels - self.previous_pixels
+      pixel_delta = np.minimum(pixel_delta, frame_delta * 20)
+      raw_pixels = self.previous_pixels + pixel_delta
     else:
       raw_pixels = self.target_pixels * 1
 
