@@ -8,7 +8,7 @@ async function update_external_board(){
     if(label_index < 0) return
 
     let uuid = ""
-    for (let i = label_index; i < info.length; i++) {
+    for (let i = label_index+1; i < info.length; i++) {
       let val = info[i].trim()
       if(val){
         uuid = val
