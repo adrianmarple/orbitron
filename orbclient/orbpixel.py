@@ -72,14 +72,18 @@ def display_pixels(pixels):
                     continue
                 if response[0] == 0xf8:
                     external_board.write(bytearray([0xf8]))
-                    strand_count = int(os.getenv("STRAND_COUNT")).to_bytes(1,'big')
-                    external_board.write(strand_count)
-                    print("sent strand count", file=sys.stderr)
+                    strand_count = int(os.getenv("STRAND_COUNT"))
+                    external_board.write(strand_count.to_bytes(1,'big'))
+                    print("sent strand count ", strand_count, file=sys.stderr)
                 elif response[0] == 0xf0:
                     external_board.write(bytearray([0xf0]))
-                    pixels_per_strand = int(os.getenv("PIXELS_PER_STRAND")).to_bytes(2,'big')
-                    external_board.write(pixels_per_strand)
-                    print("sent pixels per strand", file=sys.stderr)
+                    pixels_per_strand = int(os.getenv("PIXELS_PER_STRAND"))
+                    external_board.write(pixels_per_strand.to_bytes(2,'big'))
+                    print("sent pixels per strand ", pixels_per_strand, file=sys.stderr)
+                elif response[0] == 0xe8:
+                    external_board.write(bytearray([0xe8]))
+                    external_board.write(serial_buf_size.to_bytes(2,'big'))
+                    print("sent buf size ", serial_buf_size, file=sys.stderr)
                 elif response[0] == 0xff:
                     break
             if len(out) <= serial_buf_size:

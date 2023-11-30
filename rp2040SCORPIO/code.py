@@ -1,14 +1,161 @@
 import adafruit_ticks
 import time
-import board
 from board import *
-import busio
 import rp2pio
 import adafruit_pioasm
 import usb_cdc
+import bitops
+
+time.sleep(1) #for some reason this is necessary to prevent hard faults, probably from accessing USB stuff too quickly
 
 first_led_pin = NEOPIXEL0
-max_uart_buf_size = 16384 #4092
+
+strand_count = -1
+pixels_per_strand = -1
+total_pixel_bytes = -1
+max_usb_buf_size = -1
+fits_in_buffer = False
+state_machine = None
+bpp = 3
+
+usb = usb_cdc.data
+usb.timeout = 0.04
+usb.write_timeout = 0
+
+def reset():
+    global strand_count
+    global pixels_per_strand
+    global total_pixel_bytes
+    global max_usb_buf_size
+    global fits_in_buffer
+    global state_machine
+    strand_count = -1
+    pixels_per_strand = -1
+    total_pixel_bytes = -1
+    max_usb_buf_size = -1
+    fits_in_buffer = False
+    if state_machine:
+        state_machine.deinit()
+    state_machine = None
+    usb.reset_input_buffer()
+    usb.reset_output_buffer()
+
+def main():
+    reset()
+    print("READY")
+    tc = 0
+    dt = 0
+    while True:
+        t0 = adafruit_ticks.ticks_ms()
+        try:
+            do_loop()
+        except Exception as e:
+            print(e)
+            reset()
+        dt = (tc * dt + adafruit_ticks.ticks_ms() - t0)/(tc+1)
+        tc += 1
+        if tc == 120:
+            print("avg frame time last 120 frames: ", dt)
+            tc = 0
+            dt = 0
+
+
+def do_loop():
+    global strand_count
+    global pixels_per_strand
+    global total_pixel_bytes
+    global max_usb_buf_size
+    global fits_in_buffer
+    global state_machine
+
+    if not usb.connected:
+        print("No Sreial Connection!")
+        time.sleep(1)
+        return
+    
+    sync = usb.read(1)
+    if not sync or sync[0] != 0xff:
+        return
+
+    while strand_count == -1:
+        usb.write(bytearray([0xf8]))
+        response = usb.read(1)
+        if not response or response[0] != 0xf8:
+            continue
+        count = usb.read(1)
+        if count and count[0] > 0 and count[0] <= 8:
+            strand_count = count[0]
+            print("STRAND COUNT ", strand_count)
+
+    while pixels_per_strand == -1:
+        usb.write(bytearray([0xf0]))
+        response = usb.read(1)
+        if not response or response[0] != 0xf0:
+            continue
+        count = usb.read(2)
+        if count and len(count) == 2 and count[1] > 0:
+            pixels_per_strand = (count[0]<<8) + count[1]
+            print("PIXELS PER STRAND ", pixels_per_strand)
+    
+    while max_usb_buf_size == -1:
+        usb.write(bytearray([0xe8]))
+        response = usb.read(1)
+        if not response or response[0] != 0xe8:
+            continue
+        count = usb.read(2)
+        if count and len(count) == 2 and count[1] > 0:
+            max_usb_buf_size = (count[0]<<8) + count[1]
+            print("BUF SIZE ", max_usb_buf_size)
+
+
+    if state_machine == None:
+        total_pixel_bytes = strand_count * pixels_per_strand * bpp
+        print("TOTAL PIXEL BYTES ", total_pixel_bytes)
+        fits_in_buffer = total_pixel_bytes <= max_usb_buf_size
+        print("FITS IN BUFFER ", fits_in_buffer)
+        state_machine = initialize_state_machine(strand_count)
+    
+    usb.reset_output_buffer()
+    usb.reset_input_buffer()
+    usb.write(bytearray([0xff]))
+    process_frame()
+
+def process_frame():
+    if fits_in_buffer:
+        pixels = None
+        data = usb.read(total_pixel_bytes)
+        if data:
+            pixels = bytearray(data)
+    else:
+        pixels = bytearray([])
+        remaining = total_pixel_bytes
+        while remaining > 0:
+            to_read = min(max_usb_buf_size,remaining)
+            data = usb.read(to_read)
+            if data:
+                pixels += data
+                remaining -= to_read
+            if not data or len(data) < to_read:
+                print("read too little")
+    if pixels:
+        try:
+            missing_pixels = len(pixels) != total_pixel_bytes
+            if missing_pixels:
+                print("pixel problem", len(pixels))
+                pixels += bytearray([0]*(total_pixel_bytes - len(pixels)))
+            transmit(state_machine, strand_count, pixels)
+        except Exception as e:
+            print(e)
+
+def transmit(sm, num_strands, buffer):
+    while sm.pending:
+        pass
+    if num_strands == 1:
+        sm.background_write(memoryview(buffer).cast("L"), swap=True)
+    else:
+       out = bytearray([])
+       bitops.bit_transpose(buffer, out, num_strands)
+       sm.background_write(memoryview(out).cast("L"))
 
 def initialize_state_machine(num_strands):
     _PROGRAM = """
@@ -59,106 +206,4 @@ def initialize_state_machine(num_strands):
                 out_shift_right=num_strands != 1,
             )
 
-def transmit(sm, num_strands, buffer):
-    while sm.pending:
-        pass
-    if num_strands == 1:
-        sm.background_write(buffer, swap=True)
-    #else:
-    #    bitops.bit_transpose(buffer, self._pixels, self._num_strands)
-    #    self._sm.background_write(self._data32)
-
-
-state_machine = None
-strand_count = -1
-pixels_per_strand = -1
-total_pixel_bytes = -1
-bpp = 3
-fits_in_buffer = False
-
-time.sleep(1) #for some reason this is necessary to prevent hard faults, probably from accessing USB stuff too quickly
-
-usb = usb_cdc.data
-usb.timeout = 0.033
-usb.write_timeout = 0
-
-uart = usb
-#uart = busio.UART(TX, RX, baudrate=1152000, receiver_buffer_size=4096, timeout=0.004, stop=2) #parity=busio.UART.Parity.ODD
-uart.reset_input_buffer()
-uart.reset_output_buffer()
-
-print("READY")
-tc = 0
-dt = 0
-while True:
-    t0 = adafruit_ticks.ticks_ms()
-    if not uart.connected:
-        print("No Sreial Connection!")
-        time.sleep(1)
-    sync = uart.read(1)
-    if not sync or sync[0] != 0xff:
-        continue
-    else:
-        while strand_count == -1:
-            uart.write(bytearray([0xf8]))
-            response = uart.read(1)
-            if not response or response[0] != 0xf8:
-                continue
-            count = uart.read(1)
-            if count and count[0] > 0 and count[0] <= 8:
-                strand_count = count[0]
-                print("STRAND COUNT ", strand_count)
-
-        while pixels_per_strand == -1:
-            uart.write(bytearray([0xf0]))
-            response = uart.read(1)
-            if not response or response[0] != 0xf0:
-                continue
-            count = uart.read(2)
-            if count and len(count) == 2 and count[1] > 0:
-                pixels_per_strand = (count[0]<<8) + count[1]
-                print("PIXELS PER STRAND ", pixels_per_strand)
-
-        if state_machine == None:
-            total_pixel_bytes = strand_count * pixels_per_strand * bpp
-            print("TOTAL PIXEL BYTES ", total_pixel_bytes)
-            fits_in_buffer = total_pixel_bytes <= max_uart_buf_size
-            print("FITS IN BUFFER ", fits_in_buffer)
-            state_machine = initialize_state_machine(strand_count)
-        uart.reset_output_buffer()
-        uart.reset_input_buffer()
-        uart.write(bytearray([0xff]))
-
-    if fits_in_buffer:
-        pixels = None
-        data = uart.read(total_pixel_bytes)
-        if data:
-            pixels = bytearray(data)
-    else:
-        pixels = bytearray([])
-        remaining = total_pixel_bytes
-        while remaining > 0:
-            to_read = min(max_uart_buf_size,remaining)
-            data = uart.read(to_read)
-            if data:
-                pixels += data
-                remaining -= to_read
-            if not data or len(data) < to_read:
-                print("read too little")
-    if pixels:
-        try:
-            dosleep = len(pixels) != total_pixel_bytes
-            if dosleep:
-                print("pixel problem", len(pixels))
-                pixels += bytearray([0]*(total_pixel_bytes - len(pixels)))
-            transmit(state_machine, strand_count, memoryview(pixels).cast("L"))
-            #if dosleep:
-            #    time.sleep(10)
-        except Exception as e:
-            print(e)
-    dt = (tc * dt + adafruit_ticks.ticks_ms() - t0)/(tc+1)
-    tc += 1
-    if tc == 120:
-        print("avg frame time last 120 frames: ", dt)
-        tc = 0
-        dt = 0
+main()
