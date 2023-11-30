@@ -65,6 +65,7 @@ def display_pixels(pixels):
     global first_board_load
     if external_board:
         try:
+            pixels[:, [0,1,2]] = pixels[:, [2,0,1]]
             out = np.clip(np.uint8(pixels),0,0xfe).tobytes()
             external_board.reset_input_buffer()
             while True:
