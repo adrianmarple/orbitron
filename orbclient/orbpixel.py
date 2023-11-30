@@ -28,6 +28,7 @@ _led_strip = None
 process_conn = None
 external_board = None
 serial_buf_size = 16384
+first_board_load = True
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
@@ -84,8 +85,17 @@ def display_pixels(pixels):
                     external_board.write(bytearray([0xe8]))
                     external_board.write(serial_buf_size.to_bytes(2,'big'))
                     print("sent buf size ", serial_buf_size, file=sys.stderr)
+                elif response[0] == 0xe0:
+                    external_board.write(bytearray([0xe0]))
+                    if first_board_load:
+                        external_board.write(bytearray([0xe4]))
+                        print("resetting external board", file=sys.stderr)
+                    else:
+                        external_board.write(bytearray([0xe0]))
+                    first_board_load = False
                 elif response[0] == 0xff:
                     break
+
             if len(out) <= serial_buf_size:
                 external_board.write(out)
             else:
@@ -98,7 +108,6 @@ def display_pixels(pixels):
                     external_board.write(out[start:start+write])
                     start += write
                     sleep(1e-4)
-            #print("wrote to external", file=sys.stderr)
         except Exception as e:
             print("error writing to external", file=sys.stderr)
             print(e, file=sys.stderr)
