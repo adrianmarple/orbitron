@@ -57,6 +57,7 @@ default_prefs = {
   "hasStartAndEnd": False,
 
   "idleFrameRate": 15.0,
+  "idleBlend": 30.0,
 
   # COLOR
   "brightness": 100,
@@ -992,12 +993,14 @@ class Idle(Game):
 
   def blend_pixels(self):
     global raw_pixels
-    frame_delta = time() - self.previous_render_time
+    frame_delta = (time() - self.previous_render_time)
+    frame_delta *= get_pref("idleFrameRate") / 15
+    frame_delta *= exp(4 - get_pref("idleBlend")/25)
     if frame_delta < 1:
-      alpha = exp(-5 * frame_delta)
+      alpha = exp(-10 * frame_delta)
       raw_pixels = self.target_pixels * (1-alpha) + self.previous_pixels * alpha
       pixel_delta = raw_pixels - self.previous_pixels
-      pixel_delta = np.minimum(pixel_delta, frame_delta * 20)
+      pixel_delta = np.minimum(pixel_delta, frame_delta * 25)
       raw_pixels = self.previous_pixels + pixel_delta
     else:
       raw_pixels = self.target_pixels * 1
