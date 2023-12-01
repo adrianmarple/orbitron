@@ -44,6 +44,8 @@ let serverPingHandler = () => {
 setInterval(serverPingHandler, 3000)  
 
 function bindOrb(socket, orbID) {
+  orbID = orbID.toLowerCase()
+  console.log(orbID)
   //console.log("Binding orb",orbID)
   if(connectedOrbs[orbID]){
     try {
@@ -98,6 +100,7 @@ function bindOrb(socket, orbID) {
 }
 
 function bindClient(socket, orbID, clientID) {
+  orbID = orbID.toLowerCase()
   //console.log("Binding client",orbID,clientID)
   if(!connectedClients[orbID]){
     connectedClients[orbID] = {}

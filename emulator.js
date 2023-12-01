@@ -42,7 +42,7 @@ addGETListener((response, orbID, filePath)=>{
 })
 
 addGETListener((response, orbID, filePath) => {
-  if(!orbID || orbID != config.ORB_ID) return
+  if(!orbID || orbID != config.ORB_ID.toLowerCase()) return
 
   if (filePath.includes('dev') || filePath.includes('view')){
     respondWithFile(response, "/emulator/emulator.html")
