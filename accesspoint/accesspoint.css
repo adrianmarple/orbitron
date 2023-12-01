@@ -42,6 +42,7 @@ input[type='password'], input[type='text'] {
 } 
 input[type='radio'] {
   width: 2rem;
+  height: 2rem;
   margin-left: 2rem;
 }
 

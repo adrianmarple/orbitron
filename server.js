@@ -107,6 +107,7 @@ const rootServer = http.createServer(async (request, response) => {
   let handled = false
   let processed = filePath.split("/")
   let orbID = processed.length > 1 ? processed[1] : ''
+  orbID = orbID.toLowerCase()
   for (const listener of getListeners) {
     handled = await listener(response, orbID, filePath, queryParams)
     if(handled) break
