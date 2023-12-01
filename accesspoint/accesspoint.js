@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-const { checkConnection, execute, config} = require('./lib')
+const { checkConnection, execute, config} = require('../lib')
 const http = require('http')
 const qs = require('querystring')
-const { displayText } = require('./orb')
+const { displayText } = require('../orb')
+const { respondWithFile } = require('../server')
 
 // ---Wifi Setup Code---
 let numTimesNetworkCheckFailed = 0
@@ -10,44 +11,10 @@ let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 if(!config.IS_SERVER){
   let FORM = `
-  <!DOCTYPE html>
-  <html>
-
-    <head>
-        <title>Add Wifi Network</title>
-    </head>
-
-    <body>
-        <form action="/" method="post">
-          SSID: <input type = "text" name = "ssid" />
-          <br>
-          <br>
-          Password: <input type = "password" name = "password" />
-          <br>
-          <br>
-          Priority: <input type = "radio" name = "priority" value = "low" checked> Low
-          <input type = "radio" name = "priority" value = "high"> High
-          <br>
-          <br>
-          <input type = "submit" name = "submit" value = "Submit" />
-        </form>
-    </body>
-
-  </html>
+  
   `
   let SUBMITTED = `
-  <!DOCTYPE html>
-  <html>
-    <meta http-equiv="Refresh" content="3">
-    <head>
-        <title>Submission Completed</title>
-    </head>
 
-    <body>
-          SSID and Password submitted, WiFi will now restart to apply changes and the page will refresh.
-    </body>
-
-  </html>
   `
 
   async function startAccessPoint(){
@@ -112,10 +79,14 @@ if(!config.IS_SERVER){
   }
 
   let wifiSetupServer = http.createServer(function (req, res) {
-    if (req.method === 'GET') { 
-      res.writeHead(200, { 'Content-Type': 'text/html' }) 
-      res.write(FORM)
-      res.end()
+    if (req.method === 'GET') {
+      let filepath = req.url
+      if (filepath == "/" || filepath.includes("form")) {
+        respondWithFile(res, "/accesspoint/form.html")
+      } else {
+        console.log(filepath)
+        respondWithFile(res, filepath)
+      }
     } else if (req.method === 'POST') {
       let body = ""
       req.on('data', function(data) {
@@ -124,9 +95,7 @@ if(!config.IS_SERVER){
       req.on('end', function() {
         let formData = qs.parse(body)
         console.log(formData)
-        res.writeHead(200, {'Content-Type': 'text/html'})
-        res.write(SUBMITTED)
-        res.end()
+        respondWithFile(res, "/accesspoint/submitted.html")
         submitSSID(formData)
       })
     }

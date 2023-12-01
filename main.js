@@ -11,7 +11,7 @@ if(!config.IS_SERVER || config.DEV_MODE){
 }
 
 if(!config.IS_SERVER && !config.DEV_MODE){
-  require('./accesspoint')
+  require('./accesspoint/accesspoint')
 }
 
 if(config.IS_SERVER){

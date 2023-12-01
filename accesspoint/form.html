@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add Wifi Network</title>
+  <link rel="stylesheet" href="/accesspoint/accesspoint.css">
+</head>
+
+<body>
+  <form action="/" method="post" id="form">
+
+    <div id="title">Add wifi network</div>
+    SSID:
+    <input type = "text" name = "ssid" />
+    Password: <input type = "password" name = "password" />
+    <div class="row">
+      Priority:
+      <input type = "radio" name = "priority" value = "low" checked> Low
+      <input type = "radio" name = "priority" value = "high"> High
+    </div>
+    <input class="button" type = "submit" name = "submit" value = "Submit" />
+  </form>
+</body>
+</html>
