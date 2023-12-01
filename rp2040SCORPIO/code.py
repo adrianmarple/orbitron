@@ -7,8 +7,6 @@ import usb_cdc
 import bitops
 import supervisor
 
-time.sleep(1) #for some reason this is necessary to prevent hard faults, probably from accessing USB stuff too quickly
-
 first_led_pin = NEOPIXEL0
 
 strand_count = -1
@@ -21,6 +19,7 @@ bpp = 3
 pixels = None
 temp_pixels = None
 
+time.sleep(1) # necessary to wait for usb init
 usb = usb_cdc.data
 usb.timeout = 0.04
 usb.write_timeout = 0
@@ -47,6 +46,7 @@ def reset():
 
 def main():
     reset()
+    time.sleep(1)
     print("READY")
     tc = 0
     dt = 0
