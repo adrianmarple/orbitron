@@ -73,25 +73,6 @@
         <input type="checkbox" v-model="prefs.hasStartAndEnd">
         <span>Use Timer</span>
       </div>
-      
-      <div class="slider-container">
-        <div class="label">
-          <div>Idle speed:</div>
-          <div>{{prefs.idleFrameRate}}</div>
-        </div>
-        <input type="range" min="5" max="30" class="slider" v-model="prefs.idleFrameRate"
-          @change="updatePrefs('idleFrameRate')">
-        </input>
-      </div>
-      <div class="slider-container">
-        <div class="label">
-          <div>Idle blend:</div>
-          <div>{{prefs.idleBlend}}</div>
-        </div>
-        <input type="range" min="0" max="100" class="slider" v-model="prefs.idleBlend"
-          @change="updatePrefs('idleBlend')">
-        </input>
-      </div>
     </div>
     <!-- COLORS MENU -->
     <div v-else-if="nav=='colors'" class="nav-page">
@@ -142,10 +123,47 @@
         </input>
       </div>
     </div>
+    <!-- PATTERN MENU -->
+    <div v-else-if="nav=='pattern'" class="nav-page">
+      
+      <div class="slider-container">
+        <div class="label">
+          <div>Blend:</div>
+          <div>{{prefs.idleBlend}}</div>
+        </div>
+        <input type="range" min="0" max="100" class="slider" v-model="prefs.idleBlend"
+          @change="updatePrefs('idleBlend')">
+        </input>
+      </div>
+      <div class="slider-container">
+        <div class="label">
+          <div>Density:</div>
+          <div>{{prefs.idleDensity}}</div>
+        </div>
+        <input type="range" min="10" max="100" class="slider" v-model="prefs.idleDensity"
+          @change="updatePrefs('idleDensity')">
+        </input>
+      </div>
+      <div class="slider-container">
+        <div class="label">
+          <div>Speed:</div>
+          <div>{{prefs.idleFrameRate}}</div>
+        </div>
+        <input type="range" min="5" max="30" class="slider" v-model="prefs.idleFrameRate"
+          @change="updatePrefs('idleFrameRate')">
+        </input>
+      </div>
+      <div class="space-between">
+        <label for="color">Pattern:</label>
+        <select name="color" v-model="prefs.idleColor" @change="updatePrefs('idleColor')">
+          <option value="rainbow">Fire</option>
+        </select>
+      </div>
+    </div>
 
 
     <div class="nav-bar">
-      <img v-for="name in ['timing', 'colors', 'games']"
+      <img v-for="name in ['timing', 'colors', 'pattern', 'games', ]"
         :src="`/controller/${name}.svg`"
         @click="nav=name"
         :style="{filter: nav == name ? 'invert(12%) sepia(98%) saturate(4397%) hue-rotate(265deg) brightness(98%) contrast(130%)' : ''}"

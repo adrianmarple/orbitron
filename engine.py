@@ -56,8 +56,11 @@ default_prefs = {
   "applyIdleMinBefore": False,
   "hasStartAndEnd": False,
 
+  # PATTERN
   "idleFrameRate": 15.0,
   "idleBlend": 30.0,
+  "idleDensity": 50.0,
+  "idlePAttern": "fire",
 
   # COLOR
   "brightness": 100,
@@ -855,10 +858,9 @@ class Game:
         self.statuses[pos] = status
         return
 
+
 # ================================ Idle Animation "Game" =========================================
 
-
-target_head_count = SIZE / 32.0
 class Idle(Game):
   name = "idle"
   waiting_music = "idle"
@@ -925,6 +927,7 @@ class Idle(Game):
   fluid_heads = [0]
   fluid_values = np.array([1.0] + [0.0] * (RAW_SIZE - 1))
   def init_values(self):
+    target_head_count = SIZE * get_pref("idleDensity") / 1600
     head_ratio = len(self.fluid_heads) / target_head_count
     dampening_factor = (1 + head_ratio*head_ratio*5)
 
