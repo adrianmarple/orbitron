@@ -93,7 +93,6 @@ def display_pixels(pixels):
                         external_board.write(bytearray([0xe4]))
                         print("resetting external board", file=sys.stderr)
                     else:
-                        print("not resetting external board")
                         external_board.write(bytearray([0xe0]))
                     first_board_load = False
                 elif response[0] == 0xff:
