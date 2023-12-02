@@ -21,8 +21,6 @@ temp_pixels = None
 
 time.sleep(1) # necessary to wait for usb init
 usb = usb_cdc.data
-usb.timeout = 0.04
-usb.write_timeout = 0
 
 def reset():
     global strand_count
@@ -43,6 +41,8 @@ def reset():
     state_machine = None
     usb.reset_input_buffer()
     usb.reset_output_buffer()
+    usb.timeout = 0.1
+    usb.write_timeout = 0
 
 def main():
     reset()
