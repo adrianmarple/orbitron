@@ -46,7 +46,7 @@ def start_external_pixel_board():
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
         while external_board == None:
             try:
-                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.1)
+                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=1.3)
                 #print("BAUD RATES ", external_board.BAUDRATES, file=sys.stderr)
             except Exception as e:
                 print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
