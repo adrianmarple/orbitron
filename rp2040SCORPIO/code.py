@@ -41,7 +41,7 @@ def reset():
     state_machine = None
     usb.reset_input_buffer()
     usb.reset_output_buffer()
-    usb.timeout = 0.1
+    usb.timeout = 1
     usb.write_timeout = 0
 
 def main():
@@ -94,6 +94,7 @@ def do_loop():
         if val:
             reset_check = False
             if val[0] == 0xe4:
+                print("RESETTING")
                 supervisor.reload()
                 return
 
