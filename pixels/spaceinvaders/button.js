@@ -6,8 +6,12 @@ addButton("Space Invader", async () => {
   WOOD_KERF = 0.12 * MM_TO_96DPI
   minimalInnerBorder = true
 
-  imageUrl = "spaceinvaders/invader1A.png"
+  // pixelDensity = 0.25
+  // imageUrl = "spaceinvaders/invader1A.png"
+  pixelDensity = 0.5
+  imageUrl = "spaceinvaders/invader1B.png"
   await addSquaresFromPixels()
   doubleEdges()
-  EulerianPath(verticies[16], [23])
+  // EulerianPath(23)
+  EulerianPath(36)
 })

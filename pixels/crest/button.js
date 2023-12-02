@@ -67,6 +67,5 @@ addButton("de Ruyter Crest", () => {
     addTriangulation(v1, v2, l)
   }
   
-  let startingEdge = 36
-  EulerianPath(edges[startingEdge].verticies[0], [startingEdge])
+  EulerianPath(36)
 })

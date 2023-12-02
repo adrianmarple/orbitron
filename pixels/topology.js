@@ -165,9 +165,6 @@ function addSquareulation(v1, v2, a, b) {
   let D = add(B, scale(b0, -x))
   D = add(D, scale(b1, y))
 
-  console.log(d(C,A))
-  console.log(d(D,B))
-
   v3 = addVertex(C)
   v4 = addVertex(D)
   addEdge(v1,v3)

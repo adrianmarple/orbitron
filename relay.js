@@ -217,7 +217,7 @@ addGETListener(async (response, orbID, filePath)=>{
 })
 
 addGETListener(async (response, orbID, filePath)=>{
-  if(!orbID || !connectedOrbs[orbID] || !filePath.endsWith(orbID)) return
+  if(!orbID || !connectedOrbs[orbID] || !filePath.toLowerCase().endsWith(orbID)) return
   respondWithFile(response, "/controller/controller.html")
   return true
 })

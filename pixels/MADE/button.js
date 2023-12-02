@@ -6,14 +6,15 @@ addButton("MADE", async () => {
   minimalInnerBorder = true
   isWall = true
 
-  imageUrl = "MADE/made2D.png"
+  imageUrl = "MADE/made2D (old).png"
+  // imageUrl = "MADE/made2D.png"
 
-  edgeCentersBlacklist = [
-    [12.5, -4, 0],
-    [12.5, -5, 0],
-    [18.5, -4, 0],
-    [18.5, -5, 0],
-  ]
+  // edgeCentersBlacklist = [
+  //   [12.5, -4, 0],
+  //   [12.5, -5, 0],
+  //   [18.5, -4, 0],
+  //   [18.5, -5, 0],
+  // ]
 
   // await addSquaresFromPixels(true, {x:[10], y:[10]})
   await addSquaresFromPixels()

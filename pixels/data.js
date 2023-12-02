@@ -1,6 +1,10 @@
 
 noncovergenceGuard = 1e4
 async function EulerianPath(currentVertex, pathOverride) {
+  if (typeof currentVertex == 'number') {
+    path = [currentVertex]
+    currentVertex = edges[currentVertex].verticies[pathOverride || 0]
+  }
   if (pathOverride) {
     path = pathOverride
   }
@@ -132,6 +136,7 @@ function generatePixelInfo() {
   let uniqueToDupe = []
   let dupeToUniques = []
   let previousVertex = startVertex(path)
+  let v0 = [0,0,0]
 
   let centerOffset = [0,0,0]
   if (centerOnExport) {
@@ -143,12 +148,16 @@ function generatePixelInfo() {
   }
   pixelDensity *= resizeScale
 
+  additionalNeighbors = []
+
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
     let nextVertex = otherVertex(edge, previousVertex)
     let v1 = previousVertex.ogCoords
     let v2 = nextVertex.ogCoords
-    let edgeLength = d(v1,v2)
+    let e1 = delta(v1,v0)
+    let e2 = delta(v2,v1)
+    let edgeLength = magnitude(e2)
     for (let alpha = 0; true; alpha += pixelDensity) {
       if (epsilonEquals(edgeLength, alpha, 0.01)) break
       if (alpha > edgeLength) {
@@ -164,14 +173,21 @@ function generatePixelInfo() {
           break
         }
       }
-      if (dupeIndex >= 0) {
+      if (alpha == 0 && epsilonEquals(dot(e1, e2), -magnitude(e1) * edgeLength)) {
+        // Skip LED when doubling back
+        // Still add connection to dupe
+        // Dupe should necessarily exist
+        // Previous pixel should necessarily be unique
+        additionalNeighbors.push([dupeIndex, coords.length-1])
+      }
+      else if (dupeIndex >= 0) {
         uniqueToDupe.push(dupeIndex)
       } else {
         uniqueToDupe.push(coords.length)
         coords.push(newCoord)
       }
     }
-
+    v0 = previousVertex.ogCoords
     previousVertex = nextVertex
   }
 
@@ -191,6 +207,10 @@ function generatePixelInfo() {
 
     dupeToUniques[index].push(i)
   }
+  for (let [n1, n2] of additionalNeighbors) {
+    neighbors[n1].push(n2)
+    neighbors[n2].push(n1)
+  }
 
   for (let i = 0; i < coords.length; i++) {
     let local_neighbors = neighbors[i]
@@ -209,10 +229,10 @@ function generatePixelInfo() {
   }
 
   let RAW_SIZE = uniqueToDupe.length
-  if (RAW_SIZE > 2728) {
-    console.error(`Too many LED pixels: ${RAW_SIZE}. Maximum is 2728`)
-    return
-  }
+  // if (RAW_SIZE > 2728) {
+  //   console.error(`Too many LED pixels: ${RAW_SIZE}. Maximum is 2728`)
+  //   return
+  // }
   console.log(RAW_SIZE, SIZE)
 
   let info = {
@@ -226,24 +246,6 @@ function generatePixelInfo() {
     neighbors,
     nextPixel,
     defaultPulseDirection: [0,1,0],
-  }
-
-  if (name == "rhombicosidodecahedron") {
-    let antipodes = []
-    for (let i = 0; i < coords.length; i++) {
-      let coord = coords[i]
-      for (let j = 0; j < coords.length; j++) {
-        let coord2 = coords[j]
-        if (epsilonEquals(d(coord, scale(coord2, -1)), 0)) {
-          antipodes.push(j)
-          break
-        }
-      }
-      if (antipodes.length <= i) {
-        antipodes.push(-1)
-      }
-    }
-    info.antipodes = antipodes
   }
 
   if (!isWall) {
