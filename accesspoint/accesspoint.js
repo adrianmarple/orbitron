@@ -10,13 +10,6 @@ let numTimesNetworkCheckFailed = 0
 let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 if(!config.IS_SERVER){
-  let FORM = `
-  
-  `
-  let SUBMITTED = `
-
-  `
-
   async function startAccessPoint(){
     let connectionExists = (await execute("sudo nmcli connection show")).indexOf("OrbHotspot") >= 0
     if(connectionExists){
@@ -30,8 +23,12 @@ if(!config.IS_SERVER){
 
   async function stopAccessPoint(){
     //let hostapdRunning = (await execute("ps -ea")).indexOf("hostapd") >= 0
-    await execute("sudo nmcli device disconnect wlan0")
-    await execute("sudo nmcli device up wlan0")
+    try {
+      await execute("sudo nmcli device disconnect wlan0")
+      await execute("sudo nmcli device up wlan0")
+    } catch(_) {
+      // Do nothing
+    }
     console.log("STOPPED ACCESS POINT")
   }
 
