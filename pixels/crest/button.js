@@ -8,22 +8,18 @@ g = 18
 h = 15
 j = 16
 k = 3
-l = 28
-
-// a = 5
-// b = 4
-// c = 4
-// e = 7
-// f = 4
-// g = 14
-// h = 10
-// j = 12
-// k = 2
-// l = 11
+l = 26
 
 
 addButton("de Ruyter Crest", () => {
   name = "deruyter"
+  setLaserParams({
+    BORDER: 4,
+    CHANNEL_WIDTH: 5,
+    CHANNEL_DEPTH: 8,
+    NOTCH_DEPTH: 3,
+    PIXEL_DISTANCE: 8.333,
+  })
 
   for (let i = 0; i < 4; i++) {
     addVertex(rotateZ([0,a,0], i * Math.PI/2))

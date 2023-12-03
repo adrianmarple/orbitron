@@ -3,38 +3,30 @@ let MM_TO_96DPI = 3.77952755906
 
 let ogReset = reset
 
+function setLaserParams(obj) {
+  for (let key in obj) {
+    window[key] = obj[key] * MM_TO_96DPI
+  }
+}
 reset = () => {
   ogReset()
-
-  BOTTOM_THICKNESS = 5
-  TOP_THICKNESS = 2.9
-  WALL_THICKNESS = 2.35
-  BORDER = 6
-  DEFAULT_PIXEL_DIST = 16.66666 // 16.6
-  PIXEL_DISTANCE = DEFAULT_PIXEL_DIST
-  CHANNEL_WIDTH = 12
-  CHANNEL_DEPTH = 10
-  HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
-  NOTCH_DEPTH = 5
-  FASTENER_DEPTH = 2.5
-
-  WOOD_KERF = 0.14
-  ACRYLIC_KERF = -0.03
-  // ACRYLIC_KERF = -0.06 // Used for hex cat recut
-
-  BOTTOM_THICKNESS *= MM_TO_96DPI
-  TOP_THICKNESS *= MM_TO_96DPI
-  WALL_THICKNESS *= MM_TO_96DPI
-  BORDER *= MM_TO_96DPI
-  DEFAULT_PIXEL_DIST *= MM_TO_96DPI
-  PIXEL_DISTANCE *= MM_TO_96DPI
-  CHANNEL_WIDTH *= MM_TO_96DPI
-  CHANNEL_DEPTH *= MM_TO_96DPI
-  HEIGHT *= MM_TO_96DPI
-  NOTCH_DEPTH *= MM_TO_96DPI
-  FASTENER_DEPTH *= MM_TO_96DPI
-  WOOD_KERF *= MM_TO_96DPI
-  ACRYLIC_KERF *= MM_TO_96DPI
+  setLaserParams({
+    BOTTOM_THICKNESS: 5,
+    TOP_THICKNESS: 2.9,
+    WALL_THICKNESS: 2.35,
+    BORDER: 6,
+    PIXEL_DISTANCE: 16.66666, // 16.6
+    CHANNEL_WIDTH: 12,
+    CHANNEL_DEPTH: 10,
+    NOTCH_DEPTH: 5,
+    FASTENER_DEPTH: 2.5,
+    WOOD_KERF: 0.14,
+    ACRYLIC_KERF: -0.03,
+    // ACRYLIC_KERF: -0.06, // Used for hex cat recut
+  })
+  setLaserParams({
+    HEIGHT: CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS,
+  })
   KERF = ACRYLIC_KERF
 
   BALSA_LENGTH = 96*11.85 // A little more than 11 3/4 inches
@@ -104,7 +96,7 @@ setTimeout(() => {
       if (isWall) {
         KERF = ACRYLIC_KERF
         createCoverSVG()
-        console.log(`SVG is ${(maxX/96).toFixed(1)}" by ${(maxY/96).toFixed(1)}"`)
+        console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
         // createWallSVG()
       }
     }, 100)
@@ -112,12 +104,18 @@ setTimeout(() => {
 }, 100)
 
 let wallInfo = []
+let minX = 0
+let minY = 0
 let maxX = 0
 let maxY = 0
 
 async function createCoverSVG() {
+  wallInfo = []
+  minX = 0
+  minY = 0
   maxX = 0
   maxY = 0
+  const SCALE = PIXEL_DISTANCE / pixelDensity
   
   // Gather paths
   let paths = []
@@ -173,16 +171,14 @@ async function createCoverSVG() {
   paths.sort((a,b) => b.length - a.length)
 
   // Draw border and channels
-  wallInfo = []
 
-  let offsetX = 0;
-  let offsetY = 0;
-  for (let v of verticies) {
-  	offsetX = Math.min(offsetX, v.ogCoords[0])
-  	offsetY = Math.min(offsetY, v.ogCoords[1])
-  }
-  const SCALE = PIXEL_DISTANCE / pixelDensity
-  let offset = [2 - offsetX, 2 - offsetY, 0]
+  // let offsetX = 0;
+  // let offsetY = 0;
+  // for (let v of verticies) {
+  // 	offsetX = Math.min(offsetX, v.ogCoords[0])
+  // 	offsetY = Math.min(offsetY, v.ogCoords[1])
+  // }
+  // let offset = [2 - offsetX, 2 - offsetY, 0]
 
   let start = startVertex().ogCoords
   let penultimate = penultimateVertex().ogCoords
@@ -212,7 +208,8 @@ async function createCoverSVG() {
       let n = cross(e1, [0,0,-1])
       let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
       let lengthOffset = width / -Math.tan((Math.PI - a1)/2)
-      let localOffset = scale(add(v1, offset), SCALE)
+      // let localOffset = scale(add(v1, offset), SCALE)
+      let localOffset = scale(v1, SCALE)
 
       // Border
       let points = [[lengthOffset, width]]
@@ -337,6 +334,34 @@ async function createCoverSVG() {
   }
 }
 
+function pointsToSVGString(points, basis, offset, flip) {
+  let s = ""
+  for (let point of points) {
+  	let truePoint = add(scale(basis[0], point[0]), scale(basis[1], point[1]))
+  	truePoint = add(truePoint, offset)
+    if (truePoint[0] > 1e6 || truePoint[1] > 1e6) {
+      console.error(truePoint)
+      return ""
+    }
+    if (truePoint[0] > maxX || truePoint[1] > maxY ||
+        truePoint[0] < minX || truePoint[1] < minY) {
+      maxX = Math.ceil(Math.max(maxX, truePoint[0]))
+      maxY = Math.ceil(Math.max(maxY, truePoint[1]))
+      minX = Math.floor(Math.min(minX, truePoint[0]))
+      minY = Math.floor(Math.min(minY, truePoint[1]))
+      cover.setAttribute("width", maxX - minX)
+      cover.setAttribute("height", maxY - minY)
+      cover.setAttribute("viewBox", `${minX} ${minY} ${maxX - minX} ${maxY - minY}`)
+    }
+  	s += `L${truePoint[0]} ${truePoint[1]} `
+  }
+  if (flip) {
+    s += pointsToSVGString(points.reverse(), basis.reverse(), offset)
+  }
+  return s
+}
+
+
 function createWallSVG() {
   wall.querySelectorAll("text").forEach(elem => wall.removeChild(elem))
   let path = ""
@@ -382,30 +407,6 @@ function createWallSVG() {
   wall.setAttribute("width", panelCount*BALSA_LENGTH)
   wall.setAttribute("height", BALSA_LENGTH)
   wall.setAttribute("viewBox", `0 0 ${panelCount*BALSA_LENGTH} ${BALSA_LENGTH}`)
-}
-
-function pointsToSVGString(points, basis, offset, flip) {
-  let s = ""
-  for (let point of points) {
-  	let truePoint = add(scale(basis[0], point[0]), scale(basis[1], point[1]))
-  	truePoint = add(truePoint, offset)
-    if (truePoint[0] > 1e6 || truePoint[1] > 1e6) {
-      console.error(truePoint)
-      return ""
-    }
-    if (truePoint[0] > maxX || truePoint[1] > maxY) {
-      maxX = Math.ceil(Math.max(maxX, truePoint[0])) + 10
-      maxY = Math.ceil(Math.max(maxY, truePoint[1])) + 10
-      cover.setAttribute("width", maxX)
-      cover.setAttribute("height", maxY)
-      cover.setAttribute("viewBox", `0 0 ${maxX} ${maxY}`)
-    }
-  	s += `L${truePoint[0]} ${truePoint[1]} `
-  }
-  if (flip) {
-    s += pointsToSVGString(points.reverse(), basis.reverse(), offset)
-  }
-  return s
 }
 
 function printPath(path) {

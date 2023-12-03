@@ -177,6 +177,9 @@ function generatePixelInfo() {
         // Skip LED when doubling back
         // Still add connection to dupe
         // Dupe should necessarily exist
+        if (dupeIndex == -1) {
+          console.error ("Doubleback detected with no dupe")
+        }
         // Previous pixel should necessarily be unique
         additionalNeighbors.push([dupeIndex, coords.length-1])
       }
