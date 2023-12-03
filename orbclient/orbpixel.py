@@ -66,7 +66,7 @@ def display_pixels(pixels):
     global should_restart_external_board
     if external_board:
         try:
-            pixels[:, [0,2]] = pixels[:, [2,0]]
+            pixels[:, [0,1]] = pixels[:, [1,0]]
             out = np.clip(np.uint8(pixels),0,0xfe).tobytes()
             while True:
                 sync = external_board.read()
