@@ -74,6 +74,7 @@ def do_loop():
     global state_machine
     global pixels
     global temp_pixels
+    max_i = 10
 
     if not usb.connected:
         print("No Sreial Connection!")
@@ -84,49 +85,52 @@ def do_loop():
     if not sync or sync[0] != 0xff:
         return
     
-    reset_check = True
-    while reset_check:
-        usb.write(bytearray([0xe0]))
+    usb.write(bytearray([0xe0]))
+    for _ in range(0,max_i):
         response = usb.read(1)
         if not response or response[0] != 0xe0:
             continue
         val = usb.read(1)
-        if val:
-            reset_check = False
-            if val[0] == 0xe4:
-                print("RESETTING")
-                supervisor.reload()
-                return
+        if val and val[0] == 0xe4:
+            print("RESETTING")
+            supervisor.reload()
+            return
 
-    while strand_count == -1:
+    if strand_count == -1:
         usb.write(bytearray([0xf8]))
-        response = usb.read(1)
-        if not response or response[0] != 0xf8:
-            continue
-        count = usb.read(1)
-        if count and count[0] > 0 and count[0] <= 8:
-            strand_count = count[0]
-            print("STRAND COUNT ", strand_count)
+        for _ in range(0,max_i):
+            response = usb.read(1)
+            if not response or response[0] != 0xf8:
+                continue
+            count = usb.read(1)
+            if count and count[0] > 0 and count[0] <= 8:
+                strand_count = count[0]
+                print("STRAND COUNT ", strand_count)
+        return
 
-    while pixels_per_strand == -1:
+    if pixels_per_strand == -1:
         usb.write(bytearray([0xf0]))
-        response = usb.read(1)
-        if not response or response[0] != 0xf0:
-            continue
-        count = usb.read(2)
-        if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
-            pixels_per_strand = (count[0]<<8) + count[1]
-            print("PIXELS PER STRAND ", pixels_per_strand)
+        for _ in range(0,max_i):
+            response = usb.read(1)
+            if not response or response[0] != 0xf0:
+                continue
+            count = usb.read(2)
+            if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
+                pixels_per_strand = (count[0]<<8) + count[1]
+                print("PIXELS PER STRAND ", pixels_per_strand)
+        return
     
-    while max_usb_buf_size == -1:
+    if max_usb_buf_size == -1:
         usb.write(bytearray([0xe8]))
-        response = usb.read(1)
-        if not response or response[0] != 0xe8:
-            continue
-        count = usb.read(2)
-        if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
-            max_usb_buf_size = (count[0]<<8) + count[1]
-            print("BUF SIZE ", max_usb_buf_size)
+        for _ in range(0,max_i):
+            response = usb.read(1)
+            if response or response[0] != 0xe8:
+                    continue
+            count = usb.read(2)
+            if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
+                max_usb_buf_size = (count[0]<<8) + count[1]
+                print("BUF SIZE ", max_usb_buf_size)
+        return
     
     if pixels == None:
         total_pixel_bytes = strand_count * pixels_per_strand * bpp
