@@ -12,8 +12,6 @@ first_led_pin = NEOPIXEL0
 strand_count = -1
 pixels_per_strand = -1
 total_pixel_bytes = -1
-max_usb_buf_size = -1
-fits_in_buffer = False
 state_machine = None
 bpp = 3
 pixels = None
@@ -26,22 +24,18 @@ def reset():
     global strand_count
     global pixels_per_strand
     global total_pixel_bytes
-    global max_usb_buf_size
-    global fits_in_buffer
     global state_machine
     global pixels
     strand_count = -1
     pixels_per_strand = -1
     total_pixel_bytes = -1
-    max_usb_buf_size = -1
-    fits_in_buffer = False
     pixels = None
     if state_machine:
         state_machine.deinit()
     state_machine = None
     usb.reset_input_buffer()
     usb.reset_output_buffer()
-    usb.timeout = 1
+    usb.timeout = 0.1
     usb.write_timeout = 0
 
 def main():
@@ -69,8 +63,6 @@ def do_loop():
     global strand_count
     global pixels_per_strand
     global total_pixel_bytes
-    global max_usb_buf_size
-    global fits_in_buffer
     global state_machine
     global pixels
     global temp_pixels
@@ -119,26 +111,11 @@ def do_loop():
                 pixels_per_strand = (count[0]<<8) + count[1]
                 print("PIXELS PER STRAND ", pixels_per_strand)
         return
-    
-    if max_usb_buf_size == -1:
-        usb.write(bytearray([0xe8]))
-        for _ in range(0,max_i):
-            response = usb.read(1)
-            if response or response[0] != 0xe8:
-                    continue
-            count = usb.read(2)
-            if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
-                max_usb_buf_size = (count[0]<<8) + count[1]
-                print("BUF SIZE ", max_usb_buf_size)
-        return
-    
+        
     if pixels == None:
         total_pixel_bytes = strand_count * pixels_per_strand * bpp
         print("TOTAL PIXEL BYTES ", total_pixel_bytes)
-        fits_in_buffer = total_pixel_bytes <= max_usb_buf_size
-        print("FITS IN BUFFER ", fits_in_buffer)
         pixels = bytearray(total_pixel_bytes)
-        temp_pixels = bytearray(max_usb_buf_size)
 
     if state_machine == None:
         state_machine = initialize_state_machine(strand_count)
@@ -151,24 +128,10 @@ def do_loop():
 def process_frame():
     global pixels
     global temp_pixels
-    if fits_in_buffer:
-        read = usb.readinto(pixels)
-        if read <= 0:
-            print("read nothing, skipping frame")
-            return
-    else:
-        start = 0
-        while start < total_pixel_bytes:
-            to_read = min(len(temp_pixels),total_pixel_bytes - start)
-            read = usb.readinto(temp_pixels)
-            if read < to_read:
-                print("read too little")
-            if read > 0:
-                pixels[start:start+to_read] = temp_pixels[0:to_read]
-                start += to_read
-            else:
-                print("read nothing, skipping frame")
-                return
+    read = usb.readinto(pixels)
+    if read <= 0:
+        print("read nothing, skipping frame")
+        return
     try:
         transmit(state_machine, strand_count, pixels)
     except Exception as e:

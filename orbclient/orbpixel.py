@@ -27,8 +27,7 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 _led_strip = None
 process_conn = None
 external_board = None
-serial_buf_size = 16384
-first_board_load = True
+should_restart_external_board = True
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
@@ -43,7 +42,9 @@ def start_pixel_output_process():
 
 def start_external_pixel_board():
     global external_board
+    global should_restart_external_board
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
+        should_restart_external_board = True
         while external_board == None:
             try:
                 external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.9)
@@ -62,12 +63,11 @@ def pixel_output_loop(conn):
 
 def display_pixels(pixels):
     global external_board
-    global first_board_load
+    global should_restart_external_board
     if external_board:
         try:
             pixels[:, [0,1,2]] = pixels[:, [2,0,1]]
             out = np.clip(np.uint8(pixels),0,0xfe).tobytes()
-            external_board.reset_input_buffer()
             while True:
                 external_board.write(bytearray([0xff]))
                 response = external_board.read(1)
@@ -83,33 +83,17 @@ def display_pixels(pixels):
                     pixels_per_strand = int(os.getenv("PIXELS_PER_STRAND"))
                     external_board.write(pixels_per_strand.to_bytes(2,'big'))
                     print("sent pixels per strand ", pixels_per_strand, file=sys.stderr)
-                elif response[0] == 0xe8:
-                    external_board.write(bytearray([0xe8]))
-                    external_board.write(serial_buf_size.to_bytes(2,'big'))
-                    print("sent buf size ", serial_buf_size, file=sys.stderr)
                 elif response[0] == 0xe0:
                     external_board.write(bytearray([0xe0]))
-                    if first_board_load:
+                    if should_restart_external_board:
                         external_board.write(bytearray([0xe4]))
                         print("resetting external board", file=sys.stderr)
                     else:
                         external_board.write(bytearray([0xe0]))
-                    first_board_load = False
+                    should_restart_external_board = False
                 elif response[0] == 0xff:
                     break
-
-            if len(out) <= serial_buf_size:
-                external_board.write(out)
-            else:
-                start = 0
-                write = serial_buf_size
-                length = len(out)
-                while write == serial_buf_size:
-                    if start + write > length:
-                        write = length - start
-                    external_board.write(out[start:start+write])
-                    start += write
-                    sleep(1e-4)
+            external_board.write(out)
         except Exception as e:
             print("error writing to external", file=sys.stderr)
             print(e, file=sys.stderr)
