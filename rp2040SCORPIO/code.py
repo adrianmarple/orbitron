@@ -6,6 +6,8 @@ import adafruit_pioasm
 import usb_cdc
 import bitops
 import supervisor
+from microcontroller import watchdog
+from watchdog import WatchDogMode
 
 first_led_pin = NEOPIXEL0
 
@@ -39,11 +41,13 @@ def reset():
     usb.write_timeout = 0
 
 def main():
-    reset()
-    time.sleep(1)
-    print("READY")
     tc = 0
     dt = 0
+    reset()
+    time.sleep(1)
+    watchdog.timeout = 3
+    watchdog.mode = WatchDogMode.RESET
+    print("READY")
     while True:
         t0 = adafruit_ticks.ticks_ms()
         try:
@@ -51,6 +55,7 @@ def main():
         except Exception as e:
             print(e)
             reset()
+        watchdog.feed()
         dt = (tc * dt + adafruit_ticks.ticks_ms() - t0)/(tc+1)
         tc += 1
         if tc == 120:
@@ -125,8 +130,6 @@ def process_frame():
         print(e)
 
 def transmit(sm, num_strands, buffer):
-    while sm.pending:
-        pass
     if num_strands == 1:
         sm.background_write(memoryview(buffer).cast("L"), swap=True)
     else:
@@ -173,7 +176,7 @@ def initialize_state_machine(num_strands):
 
     program = _PROGRAM.format(variable_part)
     assembled = adafruit_pioasm.assemble(program)
-    return rp2pio.StateMachine(
+    sm = rp2pio.StateMachine(
                 assembled,
                 frequency=800_000 * 16,
                 first_out_pin=first_led_pin,
@@ -182,5 +185,9 @@ def initialize_state_machine(num_strands):
                 auto_pull=False,
                 out_shift_right=num_strands != 1,
             )
+    while sm.pending:
+        pass
+    return sm
+
 
 main()
