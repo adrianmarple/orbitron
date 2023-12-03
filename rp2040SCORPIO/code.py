@@ -73,7 +73,7 @@ def do_loop():
         return
     
     usb.write(bytearray([0x11]))
-    sync = usb.read()
+    sync = usb.read(2)
     if not sync or sync[0] != 0xff:
         return
     if len(sync) > 1 and sync[1] == 0xe0:
