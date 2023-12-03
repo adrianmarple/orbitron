@@ -66,13 +66,13 @@ def do_loop():
     global state_machine
     global pixels
     global temp_pixels
-    max_i = 10
 
     if not usb.connected:
         print("No Sreial Connection!")
         time.sleep(1)
         return
     
+    usb.write(bytearray([0x11]))
     sync = usb.read()
     if not sync or sync[0] != 0xff:
         return
@@ -89,10 +89,8 @@ def do_loop():
 
     if strand_count == -1:
         usb.write(bytearray([0xf8]))
-        for _ in range(0,max_i):
-            response = usb.read(1)
-            if not response or response[0] != 0xf8:
-                continue
+        response = usb.read(1)
+        if response and response[0] == 0xf8:
             count = usb.read(1)
             if count and count[0] > 0 and count[0] <= 8:
                 strand_count = count[0]
@@ -101,10 +99,8 @@ def do_loop():
 
     if pixels_per_strand == -1:
         usb.write(bytearray([0xf0]))
-        for _ in range(0,max_i):
-            response = usb.read(1)
-            if not response or response[0] != 0xf0:
-                continue
+        response = usb.read(1)
+        if response and response[0] == 0xf0:
             count = usb.read(2)
             if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
                 pixels_per_strand = (count[0]<<8) + count[1]

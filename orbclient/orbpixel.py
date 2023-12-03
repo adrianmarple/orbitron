@@ -69,10 +69,11 @@ def display_pixels(pixels):
             pixels[:, [0,1,2]] = pixels[:, [2,0,1]]
             out = np.clip(np.uint8(pixels),0,0xfe).tobytes()
             while True:
+                sync = external_board.read()
+                if not sync or sync[len(sync) -1] != 0x11:
+                    continue
                 external_board.write(bytearray([0xff]))
                 response = external_board.read(1)
-                if not response:
-                    continue
                 if response[0] == 0xf8:
                     external_board.write(bytearray([0xf8]))
                     strand_count = int(os.getenv("STRAND_COUNT"))
