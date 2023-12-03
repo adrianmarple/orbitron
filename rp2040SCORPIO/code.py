@@ -76,16 +76,12 @@ def do_loop():
     sync = usb.read()
     if not sync or sync[0] != 0xff:
         return
-    
-    usb.write(bytearray([0xe0]))
-    response = usb.read(1)
-    if response and response[0] == 0xe0:
-        val = usb.read(1)
-        if val and val[0] == 0xe4:
-            print("RESETTING")
-            time.sleep(0.1)
-            supervisor.reload()
-            return
+    if len(sync) > 1 and sync[1] == 0xe0:
+        usb.write(bytearray([0xe0]))
+        print("RESETTING")
+        time.sleep(0.1)
+        supervisor.reload()
+        return
 
     if strand_count == -1:
         usb.write(bytearray([0xf8]))
@@ -95,6 +91,8 @@ def do_loop():
             if count and count[0] > 0 and count[0] <= 8:
                 strand_count = count[0]
                 print("STRAND COUNT ", strand_count)
+                if state_machine == None:
+                    state_machine = initialize_state_machine(strand_count)
         return
 
     if pixels_per_strand == -1:
@@ -104,18 +102,11 @@ def do_loop():
             count = usb.read(2)
             if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
                 pixels_per_strand = (count[0]<<8) + count[1]
-                print("PIXELS PER STRAND ", pixels_per_strand)
-        return
-        
-    if pixels == None:
-        total_pixel_bytes = strand_count * pixels_per_strand * bpp
-        print("TOTAL PIXEL BYTES ", total_pixel_bytes)
-        pixels = bytearray(total_pixel_bytes)
-        return
-
-    if state_machine == None:
-        state_machine = initialize_state_machine(strand_count)
-        print("STARTED RENDERING")
+                print("PIXELS PER STRAND ", pixels_per_strand)        
+                if pixels == None:
+                    total_pixel_bytes = strand_count * pixels_per_strand * bpp
+                    print("TOTAL PIXEL BYTES ", total_pixel_bytes)
+                    pixels = bytearray(total_pixel_bytes)
         return
     
     usb.write(bytearray([0xff]))

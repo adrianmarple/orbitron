@@ -72,7 +72,7 @@ def display_pixels(pixels):
                 sync = external_board.read()
                 if not sync or sync[len(sync) -1] != 0x11:
                     continue
-                external_board.write(bytearray([0xff]))
+                external_board.write(bytearray([0xff,(0xe0 if should_restart_external_board else 0xff)]))
                 response = external_board.read(1)
                 if response[0] == 0xf8:
                     external_board.write(bytearray([0xf8]))
@@ -85,12 +85,7 @@ def display_pixels(pixels):
                     external_board.write(pixels_per_strand.to_bytes(2,'big'))
                     print("sent pixels per strand ", pixels_per_strand, file=sys.stderr)
                 elif response[0] == 0xe0:
-                    external_board.write(bytearray([0xe0]))
-                    if should_restart_external_board:
-                        external_board.write(bytearray([0xe4]))
-                        print("resetting external board", file=sys.stderr)
-                    else:
-                        external_board.write(bytearray([0xe0]))
+                    print("external board resetting", file=sys.stderr)
                     should_restart_external_board = False
                 elif response[0] == 0xff:
                     break
