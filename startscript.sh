@@ -5,6 +5,6 @@ if [ $(whoami) = 'root' ]; then
 	node main.js
 else
   sudo node gitupdate.js
-  sudo node external_baord_update.js
+  sudo node external_board_update.js
   sudo node main.js
 fi
