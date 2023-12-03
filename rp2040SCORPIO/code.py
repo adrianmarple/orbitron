@@ -73,18 +73,17 @@ def do_loop():
         time.sleep(1)
         return
     
-    sync = usb.read(1)
+    sync = usb.read()
     if not sync or sync[0] != 0xff:
         return
     
     usb.write(bytearray([0xe0]))
-    for _ in range(0,max_i):
-        response = usb.read(1)
-        if not response or response[0] != 0xe0:
-            continue
+    response = usb.read(1)
+    if response and response[0] == 0xe0:
         val = usb.read(1)
         if val and val[0] == 0xe4:
             print("RESETTING")
+            time.sleep(0.1)
             supervisor.reload()
             return
 
@@ -116,12 +115,13 @@ def do_loop():
         total_pixel_bytes = strand_count * pixels_per_strand * bpp
         print("TOTAL PIXEL BYTES ", total_pixel_bytes)
         pixels = bytearray(total_pixel_bytes)
+        return
 
     if state_machine == None:
         state_machine = initialize_state_machine(strand_count)
+        print("STARTED RENDERING")
+        return
     
-    usb.reset_output_buffer()
-    usb.reset_input_buffer()
     usb.write(bytearray([0xff]))
     process_frame()
 
