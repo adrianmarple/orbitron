@@ -985,8 +985,8 @@ class Idle(Game):
       self.render_values = np.stack([R,G,B], axis=-1)
 
   def rainbow_helper(self, offset):
-    X = np.multiply(self.target_values, self.target_values)
-    X *= get_pref("rainbowFade")/100
+    X = np.sqrt(self.target_values)
+    X *= get_pref("rainbowFade")/150
     X += offset
     X = np.mod(X, 1)
     X = 1 - np.absolute(X*3 - 1)
