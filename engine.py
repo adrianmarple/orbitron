@@ -865,10 +865,10 @@ class Idle(Game):
   name = "idle"
   waiting_music = "idle"
   render_values = None
+  previous_values = None
+  target_values = np.zeros((RAW_SIZE, 1))
 
   previous_render_time = 0
-  previous_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
-  target_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
 
   def update_prefs(self):
     now = datetime.now()
@@ -896,8 +896,11 @@ class Idle(Game):
     pass
 
   def render(self):
+    global raw_pixels
     if not self.wait_for_frame_end():
       self.blend_pixels()
+      self.apply_color()
+      raw_pixels = self.render_values * 255
       return
 
     self.init_values()
@@ -906,13 +909,13 @@ class Idle(Game):
     if get_pref("hasStartAndEnd"):
       self.apply_fade()
     self.apply_brightness()
+    self.target_values = self.render_values * 1
+    self.blend_pixels()
     self.apply_color()
     if not get_pref("applyIdleMinBefore"):
       self.apply_min()
 
-    self.target_pixels = self.render_values * 255
-    self.blend_pixels()
-
+    raw_pixels = self.render_values * 255
   
   previous_fluid_time = 0
   def wait_for_frame_end(self):
@@ -994,21 +997,20 @@ class Idle(Game):
     self.render_values *= get_pref("brightness") / 100
 
   def blend_pixels(self):
-    global raw_pixels
     frame_delta = (time() - self.previous_render_time)
     frame_delta *= get_pref("idleFrameRate") / 15
-    frame_delta *= exp(4 - get_pref("idleBlend")/25)
+    frame_delta *= exp(2.7 - get_pref("idleBlend")/25)
     if frame_delta < 1:
       alpha = exp(-10 * frame_delta)
-      raw_pixels = self.target_pixels * (1-alpha) + self.previous_pixels * alpha
-      pixel_delta = raw_pixels - self.previous_pixels
-      pixel_delta = np.minimum(pixel_delta, frame_delta * 25)
-      raw_pixels = self.previous_pixels + pixel_delta
+      self.render_values = self.target_values * (1-alpha) + self.previous_values * alpha
+      pixel_delta = self.render_values - self.previous_values
+      pixel_delta = np.minimum(pixel_delta, frame_delta * 2)
+      self.render_values = self.previous_values + pixel_delta
     else:
-      raw_pixels = self.target_pixels * 1
+      self.render_values = self.target_values * 1
 
     self.previous_render_time = time()
-    self.previous_pixels = raw_pixels * 1
+    self.previous_values = self.render_values * 1
 
 idle = Idle()
 idle.generate_players(Player)

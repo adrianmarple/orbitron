@@ -29,7 +29,7 @@ var app = new Vue({
   data: {
     ws: null,
     state: {},
-    loginCode: 0,
+    loginCode: "",
     localFlags: {},
     hasSeenGlobalRules: false,
     showSettings: false,
