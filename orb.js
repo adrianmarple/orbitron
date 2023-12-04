@@ -82,6 +82,13 @@ function connectOrbToServer(){
         if(data.closed){
           clientConnection.close()
         } else {
+          if (!isClientValid(clientID)) {
+            generateCode()
+            let success = tryValidation(clientID, data.message)
+            if (!success) {
+              return
+            }
+          }
           clientConnection.processMessage(data.message)
         }
       }
@@ -99,6 +106,51 @@ function connectOrbToServer(){
     console.error("Error connecting to server:", e)
     orbToServerSocket = null
   }
+}
+
+let validClients = {}
+let loginCode = ""
+let loginExpiration = 0
+let turnOffDisplayTimeout = null
+let DURATION = 60*1000 // 1 minute
+function generateCode() {
+  if (Date.now() > loginExpiration) {
+    loginCode = Math.floor(Math.random() * 10000)
+  }
+  loginExpiration = Date.now() + DURATION
+  loginCodeText = loginCode.toString().padStart(4, '0')
+  displayText(loginCodeText, 1)
+  if (turnOffDisplayTimeout) {
+    clearTimeout(turnOffDisplayTimeout)
+  }
+  turnOffDisplayTimeout = setTimeout(() => {
+    displayText("", 1)
+    turnOffDisplayTimeout = null
+  }, DURATION)
+}
+function isClientValid(clientID) {
+  if (!config.REQUIRES_LOGIN) return true
+  if (!validClients[clientID]) return false
+  if (Date.now() > validClients[clientID]) return false
+  revalidate(clientID)
+  return true
+}
+function tryValidation(clientID, message) {
+  try {
+    let content = JSON.parse(message)
+    if (Date.now() < loginExpiration &&
+        parseInt(content.loginCode) == loginCode) {
+      revalidate(clientID)
+      displayText("", 1)
+      return true
+    }
+  } catch(_) {
+    // Pass
+  }
+  return false
+}
+function revalidate(clientID) {
+  validClients[clientID] = Date.now() + 60*60*1000
 }
 
 async function relayUpkeep() {
@@ -178,10 +230,10 @@ class ClientConnection {
   }
 
   send(message) {
-    message = {
-      clientID: this.id,
-      message: message
+    if (!isClientValid(this.id)) {
+      message = JSON.stringify({ mustLogin: true })
     }
+    message = { clientID: this.id, message }
     try {
       this.socket.send(JSON.stringify(message))
     } catch(e) {
@@ -323,11 +375,12 @@ function broadcast(baseMessage) {
   delete baseMessage.timestamp
 }
 
-let currentText = ""
-function displayText(text) {
-  if (text == currentText) return
-  currentText = text
-  message = { text, type: "text" }
+let priorityToCurrentText = {}
+function displayText(text, priority) {
+  priority = priority || 0
+  if (text == priorityToCurrentText[priority]) return
+  priorityToCurrentText[priority] = text
+  let message = { type: "text", text, priority }
   python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
 }
 

@@ -20,14 +20,25 @@ body, #app, .main {
   position: relative;
 }
 
-#home {
+#login {
+  font-size: 3rem;
+}
+#login input {
+  font-size: 6rem;
+}
+#login .button {
+  padding: 1rem 3rem;
+  margin-bottom: 6rem;
+}
+
+#home, #login {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
 }
 
-#loading, #home, #about{
+#loading, #login, #home, #about{
   width: 100vw;
   height: 100%;
   max-height: 100vh;

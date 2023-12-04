@@ -348,7 +348,6 @@ var app = new Vue({
       // Render Text Display
       let textDisplay = document.getElementById("text-display")
       let currentText = this.gameState.currentText
-      console.log(currentText)
       if (!currentText) {
         textDisplay.innerHTML = ""
         return

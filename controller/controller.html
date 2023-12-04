@@ -36,6 +36,11 @@
   <div v-else-if="connectionStatus == 'CONNECTING'" id="loading" :style="homeStyle">
     <canvas id="loading-ball" width="256" height="256"></canvas>
   </div>
+  <div v-else-if="mustLogin" id="login" :style="homeStyle">
+    <p>Enter the 4 digit number displayed near the device.</p>
+    <input type="number" min="0" max="9999" v-model="loginCode"></input>
+    <div class="button" @click="login">LOGIN</div>
+  </div>
 
   <div v-else-if="!gameStarted" id="home" :style="homeStyle">
     <!-- GAMES MENU -->

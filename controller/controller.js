@@ -29,6 +29,7 @@ var app = new Vue({
   data: {
     ws: null,
     state: {},
+    loginCode: 0,
     localFlags: {},
     hasSeenGlobalRules: false,
     showSettings: false,
@@ -179,6 +180,9 @@ var app = new Vue({
         return this.socketStatus
       }
     },
+    mustLogin() {
+      return this.state.mustLogin
+    },
     gameStarted() {
       return this.state.game != "idle"
     },
@@ -308,6 +312,9 @@ var app = new Vue({
   },
 
   methods: {
+    login() {
+      this.send({type: "login", loginCode: this.loginCode})
+    },
     lg(x) {
       return Math.log(x)/Math.log(2)
     },

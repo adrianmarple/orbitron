@@ -51,7 +51,7 @@ def consume_input():
         engine.start(engine.games[message["game"]])
         continue
       elif message["type"] == "text":
-        engine.display_text(message["text"], priority=0)
+        engine.display_text(message["text"], priority=message.get("priority", 0))
         continue
 
       if "self" not in message:

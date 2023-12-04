@@ -45,7 +45,6 @@ setInterval(serverPingHandler, 3000)
 
 function bindOrb(socket, orbID) {
   orbID = orbID.toLowerCase()
-  console.log(orbID)
   //console.log("Binding orb",orbID)
   if(connectedOrbs[orbID]){
     try {
