@@ -81,6 +81,16 @@
     </div>
     <!-- COLORS MENU -->
     <div v-else-if="nav=='colors'" class="nav-page">
+      <div class="slider-container" v-if="prefs.idleColor == 'rainbow'">
+        <div class="label">
+          <div>Rainbow gradient:</div>
+          <div>{{prefs.rainbowFade}}</div>
+        </div>
+        <input type="range" min="0" max="100" class="slider"
+          v-model="prefs.rainbowFade"
+          @change="updatePrefs('rainbowFade')">
+        </input>
+      </div>
       <div class="row" v-if="prefs.idleColor == 'rainbow'">
         Cycle time (sec):
         <input type="number" v-model="prefs.rainbowDuration"

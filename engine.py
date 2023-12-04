@@ -68,7 +68,8 @@ default_prefs = {
   "fixed.blue": 255,
   "fixed.green": 255,
   "fixed.red": 255,
-  "rainbowDuration": 10,
+  "rainbowDuration": 10.0,
+  "rainbowFade": 0.0,
 }
 pref_type = {}
 for (key, value) in default_prefs.items():
@@ -974,7 +975,21 @@ class Idle(Game):
       return np.array((r,g,b))/255
 
   def apply_color(self):
-    self.render_values = np.outer(self.render_values, self.color())
+    if get_pref("idleColor") != "rainbow" or get_pref("rainbowFade") == 0:
+      self.render_values = np.outer(self.render_values, self.color())
+    else:
+      color_phase = (time()/get_pref("rainbowDuration")) % 1
+      R = self.rainbow_helper(color_phase + 0.66666)
+      G = self.rainbow_helper(color_phase)
+      B = self.rainbow_helper(color_phase + 0.33333)
+      self.render_values = np.stack([R,G,B], axis=-1)
+
+  def rainbow_helper(self, offset):
+    X = self.target_values * get_pref("rainbowFade")/50 + offset
+    X = np.mod(X, 1)
+    X = 1 - np.absolute(X*3 - 1)
+    X = np.maximum(X, 0)
+    return np.multiply(X, self.render_values)
 
   def apply_fade(self):
     now = datetime.now()
