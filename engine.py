@@ -46,65 +46,6 @@ base_config = {
 }
 
 
-# USER PREFENCES
-default_prefs = {
-  # TIMING
-  "startTime": "00:00",
-  "endTime": "23:59",
-  "idleColor": "rainbow",
-  "idleMin": 0,
-  "applyIdleMinBefore": False,
-  "hasStartAndEnd": False,
-
-  # PATTERN
-  "idleFrameRate": 15.0,
-  "idleBlend": 30.0,
-  "idleDensity": 50.0,
-  "idlePAttern": "fire",
-
-  # COLOR
-  "brightness": 100,
-  "fadeDuration": 30,
-  "fixed.blue": 255,
-  "fixed.green": 255,
-  "fixed.red": 255,
-  "rainbowDuration": 10.0,
-  "rainbowFade": 0.0,
-}
-pref_type = {}
-for (key, value) in default_prefs.items():
-  pref_type[key] = type(value)
-
-pref_path = os.path.dirname(__file__) + "/prefs.json"
-if os.path.exists(pref_path):
-  f = open(pref_path, "r")
-  prefs = json.loads(f.read())
-  default_prefs.update(prefs)
-  f.close()
-else:
-  prefs = {}
-
-def update_prefs(update):
-  prefs.update(update)
-  default_prefs.update(update)
-  idle.update_prefs()
-  for game in games.values():
-    game.update_prefs()
-  f = open(pref_path, "w")
-  f.write(json.dumps(prefs, indent=2))
-  f.close()
-
-def get_pref(pref_name):
-  pref = default_prefs[pref_name]
-  if (pref_type[pref_name] == int):
-    return int(pref)
-  if (pref_type[pref_name] == float):
-    return float(pref)
-  else:
-    return pref
-
-
-
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
 
@@ -200,6 +141,69 @@ game = None
 next_game = None
 games = {}
 game_selection_weights = {}
+
+# ================================ USER PREFS =========================================
+
+default_prefs = {
+  # TIMING
+  "startTime": "00:00",
+  "endTime": "23:59",
+  "idleColor": "rainbow",
+  "idleMin": 0,
+  "applyIdleMinBefore": False,
+  "hasStartAndEnd": False,
+
+  # PATTERN
+  "idlePattern": "default",
+  "idleFrameRate": 15.0,
+  "idleBlend": 30.0,
+  "idleDensity": 50.0,
+  "idlePAttern": "fire",
+
+  # COLOR
+  "brightness": 100,
+  "fadeDuration": 30,
+  "fixed.blue": 255,
+  "fixed.green": 255,
+  "fixed.red": 255,
+  "rainbowDuration": 10.0,
+  "rainbowFade": 0.0,
+}
+pref_type = {}
+for (key, value) in default_prefs.items():
+  pref_type[key] = type(value)
+
+current_prefs = {}
+current_prefs.update(default_prefs)
+
+pref_path = os.path.dirname(__file__) + "/prefs.json"
+if os.path.exists(pref_path):
+  f = open(pref_path, "r")
+  prefs = json.loads(f.read())
+  current_prefs.update(prefs)
+  f.close()
+else:
+  prefs = {}
+
+def update_prefs(update):
+  prefs.update(update)
+  current_prefs.update(update)
+  idle.update_prefs()
+  for game in games.values():
+    game.update_prefs()
+  f = open(pref_path, "w")
+  f.write(json.dumps(prefs, indent=2))
+  f.close()
+
+def get_pref(pref_name):
+  pref = current_prefs[pref_name]
+  if (pref_type[pref_name] == int):
+    return int(pref)
+  if (pref_type[pref_name] == float):
+    return float(pref)
+  else:
+    return pref
+
 
 # ================================ START =========================================
 
@@ -860,179 +864,6 @@ class Game:
         return
 
 
-# ================================ Idle Animation "Game" =========================================
-
-class Idle(Game):
-  name = "idle"
-  waiting_music = "idle"
-  render_values = None
-  previous_values = None
-  target_values = np.zeros((RAW_SIZE, 1))
-
-  previous_render_time = 0
-
-  def update_prefs(self):
-    now = datetime.now()
-    now_date = now.date()
-
-    start_string = get_pref("startTime")
-    start_time = datetime.strptime(start_string, '%H:%M').time()
-    self.start = datetime.combine(now_date, start_time)
-
-    end_string = get_pref("endTime")
-    end_time = datetime.strptime(end_string, '%H:%M').time()
-    self.end = datetime.combine(now_date, end_time)
-
-    if self.end < now:
-      self.end += timedelta(days=1)
-    if self.start > self.end:
-      self.start -= timedelta(days=1)
-    if self.end - self.start > timedelta(days=1):
-      self.start += timedelta(days=1)
-    self.fade_duration = get_pref("fadeDuration")*60
-
-    self.fixed_color = None
-
-  def update(self):
-    pass
-
-  def render(self):
-    global raw_pixels
-    if not self.wait_for_frame_end():
-      self.blend_pixels()
-      self.apply_color()
-      raw_pixels = self.render_values * 255
-      return
-
-    self.init_values()
-    if get_pref("applyIdleMinBefore"):
-      self.apply_min()
-    if get_pref("hasStartAndEnd"):
-      self.apply_fade()
-    self.apply_brightness()
-    self.target_values = self.render_values * 1
-    self.blend_pixels()
-    self.apply_color()
-    if not get_pref("applyIdleMinBefore"):
-      self.apply_min()
-
-    raw_pixels = self.render_values * 255
-  
-  previous_fluid_time = 0
-  def wait_for_frame_end(self):
-    time_to_wait = self.previous_fluid_time + 1.0/get_pref("idleFrameRate") - time()
-    if time_to_wait > 2.0/FRAMERATE:
-      return False
-    if time_to_wait > 0:
-      sleep(time_to_wait)
-    self.previous_fluid_time = time()
-    return True
-
-  fluid_heads = [0]
-  fluid_values = np.array([1.0] + [0.0] * (RAW_SIZE - 1))
-  def init_values(self):
-    target_head_count = SIZE * get_pref("idleDensity") / 1600
-    head_ratio = len(self.fluid_heads) / target_head_count
-    dampening_factor = (1 + head_ratio*head_ratio*5)
-
-    new_heads = []
-    for head in self.fluid_heads:
-      if random() < 0.1:
-        new_heads.append(head)
-        continue
-
-      for n in neighbors[head]:
-        x = self.fluid_values[dupe_to_uniques[n][0]] + 0.01
-        x *= dampening_factor
-        if x < random():
-          new_heads.append(n)
-          for unique in dupe_to_uniques[n]:
-            self.fluid_values[unique] = 1
-
-    spontaneous_combustion_chance = 0.01 / (head_ratio * head_ratio)
-    if spontaneous_combustion_chance > random():
-      new_heads.append(randrange(SIZE))
-
-    if len(new_heads) != 0:
-      self.fluid_heads = new_heads
-
-    self.fluid_values *= 0.86
-    self.render_values = np.multiply(self.fluid_values, self.fluid_values)
-
-  def color(self):
-    if self.fixed_color is not None:
-      return self.fixed_color
-    color_string = get_pref("idleColor")
-    if color_string == "rainbow":
-      return rainbow_phase_color()
-    elif color_string == "timeofday":
-      return time_of_day_color()
-    else:
-      color_string = color_string.lstrip('#')
-      r = get_pref("fixed.red")
-      g = get_pref("fixed.green")
-      b = get_pref("fixed.blue")
-      return np.array((r,g,b))/255
-
-  def apply_color(self):
-    if get_pref("idleColor") != "rainbow" or get_pref("rainbowFade") == 0:
-      self.render_values = np.outer(self.render_values, self.color())
-    else:
-      color_phase = (time()/get_pref("rainbowDuration")) % 1
-      R = self.rainbow_helper(color_phase + 0.66666)
-      G = self.rainbow_helper(color_phase)
-      B = self.rainbow_helper(color_phase + 0.33333)
-      self.render_values = np.stack([R,G,B], axis=-1)
-
-  def rainbow_helper(self, offset):
-    X = np.sqrt(self.target_values)
-    X *= get_pref("rainbowFade")/150
-    X += offset
-    X = np.mod(X, 1)
-    X = 1 - np.absolute(X*3 - 1)
-    X = np.maximum(X, 0)
-    return np.multiply(X, self.render_values)
-
-  def apply_fade(self):
-    now = datetime.now()
-    if now > self.end:
-      self.update_prefs()
-    start_fade = (now - self.start).total_seconds() / self.fade_duration
-    start_fade = min(start_fade, 1)
-    start_fade = max(start_fade, 0)
-    end_fade = (self.end - now).total_seconds() / self.fade_duration
-    end_fade = min(end_fade, 1)
-    end_fade = max(end_fade, 0)
-    fade = min(start_fade, end_fade)
-    fade *= fade
-    self.render_values *= fade
-
-  def apply_min(self):
-    self.render_values = np.maximum(self.render_values, get_pref("idleMin")/255)
-
-  def apply_brightness(self):
-    self.render_values *= get_pref("brightness") / 100
-
-  def blend_pixels(self):
-    frame_delta = (time() - self.previous_render_time)
-    frame_delta *= get_pref("idleFrameRate") / 15
-    frame_delta *= exp(2.7 - get_pref("idleBlend")/25)
-    if frame_delta < 1:
-      alpha = exp(-10 * frame_delta)
-      self.render_values = self.target_values * (1-alpha) + self.previous_values * alpha
-      pixel_delta = self.render_values - self.previous_values
-      pixel_delta = np.minimum(pixel_delta, frame_delta * 2)
-      self.render_values = self.previous_values + pixel_delta
-    else:
-      self.render_values = self.target_values * 1
-
-    self.previous_render_time = time()
-    self.previous_values = self.render_values * 1
-
-idle = Idle()
-idle.generate_players(Player)
-
-
 # ================================ MISC =========================================
 
 def color_pixel(index, color):
@@ -1103,52 +934,19 @@ def projection(u, v): # assume v is normalized
 def ortho_proj(u, v):
   return u - projection(u,v)
 
-def rainbow_phase_color():
-  color_phase = (time()/get_pref("rainbowDuration")) % 1
-  if color_phase < 0.333:
-    r = 1 - 3 * color_phase
-    g = 3 * color_phase
-    b = 0
-  elif color_phase < 0.666:
-    r = 0
-    g = 2 - 3 * color_phase
-    b = 3 * color_phase - 1
-  else:
-    r = 3 * color_phase - 2
-    g = 0
-    b = 3 - 3 * color_phase
-  return np.array((r,g,b))
 
-
-tod_colors = [
-  [0, np.array((0.6, 0.1, 0))],
-  [0.1, np.array((0.5, 0.05, 0))],
-  [0.2, np.array((0.5, 0.05, 0))],
-  [0.2, np.array((0.8, 0.8, 0.8))],
-  [0.2, np.array((0.8, 0.8, 0.8))],
-  [0.15, np.array((0.7, 0.4, 0.1))],
-  [0.15, np.array((0.6, 0.1, 0))],
-]
-def time_of_day_color():
-  color_phase = (time()/10) % 1
-  now = datetime.now()
-  seconds_since_midnight = (now - now.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()
-  color_phase = seconds_since_midnight / 86400.0
-  return multi_lerp(color_phase, tod_colors)
-
-
-def render_pulse(direction=None, color=(200,200,200),
-    start_time=0, duration=READY_PULSE_DURATION):
-  global raw_pixels
+def render_pulse(direction=None, color=None,
+    start_time=0, duration=READY_PULSE_DURATION, reverse=False):
   t = (time() - start_time) / duration
   if (t >= 1):
-    return
+    return np.zeros((RAW_SIZE, 1))
+  if reverse:
+    t = 1 - t
 
   if IS_WALL and direction is not None:
     deltas = np.dot(np.asmatrix(direction).T, np.ones((1, RAW_SIZE))) - unique_coord_matrix
     ds = np.sum(np.multiply(deltas, deltas), axis=0).T
     ds = np.sqrt(ds)
-    # ds = 1 - ds/2
     ds = 1 - ds/4
   else:
     if direction is None:
@@ -1159,7 +957,10 @@ def render_pulse(direction=None, color=(200,200,200),
       
   ds = 12*ds - 7*t - 5
   ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
-  raw_pixels += np.array(np.outer(ds, color), dtype="<u1")
+  if color is not None:
+    global raw_pixels
+    raw_pixels += np.array(np.outer(ds, color), dtype="<u1")
+  return ds
 
 # Assume direction is normalized
 def render_ring(direction, color, width):
@@ -1215,7 +1016,7 @@ def broadcast_state():
     "data": game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
-    "prefs": default_prefs,
+    "prefs": current_prefs,
     "currentText": current_text,
   }
   print(json.dumps(message))

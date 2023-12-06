@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import engine
+import idlepatterns
 
 import fileinput
-import importlib
 import json
 import pkgutil
 import os
@@ -16,20 +16,13 @@ from threading import Thread
 game_selection_weights = {}
 game_modules = {}
 
-
 game_dir = os.path.join(os.path.dirname(__file__), 'games')
 for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   module = loader.find_module(module_name).load_module(module_name)
   engine.games[module_name] = module.game
   engine.game_selection_weights[module_name] = 1
 
-idle_module_name = os.getenv("IDLE")
-if idle_module_name:
-  path = "%s/idlepatterns/%s.py" % (os.path.dirname(__file__), idle_module_name)
-  spec = importlib.util.spec_from_file_location(idle_module_name, path)
-  module = importlib.util.module_from_spec(spec)
-  spec.loader.exec_module(module)
-  engine.idle = module.idle
+idlepatterns.set_idle(os.getenv("IDLE", engine.get_pref("idlePattern")))
 
 def check_all_ready():
   if engine.game.state != "start":
@@ -90,7 +83,10 @@ def consume_input():
       elif message["type"] == "settings":
         engine.game.update_config(message["update"])
       elif message["type"] == "prefs":
-        engine.update_prefs(message["update"])
+        update = message["update"]
+        if "idlePattern" in update:
+          idlepatterns.set_idle(update["idlePattern"])
+        engine.update_prefs(update)
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

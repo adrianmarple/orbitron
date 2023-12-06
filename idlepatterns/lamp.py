@@ -3,10 +3,15 @@ import numpy as np
 from time import time
 
 import engine
+from idlepatterns import Idle
 
-class Lamp(engine.Idle):
+class Lamp(Idle):
   def render(self):
-    self.wait_for_frame_end()
+    if not self.wait_for_frame_end():
+      self.blend_pixels()
+      self.apply_color()
+      engine.raw_pixels = self.render_values * 255
+      return
     self.init_values()
     self.render_values *= 0.5
     spotlight = np.matmul(-engine.coords[0], engine.unique_coord_matrix)
@@ -24,5 +29,3 @@ class Lamp(engine.Idle):
     engine.raw_pixels = self.render_values
 
 idle = Lamp()
-idle.generate_players(engine.Player)
-

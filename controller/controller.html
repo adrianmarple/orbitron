@@ -169,9 +169,11 @@
         </input>
       </div>
       <div class="space-between">
-        <label for="color">Pattern:</label>
-        <select name="color" v-model="prefs.idleColor" @change="updatePrefs('idleColor')">
-          <option value="rainbow">Fire</option>
+        <label for="pattern">Pattern:</label>
+        <select name="pattern" v-model="prefs.idlePattern" @change="updatePrefs('idlePattern')">
+          <option value="default">Default</option>
+          <option value="fireflies">Fireflies</option>
+          <option value="pulses">Fireworks</option>
         </select>
       </div>
     </div>

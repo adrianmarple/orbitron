@@ -4,6 +4,7 @@ async function EulerianPath(currentVertex, pathOverride) {
   if (typeof currentVertex == 'number') {
     path = [currentVertex]
     currentVertex = edges[currentVertex].verticies[pathOverride || 0]
+    console.log(currentVertex)
   }
   if (pathOverride) {
     path = pathOverride

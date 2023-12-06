@@ -3,8 +3,9 @@ import numpy as np
 from time import time, sleep
 
 import engine
+from idlepatterns import Idle
 
-class MADE(engine.Idle):
+class MADE(Idle):
   def render(self):
     time_to_wait = self.previous_fluid_time + 1.0/engine.get_pref("idleFrameRate") - time()
     if (time_to_wait > 0):
@@ -26,4 +27,3 @@ class MADE(engine.Idle):
 
 
 idle = MADE()
-idle.generate_players(engine.Player)

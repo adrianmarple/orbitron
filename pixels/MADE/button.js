@@ -23,5 +23,5 @@ addButton("MADE", async () => {
   // await addSquaresFromPixels(true, {x:[10], y:[10]})
   await addSquaresFromPixels()
   doubleEdges()
-  EulerianPath(verticies[0], [0])
+  EulerianPath(63, 1)
 })

@@ -1,12 +1,18 @@
 #!/usr/bin/env python
 import numpy as np
+from random import randrange, random
 from time import time
 
 import engine
+from idlepatterns import Idle
 
-class Idle(engine.Idle):
+class Template(Idle):
   def render(self):
-    self.wait_for_frame_end()
+    if not self.wait_for_frame_end():
+      self.blend_pixels()
+      self.apply_color()
+      engine.raw_pixels = self.render_values * 255
+      return
     self.init_values()
     if engine.prefs.get("applyIdleMinBefore", False):
       self.apply_min()
@@ -19,6 +25,4 @@ class Idle(engine.Idle):
 
     engine.raw_pixels = self.render_values * 255
 
-idle = Idle()
-idle.generate_players(engine.Player)
-
+idle = Template()
