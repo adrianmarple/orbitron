@@ -1,4 +1,4 @@
-
+// Large
 a = 9
 b = 7
 c = 6
@@ -10,16 +10,39 @@ j = 16
 k = 3
 l = 26
 
+// Medium
+a = 5.25
+b = 4
+c = 3
+e = 7
+f = 3
+g = 13
+h = 9
+j = 10
+k = 2
+l = 20
+
+// // Small
+// a = 3.91
+// b = 3
+// c = 2
+// e = 4
+// f = 2
+// g = 7
+// h = 6
+// j = 6
+// k = 1
+// l = 10
 
 addButton("de Ruyter Crest", () => {
   name = "deruyter"
-  setLaserParams({
-    BORDER: 4,
-    CHANNEL_WIDTH: 5,
-    CHANNEL_DEPTH: 8,
-    NOTCH_DEPTH: 3,
-    PIXEL_DISTANCE: 8.333, //https://www.superlightingled.com/4mm-ws2812c-individually-addressable-rgb-led-strip-light-120ledsm-328ft1m-p-4003.html
-  })
+  // setLaserParams({
+  //   BORDER: 4,
+  //   CHANNEL_WIDTH: 5,
+  //   CHANNEL_DEPTH: 8,
+  //   NOTCH_DEPTH: 3,
+  //   PIXEL_DISTANCE: 8.333, //https://www.superlightingled.com/4mm-ws2812c-individually-addressable-rgb-led-strip-light-120ledsm-328ft1m-p-4003.html
+  // })
 
   for (let i = 0; i < 4; i++) {
     addVertex(rotateZ([0,a,0], i * Math.PI/2))
@@ -30,7 +53,6 @@ addButton("de Ruyter Crest", () => {
     addTriangulation(v1, v2, b)
   }
   let octEdges = [...edges]
-  console.log(edges)
 
   // let octEdges = addPolygon(8, [0,0,0], 8)
   // rotateZAll(Math.PI / 8, true)
