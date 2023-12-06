@@ -939,7 +939,7 @@ def render_pulse(direction=None, color=None,
     start_time=0, duration=READY_PULSE_DURATION, reverse=False):
   t = (time() - start_time) / duration
   if (t >= 1):
-    return np.zeros((RAW_SIZE, 1))
+    return np.zeros(RAW_SIZE)
   if reverse:
     t = 1 - t
 
@@ -960,7 +960,7 @@ def render_pulse(direction=None, color=None,
   if color is not None:
     global raw_pixels
     raw_pixels += np.array(np.outer(ds, color), dtype="<u1")
-  return ds
+  return np.array(ds).ravel()
 
 # Assume direction is normalized
 def render_ring(direction, color, width):

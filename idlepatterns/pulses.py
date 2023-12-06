@@ -19,7 +19,7 @@ class Pulses(Idle):
     self.base_duration = new_base_duration
 
   def init_values(self):
-    self.render_values = np.zeros((RAW_SIZE, 1), dtype='float64')
+    self.render_values = np.zeros(RAW_SIZE)
     for pulse in self.pulses:
       values = pulse.render()
       self.render_values += np.multiply(values, values) * 12
