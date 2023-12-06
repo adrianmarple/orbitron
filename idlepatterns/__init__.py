@@ -148,9 +148,9 @@ class Idle(Game):
       self.render_values = np.outer(self.render_values, self.color())
     else:
       color_phase = (time()/get_pref("rainbowDuration")) % 1
-      R = self.rainbow_helper(color_phase + 0.66666)
+      R = self.rainbow_helper(color_phase + 0.33333)
       G = self.rainbow_helper(color_phase)
-      B = self.rainbow_helper(color_phase + 0.33333)
+      B = self.rainbow_helper(color_phase + 0.66666)
       self.render_values = np.stack([R,G,B], axis=-1)
 
   def rainbow_helper(self, offset):
