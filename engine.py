@@ -310,7 +310,7 @@ def update():
     global previous_scroll_time
 
     if current_text != previous_text:
-      display.print(current_text[:4])
+      display.print(current_text[:4].replace("5","S"))
       text_index = 4
       previous_text = current_text
       previous_scroll_time = time()
