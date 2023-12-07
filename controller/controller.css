@@ -3,6 +3,10 @@
   font-size: min(1.5vh, 2vw);
 }
 
+html, #game-stuff {
+  height: 100%;
+}
+
 body, #app, .main {
   touch-action: none;
   user-select: none;
