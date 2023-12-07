@@ -79,10 +79,10 @@ class Idle(Game):
       self.apply_min()
     if get_pref("hasStartAndEnd"):
       self.apply_fade()
-    self.apply_brightness()
     self.target_values = self.render_values * 1
     self.blend_pixels()
     self.apply_color()
+    self.apply_brightness()
     if not get_pref("applyIdleMinBefore"):
       self.apply_min()
 
