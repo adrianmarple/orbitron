@@ -63,6 +63,18 @@ var app = new Vue({
         f: x => Math.pow(x + 1,1/3),
         inverseF: x => Math.round(Math.pow(x,3) - 1),
       },
+      fixedColor: {
+        f: hexToRgb,
+        inverseF: rgbToHex,
+      },
+      gradientStartColor: {
+        f: hexToRgb,
+        inverseF: rgbToHex,
+      },
+      gradientEndColor: {
+        f: hexToRgb,
+        inverseF: rgbToHex,
+      },
     },
     GAMES_INFO,
     uuid: uuid(),
@@ -146,7 +158,6 @@ var app = new Vue({
         if (val[key] != oldValue[key]) {
           hasChange = true
           if (this.warpedPrefs[key]) {
-            console.log(this.prefs[key])
             this.warpedPrefs[key].value = this.warpedPrefs[key].f(val[key])
           }
         }
@@ -605,12 +616,11 @@ var app = new Vue({
       this.prefs[prefName] = !this.prefs[prefName]
       this.updatePrefs(prefName)
     },
-    updateWarpedPref(event, prefName) {
-      let value = event.target.value
+    updateWarpedPref(prefName) {
+      let value = this.warpedPrefs[prefName].value
       this.prefs[prefName] = this.warpedPrefs[prefName].inverseF(value)
       this.updatePrefs(prefName)
     },
-
 
     prettifySettingName(name) {
       return name.toLowerCase().replaceAll("_", " ")
@@ -648,6 +658,24 @@ var app = new Vue({
     },
   },
 });
+
+function rgbToHex({red, green, blue}) {
+  return "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1);
+}
+
+function hexToRgb(hex) {
+  // // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+  // var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  // hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+  //   return r + r + g + g + b + b;
+  // });
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    red: parseInt(result[1], 16),
+    green: parseInt(result[2], 16),
+    blue: parseInt(result[3], 16)
+  } : null;
+}
 
 function phaseColor() {
   let colorPhase = (Date.now()/1000.0/10) % 1

@@ -155,29 +155,38 @@ default_prefs = {
   # COLOR
   "brightness": 100,
   "fadeDuration": 30,
-  "fixed.blue": 255,
-  "fixed.green": 255,
-  "fixed.red": 255,
+  "fixedColor": "#ffffff",
+  "gradientStartColor": "#ff0000",
+  "gradientEndColor": "#0000ff",
   "rainbowDuration": 10.0,
   "rainbowFade": 0.0,
 }
 pref_type = {}
 for (key, value) in default_prefs.items():
   pref_type[key] = type(value)
+  if pref_type[key] == str and value[0] == "#":
+    pref_type[key] = "color"
 
 current_prefs = {}
 current_prefs.update(default_prefs)
+
+converted_prefs = {}
 
 pref_path = os.path.dirname(__file__) + "/prefs.json"
 if os.path.exists(pref_path):
   f = open(pref_path, "r")
   prefs = json.loads(f.read())
   current_prefs.update(prefs)
+  for key in prefs.keys():
+    converted_prefs[key] = None
   f.close()
 else:
   prefs = {}
 
+
 def update_prefs(update):
+  for key in update.keys():
+    converted_prefs[key] = None
   prefs.update(update)
   current_prefs.update(update)
   idle.update_prefs()
@@ -187,14 +196,27 @@ def update_prefs(update):
   f.write(json.dumps(prefs, indent=2))
   f.close()
 
+def hex_to_rgb(h):
+  h = h.lstrip('#')
+  return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
 def get_pref(pref_name):
+  converted_pref = converted_prefs.get(pref_name, None)
+  if converted_pref is not None:
+    return converted_pref
+
   pref = current_prefs[pref_name]
-  if (pref_type[pref_name] == int):
-    return int(pref)
-  if (pref_type[pref_name] == float):
-    return float(pref)
-  else:
-    return pref
+  if pref_type[pref_name] == int:
+    pref = int(pref)
+  elif pref_type[pref_name] == float:
+    pref = float(pref)
+  elif pref_type[pref_name] == "color":
+    pref = np.array(hex_to_rgb(pref))
+
+  converted_prefs[pref_name] = pref
+  return pref
+  
+  
 
 
 # ================================ START =========================================

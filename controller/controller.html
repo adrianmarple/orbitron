@@ -97,15 +97,45 @@
           @change="updatePrefs('rainbowDuration')">
         </input>
       </div>
+      
+      <div v-if="prefs.idleColor == 'gradient'">Start Color</div>
+      <div class="color-component"
+        v-for="component in ['red','green','blue']"
+        v-if="prefs.idleColor == 'gradient'">
+        <div class="label">
+          <div>{{component[0]}}: {{warpedPrefs.gradientStartColor.value[component]}}</div>
+        </div>
+        <input type="range" min="0" max="255" class="slider"
+          v-model="warpedPrefs.gradientStartColor.value[component]"
+          @change="updateWarpedPref('gradientStartColor')"
+          :style="{'accent-color': component}"
+        >
+        </input>
+      </div>
+      <div v-if="prefs.idleColor == 'gradient'">End Color</div>
+      <div class="color-component"
+        v-for="component in ['red','green','blue']"
+        v-if="prefs.idleColor == 'gradient'">
+        <div class="label">
+          <div>{{component[0]}}: {{warpedPrefs.gradientEndColor.value[component]}}</div>
+        </div>
+        <input type="range" min="0" max="255" class="slider"
+          v-model="warpedPrefs.gradientEndColor.value[component]"
+          @change="updateWarpedPref('gradientEndColor')"
+          :style="{'accent-color': component}"
+        >
+        </input>
+      </div>
+
       <div class="color-component"
         v-for="component in ['red','green','blue']"
         v-if="prefs.idleColor == 'fixed'">
         <div class="label">
-          <div>{{component[0]}}: {{prefs['fixed.' + component]}}</div>
+          <div>{{component[0]}}: {{warpedPrefs.fixedColor.value[component]}}</div>
         </div>
         <input type="range" min="0" max="255" class="slider"
-          v-model="prefs['fixed.' + component]"
-          @change="updatePrefs('fixed.' + component)"
+          v-model="warpedPrefs.fixedColor.value[component]"
+          @change="updateWarpedPref('fixedColor')"
           :style="{'accent-color': component}"
         >
         </input>
@@ -116,6 +146,7 @@
           <option value="rainbow">Rainbow</option>
           <option value="timeofday">Nightshift</option>
           <option value="fixed">Fixed color</option>
+          <option value="gradient">Gradient</option>
         </select>
       </div>
       <div class="slider-container">
@@ -125,7 +156,7 @@
         </div>
         <input type="range" min="1" max="6.357" step="0.01" class="slider"
           v-model="warpedPrefs.idleMin.value"
-          @change="updateWarpedPref($event, 'idleMin')">
+          @change="updateWarpedPref('idleMin')">
         </input>
       </div>
       <div class="slider-container">

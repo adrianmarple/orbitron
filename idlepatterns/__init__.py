@@ -137,21 +137,26 @@ class Idle(Game):
     elif color_string == "timeofday":
       return time_of_day_color()
     else:
-      color_string = color_string.lstrip('#')
-      r = get_pref("fixed.red")
-      g = get_pref("fixed.green")
-      b = get_pref("fixed.blue")
-      return np.array((r,g,b))/255
+      return get_pref("fixedColor")/255
 
   def apply_color(self):
-    if get_pref("idleColor") != "rainbow" or get_pref("rainbowFade") == 0:
-      self.render_values = np.outer(self.render_values, self.color())
-    else:
+    if get_pref("idleColor") == "rainbow" and get_pref("rainbowFade") > 0:
       color_phase = (time()/get_pref("rainbowDuration")) % 1
       R = self.rainbow_helper(color_phase + 0.33333)
       G = self.rainbow_helper(color_phase)
       B = self.rainbow_helper(color_phase + 0.66666)
       self.render_values = np.stack([R,G,B], axis=-1)
+    elif get_pref("idleColor") == "gradient":
+      rectified_target_values = np.minimum(1, self.target_values*1.5)
+      start = get_pref("gradientStartColor")/255
+      start_colors = np.outer(rectified_target_values, start)
+      end = get_pref("gradientEndColor")/255
+      end_colors = np.outer(1 - rectified_target_values, end)
+      colors = start_colors + end_colors
+      self.render_values = np.outer(self.render_values, np.ones(3))
+      self.render_values = np.multiply(self.render_values, colors)
+    else:
+      self.render_values = np.outer(self.render_values, self.color())
 
   def rainbow_helper(self, offset):
     X = np.sqrt(self.target_values)
