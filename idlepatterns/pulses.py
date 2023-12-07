@@ -29,7 +29,7 @@ class Pulses(Idle):
       if pulse.start_time + pulse.duration < time():
         self.pulses.pop(0)
 
-    x = get_pref("idleDensity") / get_pref("idleFrameRate") / 2 / FRAMERATE
+    x = get_pref("idleDensity") / 50 / FRAMERATE
     if random() < x or len(self.pulses) == 0:
       self.pulses.append(Pulse(self.base_duration*(1 + random()), (2*random()-1, 2*random()-1, 0)))
 
