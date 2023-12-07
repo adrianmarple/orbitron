@@ -1002,7 +1002,9 @@ def touchall():
 def broadcast_event(event):
   print(json.dumps(event))
 
-# import traceback
+exclude = json.loads(os.getenv("EXCLUDE", "{}"))
+if os.getenv("IDLE"):
+  exclude["idlePattern"] = True
 def broadcast_state():
   # for line in traceback.format_stack():
   #   print(line.strip(), file=sys.stderr)
@@ -1021,6 +1023,7 @@ def broadcast_state():
     "soundActions": remoteSoundActions,
     "prefs": current_prefs,
     "currentText": current_text,
+    "exclude": exclude,
   }
   print(json.dumps(message))
 

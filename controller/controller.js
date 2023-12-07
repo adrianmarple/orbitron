@@ -183,6 +183,13 @@ var app = new Vue({
     mustLogin() {
       return this.state.mustLogin
     },
+    navBarItems() {
+      return ['timing', 'colors', 'pattern', 'games']
+        .filter(name => !this.exclude[name])
+    },
+    exclude() {
+      return this.state.exclude
+    },
     gameStarted() {
       return this.state.game != "idle"
     },

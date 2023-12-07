@@ -384,7 +384,15 @@ function displayText(text, priority) {
   python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
 }
 
-const python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`],{env:{...process.env,...config}})
+console.log(config.EXCLUDE)
+let env = {...process.env,...config}
+for (let key in env) {
+  let value = env[key]
+  if (typeof value == "object") {
+    env[key] = JSON.stringify(value)
+  }
+}
+const python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`], {env})
 let raw_pixels = null
 let raw_json = null
 python_process.stdout.on('data', data => {

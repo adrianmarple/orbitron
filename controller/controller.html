@@ -168,7 +168,7 @@
           @change="updatePrefs('idleFrameRate')">
         </input>
       </div>
-      <div class="space-between">
+      <div class="space-between" v-if="!exclude['idlePattern']">
         <label for="pattern">Pattern:</label>
         <select name="pattern" v-model="prefs.idlePattern" @change="updatePrefs('idlePattern')">
           <option value="default">Default</option>
@@ -180,7 +180,7 @@
 
 
     <div class="nav-bar">
-      <img v-for="name in ['timing', 'colors', 'pattern', 'games', ]"
+      <img v-for="name in navBarItems"
         :src="`/controller/${name}.svg`"
         @click="nav=name"
         :style="{filter: nav == name ? 'invert(12%) sepia(98%) saturate(4397%) hue-rotate(265deg) brightness(98%) contrast(130%)' : ''}"
