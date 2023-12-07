@@ -75,14 +75,6 @@ DEFAULT_PULSE_DIRECTION = np.array(
   dtype=float)
 UP = 1 if IS_WALL else 2 # TODO use default pulse direction (or make defaultPulseDirection use UP)
 
-# minPulseDot = 1000
-# maxPulseDot = -1000
-# for coord in coords:
-#   d = np.dot(coord, DEFAULT_PULSE_DIRECTION)
-#   minPulseDot = min(minPulseDot, d)
-#   maxPulseDot = max(maxPulseDot, d)
-# pulseRange = maxPulseDot - minPulseDot
-
 minPulseDot = -1
 pulseRange = 2
 
@@ -330,7 +322,10 @@ def update():
 
     display.scroll(1)
     if text_index < len(current_text):
-      display[3] = current_text[text_index]
+      char = current_text[text_index]
+      if char == "5":
+        char = "S" # 5 is rendered weird so replace it with an "S" to look better
+      display[3] = char
     else:
       display[3] = " "
     display.show()
