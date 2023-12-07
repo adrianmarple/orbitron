@@ -147,7 +147,8 @@ class Idle(Game):
       B = self.rainbow_helper(color_phase + 0.66666)
       self.render_values = np.stack([R,G,B], axis=-1)
     elif get_pref("idleColor") == "gradient":
-      rectified_target_values = np.minimum(1, self.target_values*1.5)
+      rectified_target_values = self.target_values * 100.0 / get_pref("gradientThreshold")
+      rectified_target_values = np.minimum(1, rectified_target_values)
       start = get_pref("gradientStartColor")/255
       start_colors = np.outer(rectified_target_values, start)
       end = get_pref("gradientEndColor")/255

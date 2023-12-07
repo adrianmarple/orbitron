@@ -158,6 +158,7 @@ default_prefs = {
   "fixedColor": "#ffffff",
   "gradientStartColor": "#ff0000",
   "gradientEndColor": "#0000ff",
+  "gradientThreshold": 66,
   "rainbowDuration": 10.0,
   "rainbowFade": 0.0,
 }

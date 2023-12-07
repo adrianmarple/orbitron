@@ -126,6 +126,15 @@
         >
         </input>
       </div>
+      <div class="slider-container" v-if="prefs.idleColor == 'gradient'">
+        <div class="label">
+          <div>Threshold:</div>
+          <div>{{prefs.gradientThreshold}}</div>
+        </div>
+        <input type="range" min="1" max="100" class="slider" v-model="prefs.gradientThreshold"
+          @change="updatePrefs('gradientThreshold')">
+        </input>
+      </div>
 
       <div class="color-component"
         v-for="component in ['red','green','blue']"
@@ -144,12 +153,12 @@
         <label for="color">Color:</label>
         <select name="color" v-model="prefs.idleColor" @change="updatePrefs('idleColor')">
           <option value="rainbow">Rainbow</option>
-          <option value="timeofday">Nightshift</option>
+          <!-- <option value="timeofday">Nightshift</option> -->
           <option value="fixed">Fixed color</option>
           <option value="gradient">Gradient</option>
         </select>
       </div>
-      <div class="slider-container">
+      <!-- <div class="slider-container">
         <div class="label">
           <div>Min pixel brightness:</div>
           <div>{{prefs.idleMin}}</div>
@@ -158,7 +167,7 @@
           v-model="warpedPrefs.idleMin.value"
           @change="updateWarpedPref('idleMin')">
         </input>
-      </div>
+      </div> -->
       <div class="slider-container">
         <div class="label">
           <div>Brightness:</div>
