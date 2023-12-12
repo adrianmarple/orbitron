@@ -88,20 +88,20 @@ document.getElementById("download").addEventListener('click', async () => {
   }
 })
 
-setTimeout(() => {
-  document.querySelectorAll(".button").forEach(elem => elem.addEventListener('click', function() {
-    setTimeout(() => {
-      document.querySelectorAll("path").forEach(path => path.setAttribute('d', ""))
-      cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
-      if (isWall) {
-        KERF = ACRYLIC_KERF
-        createCoverSVG()
-        console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
-        // createWallSVG()
-      }
-    }, 100)
-  }))
-}, 100)
+for (let displayName in buttonClickMap) {
+  let onClick = buttonClickMap[displayName]
+  buttonClickMap[displayName] = async () => {
+    await onClick()
+    document.querySelectorAll("path").forEach(path => path.setAttribute('d', ""))
+    cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
+    if (isWall) {
+      KERF = ACRYLIC_KERF
+      createCoverSVG()
+      console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
+      // createWallSVG()
+    }
+  }
+}
 
 let wallInfo = []
 let minX = 0

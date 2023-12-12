@@ -99,9 +99,12 @@ for (let setting of document.querySelectorAll("#settings > div")) {
   window[varName] = false
   let checkbox = document.createElement("input")
   checkbox.type = "checkbox"
+  window[varName] = localStorage.getItem(varName) === "true"
+  checkbox.checked = window[varName]
   setting.addEventListener("click", () => {
     window[varName] = !window[varName]
     checkbox.checked = window[varName]
+    localStorage.setItem(varName, window[varName])
   })
   setting.prepend(checkbox)
 }
@@ -242,26 +245,36 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+buttonClickMap = {}
 function addButton(displayName, onClick) {
+  buttonClickMap[displayName] = async () => {
+    name = displayName
+    localStorage.setItem("button", displayName)
+    reset()
+    await onClick()
+    generatePixelInfo()
+  }
   button = document.createElement("div")
   button.innerHTML = displayName
 
   document.getElementById("type-buttons").appendChild(button)
   button.classList.add("button")
-  button.addEventListener('click', async () => {
-    name = displayName
-    reset()
-    await onClick()
-    generatePixelInfo()
+  button.addEventListener('click', () => {
+    buttonClickMap[displayName]()
   })
 }
+setTimeout(() => {
+  let buttonToClick = localStorage.getItem("button")
+  if (buttonToClick && buttonClickMap[buttonToClick]) {
+    buttonClickMap[buttonToClick]()
+  }
+}, 50)
 
 </script>
 
 <script type="text/javascript" src="topology.js"></script>
 <script type="text/javascript" src="data.js"></script>
 <script type="text/javascript" src="vector.js"></script>
-<script type="text/javascript" src="laser.js"></script>
 
 <script type="text/javascript" src="rhombicosidodecahedron/button.js"></script>
 <script type="text/javascript" src="helmet/button.js"></script>
@@ -274,5 +287,8 @@ function addButton(displayName, onClick) {
 <script type="text/javascript" src="crest/button.js"></script>
 <script type="text/javascript" src="crest/spiral.js"></script>
 <script type="text/javascript" src="hackerdojo/button.js"></script>
+
+<!-- laser.js must come after adding buttons -->
+<script type="text/javascript" src="laser.js"></script>
 </body>
 </html>
