@@ -11,8 +11,8 @@ class Hive(Idle):
   def __init__(self):
     Idle.__init__(self)
     self.highlight = np.zeros(RAW_SIZE)
-    self.highlight_rectangle(-25, 1, -10, 7)
-    self.highlight_rectangle(-10, -7, 10, -1)
+    self.highlight_rectangle(-0.87, 0.055, -0.3, 0.22)
+    self.highlight_rectangle(-0.33, -0.265, 0.33, -0.001)
 
   def highlight_rectangle(self, minX, minY, maxX, maxY):
     for i in range(RAW_SIZE):
@@ -22,7 +22,7 @@ class Hive(Idle):
 
   def init_values(self):
     Idle.init_values(self)
-    self.render_values += self.highlight * 0.2
+    self.render_values += self.highlight * 0.15
 
 
 idle = Hive()

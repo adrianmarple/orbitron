@@ -2,7 +2,7 @@
 addButton("The Hive", async () => {
   name = "hive"
   BOTTOM_THICKNESS = TOP_THICKNESS
-  pixelDensity = 0.5
+  ledAtVertex = false
   setLaserParams({
     BORDER: 4,
     CHANNEL_WIDTH: 5,
@@ -12,9 +12,8 @@ addButton("The Hive", async () => {
   })
 
   await addFromSVG("hackerdojo/hive.svg")
-  addTriangulation(verticies[88], verticies[85], 4)
+  addTriangulation(verticies[89], verticies[86], 8)
 
-  resizeOnExport = false
   doubleEdges()
   center()
   EulerianPath(37, 1)

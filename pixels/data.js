@@ -151,7 +151,11 @@ function generatePixelInfo() {
   }
   pixelDensity *= resizeScale
 
-  additionalNeighbors = []
+  let additionalNeighbors = []
+  let vertexAdjacencies = []
+  for (let _ of verticies) {
+    vertexAdjacencies.push([])
+  }
 
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
@@ -161,13 +165,15 @@ function generatePixelInfo() {
     let e1 = delta(v1,v0)
     let e2 = delta(v2,v1)
     let edgeLength = magnitude(e2)
-    for (let alpha = 0; true; alpha += pixelDensity) {
-      if (epsilonEquals(edgeLength, alpha, 0.01)) break
+    for (let alpha = ledAtVertex ? 0 : pixelDensity/2; true; alpha += pixelDensity) {
+      if (ledAtVertex && epsilonEquals(edgeLength, alpha, 0.01)) break
+      if (!ledAtVertex && epsilonEquals(edgeLength, alpha - pixelDensity/2, 0.01)) break
       if (alpha > edgeLength) {
         console.log(alpha, edgeLength)
         console.error("Edge legnth not a integer multiple of pixel density")
         return
       }
+
       let newCoord = linearCombo(v2, v1, alpha/edgeLength)
       let dupeIndex = -1
       for (let i = 0; i < coords.length; i++) {
@@ -177,22 +183,29 @@ function generatePixelInfo() {
           break
         }
       }
-      // if (alpha == 0 && epsilonEquals(dot(e1, e2), -magnitude(e1) * edgeLength)) {
-      //   // Skip LED when doubling back
-      //   // Still add connection to dupe
-      //   // Dupe should necessarily exist
-      //   if (dupeIndex == -1) {
-      //     console.error ("Doubleback detected with no dupe")
-      //   }
-      //   // Previous pixel should necessarily be unique
-      //   additionalNeighbors.push([dupeIndex, coords.length-1])
-      // }
-      // else 
-      if (dupeIndex >= 0) {
+      if (alpha == 0 && epsilonEquals(dot(e1, e2), -magnitude(e1) * edgeLength)) {
+        // Skip LED when doubling back
+        // Still add connection to dupe
+        // Dupe should necessarily exist
+        if (dupeIndex == -1) {
+          console.error ("Doubleback detected with no dupe")
+        }
+        // Previous pixel should necessarily be unique
+        additionalNeighbors.push([dupeIndex, coords.length-1])
+      }
+      else if (dupeIndex >= 0) {
         uniqueToDupe.push(dupeIndex)
       } else {
-        uniqueToDupe.push(coords.length)
+        dupeIndex = coords.length
+        uniqueToDupe.push(dupeIndex)
         coords.push(newCoord)
+      }
+
+      if (!ledAtVertex && epsilonEquals(pixelDensity/2, alpha, 0.01)) {
+        vertexAdjacencies[previousVertex.index].push(dupeIndex)
+      }
+      if (!ledAtVertex && epsilonEquals(edgeLength - pixelDensity/2, alpha, 0.01)) {
+        vertexAdjacencies[nextVertex.index].push(dupeIndex)
       }
     }
     v0 = previousVertex.ogCoords
@@ -219,6 +232,19 @@ function generatePixelInfo() {
     neighbors[n1].push(n2)
     neighbors[n2].push(n1)
   }
+  if (!ledAtVertex) {
+    for (let adjacencies of vertexAdjacencies) {
+      for (let n1 of adjacencies) {
+        for (let n2 of adjacencies) {
+          if (n1 == n2) continue
+          if (neighbors[n1].includes(n2)) continue
+          
+          neighbors[n1].push(n2)
+          neighbors[n2].push(n1)
+        }
+      }
+    }
+  }
 
   for (let i = 0; i < coords.length; i++) {
     let local_neighbors = neighbors[i]
@@ -237,10 +263,6 @@ function generatePixelInfo() {
   }
 
   let RAW_SIZE = uniqueToDupe.length
-  // if (RAW_SIZE > 2728) {
-  //   console.error(`Too many LED pixels: ${RAW_SIZE}. Maximum is 2728`)
-  //   return
-  // }
   console.log(RAW_SIZE, SIZE)
 
   let info = {

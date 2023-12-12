@@ -184,7 +184,6 @@ var app = new Vue({
       let subGroup = new THREE.Group()
       let bgColor = new THREE.Color(0)
       let stripColor = new THREE.Color(0x282828)
-      let standColor = new THREE.Color(0x080808)
       let scene = new THREE.Scene()
       scene.background = bgColor
 
@@ -209,7 +208,7 @@ var app = new Vue({
 
       for (let index of this.pixelData.uniqueToDupe) {
         let point = this.pixelData.coords[index]
-        let pixelGeometry = new THREE.SphereGeometry(0.014, 8, 8)
+        let pixelGeometry = new THREE.SphereGeometry(0.01, 8, 8)
         let pixelMaterial = new THREE.MeshBasicMaterial({
           color: 0x999999
         })
