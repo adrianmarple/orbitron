@@ -1,5 +1,7 @@
 <html>
 <head>
+  <link rel="shortcut icon" href="/favicon.png" />
+
 <style>
 body, html {
   width: 100%;
@@ -57,7 +59,7 @@ canvas {
 }
 
 </style>
-<head>
+</head>
 <body>
 <canvas width="1000" height="1000"></canvas>
 
@@ -165,10 +167,13 @@ function render() {
 
   let edgesCopy = edges.slice()
   edgesCopy.sort((a, b) => {
-    let pathFactor = subPath.includes(a.index) ? 0.1 : 0
-    pathFactor += a.isDupe ? 0.01 : 0
-    pathFactor -= subPath.includes(b.index) ? 0.1 : 0
-    pathFactor -= b.isDupe ? 0.01 : 0
+    let pathFactor = 0
+    if (path) {
+      pathFactor = subPath.includes(a.index) ? 0.1 : 0
+      pathFactor += a.isDupe ? 0.01 : 0
+      pathFactor -= subPath.includes(b.index) ? 0.1 : 0
+      pathFactor -= b.isDupe ? 0.01 : 0
+    }
     return pathFactor + b.verticies[0].coordinates[2] - a.verticies[0].coordinates[2]
   })
   for (let edge of edgesCopy) {
@@ -215,30 +220,6 @@ function render() {
   document.getElementById("cover").style.display = showLaserSVG ? "block" : "none"
 }
 
-
-urlToContext = {}
-async function getImageContext(src) {
-  if (!src) src = imageUrl
-  if (!src) return null
-  if (urlToContext[src]) return urlToContext[src]
-
-  let img = new Image()
-  img.src = src
-  await new Promise(resolve => img.onload = resolve);
-  let canvas = document.createElement('canvas')
-  canvas.width = img.width
-  canvas.height = img.height
-  let ctx = canvas.getContext('2d', { willReadFrequently: true })
-  ctx.drawImage(img, 0, 0)
-  try {
-    ctx.getImageData(0, 0, canvas.width, canvas.height).data
-  } catch (e) {
-    console.error("Make sure to use a local server to read pixels: python3 -m http.server")
-    return null
-  }
-  urlToContext[src] = ctx
-  return ctx
-}
 
 function random() {
   let x = Math.sin(seed++) * 10000
@@ -291,4 +272,6 @@ function addButton(displayName, onClick) {
 <script type="text/javascript" src="MADE/button.js"></script>
 <script type="text/javascript" src="crest/button.js"></script>
 <script type="text/javascript" src="crest/spiral.js"></script>
+<script type="text/javascript" src="hackerdojo/button.js"></script>
 </body>
+</html>

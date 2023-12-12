@@ -4,9 +4,8 @@ async function EulerianPath(currentVertex, pathOverride) {
   if (typeof currentVertex == 'number') {
     path = [currentVertex]
     currentVertex = edges[currentVertex].verticies[pathOverride || 0]
-    console.log(currentVertex)
   }
-  if (pathOverride) {
+  else if (pathOverride) {
     path = pathOverride
   }
   noncovergenceGuard -= 1
@@ -84,7 +83,10 @@ async function EulerianPath(currentVertex, pathOverride) {
 }
 
 function startVertex() {
-  if (path.length == 0) console.error("no path!")
+  if (path.length == 0) {
+    console.error("no path!")
+    return verticies[0]
+  }
   let e0 = edges[path[0]]
   let e1 = edges[path[1]]
   let v = e0.verticies[0]
@@ -162,6 +164,7 @@ function generatePixelInfo() {
     for (let alpha = 0; true; alpha += pixelDensity) {
       if (epsilonEquals(edgeLength, alpha, 0.01)) break
       if (alpha > edgeLength) {
+        console.log(alpha, edgeLength)
         console.error("Edge legnth not a integer multiple of pixel density")
         return
       }
@@ -174,17 +177,18 @@ function generatePixelInfo() {
           break
         }
       }
-      if (alpha == 0 && epsilonEquals(dot(e1, e2), -magnitude(e1) * edgeLength)) {
-        // Skip LED when doubling back
-        // Still add connection to dupe
-        // Dupe should necessarily exist
-        if (dupeIndex == -1) {
-          console.error ("Doubleback detected with no dupe")
-        }
-        // Previous pixel should necessarily be unique
-        additionalNeighbors.push([dupeIndex, coords.length-1])
-      }
-      else if (dupeIndex >= 0) {
+      // if (alpha == 0 && epsilonEquals(dot(e1, e2), -magnitude(e1) * edgeLength)) {
+      //   // Skip LED when doubling back
+      //   // Still add connection to dupe
+      //   // Dupe should necessarily exist
+      //   if (dupeIndex == -1) {
+      //     console.error ("Doubleback detected with no dupe")
+      //   }
+      //   // Previous pixel should necessarily be unique
+      //   additionalNeighbors.push([dupeIndex, coords.length-1])
+      // }
+      // else 
+      if (dupeIndex >= 0) {
         uniqueToDupe.push(dupeIndex)
       } else {
         uniqueToDupe.push(coords.length)
@@ -304,7 +308,7 @@ document.getElementById("download").addEventListener('click', function() {
   let a = document.createElement('a')
   a.download = name + '.json'
   a.href = window.URL.createObjectURL(blob)
-  a.textContent = 'Download ready';
-  a.style='display:none';
+  a.textContent = 'Download ready'
+  a.style='display:none'
   a.click()
 })

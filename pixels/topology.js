@@ -82,6 +82,7 @@ function addVertex(coordinates) {
     }
   }
   let ogCoords = scale(coordinates, 1) // copy
+  coordinates = scale(coordinates, 1) // copy
   let vertex = {
     index: verticies.length,
     edges: [],
@@ -174,26 +175,45 @@ function addSquareulation(v1, v2, a, b) {
   return [v3,v4]
 }
 
+
+function removeVertex(vertex) {
+  if (!verticies) return
+  if (typeof vertex == "number") {
+    vertex = verticies[vertex]
+  }
+  remove(verticies, vertex)
+  for (let edge of vertex.edges) {
+    remove(edges, edge)
+  }
+  resetInidices()
+}
 function removeEdge(edge) {
   if (!edges) return
+  if (typeof edge == "number") {
+    edge = edges[edge]
+  }
   remove(edges, edge)
   for (let vertex of edge.verticies) {
     remove(vertex.edges, edge)
     if (vertex.edges.length == 0) {
       remove(verticies, vertex)
-      for (let i = 0; i < verticies.length; i++) {
-        verticies[i].index = i
-      }
     }
   }
-  for (let i = 0; i < edges.length; i++) {
-    edges[i].index = i
-  }
+  resetInidices()
 }
 function remove(array, element)  {
   let index = array.indexOf(element)
   if (index >= 0) {
     array.splice(index, 1)
+  }
+}
+
+function resetInidices() {
+  for (let i = 0; i < verticies.length; i++) {
+    verticies[i].index = i
+  }
+  for (let i = 0; i < edges.length; i++) {
+    edges[i].index = i
   }
 }
 
@@ -209,8 +229,51 @@ function doubleEdges() {
   }
 }
 
-async function addSquaresFromPixels(halfTime, skips) {
-  // if (!src) src = imageUrl
+async function addFromSVG(src) {
+  imageUrl = src || imageUrl
+  const text = await (await fetch(imageUrl)).text()
+  const svg = new DOMParser().parseFromString(text, "image/svg+xml")
+  coords = [0,0,0]
+  let previousVertex = null
+  for (let path of svg.querySelectorAll("path")) {
+    path = path.getAttribute("d")
+    for (let match of path.matchAll(/[MLHVlhv][\d\s\.]+/g)) {
+      let edgeString = match[0]
+      let commandChar = edgeString[0]
+      numbers = edgeString.slice(1).split(" ").map(x => parseFloat(x))
+      switch (commandChar) {
+        case "M":
+          coords[0] = numbers[0]
+          coords[1] = -numbers[1]
+          previousVertex = addVertex(coords)
+          break
+        case "L":
+          coords[0] = numbers[0]
+          coords[1] = -numbers[1]
+          vert = addVertex(coords)
+          addEdge(previousVertex, vert)
+          previousVertex = vert
+          break
+        case "H":
+          coords[0] = numbers[0]
+          vert = addVertex(coords)
+          addEdge(previousVertex, vert)
+          previousVertex = vert
+          break
+        case "V":
+          coords[1] = -numbers[0]
+          vert = addVertex(coords)
+          addEdge(previousVertex, vert)
+          previousVertex = vert
+          break
+      }
+    }
+  }
+}
+
+async function addSquaresFromPixels(src) {
+  imageUrl = src || imageUrl
+
   let ctx = await getImageContext(imageUrl)
   for (let x = 0; x < ctx.canvas.width; x++) {
     for (let y = 0; y < ctx.canvas.height; y++) {
@@ -220,34 +283,35 @@ async function addSquaresFromPixels(halfTime, skips) {
       }
     }
   }
-
-  if (halfTime) {
-    for (let x = 0; x < ctx.canvas.width - 1; x += 2) {
-      if (skips && skips.x.includes(x)) x += 1
-      for (let y = 0; y < ctx.canvas.height; y++) {
-        let pixel1 = ctx.getImageData(x, y, 1, 1).data
-        let pixel2 = ctx.getImageData(x+1, y, 1, 1).data
-        if (isFilledPixel(pixel1) && isFilledPixel(pixel2)) {
-          removeEdge(findEdgeFromCenter([x+0.5, -y, 0]))
-        }
-      }
-    }
-    for (let y = 0; y < ctx.canvas.width - 1; y += 2) {
-      if (skips && skips.y.includes(y)) y += 1
-      for (let x = 0; x < ctx.canvas.height; x++) {
-        let pixel1 = ctx.getImageData(x, y, 1, 1).data
-        let pixel2 = ctx.getImageData(x, y+1, 1, 1).data
-        if (isFilledPixel(pixel1) && isFilledPixel(pixel2)) {
-          removeEdge(findEdgeFromCenter([x, -(y+0.5), 0]))
-        }
-      }
-    }
-  }
-
   center()
 }
 
 function isFilledPixel(pixel) {
   // very dark red component & not transparent
   return pixel[0] < 10 && pixel[3] > 0
+}
+
+
+urlToContext = {}
+async function getImageContext(src) {
+  if (!src) src = imageUrl
+  if (!src) return null
+  if (urlToContext[src]) return urlToContext[src]
+
+  let img = new Image()
+  img.src = src
+  await new Promise(resolve => img.onload = resolve);
+  let canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = img.height
+  let ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(img, 0, 0)
+  try {
+    ctx.getImageData(0, 0, canvas.width, canvas.height).data
+  } catch (e) {
+    console.error("Make sure to use a local server to read pixels: python3 -m http.server")
+    return null
+  }
+  urlToContext[src] = ctx
+  return ctx
 }
