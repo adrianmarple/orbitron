@@ -128,31 +128,40 @@ async function createCoverSVG() {
   }
 
   while (directedEdges.length > 0) {
-    let lastEdge = directedEdges.pop()
+    let lastEdge = directedEdges.shift()
     let dPath = [...lastEdge]
 
-    while (dPath[0] != dPath[dPath.length - 1]) {
+    while (true) {
       let e0 = delta(dPath[dPath.length-1].ogCoords, dPath[dPath.length-2].ogCoords)
       let leftmostTurn = null
       let minAngle = 7
+
+      if (dPath[0] == dPath[dPath.length - 1]) {
+        let e1 = delta(dPath[1].ogCoords, dPath[0].ogCoords)
+        minAngle = signedAngle(e1, e0)
+      }
+
       for (let dEdge of directedEdges) {
         let [v0, v1] = dEdge
         if (dPath[dPath.length - 1] != v0) continue
 
         let e1 = delta(v1.ogCoords, v0.ogCoords)
         let a = signedAngle(e1, e0)
-        if (epsilonEquals(Math.abs(a), Math.PI)) continue
+        if (epsilonEquals(Math.abs(a), Math.PI)) {
+          a = Math.abs(a)
+        }
         if (a < minAngle) {
           minAngle = a
           leftmostTurn = dEdge
         }
       }
-      if (leftmostTurn == null) {
-        console.error("Path deadend!")
-        break
+      if (!leftmostTurn) break
+      if (epsilonEquals(minAngle, Math.PI)) {
+        dPath.push(leftmostTurn[0])
+        continue
       }
       directedEdges.splice(directedEdges.indexOf(leftmostTurn), 1)
-      if (epsilonEquals(minAngle, 0)) {
+      if (epsilonEquals(minAngle, 0) && !epsilonEquals(magnitude(e0), 0)) {
         dPath.pop() // Join edges if the path is straight
       }
       dPath.push(leftmostTurn[1])
@@ -202,8 +211,23 @@ async function createCoverSVG() {
       let a1 = signedAngle(e1, e0)
       let a2 = signedAngle(e1, e2)
 
+      if (epsilonEquals(magnitude(e0), 0)) {
+        a1 = Math.PI/2
+      }
+      if (epsilonEquals(magnitude(e1), 0)) {
+        a1 = Math.PI/2
+        a2 = -Math.PI/2
+      }
+      if (epsilonEquals(magnitude(e2), 0)) {
+        a2 = -Math.PI/2
+      }
+
       let edgeLength = magnitude(e1)
-      e1 = scale(e1, 1/edgeLength)
+      if (epsilonEquals(edgeLength, 0)) {
+        e1 = scale(cross(e0, [0,0,1]), 1/magnitude(e0))
+      } else {
+        e1 = scale(e1, 1/edgeLength)
+      }
       edgeLength *= SCALE
       let n = cross(e1, [0,0,-1])
       let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
@@ -275,7 +299,7 @@ async function createCoverSVG() {
         [x2 - FASTENER_DEPTH, w2],
       ]
       minimalBorderString += pointsToSVGString(points, [e1, n], localOffset)
-    }
+    } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false
     if (imageUrl && dPath.length == 4) {
@@ -314,7 +338,7 @@ async function createCoverSVG() {
       }
   	  totalPathString += channelString
     }
-  }
+  } // END for (let dPath of paths)
   cover.querySelector("path").setAttribute("d", totalPathString)
 
   wallInfo.sort((a,b) => a.length - b.length)

@@ -269,6 +269,29 @@ async function addFromSVG(src) {
       }
     }
   }
+
+  for (let vertex of verticies) {
+    let v0 = vertex.ogCoords
+    for (let edge1 of vertex.edges) {
+      let e1 = delta(v0, otherVertex(edge1, vertex).ogCoords)
+      for (let edge2 of vertex.edges) {
+        if (edge1 == edge2) continue
+        let e2 = delta(v0, otherVertex(edge2, vertex).ogCoords)
+        if (!epsilonEquals(signedAngle(e1, e2), 0)) continue
+
+        if (magnitude(e2) < magnitude(e1)) {
+          let t = edge1
+          edge1 = edge2
+          edge2 = t
+        }
+        vertex1 = otherVertex(edge1, vertex)
+        edge2.verticies.push(vertex1)
+        vertex1.edges.push(edge2)
+        remove(vertex.edges, edge2)
+        remove(edge2.verticies, vertex)
+      }
+    }
+  }
 }
 
 async function addSquaresFromPixels(src) {
