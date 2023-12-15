@@ -13,7 +13,7 @@ class Hive(Idle):
     self.highlight = np.zeros(RAW_SIZE)
     # self.highlight_rectangle(-0.87, 0.055, -0.3, 0.22)
     # self.highlight_rectangle(-0.33, -0.265, 0.33, -0.001)
-    self.highlight_rectangle(0.13, -0.16, 0.9, 0.16)
+    self.highlight_rectangle(0.1, -0.14, 0.82, 0.14)
 
   def highlight_rectangle(self, minX, minY, maxX, maxY):
     for i in range(RAW_SIZE):

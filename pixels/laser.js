@@ -24,9 +24,8 @@ reset = () => {
     ACRYLIC_KERF: -0.03,
     // ACRYLIC_KERF: -0.06, // Used for hex cat recut
   })
-  setLaserParams({
-    HEIGHT: CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS,
-  })
+  HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
+  END_CAP_FACTOR = 0.3872
   KERF = ACRYLIC_KERF
 
   BALSA_LENGTH = 96*11.85 // A little more than 11 3/4 inches
@@ -127,11 +126,12 @@ async function createCoverSVG() {
     directedEdges.push([edge.verticies[1], edge.verticies[0]])
   }
 
-  while (directedEdges.length > 0) {
+  for (let i = 0; i < 1000; i++) {
+    if (directedEdges.length == 0) break
     let lastEdge = directedEdges.shift()
     let dPath = [...lastEdge]
 
-    while (true) {
+    for (let j = 0; j < 1000; j++) {
       let e0 = delta(dPath[dPath.length-1].ogCoords, dPath[dPath.length-2].ogCoords)
       let leftmostTurn = null
       let minAngle = 7
@@ -211,15 +211,29 @@ async function createCoverSVG() {
       let a1 = signedAngle(e1, e0)
       let a2 = signedAngle(e1, e2)
 
+      let endCapOffset = CHANNEL_WIDTH * END_CAP_FACTOR * -0.5 / SCALE
       if (epsilonEquals(magnitude(e0), 0)) {
         a1 = Math.PI/2
+        towardsEnd = scale(normalize(e1), -1)
+        v0 = add(v0, scale(towardsEnd, endCapOffset))
+        v1 = v0
+        e1 = delta(v2, v1)
       }
       if (epsilonEquals(magnitude(e1), 0)) {
         a1 = Math.PI/2
         a2 = -Math.PI/2
+        towardsEnd = normalize(e0)
+        v1 = add(v1, scale(towardsEnd, endCapOffset))
+        v2 = v1
+        e0 = delta(v1, v0)
+        e2 = delta(v3, v2)
       }
       if (epsilonEquals(magnitude(e2), 0)) {
         a2 = -Math.PI/2
+        towardsEnd = normalize(e1)
+        v2 = add(v2, scale(towardsEnd, endCapOffset))
+        v3 = v3
+        e1 = delta(v2, v1)
       }
 
       let edgeLength = magnitude(e1)

@@ -109,7 +109,8 @@ function isConnectedToStart(vertex) {
   let verticiesToProcess = [vertex]
   let start = startVertex(path)
 
-  while (verticiesToProcess.length > 0) {
+  for (let i = 0; i < 1000; i++) {
+    if (verticiesToProcess.length == 0) break
     let v = verticiesToProcess.pop()
     for (let edge of v.edges) {
       if (path.includes(edge.index)) continue
