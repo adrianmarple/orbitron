@@ -49,6 +49,36 @@
         Play Games
       </div>
     </div>
+    <!-- SAVE MENU -->
+    <div v-if="nav=='save'" class="nav-page">
+      <div class="button" id="restore-defaults" @click="clearPrefs()" >
+        Restore Defaults
+      </div>
+      <div class="scroll-containter">
+        <div v-for="name in state.prefNames"
+            class="pref-list-item"
+            :class="{selected: prefName == name}"
+            @click="rawPrefName=name"
+        >
+          <div>{{name}}</div>
+          <div style="display: flex">
+            <div class="button" @click="loadPrefs(name)" >
+              Load
+            </div>
+            <img src="/controller/delete.svg" @click="deletePrefs(name)"/>
+          </div>
+        </div>
+      </div>
+      <div id="save-bottom-stuff">
+        <textarea :value="prefName" @input="rawPrefName=$event.target.value"></textarea>
+        <div class="button"
+            :class="{ disabled: !prefName }"
+            @click="savePrefs()"
+        >
+          Save
+        </div>
+      </div>
+    </div>
 
     <!-- TIMING MENU -->
     <div v-else-if="nav=='timing'" class="nav-page">

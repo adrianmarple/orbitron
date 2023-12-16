@@ -144,6 +144,56 @@ body, #app, .main {
   margin: 0 !important;
 }
 
+#restore-defaults {
+  position: absolute;
+  top: 10rem;
+  padding: 1rem;
+}
+.scroll-containter {
+  /* display: flex;
+  flex-direction: column;
+  justify-content: flex-end; */
+  height: 40rem;
+  width: 100%;
+  overflow-y: auto;
+}
+.pref-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* width: 100%; */
+  margin: 0.5rem;
+  padding: 1rem;
+  background-color: rgba(255,255,255, 0.5);
+  border-radius: 2rem;
+  font-size: 4rem;
+}
+.pref-list-item.selected {
+  background-color: white;
+}
+.pref-list-item .button {
+  margin-top: 0;
+  border-radius: 0.5rem;
+  font-size: 3rem;
+}
+#save-bottom-stuff {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 1rem;
+}
+#save-bottom-stuff textarea {
+  font-size: 4rem;
+  height: 5rem;
+  vertical-align: center;
+  font-family: Arial, Helvetica, sans-serif;
+}
+#save-bottom-stuff .button {
+  padding: 1rem;
+  margin-left: 1rem;
+  margin-top: 0;
+}
 
 
 #about > div {
@@ -442,6 +492,13 @@ body, #app, .main {
   color: #121212;
   position: relative;
 }
+.button.disabled {
+  background-color: #ddd;
+  color: #666;
+  border-color: #666;
+  pointer-events: none;
+}
+
 .button:hover {
   box-shadow: 0 0.25rem 0.625rem 0.25rem rgba(0, 0, 0, 0.2);
   color: #555;

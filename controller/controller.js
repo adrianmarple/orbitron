@@ -56,6 +56,7 @@ var app = new Vue({
 
     config: {},
     prefs: {},
+    rawPrefName: "",
     warpedPrefs: {
       idleMin: {
         // f: x => Math.log(x + 1)/Math.log(2),
@@ -130,6 +131,8 @@ var app = new Vue({
     }
     // Do this last just in case localStorage is inaccessible and errors
     // this.localFlags = JSON.parse(localStorage.getItem('flags')) || {}
+
+    this.nav = this.navBarItems[0]
   },
 
   watch: {
@@ -195,11 +198,11 @@ var app = new Vue({
       return this.state.mustLogin
     },
     navBarItems() {
-      return ['timing', 'colors', 'pattern', 'games']
+      return ['timing', 'colors', 'pattern', 'save', 'games']
         .filter(name => !this.exclude[name])
     },
     exclude() {
-      return this.state.exclude
+      return this.state.exclude || {}
     },
     gameStarted() {
       return this.state.game != "idle"
@@ -327,6 +330,9 @@ var app = new Vue({
         marginLeft: ((this.carouselSize - 1) * innerWidth) + "px",
       }
     },
+    prefName() {
+      return this.rawPrefName.replace(/[^0-9a-zA-Z ]/gi, '')
+    },
   },
 
   methods: {
@@ -416,29 +422,21 @@ var app = new Vue({
       }
     },
 
-    confirmSpeedbump() {
-      this.speedbumpCallback()
+    clearPrefs() {
+      this.prefName = ""
+      this.send({ type: "clearPrefs"})
     },
-    clearSpeedbump() {
-      this.speedbumpCallback = null
-      this.speedbumpMessage = ""
+    deletePrefs(name) {
+      name = name || this.prefName
+      this.send({ type: "deletePrefs", name })
     },
-
-    runLoadingAnimation() {
-      let self = this
-      self.loadingDotCount = 1
-      let interval = setInterval(() => {
-        if (self.self.isReady) {
-          clearInterval(interval)
-          return
-        }
-        self.send({ type: 'ready' })
-        self.loadingDotCount += 1
-        if (self.loadingDotCount > 5) {
-          self.loadingDotCount = 1
-        }
-        self.$forceUpdate()
-      }, 500)
+    savePrefs(name) {
+      name = name || this.prefName
+      this.send({ type: "savePrefs", name })
+    },
+    loadPrefs(name) {
+      name = name || this.prefName
+      this.send({ type: "loadPrefs", name })
     },
 
     send(json) {
@@ -465,6 +463,31 @@ var app = new Vue({
           this.startWebsocket()
         }
       }
+    },
+
+    confirmSpeedbump() {
+      this.speedbumpCallback()
+    },
+    clearSpeedbump() {
+      this.speedbumpCallback = null
+      this.speedbumpMessage = ""
+    },
+
+    runLoadingAnimation() {
+      let self = this
+      self.loadingDotCount = 1
+      let interval = setInterval(() => {
+        if (self.self.isReady) {
+          clearInterval(interval)
+          return
+        }
+        self.send({ type: 'ready' })
+        self.loadingDotCount += 1
+        if (self.loadingDotCount > 5) {
+          self.loadingDotCount = 1
+        }
+        self.$forceUpdate()
+      }, 500)
     },
 
     destroyWebsocket() {

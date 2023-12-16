@@ -87,6 +87,14 @@ def consume_input():
         if "idlePattern" in update:
           idlepatterns.set_idle(update["idlePattern"])
         engine.update_prefs(update)
+      elif message["type"] == "clearPrefs":
+        engine.clear_prefs()
+      elif message["type"] == "savePrefs":
+        engine.save_prefs(message["name"])
+      elif message["type"] == "loadPrefs":
+        engine.load_prefs(message["name"])
+      elif message["type"] == "deletePrefs":
+        engine.delete_prefs(message["name"])
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

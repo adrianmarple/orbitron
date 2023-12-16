@@ -61,9 +61,9 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# config file
+# config files
 config.js
-prefs.json
+*prefs.json
 
 ._*
 .DS_Store

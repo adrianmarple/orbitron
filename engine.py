@@ -6,6 +6,7 @@ import gzip
 import json
 import numpy as np
 import os
+import shutil
 import sys
 import traceback
 
@@ -168,22 +169,19 @@ for (key, value) in default_prefs.items():
   if pref_type[key] == str and value[0] == "#":
     pref_type[key] = "color"
 
+prefs = {}
 current_prefs = {}
+converted_prefs = {}
 current_prefs.update(default_prefs)
 
-converted_prefs = {}
 
 pref_path = os.path.dirname(__file__) + "/prefs.json"
-if os.path.exists(pref_path):
-  f = open(pref_path, "r")
-  prefs = json.loads(f.read())
-  current_prefs.update(prefs)
-  for key in prefs.keys():
-    converted_prefs[key] = None
-  f.close()
-else:
-  prefs = {}
+save_prefs_path = os.path.dirname(__file__) + "/savedprefs/"
+def pref_path_from_name(name):
+  return save_prefs_path + name + ".prefs.json"
 
+pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no file
+pref_names = [filename.split(".")[0] for filename in pref_names]
 
 def update_prefs(update):
   for key in update.keys():
@@ -197,9 +195,51 @@ def update_prefs(update):
   f.write(json.dumps(prefs, indent=2))
   f.close()
 
-def hex_to_rgb(h):
-  h = h.lstrip('#')
-  return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+def clear_prefs():
+  global prefs, current_prefs, converted_prefs
+  prefs = {}
+  current_prefs = {}
+  current_prefs.update(default_prefs)
+  converted_prefs = {}
+  idle.update_prefs()
+  for game in games.values():
+    game.update_prefs()
+  if os.path.exists(pref_path):
+    os.remove(pref_path)
+
+def save_prefs(name):
+  new_path = pref_path_from_name(name)
+  shutil.copy(pref_path, new_path)
+  if name not in pref_names:
+    pref_names.append(name)
+
+def load_prefs(name=None):
+  global current_prefs, prefs
+  if name is not None:
+    clear_prefs()
+    old_path = pref_path_from_name(name)
+    if os.path.exists(old_path):
+      shutil.copy(old_path, pref_path)
+    else:
+      print("Tried to load non-existant pref: %s" % name, file=sys.stderr)
+
+  if os.path.exists(pref_path):
+    f = open(pref_path, "r")
+    prefs = json.loads(f.read())
+    current_prefs.update(prefs)
+    for key in prefs.keys():
+      converted_prefs[key] = None
+    f.close()
+  else:
+    prefs = {}
+
+def delete_prefs(name):
+  path = pref_path_from_name(name)
+  if os.path.exists(path):
+    os.remove(path)
+    pref_names.remove(name)
+  else:
+    print("Tried to delete non-existant pref: %s" % name, file=sys.stderr)
 
 def get_pref(pref_name):
   converted_pref = converted_prefs.get(pref_name, None)
@@ -212,13 +252,14 @@ def get_pref(pref_name):
   elif pref_type[pref_name] == float:
     pref = float(pref)
   elif pref_type[pref_name] == "color":
-    pref = np.array(hex_to_rgb(pref))
+    pref = pref.lstrip('#')
+    pref = tuple(int(pref[i:i+2], 16) for i in (0, 2, 4))
+    pref = np.array(pref)
 
   converted_prefs[pref_name] = pref
   return pref
-  
-  
 
+load_prefs()
 
 # ================================ START =========================================
 
@@ -1047,6 +1088,7 @@ def broadcast_state():
     "prefs": current_prefs,
     "currentText": current_text,
     "exclude": exclude,
+    "prefNames": pref_names,
   }
   print(json.dumps(message))
 

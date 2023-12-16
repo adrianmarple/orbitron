@@ -179,7 +179,6 @@ class Idle(Game):
     end_fade = min(end_fade, 1)
     end_fade = max(end_fade, 0)
     fade = min(start_fade, end_fade)
-    fade *= fade
     self.render_values *= fade
 
   def apply_min(self):
