@@ -180,6 +180,9 @@ save_prefs_path = os.path.dirname(__file__) + "/savedprefs/"
 def pref_path_from_name(name):
   return save_prefs_path + name + ".prefs.json"
 
+if not os.path.exists(save_prefs_path):
+  os.makedirs(save_prefs_path)
+
 pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no file
 pref_names = [filename.split(".")[0] for filename in pref_names]
 
