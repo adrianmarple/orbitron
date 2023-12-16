@@ -95,9 +95,14 @@
     <div v-else-if="nav=='timing'" class="nav-page">
       <div v-if="prefs.hasStartAndEnd" class="column" style="align-items: center; width: 100%;">
         <div class="row">
-          Fade Duration (min):
-          <input type="number" v-model="prefs.fadeDuration"
-            @change="updatePrefs('fadeDuration')">
+          Fade Start (min):
+          <input type="number" v-model="prefs.startFade"
+            @change="updatePrefs('startFade')">
+          </input>
+        </div><div class="row">
+          Fade End (min):
+          <input type="number" v-model="prefs.endFade"
+            @change="updatePrefs('endFade')">
           </input>
         </div>
         <div class="row">

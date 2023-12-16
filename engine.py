@@ -145,6 +145,9 @@ default_prefs = {
   "idleMin": 0,
   "applyIdleMinBefore": False,
   "hasStartAndEnd": False,
+  "fadeDuration": 30,
+  "startFade": 10,
+  "endFade": 30,
 
   # PATTERN
   "idlePattern": "default",
@@ -155,7 +158,6 @@ default_prefs = {
 
   # COLOR
   "brightness": 100,
-  "fadeDuration": 30,
   "fixedColor": "#ffffff",
   "gradientStartColor": "#ff0000",
   "gradientEndColor": "#0000ff",
