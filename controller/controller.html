@@ -42,6 +42,17 @@
     <div class="button" @click="login">LOGIN</div>
   </div>
 
+  <div v-else-if="speedbumpCallback" id="speedbump" @click="clearSpeedbump">
+    <p>{{speedbumpMessage}}</p>
+    <p>Are you sure?</p>
+    <div class="button" @click="confirmSpeedbump">
+      Yes
+    </div>
+    <div class="button">
+      No
+    </div>
+  </div>
+
   <div v-else-if="!gameStarted" id="home" :style="homeStyle">
     <!-- GAMES MENU -->
     <div v-if="nav=='games'" class="nav-page">
@@ -311,17 +322,6 @@
           @change="updateSettings(key)"
         ></textarea>
       </div>
-    </div>
-  </div>
-
-  <div v-else-if="speedbumpCallback" id="speedbump" class="header" @click="clearSpeedbump">
-    <p>{{speedbumpMessage}}</p>
-    <p>Are you sure?</p>
-    <div class="button" @click="confirmSpeedbump">
-      Yes
-    </div>
-    <div class="button">
-      No
     </div>
   </div>
 

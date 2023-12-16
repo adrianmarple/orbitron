@@ -423,20 +423,41 @@ var app = new Vue({
     },
 
     clearPrefs() {
-      this.prefName = ""
-      this.send({ type: "clearPrefs"})
+      let self = this
+      this.speedbumpMessage = "This will permanently clear any unsaved settings."
+      this.speedbumpCallback = () => {
+        self.prefName = ""
+        self.send({ type: "clearPrefs"})
+      }
     },
     deletePrefs(name) {
       name = name || this.prefName
-      this.send({ type: "deletePrefs", name })
+      let self = this
+      this.speedbumpMessage = `This will delete "${name}".`
+      this.speedbumpCallback = () => {
+        self.send({ type: "deletePrefs", name })
+      }
     },
     savePrefs(name) {
       name = name || this.prefName
-      this.send({ type: "savePrefs", name })
+      if (this.state.prefNames.includes(name)) {
+        let self = this
+        this.speedbumpMessage = `This will overwrite "${name}".`
+        this.speedbumpCallback = () => {
+          self.send({ type: "savePrefs", name })
+        }
+      }
+      else {
+        this.send({ type: "savePrefs", name })
+      }
     },
     loadPrefs(name) {
       name = name || this.prefName
-      this.send({ type: "loadPrefs", name })
+      let self = this
+      this.speedbumpMessage = "This will permanently clobber any unsaved settings."
+      this.speedbumpCallback = () => {
+        self.send({ type: "loadPrefs", name })
+      }
     },
 
     send(json) {
