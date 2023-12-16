@@ -93,6 +93,7 @@ def consume_input():
         engine.save_prefs(message["name"])
       elif message["type"] == "loadPrefs":
         engine.load_prefs(message["name"])
+        idlepatterns.set_idle(engine.current_prefs["idlePattern"])
       elif message["type"] == "deletePrefs":
         engine.delete_prefs(message["name"])
     except json.decoder.JSONDecodeError:
