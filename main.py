@@ -47,7 +47,32 @@ def consume_input():
         engine.display_text(message["text"], priority=message.get("priority", 0))
         continue
 
-      if "self" not in message:
+      # Global commands
+      if message["type"] == "advance":
+        if not message.get("from", None) or message["from"] == engine.game.state:
+          engine.game.ontimeout()
+      elif message["type"] == "skip":
+        engine.start_random_game()
+      elif message["type"] == "playagain":
+        engine.start(engine.game)
+      elif message["type"] == "settings":
+        engine.game.update_config(message["update"])
+      elif message["type"] == "prefs":
+        update = message["update"]
+        if "idlePattern" in update:
+          idlepatterns.set_idle(update["idlePattern"])
+        engine.update_prefs(update)
+      elif message["type"] == "clearPrefs":
+        engine.clear_prefs()
+      elif message["type"] == "savePrefs":
+        engine.save_prefs(message["name"])
+      elif message["type"] == "loadPrefs":
+        engine.load_prefs(message["name"])
+        idlepatterns.set_idle(engine.current_prefs["idlePattern"])
+      elif message["type"] == "deletePrefs":
+        engine.delete_prefs(message["name"])
+
+      if "self" not in message or message["self"] is None:
         continue
       if not engine.game:
         continue
@@ -72,30 +97,6 @@ def consume_input():
         player.tap = time()
       elif message["type"] == "pulse":
         player.pulse()
-      # Global commands
-      elif message["type"] == "advance":
-        if not message.get("from", None) or message["from"] == engine.game.state:
-          engine.game.ontimeout()
-      elif message["type"] == "skip":
-        engine.start_random_game()
-      elif message["type"] == "playagain":
-        engine.start(engine.game)
-      elif message["type"] == "settings":
-        engine.game.update_config(message["update"])
-      elif message["type"] == "prefs":
-        update = message["update"]
-        if "idlePattern" in update:
-          idlepatterns.set_idle(update["idlePattern"])
-        engine.update_prefs(update)
-      elif message["type"] == "clearPrefs":
-        engine.clear_prefs()
-      elif message["type"] == "savePrefs":
-        engine.save_prefs(message["name"])
-      elif message["type"] == "loadPrefs":
-        engine.load_prefs(message["name"])
-        idlepatterns.set_idle(engine.current_prefs["idlePattern"])
-      elif message["type"] == "deletePrefs":
-        engine.delete_prefs(message["name"])
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

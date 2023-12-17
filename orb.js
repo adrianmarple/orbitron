@@ -269,10 +269,9 @@ function bindPlayer(socket) {
 
 function bindDataEvents(peer) {
   peer.on('message', content => {
-    if (!typeof(peer.pid)==="number" || !connections[peer.pid]) {
-      return
+    if (typeof(peer.pid)==="number" && connections[peer.pid]) {
+      content.self = peer.pid
     }
-    content.self = peer.pid
     peer.lastActivityTime = Date.now()
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
   })
