@@ -154,8 +154,10 @@ default_prefs = {
   "idleFrameRate": 15.0,
   "idleBlend": 30.0,
   "idleDensity": 50.0,
-  "idlePAttern": "fire",
-  "idleDirection": "0,-1,0",
+  "staticRotation": False,
+  "staticRotationTime": 8.0, 
+  "staticDirection": "1,1,0",
+  "patternBias": "0,-1,0",
 
   # COLOR
   "brightness": 100,

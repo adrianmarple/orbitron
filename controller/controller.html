@@ -111,10 +111,7 @@
           </div>
         </div>
       </div>
-      <div class="pure-material-checkbox" @click="togglePref('hasStartAndEnd')">
-        <input type="checkbox" v-model="prefs.hasStartAndEnd">
-        <span>Use Timer</span>
-      </div>
+      <boolean title="Use Timer" name="hasStartAndEnd"></boolean>
     </div>
 
     <!-- COLORS MENU -->
@@ -129,10 +126,11 @@
       <color v-if="prefs.idleColor == 'gradient'"
           name="gradientEndColor" title="End Color" ></color>
       <slider v-if="prefs.idleColor == 'gradient'" 
-          title="Threshold" name="gradientThreshold" ></slider>
+          title="Threshold" name="gradientThreshold"
+          :min="1"></slider>
 
       <color v-if="prefs.idleColor == 'fixed'" name="fixedColor" ></color>
-      
+
       <dropdown title="Color" name="idleColor"
       :values="['rainbow', 'fixed', 'gradient']"
       :labels="['Rainbow', 'Fixed color', 'Gradient']"
@@ -142,13 +140,24 @@
 
     <!-- PATTERN MENU -->
     <div v-else-if="nav=='pattern'" class="nav-page">
+      <number v-if="prefs.idlePattern == 'static' && prefs.staticRotation"
+          title="Rotatation Time" name="staticRotationTime"></number>
+      <vector v-if="prefs.idlePattern == 'static' && !prefs.staticRotation"
+          title="Direction" name="staticDirection"></vector>
+      <boolean v-if="prefs.idlePattern == 'static'"
+          title="Rotate Direction" name="staticRotation"></boolean>
       
-      <slider title="Blend" name="idleBlend" ></slider>
-      <slider title="Density" name="idleDensity" ></slider>
-      <slider title="Speed" name="idleFrameRate" ></slider>
+      <slider v-if="prefs.idlePattern != 'static'" 
+          title="Blend" name="idleBlend" ></slider>
+      <slider v-if="prefs.idlePattern != 'static'" 
+          title="Density" name="idleDensity"
+          :min="10"></slider>
+      <slider v-if="prefs.idlePattern != 'static'" 
+          title="Speed" name="idleFrameRate"
+          :min="5" :max="30"></slider>
       <dropdown title="Pattern" name="idlePattern"
-      :values="['default', 'static', 'fireflies', 'pulses']"
-      :labels="['Default', 'Static', 'Fireflies', 'Fireworks']"
+          :values="['default', 'static', 'fireflies', 'pulses']"
+          :labels="['Default', 'Static', 'Fireflies', 'Fireworks']"
       ></dropdown>
     </div>
 

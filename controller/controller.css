@@ -162,6 +162,28 @@ body, #app, .main {
   margin: 0 !important;
 }
 
+.vector {
+  width: 30rem;
+  height: 30rem;
+  padding: 15rem;
+  padding-right: 0;
+  box-sizing: border-box;
+  border: 0.5rem solid white;
+}
+.vector .shaft {
+  margin: -0.5rem;
+  border: 0.5rem solid rgba(0,0,60, 0.5);
+  border-radius: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+.vector .shaft .tip {
+  margin: -2.4rem;
+  padding: 2.4rem;
+  border-radius: 2.4rem;
+  background-color: rgba(0,0,100, 0.9);
+}
+
 #restore-defaults {
   position: absolute;
   top: 10rem;

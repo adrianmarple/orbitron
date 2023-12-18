@@ -30,14 +30,18 @@ Vue.component('color', {
 </span>
 `})
 Vue.component('slider', {
-  props: ['name', 'title'],
+  props: ['name', 'title', 'min', 'max'],
+  computed: {
+    trueMin() { return this.min || 0 },
+    trueMax() { return this.max || 100 },
+  },
   template: `
 <div class="slider-container" v-if="!$root.exclude[name]">
   <div class="label">
     <div>{{title}}:</div>
     <div>{{$root.prefs[name]}}</div>
   </div>
-  <input type="range" min="0" max="100" class="slider" v-model="$root.prefs[name]"
+  <input type="range" :min="trueMin" :max="trueMax" class="slider" v-model="$root.prefs[name]"
     @change="$root.updatePrefs(name)">
   </input>
 </div>
@@ -52,6 +56,14 @@ Vue.component('number', {
   </input>
 </div>
 `})
+Vue.component('boolean', {
+  props: ['name', 'title'],
+  template: `
+<div class="pure-material-checkbox" @click="$root.togglePref(name)">
+  <input type="checkbox" v-model="$root.prefs[name]">
+  <span>{{title}}</span>
+</div>
+`})
 Vue.component('dropdown', {
   props: ['name', 'title', 'values', 'labels'],
   template: `  
@@ -60,6 +72,67 @@ Vue.component('dropdown', {
   <select :name="name" v-model="$root.prefs[name]" @change="$root.updatePrefs(name)">
     <option v-for="i in values.length" :value="values[i-1]">{{labels[i-1]}}</option>
   </select>
+</div>
+`})
+Vue.component('vector', {
+  props: ['name', 'title'],
+  data() {
+    return {
+      isMoving: false,
+      style: {},
+    }
+  },
+  mounted() {
+    this.setStyle()
+  },
+  methods: {
+    startMove(event) {
+      this.isMoving = true
+      this.onMove(event)
+    },
+    endMove() {
+      this.isMoving = false
+    },
+    onMove(event) {
+      if (!this.isMoving) return
+      let rect = this.$el.getBoundingClientRect()
+      let x = (event.clientX - rect.x) / rect.width
+      x = 2*x - 1
+      let y = (event.clientY - rect.y) / rect.height
+      y = -2*y + 1
+      if (Math.abs(x) > 1 || Math.abs(y) > 1) {
+        return
+      }
+      this.$root.warpedPrefs[this.name].value = vectorToPolar([x,y])
+      this.$root.updatePrefs(this.name)
+      this.setStyle()
+    },
+    setStyle() {
+      let angle = -this.$root.warpedPrefs[this.name].value.angle
+      let mag = this.$root.warpedPrefs[this.name].value.magnitude
+      let xOffset = (Math.cos(angle) - 1) * mag * 15/2
+      let yOffset = Math.sin(angle) * mag * 15/2
+      this.style = {
+        transform: `
+          translateX(${xOffset}rem)
+          translateY(${yOffset}rem)
+          rotate(${angle}rad)`,
+        width: `${mag * 15}rem`,
+      }
+    },
+  },
+  template: `  
+<div class="vector" v-if="!$root.exclude[name]"
+    @mousedown="startMove"
+    @mousemove="onMove"
+    @mouseup="endMove"
+    @mouseleave="endMove"
+    @touchstart="startMove"
+    @touchmove="onMove"
+    @touchend="endMove">
+  <div class="shaft" :style="style">
+    <div class="tip"></div>
+  </div>
 </div>
 `})
 
@@ -117,6 +190,10 @@ var app = new Vue({
         f: hexToRgb,
         inverseF: rgbToHex,
       },
+      staticDirection: {
+        f: fromVectorString,
+        inverseF: toVectorString,
+      },
     },
     GAMES_INFO,
     uuid: uuid(),
@@ -126,7 +203,7 @@ var app = new Vue({
     speedbumpCallback: null,
     speedbumpMessage: "",
 
-    homeStyle: {background: "blue"},
+    homeStyle: {background: "rgb(200,200,255)"},
     nav: "timing",
   },
 
@@ -137,11 +214,11 @@ var app = new Vue({
         this.ping()
       }
     }, 3000)
-    setInterval(() => {
-      this.homeStyle = {
-        background: phaseColor()
-      }
-    }, 30)
+    // setInterval(() => {
+    //   this.homeStyle = {
+    //     background: phaseColor()
+    //   }
+    // }, 30)
     onfocus = () => {
       this.blurred = false
       if (!this.ws) {
@@ -761,7 +838,6 @@ function isNothing(val) {
 function rgbToHex({red, green, blue}) {
   return "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1);
 }
-
 function hexToRgb(hex) {
   // // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
   // var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
@@ -774,6 +850,20 @@ function hexToRgb(hex) {
     green: parseInt(result[2], 16),
     blue: parseInt(result[3], 16)
   } : null;
+}
+
+function toVectorString(polar) {
+  return `${Math.cos(polar.angle) * polar.magnitude},${Math.sin(polar.angle)*polar.magnitude},0`
+}
+function fromVectorString(vectorString) {
+  let v = vectorString.split(",").map(x => parseFloat(x))
+  return vectorToPolar(v)
+}
+function vectorToPolar(v) {
+  return {
+    angle: Math.atan2(v[1], v[0]),
+    magnitude: Math.sqrt(v[0]*v[0] + v[1]*v[1])
+  }
 }
 
 function phaseColor() {
