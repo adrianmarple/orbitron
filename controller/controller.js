@@ -129,8 +129,8 @@ Vue.component('vector', {
       @mousemove="onMove"
       @mouseup="endMove"
       @mouseleave="endMove"
-      @touchstart="startMove"
-      @touchmove="onMove"
+      @touchstart="startMove($event.targetTouches[0])"
+      @touchmove="onMove($event.targetTouches[0])"
       @touchend="endMove">
     <div class="shaft" :style="style">
       <div class="tip"></div>
