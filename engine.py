@@ -155,6 +155,7 @@ default_prefs = {
   "idleBlend": 30.0,
   "idleDensity": 50.0,
   "idlePAttern": "fire",
+  "idleDirection": "0,-1,0",
 
   # COLOR
   "brightness": 100,
@@ -170,6 +171,8 @@ for (key, value) in default_prefs.items():
   pref_type[key] = type(value)
   if pref_type[key] == str and value[0] == "#":
     pref_type[key] = "color"
+  if pref_type[key] == str and "," in value:
+    pref_type[key] = "vector"
 
 prefs = {}
 current_prefs = {}
@@ -259,6 +262,10 @@ def get_pref(pref_name):
   elif pref_type[pref_name] == "color":
     pref = pref.lstrip('#')
     pref = tuple(int(pref[i:i+2], 16) for i in (0, 2, 4))
+    pref = np.array(pref)
+  elif pref_type[pref_name] == "vector":
+    pref = pref.split(",")
+    pref = [float(x) for x in pref]
     pref = np.array(pref)
 
   converted_prefs[pref_name] = pref

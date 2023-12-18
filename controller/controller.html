@@ -258,6 +258,7 @@
         <label for="pattern">Pattern:</label>
         <select name="pattern" v-model="prefs.idlePattern" @change="updatePrefs('idlePattern')">
           <option value="default">Default</option>
+          <option value="static">Static</option>
           <option value="fireflies">Fireflies</option>
           <option value="pulses">Fireworks</option>
         </select>
