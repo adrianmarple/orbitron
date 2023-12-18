@@ -8,19 +8,60 @@ document.addEventListener("click", event => {
   }
 })
 
-function delay(millis, v) {
-  return new Promise(function(resolve) {
-    setTimeout(resolve.bind(null, v), millis)
-  })
-}
-function uuid() {
-  let url = URL.createObjectURL(new Blob())
-  URL.revokeObjectURL(url)
-  return url.split("/")[3]
-}
-function isNothing(val) {
-  return val === undefined || val === null
-}
+
+
+Vue.component('color', {
+  props: ['name', 'title'],
+  template: `
+<span style="width: 100%;" v-if="!$root.exclude[name]">
+<div v-if="title">{{title}}</div>
+<div class="color-component"
+  v-for="component in ['red','green','blue']">
+  <div class="label">
+    <div>{{component[0]}}: {{$root.warpedPrefs[name].value[component]}}</div>
+  </div>
+  <input type="range" min="0" max="255" class="slider"
+    v-model="$root.warpedPrefs[name].value[component]"
+    @change="$root.updatePrefs(name)"
+    :style="{'accent-color': component}"
+  >
+  </input>
+</div>
+</span>
+`})
+Vue.component('slider', {
+  props: ['name', 'title'],
+  template: `
+<div class="slider-container" v-if="!$root.exclude[name]">
+  <div class="label">
+    <div>{{title}}:</div>
+    <div>{{$root.prefs[name]}}</div>
+  </div>
+  <input type="range" min="0" max="100" class="slider" v-model="$root.prefs[name]"
+    @change="$root.updatePrefs(name)">
+  </input>
+</div>
+`})
+Vue.component('number', {
+  props: ['name', 'title'],
+  template: `
+<div class="row" v-if="!$root.exclude[name]">
+  {{title}}:
+  <input type="number" v-model="$root.prefs[name]"
+    @change="$root.updatePrefs(name)">
+  </input>
+</div>
+`})
+Vue.component('dropdown', {
+  props: ['name', 'title', 'values', 'labels'],
+  template: `  
+<div class="space-between" v-if="!$root.exclude[name]">
+  <label :for="name">{{title}}:</label>
+  <select :name="name" v-model="$root.prefs[name]" @change="$root.updatePrefs(name)">
+    <option v-for="i in values.length" :value="values[i-1]">{{labels[i-1]}}</option>
+  </select>
+</div>
+`})
 
 const searchParams = new URLSearchParams(location.search)
 
@@ -654,15 +695,14 @@ var app = new Vue({
       this.send({ type: "settings", update: {[settingsName]: this.config[settingsName] }})
     },
     updatePrefs(prefName) {
+      if (this.warpedPrefs[prefName]) {
+        let value = this.warpedPrefs[prefName].value
+        this.prefs[prefName] = this.warpedPrefs[prefName].inverseF(value)
+      }
       this.send({ type: "prefs", update: {[prefName]: this.prefs[prefName] }})
     },
     togglePref(prefName) {
       this.prefs[prefName] = !this.prefs[prefName]
-      this.updatePrefs(prefName)
-    },
-    updateWarpedPref(prefName) {
-      let value = this.warpedPrefs[prefName].value
-      this.prefs[prefName] = this.warpedPrefs[prefName].inverseF(value)
       this.updatePrefs(prefName)
     },
 
@@ -701,7 +741,22 @@ var app = new Vue({
       }, 33)
     },
   },
-});
+})
+
+
+function delay(millis, v) {
+  return new Promise(function(resolve) {
+    setTimeout(resolve.bind(null, v), millis)
+  })
+}
+function uuid() {
+  let url = URL.createObjectURL(new Blob())
+  URL.revokeObjectURL(url)
+  return url.split("/")[3]
+}
+function isNothing(val) {
+  return val === undefined || val === null
+}
 
 function rgbToHex({red, green, blue}) {
   return "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1);

@@ -15,5 +15,7 @@ class Static(Idle):
   def blend_pixels(self):
     self.target_values = np.matmul(get_pref("idleDirection"), unique_coord_matrix)
     self.target_values = (1 + self.target_values) / 2
+    self.target_values = np.maximum(0, self.target_values)
+    self.target_values = np.minimum(1, self.target_values)
 
 idle = Static()

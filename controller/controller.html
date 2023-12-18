@@ -94,17 +94,8 @@
     <!-- TIMING MENU -->
     <div v-else-if="nav=='timing'" class="nav-page">
       <div v-if="prefs.hasStartAndEnd" class="column" style="align-items: center; width: 100%;">
-        <div class="row">
-          Fade Start (min):
-          <input type="number" v-model="prefs.startFade"
-            @change="updatePrefs('startFade')">
-          </input>
-        </div><div class="row">
-          Fade End (min):
-          <input type="number" v-model="prefs.endFade"
-            @change="updatePrefs('endFade')">
-          </input>
-        </div>
+        <number title="Fade Start (min)" name="startFade"></number>
+        <number title="Fade End (min)" name="endFade"></number>
         <div class="row">
           <div>
             Start Time:
@@ -125,144 +116,40 @@
         <span>Use Timer</span>
       </div>
     </div>
+
     <!-- COLORS MENU -->
     <div v-else-if="nav=='colors'" class="nav-page">
-      <div class="slider-container" v-if="prefs.idleColor == 'rainbow'">
-        <div class="label">
-          <div>Rainbow gradient:</div>
-          <div>{{prefs.rainbowFade}}</div>
-        </div>
-        <input type="range" min="0" max="100" class="slider"
-          v-model="prefs.rainbowFade"
-          @change="updatePrefs('rainbowFade')">
-        </input>
-      </div>
-      <div class="row" v-if="prefs.idleColor == 'rainbow'">
-        Cycle time (sec):
-        <input type="number" v-model="prefs.rainbowDuration"
-          @change="updatePrefs('rainbowDuration')">
-        </input>
-      </div>
+      <slider v-if="prefs.idleColor == 'rainbow'" 
+          title="Rainbow gradient" name="rainbowFade" ></slider>
+      <number v-if="prefs.idleColor == 'rainbow'"
+          title="Cycle time (sec)" name="rainbowDuration"></number>
       
-      <div v-if="prefs.idleColor == 'gradient'">Start Color</div>
-      <div class="color-component"
-        v-for="component in ['red','green','blue']"
-        v-if="prefs.idleColor == 'gradient'">
-        <div class="label">
-          <div>{{component[0]}}: {{warpedPrefs.gradientStartColor.value[component]}}</div>
-        </div>
-        <input type="range" min="0" max="255" class="slider"
-          v-model="warpedPrefs.gradientStartColor.value[component]"
-          @change="updateWarpedPref('gradientStartColor')"
-          :style="{'accent-color': component}"
-        >
-        </input>
-      </div>
-      <div v-if="prefs.idleColor == 'gradient'">End Color</div>
-      <div class="color-component"
-        v-for="component in ['red','green','blue']"
-        v-if="prefs.idleColor == 'gradient'">
-        <div class="label">
-          <div>{{component[0]}}: {{warpedPrefs.gradientEndColor.value[component]}}</div>
-        </div>
-        <input type="range" min="0" max="255" class="slider"
-          v-model="warpedPrefs.gradientEndColor.value[component]"
-          @change="updateWarpedPref('gradientEndColor')"
-          :style="{'accent-color': component}"
-        >
-        </input>
-      </div>
-      <div class="slider-container" v-if="prefs.idleColor == 'gradient'">
-        <div class="label">
-          <div>Threshold:</div>
-          <div>{{prefs.gradientThreshold}}</div>
-        </div>
-        <input type="range" min="1" max="100" class="slider" v-model="prefs.gradientThreshold"
-          @change="updatePrefs('gradientThreshold')">
-        </input>
-      </div>
+      <color v-if="prefs.idleColor == 'gradient'"
+          name="gradientStartColor" title="Start Color" ></color>
+      <color v-if="prefs.idleColor == 'gradient'"
+          name="gradientEndColor" title="End Color" ></color>
+      <slider v-if="prefs.idleColor == 'gradient'" 
+          title="Threshold" name="gradientThreshold" ></slider>
 
-      <div class="color-component"
-        v-for="component in ['red','green','blue']"
-        v-if="prefs.idleColor == 'fixed'">
-        <div class="label">
-          <div>{{component[0]}}: {{warpedPrefs.fixedColor.value[component]}}</div>
-        </div>
-        <input type="range" min="0" max="255" class="slider"
-          v-model="warpedPrefs.fixedColor.value[component]"
-          @change="updateWarpedPref('fixedColor')"
-          :style="{'accent-color': component}"
-        >
-        </input>
-      </div>
-      <div class="space-between">
-        <label for="color">Color:</label>
-        <select name="color" v-model="prefs.idleColor" @change="updatePrefs('idleColor')">
-          <option value="rainbow">Rainbow</option>
-          <!-- <option value="timeofday">Nightshift</option> -->
-          <option value="fixed">Fixed color</option>
-          <option value="gradient">Gradient</option>
-        </select>
-      </div>
-      <!-- <div class="slider-container">
-        <div class="label">
-          <div>Min pixel brightness:</div>
-          <div>{{prefs.idleMin}}</div>
-        </div>
-        <input type="range" min="1" max="6.357" step="0.01" class="slider"
-          v-model="warpedPrefs.idleMin.value"
-          @change="updateWarpedPref('idleMin')">
-        </input>
-      </div> -->
-      <div class="slider-container">
-        <div class="label">
-          <div>Brightness:</div>
-          <div>{{prefs.brightness}}</div>
-        </div>
-        <input type="range" min="0" max="100" class="slider" v-model="prefs.brightness"
-          @change="updatePrefs('brightness')">
-        </input>
-      </div>
+      <color v-if="prefs.idleColor == 'fixed'" name="fixedColor" ></color>
+      
+      <dropdown title="Color" name="idleColor"
+      :values="['rainbow', 'fixed', 'gradient']"
+      :labels="['Rainbow', 'Fixed color', 'Gradient']"
+      ></dropdown>
+      <slider title="Brightness" name="brightness" ></slider>
     </div>
+
     <!-- PATTERN MENU -->
     <div v-else-if="nav=='pattern'" class="nav-page">
       
-      <div class="slider-container">
-        <div class="label">
-          <div>Blend:</div>
-          <div>{{prefs.idleBlend}}</div>
-        </div>
-        <input type="range" min="0" max="100" class="slider" v-model="prefs.idleBlend"
-          @change="updatePrefs('idleBlend')">
-        </input>
-      </div>
-      <div class="slider-container">
-        <div class="label">
-          <div>Density:</div>
-          <div>{{prefs.idleDensity}}</div>
-        </div>
-        <input type="range" min="10" max="100" class="slider" v-model="prefs.idleDensity"
-          @change="updatePrefs('idleDensity')">
-        </input>
-      </div>
-      <div class="slider-container">
-        <div class="label">
-          <div>Speed:</div>
-          <div>{{prefs.idleFrameRate}}</div>
-        </div>
-        <input type="range" min="5" max="30" class="slider" v-model="prefs.idleFrameRate"
-          @change="updatePrefs('idleFrameRate')">
-        </input>
-      </div>
-      <div class="space-between" v-if="!exclude['idlePattern']">
-        <label for="pattern">Pattern:</label>
-        <select name="pattern" v-model="prefs.idlePattern" @change="updatePrefs('idlePattern')">
-          <option value="default">Default</option>
-          <option value="static">Static</option>
-          <option value="fireflies">Fireflies</option>
-          <option value="pulses">Fireworks</option>
-        </select>
-      </div>
+      <slider title="Blend" name="idleBlend" ></slider>
+      <slider title="Density" name="idleDensity" ></slider>
+      <slider title="Speed" name="idleFrameRate" ></slider>
+      <dropdown title="Pattern" name="idlePattern"
+      :values="['default', 'static', 'fireflies', 'pulses']"
+      :labels="['Default', 'Static', 'Fireflies', 'Fireworks']"
+      ></dropdown>
     </div>
 
 
