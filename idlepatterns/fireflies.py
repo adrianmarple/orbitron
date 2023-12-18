@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import numpy as np
-from random import randrange, random
+from random import randrange, random, sample
 from time import time
 
 import engine
-from engine import get_pref, SIZE, neighbors, dupe_to_uniques
+from engine import get_pref, SIZE, neighbors, dupe_to_uniques, coords
 
 from idlepatterns import Idle
 
@@ -14,9 +14,16 @@ class Fireflies(Idle):
 
     new_heads = []
     for head in self.fluid_heads:
-      for n in neighbors[head]:
+      head_coord = coords[head]
+      ns = neighbors[head]
+      for n in sample(ns, len(ns)):
+        direction = head_coord - coords[n]
+        direction /= np.linalg.norm(direction)
+        bias = np.dot(direction, get_pref("patternBias"))
+        bias *= 2
+        bias += 1
         x = self.fluid_values[dupe_to_uniques[n][0]] + 0.02
-        x *= 1.5
+        x *= 1.5 * bias
         if x < random():
           new_heads.append(n)
           for unique in dupe_to_uniques[n]:

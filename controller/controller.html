@@ -131,7 +131,7 @@
 
       <color v-if="prefs.idleColor == 'fixed'" name="fixedColor" ></color>
 
-      <dropdown title="Color" name="idleColor"
+      <dropdown title="Style" name="idleColor"
       :values="['rainbow', 'fixed', 'gradient']"
       :labels="['Rainbow', 'Fixed color', 'Gradient']"
       ></dropdown>
@@ -146,6 +146,9 @@
           title="Direction" name="staticDirection"></vector>
       <boolean v-if="prefs.idlePattern == 'static'"
           title="Rotate Direction" name="staticRotation"></boolean>
+
+      <vector v-if="prefs.idlePattern == 'fireflies'"
+          title="Bias" name="patternBias"></vector>
       
       <slider v-if="prefs.idlePattern != 'static'" 
           title="Blend" name="idleBlend" ></slider>

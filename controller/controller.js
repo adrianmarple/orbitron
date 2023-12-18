@@ -121,19 +121,22 @@ Vue.component('vector', {
       }
     },
   },
-  template: `  
-<div class="vector" v-if="!$root.exclude[name]"
-    @mousedown="startMove"
-    @mousemove="onMove"
-    @mouseup="endMove"
-    @mouseleave="endMove"
-    @touchstart="startMove"
-    @touchmove="onMove"
-    @touchend="endMove">
-  <div class="shaft" :style="style">
-    <div class="tip"></div>
+  template: `
+<span>
+  <div class="row" style="margin-bottom:0;">{{title}}:</div>
+  <div class="vector" v-if="!$root.exclude[name]"
+      @mousedown="startMove"
+      @mousemove="onMove"
+      @mouseup="endMove"
+      @mouseleave="endMove"
+      @touchstart="startMove"
+      @touchmove="onMove"
+      @touchend="endMove">
+    <div class="shaft" :style="style">
+      <div class="tip"></div>
+    </div>
   </div>
-</div>
+</span>
 `})
 
 const searchParams = new URLSearchParams(location.search)
@@ -191,6 +194,10 @@ var app = new Vue({
         inverseF: rgbToHex,
       },
       staticDirection: {
+        f: fromVectorString,
+        inverseF: toVectorString,
+      },
+      patternBias: {
         f: fromVectorString,
         inverseF: toVectorString,
       },

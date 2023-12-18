@@ -94,7 +94,7 @@ body, #app, .main {
 } 
 #home select {
   font-size: 2.5rem;
-  margin-bottom: 6rem;
+  margin-bottom: 2rem;
 }
 #home input[type='number'] {
   width: 8rem;
@@ -117,14 +117,13 @@ body, #app, .main {
 }
 
 .nav-page {
-  flex-direction: column;
   align-items: center;
   text-align: center;
   font-size: 3em;
   display: flex;
   flex-direction: column;
   max-width: 100%;
-  width: 36rem;
+  width: 40rem;
 }
 .nav-page .row {
   justify-content: space-between;
