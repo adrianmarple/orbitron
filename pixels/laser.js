@@ -31,9 +31,10 @@ reset = () => {
   BALSA_LENGTH = 96*11.85 // A little more than 11 3/4 inches
   WALL_SVG_PADDING = 24
   WALL_SVG_GAP = 6
-}
 
-let minimalInnerBorder = false
+  minimalInnerBorder = false
+  exteriorOnly = false
+}
 
 let resetOG = reset
 reset = () => {
@@ -128,7 +129,7 @@ async function createCoverSVG() {
 
   for (let i = 0; i < 1000; i++) {
     if (directedEdges.length == 0) break
-    let lastEdge = directedEdges.shift()
+    let lastEdge = directedEdges.pop()
     let dPath = [...lastEdge]
 
     for (let j = 0; j < 1000; j++) {
@@ -352,6 +353,7 @@ async function createCoverSVG() {
       }
   	  totalPathString += channelString
     }
+    if (exteriorOnly) break
   } // END for (let dPath of paths)
   cover.querySelector("path").setAttribute("d", totalPathString)
 
