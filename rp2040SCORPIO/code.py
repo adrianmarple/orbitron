@@ -47,6 +47,7 @@ def main():
     time.sleep(1)
     watchdog.timeout = 1
     watchdog.mode = WatchDogMode.RESET
+    watchdog.feed()
     print("READY")
     while True:
         t0 = adafruit_ticks.ticks_ms()
