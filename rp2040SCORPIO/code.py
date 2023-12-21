@@ -45,7 +45,7 @@ def main():
     dt = 0
     reset()
     time.sleep(1)
-    watchdog.timeout = 3
+    watchdog.timeout = 1
     watchdog.mode = WatchDogMode.RESET
     print("READY")
     while True:
