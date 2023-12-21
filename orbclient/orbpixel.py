@@ -42,14 +42,17 @@ def start_pixel_output_process():
 
 def start_external_pixel_board():
     global external_board
-    global should_restart_external_board
     if os.getenv("EXTERNAL_PIXEL_BOARD"):
-        should_restart_external_board = True
+        if external_board:
+            external_board.close()
+            external_board = None
+            sleep(2)
         while external_board == None:
             try:
                 external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.01)
                 #print("BAUD RATES ", external_board.BAUDRATES, file=sys.stderr)
             except Exception as e:
+                external_board = None
                 print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
                 print("will retry...", file=sys.stderr)
                 sleep(1)
@@ -87,14 +90,14 @@ def display_pixels(pixels):
                 elif response[0] == 0xe0:
                     print("external board resetting", file=sys.stderr)
                     should_restart_external_board = False
+                    start_external_pixel_board()
                 elif response[0] == 0xff:
                     break
             external_board.write(out)
         except Exception as e:
-            print("error writing to external", file=sys.stderr)
+            print("error writing to external board", file=sys.stderr)
             print(e, file=sys.stderr)
-            external_board.close()
-            external_board = None
+            should_restart_external_board = True
             start_external_pixel_board()
         return
     pixels = np.uint32(pixels)
