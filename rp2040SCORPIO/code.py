@@ -75,7 +75,7 @@ def do_loop():
 
     if not usb.connected:
         print("No Sreial Connection!")
-        time.sleep(1)
+        time.sleep(0.1)
         return
     
     usb.write(bytearray([0x11]))

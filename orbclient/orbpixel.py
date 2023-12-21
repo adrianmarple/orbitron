@@ -51,7 +51,7 @@ def start_external_pixel_board():
                 #print("BAUD RATES ", external_board.BAUDRATES, file=sys.stderr)
             except Exception as e:
                 print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
-                print("will retry...")
+                print("will retry...", file=sys.stderr)
                 sleep(1)
 
 def pixel_output_loop(conn):
