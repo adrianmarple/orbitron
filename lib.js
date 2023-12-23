@@ -52,9 +52,12 @@ function execute(command){
 async function checkConnection() {
   let output = await execute('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
   return output.indexOf("200 OK") >= 0
-};
+}
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 module.exports = {
-  execute, checkConnection, config, PYTHON_EXECUTABLE
+  execute, checkConnection, delay, config, PYTHON_EXECUTABLE
 }
