@@ -25,10 +25,10 @@ async function stopAccessPoint(){
   try {
     await execute("sudo nmcli device disconnect wlan0")
     await execute("sudo nmcli device up wlan0")
-  } catch(_) {
-    // Do nothing
+    console.log("STOPPED ACCESS POINT")
+  } catch(e) {
+    console.error(e)
   }
-  console.log("STOPPED ACCESS POINT")
 }
 
 async function submitSSID(formData) {
