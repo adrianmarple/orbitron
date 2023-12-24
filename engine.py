@@ -76,10 +76,6 @@ DEFAULT_PULSE_DIRECTION = np.array(
   dtype=float)
 UP = 1 if IS_WALL else 2 # TODO use default pulse direction (or make defaultPulseDirection use UP)
 
-minPulseDot = -1
-pulseRange = 2
-
-
 dupe_to_uniques = []
 for dupe in range(SIZE):
   dupe_to_uniques.append([])
@@ -1025,9 +1021,9 @@ def render_pulse(direction=None, color=None,
     if direction is None:
       direction = DEFAULT_PULSE_DIRECTION
     ds = np.matmul(direction, unique_coord_matrix) / 2 + 0.5
-    ds -= minPulseDot
-    ds /= pulseRange
-      
+    ds += 1
+    ds /= 2
+
   ds = 12*ds - 7*t - 5
   if crisp:
     if reverse:

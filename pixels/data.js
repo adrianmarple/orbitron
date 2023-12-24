@@ -325,6 +325,7 @@ function generatePixelInfo() {
   return info
 }
 
+
 document.getElementById("download").addEventListener('click', function() {
   let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
   let blob = new Blob([fileContent], { type: 'text/plain' })
@@ -335,3 +336,32 @@ document.getElementById("download").addEventListener('click', function() {
   a.style='display:none'
   a.click()
 })
+
+// Emergency one off manipulation
+async function tweakJSON() {
+  let name = "diamond"
+  const text = await (await fetch(`${name}/${name}.json`)).text()
+  let info = JSON.parse(text)
+  let coords = info.coords
+  for (let coord of coords) {
+    coord[1] *= -1
+  }
+  let maxMag = 0
+  for (let coord of coords) {
+    maxMag = Math.max(maxMag, magnitude(coord))
+  }
+  for (let coord of coords) {
+    coord[0] /= maxMag
+    coord[1] /= maxMag
+    coord[2] /= maxMag
+  }
+  let fileContent = JSON.stringify(info, null, 2)
+  let blob = new Blob([fileContent], { type: 'text/plain' })
+  let a = document.createElement('a')
+  a.download = name + '.json'
+  a.href = window.URL.createObjectURL(blob)
+  a.textContent = 'Download ready'
+  a.style='display:none'
+  a.click()
+}
+// tweakJSON()
