@@ -11,10 +11,7 @@ let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 
 async function startAccessPoint(){
-  let connectionExists = (await execute("sudo nmcli connection show")).indexOf("OrbHotspot") >= 0
-  if(connectionExists){
-    await execute('sudo nmcli connection delete OrbHotspot')
-  }
+  removeAccessPointProfile()
   await execute('sudo nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Super Orbitron" ipv4.method shared ipv6.method shared')
   await execute('sudo nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
@@ -22,12 +19,16 @@ async function startAccessPoint(){
 }
 
 async function stopAccessPoint(){
-  try {
-    await execute("sudo nmcli device disconnect wlan0")
-    await execute("sudo nmcli device up wlan0")
-    console.log("STOPPED ACCESS POINT")
-  } catch(e) {
-    console.error(e)
+  removeAccessPointProfile()
+  await execute("sudo nmcli device disconnect wlan0")
+  await execute("sudo nmcli device up wlan0")
+  console.log("STOPPED ACCESS POINT")
+}
+
+async function removeAccessPointProfile(){
+  let connectionExists = (await execute("sudo nmcli connection show")).indexOf("OrbHotspot") >= 0
+  if(connectionExists){
+    await execute('sudo nmcli connection delete OrbHotspot')
   }
 }
 
