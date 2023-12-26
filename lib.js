@@ -51,8 +51,9 @@ function execute(command){
 
 async function checkConnection() {
   let output = await execute('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
-  console.log("Connection check result: ", output)
-  return output.indexOf("200") >= 0
+  let connected = output.indexOf("200") >= 0
+  console.log("Connection check result: ", output, connected)
+  return connected
 }
 
 function delay(ms) {

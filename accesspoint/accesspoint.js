@@ -11,43 +11,39 @@ let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 
 async function startAccessPoint(){
-  removeAccessPointProfile()
+  removeWifiProfile("OrbHotspot")
   await execute('sudo nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Super Orbitron" ipv4.method shared ipv6.method shared')
   await execute('sudo nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
   displayText("JOIN WIFI SUPER ORBITRON")
 }
 
-async function stopAccessPoint(){
-  removeAccessPointProfile()
-  await execute("sudo nmcli device disconnect wlan0")
-  await execute("sudo nmcli device up wlan0")
-  console.log("STOPPED ACCESS POINT")
+async function stopAccessPoint(ssid, password){
+  removeWifiProfile("OrbHotspot")
+  if(ssid){
+    removeWifiProfile(ssid)
+    displayText(`ADDING SSID ${ssid}`)
+    if(password != ""){
+      password =  `802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ${password}`
+    }
+    await execute(`sudo nmcli connection add con-name "${ssid}" type wifi ssid "${ssid}" ${password} autoconnect yes save yes`)
+    await execute(`sudo nmcli connection up "${SSID}"`)
+  }
 }
 
-async function removeAccessPointProfile(){
-  let connectionExists = (await execute("sudo nmcli connection show")).indexOf("OrbHotspot") >= 0
+async function removeWifiProfile(connectionName){
+  let connectionExists = (await execute("sudo nmcli connection show")).indexOf(connectionName) >= 0
   if(connectionExists){
-    await execute('sudo nmcli connection delete OrbHotspot')
+    console.log("Removed Wifi Profile: ", connectionName)
+    await execute(`sudo nmcli connection delete ${connectionName}`)
   }
 }
 
 async function submitSSID(formData) {
   let ssid = formData.ssid.replace(/'/g, "\\'")
   console.log("Adding SSID: ", ssid)
-  if(ssid == ""){
-    await stopAccessPoint()
-    return
-  }
-  let password = formData.password.replace(/'/g, "\\'")
-  let append = ""
-  if(password.trim() != ""){
-    append = `password ${password}`
-  }
-
-  await stopAccessPoint()
-  await execute(`sudo nmcli dev wifi connect ${ssid} ${append}`)
-  displayText(`ADDED SSID ${ssid}`)
+  let password = formData.password.replace(/'/g, "\\'").trim()
+  await stopAccessPoint(ssid, password)
 }
 
 let isFirstNetworkCheck = true
@@ -63,7 +59,7 @@ async function networkCheck() {
   displayText("CHECKING FOR INTERNET")
   numTimesNetworkCheckFailed += 1
   await stopAccessPoint()
-  await delay(isFirstNetworkCheck ? 25e3 : 300e3)
+  await delay(isFirstNetworkCheck ? 25e3 : 100e3)
 
   isFirstNetworkCheck = false
   connected = await checkConnection()
