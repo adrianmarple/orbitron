@@ -7,9 +7,21 @@ function setLaserParams(obj) {
   for (let key in obj) {
     window[key] = obj[key] * MM_TO_96DPI
   }
+  if (obj.CHANNEL_DEPTH) {
+    useCAT5forChannelDepth = false
+  }
+  if (useCAT5forChannelDepth) {
+    CHANNEL_DEPTH = CAT5_HEIGHT - BOTTOM_THICKNESS
+  }
+  HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
+}
+function makeTwoSided() {
+  BOTTOM_THICKNESS = TOP_THICKNESS
+  setLaserParams({})
 }
 reset = () => {
   ogReset()
+  useCAT5forChannelDepth = true
   setLaserParams({
     BOTTOM_THICKNESS: 5,
     TOP_THICKNESS: 2.9,
@@ -17,16 +29,29 @@ reset = () => {
     BORDER: 6,
     PIXEL_DISTANCE: 16.66666, // 16.6
     CHANNEL_WIDTH: 12,
-    CHANNEL_DEPTH: 10,
+    // CHANNEL_DEPTH: 10,
     NOTCH_DEPTH: 5,
     FASTENER_DEPTH: 2.5,
     WOOD_KERF: 0.14,
     ACRYLIC_KERF: -0.03,
     // ACRYLIC_KERF: -0.06, // Used for hex cat recut
+
+    CAT5_HEIGHT: 15.1,
+    CAT5_WIDTH: 15.3,
+    CAT5_SNAP_DISTANCE: 13.6,
+    CAT5_SNAP_WIDTH: 2,
+    CAT5_SNAP_HEIGHT: 3.1,
+    CAT5_SNAP_OUTER_HEIGHT: 3.9,
+    CAT5_SNAP_Y: 6.6,
+    CAT5_WIRES_WIDTH: 12,
+    CAT5_WIRES_HEIGHT: 5.6,
+    CAT5_ADDITONAL_OFFSET: 0,
+
+    POWER_HOLE_RADIUS: 5.8,
   })
-  HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   END_CAP_FACTOR = 0.3872
   KERF = ACRYLIC_KERF
+  IS_BOTTOM = true
 
   BALSA_LENGTH = 96*11.85 // A little more than 11 3/4 inches
   WALL_SVG_PADDING = 24
@@ -34,6 +59,9 @@ reset = () => {
 
   minimalInnerBorder = false
   exteriorOnly = false
+  cat5PortMidway = false
+
+  powerHoleWallIndex = -1
 }
 
 let resetOG = reset
@@ -61,7 +89,8 @@ let wall = document.createElementNS("http://www.w3.org/2000/svg", "svg")
 document.body.appendChild(wall)
 wall.outerHTML = `
 <svg id="wall" width=1000 height=100 viewBox="0 0 1000 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path stroke="#808080"/>
+  <g><path stroke="#808080"/></g>
+  <g><path fill="rgba(255,255,255,0.3)"/></g>
 </svg>`
 wall = document.getElementById("wall")
 
@@ -76,9 +105,11 @@ cover = document.getElementById("cover")
 
 document.getElementById("download").addEventListener('click', async () => {
   if (isWall) {
+    IS_BOTTOM = false
     KERF = ACRYLIC_KERF
     await createCoverSVG()
     downloadSVGAsText("cover", "top (acrylic)")
+    IS_BOTTOM = true
     KERF = WOOD_KERF
     await createCoverSVG()
     downloadSVGAsText("cover", "bottom (birch plywood)")
@@ -96,14 +127,15 @@ for (let displayName in buttonClickMap) {
     cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
     if (isWall) {
       KERF = ACRYLIC_KERF
-      createCoverSVG()
+      await createCoverSVG()
       console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
-      // createWallSVG()
+      createWallSVG()
     }
   }
 }
 
 let wallInfo = []
+let entryWallLength = 0
 let minX = 0
 let minY = 0
 let maxX = 0
@@ -123,8 +155,8 @@ async function createCoverSVG() {
   for (let index of path) {
     let edge = edges[index]
     if (edge.isDupe) continue;
-    directedEdges.push([edge.verticies[0], edge.verticies[1]])
     directedEdges.push([edge.verticies[1], edge.verticies[0]])
+    directedEdges.push([edge.verticies[0], edge.verticies[1]])
   }
 
   for (let i = 0; i < 1000; i++) {
@@ -245,14 +277,9 @@ async function createCoverSVG() {
       }
       edgeLength *= SCALE
       let n = cross(e1, [0,0,-1])
-      let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
-      let lengthOffset = width / -Math.tan((Math.PI - a1)/2)
-      // let localOffset = scale(add(v1, offset), SCALE)
       let localOffset = scale(v1, SCALE)
 
-      // Border
-      let points = [[lengthOffset, width]]
-      borderString += pointsToSVGString(points, [e1, n], localOffset)
+      let isFinalEdge = vectorEquals(v1, start) && vectorEquals(e1, finalEdgeDirection)
 
       // Channels
       let w1 = CHANNEL_WIDTH/2
@@ -272,11 +299,11 @@ async function createCoverSVG() {
       w1 += KERF
       w2 -= KERF
 
-      // Extra gap for strip to enter in
-      // Note e1 has been normalized already
-      if (vectorEquals(v1, start) && vectorEquals(e1, finalEdgeDirection)) {
-        lengthOffset1 += CHANNEL_WIDTH / Math.sin(Math.abs(a1))
-      }
+      // if (isFinalEdge) {
+      //   // Extra gap for strip to enter in
+      //   // Note e1 has been normalized already
+      //   lengthOffset1 += CHANNEL_WIDTH / Math.sin(Math.abs(a1))
+      // }
 
       let x1 = lengthOffset1 + NOTCH_DEPTH + KERF
       let x2 = edgeLength + lengthOffset2 - NOTCH_DEPTH - KERF
@@ -296,8 +323,12 @@ async function createCoverSVG() {
           edgeCenters: [edgeCenter],
         })
       }
+      if (isFinalEdge) {
+        entryWallLength = wallLength
+        // x1 -= NOTCH_DEPTH
+      }
 
-      points = [
+      let points = [
         [x1, w1],
         [x1, w2],
         [x2, w2],
@@ -305,6 +336,28 @@ async function createCoverSVG() {
       ]
       channelString += "M" + pointsToSVGString(points, [e1, n], localOffset).substring(1) + "Z "
   	
+
+      // Border
+      let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
+      let borderLengthOffset = width / -Math.tan((Math.PI - a1)/2)
+      
+      if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
+        if (cat5PortMidway) {
+          x1 = (x1 + x2 - CAT5_WIDTH) / 2
+        }
+        x1 += CAT5_ADDITONAL_OFFSET
+        points = [
+          [borderLengthOffset, width],
+          [x1, width],
+          [x1, width - BORDER],
+          [x1 + CAT5_WIDTH, width - BORDER],
+          [x1 + CAT5_WIDTH, width],
+        ]
+      } else {
+        points = [[borderLengthOffset, width]]
+      }
+      borderString += pointsToSVGString(points, [e1, n], localOffset)
+
       points = [
         [x1 + FASTENER_DEPTH, w2],
         [x1, w2],
@@ -405,12 +458,19 @@ function pointsToSVGString(points, basis, offset, flip) {
 function createWallSVG() {
   wall.querySelectorAll("text").forEach(elem => wall.removeChild(elem))
   let path = ""
+  let etchingPath = ""
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   let offset = [WALL_SVG_PADDING, WALL_SVG_PADDING]
   let panelCount = 1
-  for (let wallType of wallInfo) {
+  for (let wallIndex = 0; wallIndex < wallInfo.length; wallIndex++) {
+    let wallType = wallInfo[wallIndex]
     let wallLength = wallType.length + 2*WOOD_KERF
     let targetCount = wallType.edgeCenters.length
+
+    let [romanPath, romanWidth] = romanNumeralPathInfo(wallIndex, offset)
+    path += romanPath
+    offset[0] += romanWidth
+
     if (targetCount > 8) targetCount += 1
     if (targetCount > 30) targetCount += 1
     for (let i = 0; i < targetCount; i++) {
@@ -436,17 +496,136 @@ function createWallSVG() {
         h${2*NOTCH_DEPTH - wallLength}
         v${BOTTOM_THICKNESS}
         h${-NOTCH_DEPTH - WOOD_KERF}
-        Z
-        `
+        Z`
+
+      // Is the entry wall for CAT5 port
+      if (epsilonEquals(wallType.length, entryWallLength) && i == 0) {
+        let x0 = offset[0]
+        if (cat5PortMidway) {
+          x0 -= wallLength/2
+        } else {
+          x0 -= NOTCH_DEPTH + CAT5_WIDTH / 2
+        }
+        let x1 = x0 - CAT5_WIRES_WIDTH/2 - CAT5_ADDITONAL_OFFSET
+        let y1 = offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH
+        let x2 = x0 - CAT5_SNAP_DISTANCE/2 - CAT5_ADDITONAL_OFFSET
+        let y2 = offset[1] + HEIGHT - TOP_THICKNESS - CAT5_HEIGHT + CAT5_SNAP_Y
+        path += `
+          M${x1} ${y1}
+          h${CAT5_WIRES_WIDTH}
+          v${-CAT5_WIRES_HEIGHT}
+          h${-CAT5_WIRES_WIDTH}
+          Z
+          M${x2} ${y2}
+          h${CAT5_SNAP_WIDTH}
+          v${-CAT5_SNAP_HEIGHT}
+          h${-CAT5_SNAP_WIDTH}
+          Z
+          M${x2 + CAT5_SNAP_DISTANCE} ${y2}
+          h${-CAT5_SNAP_WIDTH}
+          v${-CAT5_SNAP_HEIGHT}
+          h${CAT5_SNAP_WIDTH}
+          Z`
+
+        y3 = y2 + (CAT5_SNAP_OUTER_HEIGHT - CAT5_SNAP_HEIGHT)/2
+        etchingPath += `
+          M${x2} ${y3}
+          h${CAT5_SNAP_WIDTH}
+          v${-CAT5_SNAP_OUTER_HEIGHT}
+          h${-CAT5_SNAP_WIDTH}
+          Z
+          M${x2 + CAT5_SNAP_DISTANCE} ${y3}
+          h${-CAT5_SNAP_WIDTH}
+          v${-CAT5_SNAP_OUTER_HEIGHT}
+          h${CAT5_SNAP_WIDTH}
+          Z`
+      }
+
+      // Hole for power cord port
+      if (wallIndex == powerHoleWallIndex && i == 0) {
+        if (2*POWER_HOLE_RADIUS > CHANNEL_DEPTH) {
+          console.error("Power cord hole doesn't fit!")
+        }
+        let r = POWER_HOLE_RADIUS
+        let x1 = offset[0] - wallLength/2 - r
+        let y1 = offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH/2
+        path += `
+          M${x1} ${y1}
+          a ${r},${r} 0 1,0 ${r*2},0
+          a ${r},${r} 0 1,0,${-r*2},0`
+      }
     }
-    offset[0] += 32
-    offset[1] += 16
+
+    offset[0] += 20
   }
   
-  wall.querySelector("path").setAttribute("d", path)
+  let pathElems = wall.querySelectorAll("path")
+  pathElems[0].setAttribute("d", path)
+  pathElems[1].setAttribute("d", etchingPath)
   wall.setAttribute("width", panelCount*BALSA_LENGTH)
   wall.setAttribute("height", BALSA_LENGTH)
   wall.setAttribute("viewBox", `0 0 ${panelCount*BALSA_LENGTH} ${BALSA_LENGTH}`)
+}
+
+let decimalToRomanNumeral = [
+  "",
+  "I",
+  "II",
+  "III",
+  "IV",
+  "V",
+  "VI",
+  "VII",
+  "VIII",
+  "IX",
+  "X",
+  "XI",
+  "XII",
+  "XIII",
+  "XIV",
+  "XV",
+  "XVI",
+  "XVII",
+  "XVIII",
+  "XIX",
+  "XX",
+  "XXI",
+  "XXII",
+  "XXIII",
+  "XXIV",
+  "XXV",
+  "XXVI",
+  "XXVII",
+  "XXVIII",
+  "XXIX",
+  "XXX",
+]
+function romanNumeralPathInfo(x, offset) {
+  let roman = decimalToRomanNumeral[x]
+  let path = ""
+  let width = 0
+  for (let d of roman) {
+    if (d == "V" || d == "X") width -= 2
+    path += `M${offset[0] + width} ${offset[1]}`
+    switch(d) {
+      case "I":
+        path += "v 30"
+        width += 6
+        break
+      case "V":
+        path += "l8 30 l8 -30"
+        width += 22
+        break
+      case "X":
+        let subwidth = 14
+        path += `l${subwidth} 30
+          M${offset[0] + width + subwidth} ${offset[1]}
+          l-${subwidth} 30`
+        width += subwidth + 6
+        break
+    }
+  }
+  return [path, width]
 }
 
 function printPath(path) {

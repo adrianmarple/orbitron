@@ -4,9 +4,13 @@ addButton("THE BOX", async () => {
   // BOTTOM_THICKNESS = TOP_THICKNESS
   pixelDensity = 0.1
   exteriorOnly = true
+  cat5PortMidway = true
+  powerHoleWallIndex = 2
+
   setLaserParams({
     PIXEL_DISTANCE: pixelDensity,
     CHANNEL_WIDTH: 0,
+    CHANNEL_DEPTH: 16.2,
   })
 
   await addFromSVG("THEBOX/boxshape.svg")

@@ -25,5 +25,5 @@ addButton("The Hive", async () => {
   center()
   // EulerianPath(37, 1)
   // EulerianPath(76)
-  EulerianPath(74)
+  EulerianPath(75, 1)
 })
