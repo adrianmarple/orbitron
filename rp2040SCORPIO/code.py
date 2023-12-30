@@ -122,8 +122,8 @@ def process_frame():
     global pixels
     global temp_pixels
     read = usb.readinto(pixels)
-    if read <= 0:
-        print("read nothing, skipping frame")
+    if read != total_pixel_bytes:
+        print("skipping frame, didn't read enough bytes: %d" % read)
         return
     try:
         transmit(state_machine, strand_count, pixels)
