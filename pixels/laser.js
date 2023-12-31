@@ -533,18 +533,21 @@ function createWallSVG() {
           h${CAT5_SNAP_WIDTH}
           Z`
 
-        y3 = y2 + (CAT5_SNAP_OUTER_HEIGHT - CAT5_SNAP_HEIGHT)/2
-        etchingPath += `
-          M${x2} ${y3}
-          h${CAT5_SNAP_WIDTH}
-          v${-CAT5_SNAP_OUTER_HEIGHT}
-          h${-CAT5_SNAP_WIDTH}
-          Z
-          M${x2 + CAT5_SNAP_DISTANCE} ${y3}
-          h${-CAT5_SNAP_WIDTH}
-          v${-CAT5_SNAP_OUTER_HEIGHT}
-          h${CAT5_SNAP_WIDTH}
-          Z`
+        // Etching seems unnecessary. Remember to remove refs to etchingPath
+        // and CAT5_SNAP_OUTER_HEIGHT, if this gets completely removed.
+        
+        // y3 = y2 + (CAT5_SNAP_OUTER_HEIGHT - CAT5_SNAP_HEIGHT)/2
+        // etchingPath += `
+        //   M${x2} ${y3}
+        //   h${CAT5_SNAP_WIDTH}
+        //   v${-CAT5_SNAP_OUTER_HEIGHT}
+        //   h${-CAT5_SNAP_WIDTH}
+        //   Z
+        //   M${x2 + CAT5_SNAP_DISTANCE} ${y3}
+        //   h${-CAT5_SNAP_WIDTH}
+        //   v${-CAT5_SNAP_OUTER_HEIGHT}
+        //   h${CAT5_SNAP_WIDTH}
+        //   Z`
       }
 
       // Hole for power cord port
