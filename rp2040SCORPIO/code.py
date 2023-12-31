@@ -1,4 +1,4 @@
-import adafruit_ticks
+from adafruit_ticks import ticks_ms
 import time
 from board import *
 import rp2pio
@@ -21,6 +21,8 @@ temp_pixels = None
 
 time.sleep(1) # necessary to wait for usb init
 usb = usb_cdc.data
+boot_time = ticks_ms()
+num_glitches = 0
 
 def reset():
     global strand_count
@@ -41,8 +43,8 @@ def reset():
     usb.write_timeout = 0
 
 def main():
-    tc = 0
-    dt = 0
+    # tc = 0
+    # dt = 0
     reset()
     time.sleep(1)
     watchdog.timeout = 1
@@ -50,19 +52,19 @@ def main():
     watchdog.feed()
     print("READY")
     while True:
-        t0 = adafruit_ticks.ticks_ms()
+        # t0 = ticks_ms()
         try:
             do_loop()
         except Exception as e:
             print(e)
             reset()
         watchdog.feed()
-        dt = (tc * dt + adafruit_ticks.ticks_ms() - t0)/(tc+1)
-        tc += 1
-        if tc == 120:
-            print("avg frame time last 120 frames: ", dt)
-            tc = 0
-            dt = 0
+        # dt = (tc * dt + ticks_ms() - t0)/(tc+1)
+        # tc += 1
+        # if tc == 120:
+        #     print("avg frame time last 120 frames: ", dt)
+        #     tc = 0
+        #     dt = 0
 
 
 def do_loop():
@@ -121,10 +123,17 @@ def do_loop():
 def process_frame():
     global pixels
     global temp_pixels
+    global num_glitches
+
     read = usb.readinto(pixels)
+
     if read != total_pixel_bytes:
         print("skipping frame, didn't read enough bytes: %d" % read)
+        num_glitches = num_glitches + 1
+        gpm = num_glitches / ((ticks_ms() - boot_time) / 60000)
+        print("glitches per minute: %d" % gpm)
         return
+    
     try:
         transmit(state_machine, strand_count, pixels)
     except Exception as e:
