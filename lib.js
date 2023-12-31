@@ -27,7 +27,7 @@ console.error = function(){
 
 process.on('uncaughtException', function(err, origin) {
   console.error('Uncaught exception: ', err, origin)
-});
+})
 
 
 function execute(command){
@@ -55,7 +55,7 @@ async function checkConnection() {
 }
 
 function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 module.exports = {

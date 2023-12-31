@@ -45,7 +45,7 @@ async function checkForUpdates(){
     //console.log("hours until 2am", timeUntilHour(2) / 3600000)
     setTimeout(() => {
       checkForUpdates()
-    }, nextUpdateTime);
+    }, nextUpdateTime)
   }
   if(!connected) return
   pullAndRestart()
