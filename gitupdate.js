@@ -2,20 +2,20 @@ let { exec, execSync } = require('child_process')
 let runDirectly = !module.parent
 
 function timeUntilHour(hour) {
-  if (hour < 0 || hour > 24) throw new Error("Invalid hour format!");
+  if (hour < 0 || hour > 24) throw new Error("Invalid hour format!")
 
-  const now = new Date();
-  const target = new Date(now);
+  const now = new Date()
+  const target = new Date(now)
 
-  if (now.getHours() >= hour)
-      target.setDate(now.getDate() + 1);
+  if (now.getHours() >= hour) {
+      target.setDate(now.getDate() + 1)
+  }
+  target.setHours(hour)
+  target.setMinutes(0)
+  target.setSeconds(0)
+  target.setMilliseconds(0)
 
-  target.setHours(hour);
-  target.setMinutes(0);
-  target.setSeconds(0);
-  target.setMilliseconds(0);
-
-  return target.getTime() - now.getTime();
+  return target.getTime() - now.getTime()
 }
 
 // Copied from lib, but we don't want any internal dependencies for this file
