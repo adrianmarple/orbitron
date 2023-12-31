@@ -1,5 +1,6 @@
 const PYTHON_EXECUTABLE = '/home/pi/.env/bin/python3'
 let { exec, execSync } = require('child_process')
+const fs = require('fs')
 
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
