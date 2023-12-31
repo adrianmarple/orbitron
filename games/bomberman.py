@@ -322,10 +322,11 @@ class Bomb:
   def render(self):
     if self.has_exploded:
       engine.render_pulse(
-        direction=-engine.coords[self.position],
+        direction=engine.coords[self.position],
         color=(16, 16, 16),
         start_time=self.explosion_time,
-        duration=game.SHOCKWAVE_DURATION)
+        duration=game.SHOCKWAVE_DURATION,
+        reverse=True)
       return 0
 
     x = game.BOMB_FUSE_TIME + self.timestamp - time()
