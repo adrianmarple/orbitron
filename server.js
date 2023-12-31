@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const { config } = require('./lib')
+const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const path = require('path')
@@ -72,8 +73,13 @@ function respondWithFile(response, filePath){
 }
 
 
-// Simple HTTP server
-const rootServer = https.createServer(config.httpsOptions, async (request, response) => {
+if (config.DEV_MODE) {
+  rootServer = http.createServer(config, serverHandler)
+} else {
+  rootServer = https.createServer(config.httpsOptions, serverHandler)
+}
+
+async function serverHandler(request, response) {
   // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
     console.log("Receiving github webhook update.")
@@ -115,7 +121,7 @@ const rootServer = https.createServer(config.httpsOptions, async (request, respo
   if(!handled){
     respondWithFile(response, filePath)
   }
-})
+}
 
 const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")

@@ -2,6 +2,7 @@
 const { config } = require('./lib')
 const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
+const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const homedir = require('os').homedir()
@@ -10,11 +11,20 @@ const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 const connectedOrbs = {}
 const logsRequested = {}
 const connectedClients = {}
-let server = https.createServer(config.httpsOptions, function(request, response) {
+
+let server
+if (config.DEV_MODE) {
+  server = http.createServer(serverHandler)
+} else {
+  server = https.createServer(config.httpsOptions, serverHandler)
+}
+function serverHandler(request, response) {
   //console.log('Websocket Server received request for ' + request.url)
   response.writeHead(404)
   response.end()
-})
+} 
+
+
 server.listen(7777, "0.0.0.0", function() {
   console.log('WebSocket Server is listening on port 7777')
 })

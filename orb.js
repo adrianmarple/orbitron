@@ -12,6 +12,10 @@ if(config.DEV_MODE){
   orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
 } // TODO refactor to fix this garbage
 PYTHON_EXECUTABLE = config.PYTHON_EXECUTABLE || PYTHON_EXECUTABLE
+CONNECT_TO_RELAY = config.CONNECT_TO_RELAY
+if (CONNECT_TO_RELAY && !CONNECT_TO_RELAY.startsWith("ws")) {
+  CONNECT_TO_RELAY = "wss://" + CONNECT_TO_RELAY
+}
 
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")
@@ -41,7 +45,7 @@ let orbToServerSocket = null
 function connectOrbToServer(){
   try {
     displayText("CONNECTING")
-    let serverURL = `wss://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
+    let serverURL = `${CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
     //console.log("Initializing orb to server socket", serverURL)
     orbToServerSocket = new WebSocket.WebSocket(serverURL)
     orbToServerSocket.lastPingReceived = Date.now()
