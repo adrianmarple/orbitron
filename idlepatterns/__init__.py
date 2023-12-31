@@ -172,12 +172,10 @@ class Idle(Game):
     if now > self.end:
       self.update_prefs()
     start_fade = (now - self.start).total_seconds() / get_pref("startFade") / 60
-    start_fade = min(start_fade, 1)
-    start_fade = max(start_fade, 0)
     end_fade = (self.end - now).total_seconds() / get_pref("endFade") / 60
-    end_fade = min(end_fade, 1)
-    end_fade = max(end_fade, 0)
     fade = min(start_fade, end_fade)
+    fade = min(fade, 1)
+    fade = max(fade, 0)
     self.render_values *= fade
 
   def apply_min(self):
