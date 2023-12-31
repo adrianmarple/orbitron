@@ -38,7 +38,7 @@ function isRoot() {
 }
 
 function execute(command){
-  return new Promise((resolve,reject) => {
+  return new Promise(resolve => {
     exec((isRoot() ? "" : "sudo ") + command,
     (error, stdout, stderr) => {
       if(error){
@@ -52,7 +52,6 @@ function execute(command){
 async function checkConnection() {
   let output = await execute('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
   let connected = output.indexOf("200") >= 0
-  console.log("Connection check result: ", output, connected)
   return connected
 }
 

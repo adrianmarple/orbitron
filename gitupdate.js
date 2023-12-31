@@ -1,4 +1,4 @@
-let { execute, checkConnection } = require('./lib')
+let { exec } = require('child_process')
 let runDirectly = !module.parent
 
 function timeUntilHour(hour) {
@@ -19,8 +19,22 @@ function timeUntilHour(hour) {
   now.getTime();
 }
 
+// Copied from lib, but we don't want any internal dependencies for this file
+function execute(command){
+  return new Promise(resolve => {
+    exec((isRoot() ? "" : "sudo ") + command,
+    (error, stdout, stderr) => {
+      if(error){
+        console.error("execute Error:", error, stdout, stderr)
+      }
+      resolve(stdout.toString() + " " + stderr.toString())
+    })
+  })
+}
+
 async function checkForUpdates(){
-  let connected = await checkConnection()
+  let output = await execute('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
+  let connected = output.indexOf("200") >= 0
   if(!runDirectly){
     let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
     //console.log("hours until 2am", timeUntilHour(2) / 3600000)
