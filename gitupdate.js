@@ -1,4 +1,4 @@
-let { exec } = require('child_process')
+let { exec, execSync } = require('child_process')
 let runDirectly = !module.parent
 
 function timeUntilHour(hour) {
@@ -20,13 +20,13 @@ function timeUntilHour(hour) {
 
 // Copied from lib, but we don't want any internal dependencies for this file
 function execute(command){
-  let isRoot
-  try {
-    isRoot = execSync("whoami").toString().toLowerCase().indexOf("root") >= 0
-  } catch(error) {
-    isRoot = false
-  }
   return new Promise(resolve => {
+    let isRoot
+    try {
+      isRoot = execSync("whoami").toString().toLowerCase().indexOf("root") >= 0
+    } catch(error) {
+      isRoot = false
+    }
     exec((isRoot ? "" : "sudo ") + command,
     (error, stdout, stderr) => {
       if(error){
