@@ -132,7 +132,7 @@ async function runServerWithRedirect(){
   let certUpdateTime = Date.now()
   if(fs.existsSync(certLastUpdatedFile)){
     let json = JSON.parse(fs.readFileSync(certLastUpdatedFile).toString())
-    certUpdateTime = json.time + 1000 * 60 * 60 * 24 * 60 // every 60 days
+    certUpdateTime = json.time + 1000 * 60 * 60 * 24 * 10 // try every 10 days
   }
   let delay = certUpdateTime - Date.now()
   if(delay <= 0){
@@ -145,16 +145,17 @@ async function runServerWithRedirect(){
 }
 
 async function updateCert(){
+  console.log("UPDATING SSL CERT")
   await closeRootServer()
   await closeRedirectServer()
-  let result = (await execute("certbot renew --dry-run"))
+  let result = (await execute("certbot renew"))
   console.log("Certbot renew output: ", result)
   let lastUpdated = {
     time: Date.now()
   }
   fs.writeFileSync(certLastUpdatedFile, JSON.stringify(lastUpdated))
   console.log("RESTARTING AFTER CERT UPDATE")
-  //execute("pm2 restart all")
+  await execute("pm2 restart all")
 }
 
 async function openRootServer(){
