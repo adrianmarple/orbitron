@@ -2,7 +2,7 @@
 const { config } = require('./lib')
 const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
-const http = require('http')
+const https = require('https')
 const fs = require('fs')
 const homedir = require('os').homedir()
 const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
@@ -10,7 +10,7 @@ const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 const connectedOrbs = {}
 const logsRequested = {}
 const connectedClients = {}
-let server = http.createServer(function(request, response) {
+let server = https.createServer(config.httpsOptions, function(request, response) {
   //console.log('Websocket Server received request for ' + request.url)
   response.writeHead(404)
   response.end()

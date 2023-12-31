@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 const { config } = require('./lib')
 const WebSocket = require('ws')
-const http = require('http')
+const https = require('https')
 const { addGETListener, respondWithFile } = require('./server')
 
 // ---Orb Emulator Server---
-let orbEmulatorServer = http.createServer(function(request, response) {})
+let orbEmulatorServer = https.createServer(config.httpsOptions, function(request, response) {})
 
 orbEmulatorServer.listen(8888, "0.0.0.0", function() {
   console.log('Orb Emulator WebSocket Server is listening on port 8888')

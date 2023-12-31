@@ -3,6 +3,15 @@ let { exec, execSync } = require('child_process')
 
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
+if(config.KEY_LOCATION){
+  config.httpsOptions = {
+    key: fs.readFileSync(config.KEY_LOCATION),
+    cert: fs.readFileSync(config.CERT_LOCATION),
+  }
+} else {
+  config.httpsOptions = {}
+}
+
 console.log(config)
 
 let filePath = config.PIXELS || "rhombicosidodecahedron"

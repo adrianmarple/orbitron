@@ -7,6 +7,8 @@ module.exports={
   //PIXELS_PER_STRAND: 480,
   DEV_MODE: false,
   IS_SERVER: false,
+  //CERT_LOCATION: "",
+  //KEY_LOCATION: "",
   // PIXELS: "diamond",
   CONNECT_TO_RELAY: "orbitron.games",
   // CONNECT_TO_RELAY: "0.0.0.0",

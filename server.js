@@ -71,13 +71,9 @@ function respondWithFile(response, filePath){
   });
 }
 
-const options = {
-  key: fs.readFileSync('/etc/letsencrypt/live/orbitron.games/privkey.pem'),
-  cert: fs.readFileSync('/etc/letsencrypt/live/orbitron.games/fullchain.pem'),
-}
 
 // Simple HTTP server
-const rootServer = https.createServer(options, async (request, response) => {
+const rootServer = https.createServer(config.httpsOptions, async (request, response) => {
   // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
     console.log("Receiving github webhook update.")
