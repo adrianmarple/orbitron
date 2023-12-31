@@ -122,10 +122,12 @@ const rootServerPort = config.HTTP_SERVER_PORT || 1337
 let redirectServer
 let rootServer
 let certLastUpdatedFile = `${require('os').homedir()}/certLastUpdated.json`
-if(rootServerPort == 443){
-  runServerWithRedirect()
-} else {
-  openRootServer()
+if(config.HAS_EMULATION || config.IS_RELAY){
+  if(rootServerPort == 443){
+    runServerWithRedirect()
+  } else {
+    openRootServer()
+  }
 }
 
 async function runServerWithRedirect(){

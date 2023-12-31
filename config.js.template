@@ -27,4 +27,5 @@ module.exports={
   },
   // SWITCH_MODE: "toggle",
   // SWITCH_MODE: "push",
+  //TEXT_DISPLAY: "Seg14x4",
 }

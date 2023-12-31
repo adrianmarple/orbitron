@@ -8,7 +8,7 @@ if (!config.DEV_MODE && !config.CONTINUOUS_INTEGRATION) {
   checkForUpdates()
 }
 
-if(isOrb || config.HAS_EMULATION || config.DEV_MODE){
+if(isOrb || config.HAS_EMULATION){
   require('./orb')
 }
 

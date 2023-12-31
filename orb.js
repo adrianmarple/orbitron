@@ -8,7 +8,7 @@ const { spawn } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
 const homedir = require('os').homedir()
 let orbEmulatorBroadcast = () => {}
-if(config.HAS_EMULATION || config.DEV_MODE){
+if(config.HAS_EMULATION){
   orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
 } // TODO refactor to fix this garbage
 PYTHON_EXECUTABLE = config.PYTHON_EXECUTABLE || PYTHON_EXECUTABLE
