@@ -43,7 +43,7 @@ function connectOrbToRelay(){
     displayText("CONNECTING")
     let relayURL
     if (config.DEV_MODE) {
-      relayURL = "ws://localhost"
+      relayURL = "ws://0.0.0.0"
     } else {
       relayURL = "wss://orbitron.games"
     }

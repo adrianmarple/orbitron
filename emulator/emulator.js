@@ -388,6 +388,7 @@ var app = new Vue({
         return // Already trying to establish a connection
       }
       try {
+        let protocolAndHost
         if (location.hostname == "localhost") {
           protocolAndHost = "ws://localhost" 
         } else {
