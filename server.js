@@ -73,12 +73,6 @@ function respondWithFile(response, filePath){
 }
 
 
-if (config.DEV_MODE) {
-  rootServer = http.createServer(config, serverHandler)
-} else {
-  rootServer = https.createServer(config.httpsOptions, serverHandler)
-}
-
 async function serverHandler(request, response) {
   // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
@@ -124,11 +118,16 @@ async function serverHandler(request, response) {
 }
 
 const rootServerPort = config.HTTP_SERVER_PORT || 1337
-rootServer.listen(rootServerPort, "0.0.0.0")
 
-// redirect http to https
 let redirectServer
+let rootServer
 if(rootServerPort == 443){
+  runServerWithRedirect()
+} else {
+  openRootServer()
+}
+
+async function runServerWithRedirect(){
   const homedir = require('os').homedir()
   let certLastUpdatedFile = `${homedir}/certLastUpdated.json`
   let certUpdateTime = Date.now()
@@ -138,19 +137,45 @@ if(rootServerPort == 443){
   }
   let delay = certUpdateTime - Date.now()
   if(delay <= 0){
-    updateCert()
+    await updateCert()
   } else {
     setTimeout(updateCert, delay)
-    openRedirectServer()
+    await openRootServer()
+    await openRedirectServer()
   }
-  
 }
 
 async function updateCert(){
+  await closeRootServer()
   await closeRedirectServer()
   let result = (await execute("certbot renew --dry-run"))
   console.log("Certbot renew output: ", result)
+  await openRootServer()
   await openRedirectServer()
+}
+
+async function openRootServer(){
+  await closeRootServer()
+  if (config.DEV_MODE) {
+    rootServer = http.createServer(config, serverHandler)
+  } else {
+    rootServer = https.createServer(config.httpsOptions, serverHandler)
+  }
+  rootServer.listen(rootServerPort, "0.0.0.0")
+}
+
+async function closeRootServer(){
+  return new Promise((resolve, reject) =>{
+    if(rootServer){
+      rootServer.closeAllConnections()
+      rootServer.close(()=>{
+        rootServer = null
+        resolve()
+      })
+    } else {
+      resolve()
+    }
+  })
 }
 
 async function openRedirectServer(){
@@ -162,7 +187,7 @@ async function openRedirectServer(){
   redirectServer.listen(80,"0.0.0.0")
 }
 
-function closeRedirectServer(){
+async function closeRedirectServer(){
   return new Promise((resolve, reject) =>{
     if(redirectServer){
       redirectServer.closeAllConnections()
