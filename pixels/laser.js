@@ -83,6 +83,9 @@ svg text {
   fill: white;
   transform-box: fill-box;
   transform: scaleY(-1) translate(-5px, -29px);
+}
+#wall {
+  top: 160px;
 }`
 
 let wall = document.createElementNS("http://www.w3.org/2000/svg", "svg")
@@ -90,7 +93,7 @@ document.body.appendChild(wall)
 wall.outerHTML = `
 <svg id="wall" width=1000 height=100 viewBox="0 0 1000 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <g><path stroke="#808080"/></g>
-  <g><path fill="rgba(255,255,255,0.3)"/></g>
+  <g><path fill="rgba(150,150,150,0.3)"/></g>
 </svg>`
 wall = document.getElementById("wall")
 
@@ -312,7 +315,7 @@ async function createCoverSVG() {
       let edgeCenter = add(add(localOffset, scale(e1, edgeLength/2)), scale(n, w1*1.5))
       let addedToCount = false
       for (let wallType of wallInfo) {
-        if (epsilonEquals(wallType.length, wallLength)) {
+        if (epsilonEquals(wallType.length, wallLength, 0.01)) {
           wallType.edgeCenters.push(edgeCenter)
           addedToCount = true
         }
@@ -455,6 +458,7 @@ function pointsToSVGString(points, basis, offset, flip) {
 }
 
 
+
 function createWallSVG() {
   wall.querySelectorAll("text").forEach(elem => wall.removeChild(elem))
   let path = ""
@@ -473,8 +477,9 @@ function createWallSVG() {
 
     if (targetCount > 8) targetCount += 1
     if (targetCount > 30) targetCount += 1
+    let powerHoleInstanceIndex = 0
     for (let i = 0; i < targetCount; i++) {
-      offset[0] += wallLength + WALL_SVG_GAP
+      offset[0] += wallLength
       if (offset[0] > panelCount*BALSA_LENGTH - WALL_SVG_PADDING) {
         offset[0] = (panelCount - 1)*BALSA_LENGTH + WALL_SVG_PADDING + wallLength
         offset[1] += wallHeight + WALL_SVG_GAP
@@ -499,7 +504,8 @@ function createWallSVG() {
         Z`
 
       // Is the entry wall for CAT5 port
-      if (epsilonEquals(wallType.length, entryWallLength) && i == 0) {
+      if (epsilonEquals(wallType.length, entryWallLength, 0.01) && i == 0) {
+        powerHoleInstanceIndex = 1;
         let x0 = offset[0]
         if (cat5PortMidway) {
           x0 -= wallLength/2
@@ -542,7 +548,7 @@ function createWallSVG() {
       }
 
       // Hole for power cord port
-      if (wallIndex == powerHoleWallIndex && i == 0) {
+      if (wallIndex == powerHoleWallIndex && i == powerHoleInstanceIndex) {
         if (2*POWER_HOLE_RADIUS > CHANNEL_DEPTH) {
           console.error("Power cord hole doesn't fit!")
         }
@@ -554,6 +560,8 @@ function createWallSVG() {
           a ${r},${r} 0 1,0 ${r*2},0
           a ${r},${r} 0 1,0,${-r*2},0`
       }
+
+      offset[0] += WALL_SVG_GAP
     }
 
     offset[0] += 20

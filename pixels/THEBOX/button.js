@@ -5,7 +5,7 @@ addButton("THE BOX", async () => {
   pixelDensity = 0.1
   exteriorOnly = true
   cat5PortMidway = true
-  powerHoleWallIndex = 2
+  powerHoleWallIndex = 0
 
   setLaserParams({
     PIXEL_DISTANCE: pixelDensity,
@@ -13,7 +13,7 @@ addButton("THE BOX", async () => {
     CHANNEL_DEPTH: 16.2,
   })
 
-  await addFromSVG("THEBOX/boxshape.svg")
+  await addFromSVG("THEBOX/hex boxshape.svg")
   center()
   EulerianPath(0)
 })
