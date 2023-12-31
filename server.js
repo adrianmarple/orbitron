@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { config } = require('./lib')
+const { config, execute } = require('./lib')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
@@ -127,12 +127,53 @@ const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")
 
 // redirect http to https
+let redirectServer
 if(rootServerPort == 443){
-  let redirectServer = http.createServer((req, res)=>{
+  const homedir = require('os').homedir()
+  let certLastUpdatedFile = `${homedir}/certLastUpdated.json`
+  let certUpdateTime = Date.now()
+  if(fs.existsSync(certLastUpdatedFile)){
+    let json = JSON.parse(fs.readFileSync(certLastUpdatedFile).toString())
+    certUpdateTime = json.time + 1000 * 60 * 60 * 24 * 60 // every 60 days
+  }
+  let delay = certUpdateTime - Date.now()
+  if(delay <= 0){
+    updateCert()
+  } else {
+    setTimeout(updateCert, delay)
+    openRedirectServer()
+  }
+  
+}
+
+async function updateCert(){
+  await closeRedirectServer()
+  let result = (await execute("certbot renew --dry-run"))
+  console.log("Certbot renew output: ", result)
+  await openRedirectServer()
+}
+
+async function openRedirectServer(){
+  await closeRedirectServer()
+  redirectServer = http.createServer((req, res)=>{
     res.writeHead(301,{Location: `https://${req.headers.host}${req.url}`})
     res.end()
   })
   redirectServer.listen(80,"0.0.0.0")
+}
+
+function closeRedirectServer(){
+  return new Promise((resolve, reject) =>{
+    if(redirectServer){
+      redirectServer.closeAllConnections()
+      redirectServer.close(()=>{
+        redirectServer = null
+        resolve()
+      })
+    } else {
+      resolve()
+    }
+  })
 }
 
 
