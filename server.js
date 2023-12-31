@@ -126,6 +126,16 @@ async function serverHandler(request, response) {
 const rootServerPort = config.HTTP_SERVER_PORT || 1337
 rootServer.listen(rootServerPort, "0.0.0.0")
 
+// redirect http to https
+if(rootServerPort == 443){
+  let redirectServer = http.createServer((req, res)=>{
+    res.writeHead(301,{Location: `https://${req.headers.host}${req.url}`})
+    res.end()
+  })
+  redirectServer.listen(80,"0.0.0.0")
+}
+
+
 module.exports = {
   addGETListener, addPOSTListener, respondWithFile
 }
