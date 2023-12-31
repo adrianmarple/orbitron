@@ -45,7 +45,7 @@ function startWebsocket() {
   try {
     console.log("trying to connect to server...")
     lastMessage = Date.now()
-    ws = new WebSocket(`ws://orbitron.games:8888`)
+    ws = new WebSocket(`wss://orbitron.games:8888`)
     ws.binaryType = "arraybuffer"
     ws.onmessage = event => {
       lastMessage = Date.now()

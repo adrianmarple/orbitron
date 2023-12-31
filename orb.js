@@ -41,7 +41,7 @@ let orbToServerSocket = null
 function connectOrbToServer(){
   try {
     displayText("CONNECTING")
-    let serverURL = `ws://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
+    let serverURL = `wss://${config.CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
     //console.log("Initializing orb to server socket", serverURL)
     orbToServerSocket = new WebSocket.WebSocket(serverURL)
     orbToServerSocket.lastPingReceived = Date.now()

@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 const { config } = require('./lib')
-const http = require('http')
+const https = require('https')
 const fs = require('fs')
 const path = require('path')
-const homedir = require('os').homedir()
 
 const getListeners = []
 const postListeners = []
@@ -72,8 +71,13 @@ function respondWithFile(response, filePath){
   });
 }
 
+const options = {
+  key: fs.readFileSync('/etc/letsencrypt/live/orbitron.games/privkey.pem'),
+  cert: fs.readFileSync('/etc/letsencrypt/live/orbitron.games/fullchain.pem'),
+}
+
 // Simple HTTP server
-const rootServer = http.createServer(async (request, response) => {
+const rootServer = https.createServer(options, async (request, response) => {
   // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
     console.log("Receiving github webhook update.")

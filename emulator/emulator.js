@@ -388,7 +388,7 @@ var app = new Vue({
         return // Already trying to establish a connection
       }
       try {
-        this.ws = new WebSocket(`ws://${window.location.hostname}:8888`)
+        this.ws = new WebSocket(`wss://${window.location.hostname}:8888`)
         this.ws.binaryType = "arraybuffer"
         let self = this
         this.ws.onmessage = event => {
