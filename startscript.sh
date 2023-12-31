@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "Staring server"
+echo "Staring Orbitron"
 if [ $(whoami) = 'root' ]; then
   node gitupdate.js
   node external_board_update.js

@@ -36,9 +36,9 @@ if (game_index) {
 }
 
 
-let orbToServerSocket = null
+let orbToRelaySocket = null
 
-function connectOrbToServer(){
+function connectOrbToRelay(){
   try {
     displayText("CONNECTING")
     let relayURL
@@ -48,15 +48,15 @@ function connectOrbToServer(){
       relayURL = "wss://orbitron.games"
     }
     relayURL += `:7777/relay/${config.ORB_ID}`
-    orbToServerSocket = new WebSocket.WebSocket(relayURL)
-    orbToServerSocket.lastPingReceived = Date.now()
-    orbToServerSocket.on('message', async (data, isBinary) => {
+    orbToRelaySocket = new WebSocket.WebSocket(relayURL)
+    orbToRelaySocket.lastPingReceived = Date.now()
+    orbToRelaySocket.on('message', async (data, isBinary) => {
       displayText("")
       if(!isBinary){
         data = data.toString().trim()
       }      
       if(data == "PING"){
-        orbToServerSocket.lastPingReceived = Date.now()
+        orbToRelaySocket.lastPingReceived = Date.now()
         return
       }
       if(data == "GIT_HAS_UPDATE"){
@@ -71,7 +71,7 @@ function connectOrbToServer(){
         try {
           await execute(`${__dirname}/utility_scripts/zip_logs.sh`)
           let logfile = fs.readFileSync(`${homedir}/logs.zip`)
-          orbToServerSocket.send(logfile)
+          orbToRelaySocket.send(logfile)
         } catch(error) {
           console.error("Error sending logs", error)
         }
@@ -82,7 +82,7 @@ function connectOrbToServer(){
       let clientID = data.clientID
       let clientConnection = getClientConnection(clientID)
       if(!clientConnection && !data.closed){
-        clientConnection = createClientConnection(clientID, orbToServerSocket)
+        clientConnection = createClientConnection(clientID, orbToRelaySocket)
       }
       if(clientConnection) {
         if(data.closed){
@@ -99,18 +99,18 @@ function connectOrbToServer(){
         }
       }
     })
-    orbToServerSocket.on('close', () => {
-      orbToServerSocket = null
+    orbToRelaySocket.on('close', () => {
+      orbToRelaySocket = null
     })
-    orbToServerSocket.on('error', (e) => {
+    orbToRelaySocket.on('error', (e) => {
       displayText("CONNECTION ERROR")
-      console.error("Orb to server socket error", e)
-      orbToServerSocket.close()
+      console.error("Orb to relay socket error", e)
+      orbToRelaySocket.close()
     })
   } catch(e) {
     displayText("CONNECTION ERROR")
-    console.error("Error connecting to server:", e)
-    orbToServerSocket = null
+    console.error("Error connecting to relay:", e)
+    orbToRelaySocket = null
   }
 }
 
@@ -160,21 +160,21 @@ function revalidate(clientID) {
 }
 
 async function relayUpkeep() {
-  if(orbToServerSocket) return
+  if(orbToRelaySocket) return
   let connected = await checkConnection()
   if(connected){
-    connectOrbToServer()
+    connectOrbToRelay()
   }
 }
-if(!config.IS_RELAY){
+if(!config.IS_RELAY || config.HAS_EMULATION){
   setInterval(relayUpkeep, 5e3)
 }
 
 function orbPingHandler() {
-  if(orbToServerSocket && orbToServerSocket.readyState === WebSocket.OPEN){
-    orbToServerSocket.send("PING")
-    if(Date.now() - orbToServerSocket.lastPingReceived > 60 * 1000){
-      orbToServerSocket.close()
+  if(orbToRelaySocket && orbToRelaySocket.readyState === WebSocket.OPEN){
+    orbToRelaySocket.send("PING")
+    if(Date.now() - orbToRelaySocket.lastPingReceived > 60 * 1000){
+      orbToRelaySocket.close()
     }
   }
 }
@@ -464,7 +464,7 @@ python_process.on('uncaughtException', function(err, origin) {
 function statusLogging() {
   console.log("STATUS",{
     id: config.ORB_ID,
-    orbToServerSocket: orbToServerSocket ? "connected" : null,
+    orbToRelaySocket: orbToRelaySocket ? "connected" : null,
     connections,
     connectionQueue,
     game: !gameState ? null : {
