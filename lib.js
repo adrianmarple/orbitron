@@ -29,17 +29,16 @@ process.on('uncaughtException', function(err, origin) {
   console.error('Uncaught exception: ', err, origin)
 });
 
-function isRoot() {
-  try {
-    return execSync("whoami").toString().toLowerCase().indexOf("root") >= 0
-  } catch(error) {
-    return false
-  }
-}
 
 function execute(command){
+  let isRoot
+  try {
+    isRoot = execSync("whoami").toString().toLowerCase().indexOf("root") >= 0
+  } catch(error) {
+    isRoot = false
+  }
   return new Promise(resolve => {
-    exec((isRoot() ? "" : "sudo ") + command,
+    exec((isRoot ? "" : "sudo ") + command,
     (error, stdout, stderr) => {
       if(error){
         console.error("execute Error:", error, stdout, stderr)

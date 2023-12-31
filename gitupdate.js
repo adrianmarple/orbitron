@@ -21,8 +21,14 @@ function timeUntilHour(hour) {
 
 // Copied from lib, but we don't want any internal dependencies for this file
 function execute(command){
+  let isRoot
+  try {
+    isRoot = execSync("whoami").toString().toLowerCase().indexOf("root") >= 0
+  } catch(error) {
+    isRoot = false
+  }
   return new Promise(resolve => {
-    exec((isRoot() ? "" : "sudo ") + command,
+    exec((isRoot ? "" : "sudo ") + command,
     (error, stdout, stderr) => {
       if(error){
         console.error("execute Error:", error, stdout, stderr)
