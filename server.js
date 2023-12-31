@@ -121,6 +121,7 @@ const rootServerPort = config.HTTP_SERVER_PORT || 1337
 
 let redirectServer
 let rootServer
+let certLastUpdatedFile = `${require('os').homedir()}/certLastUpdated.json`
 if(rootServerPort == 443){
   runServerWithRedirect()
 } else {
@@ -128,8 +129,6 @@ if(rootServerPort == 443){
 }
 
 async function runServerWithRedirect(){
-  const homedir = require('os').homedir()
-  let certLastUpdatedFile = `${homedir}/certLastUpdated.json`
   let certUpdateTime = Date.now()
   if(fs.existsSync(certLastUpdatedFile)){
     let json = JSON.parse(fs.readFileSync(certLastUpdatedFile).toString())
@@ -150,8 +149,12 @@ async function updateCert(){
   await closeRedirectServer()
   let result = (await execute("certbot renew --dry-run"))
   console.log("Certbot renew output: ", result)
-  await openRootServer()
-  await openRedirectServer()
+  let lastUpdated = {
+    time: Date.now()
+  }
+  fs.writeFileSync(certLastUpdatedFile, JSON.stringify(lastUpdated))
+  console.log("RESTARTING AFTER CERT UPDATE")
+  //execute("pm2 restart all")
 }
 
 async function openRootServer(){
@@ -161,7 +164,7 @@ async function openRootServer(){
   } else {
     rootServer = https.createServer(config.httpsOptions, serverHandler)
   }
-  rootServer.listen(rootServerPort, "0.0.0.0")
+  rootServer.listen(rootServerPort, "0.0.0.0",()=>{console.log("Root server listening on port " + rootServerPort)})
 }
 
 async function closeRootServer(){
@@ -184,7 +187,7 @@ async function openRedirectServer(){
     res.writeHead(301,{Location: `https://${req.headers.host}${req.url}`})
     res.end()
   })
-  redirectServer.listen(80,"0.0.0.0")
+  redirectServer.listen(80,"0.0.0.0",()=>{console.log("Redirect server listening on port 80")})
 }
 
 async function closeRedirectServer(){
