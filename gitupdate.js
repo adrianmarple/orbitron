@@ -15,8 +15,7 @@ function timeUntilHour(hour) {
   target.setSeconds(0);
   target.setMilliseconds(0);
 
-  return target.getTime() - 
-  now.getTime();
+  return target.getTime() - now.getTime();
 }
 
 // Copied from lib, but we don't want any internal dependencies for this file
