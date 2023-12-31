@@ -4,6 +4,7 @@ const fs = require('fs')
 
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
+console.log(config)
 if(config.KEY_LOCATION){
   config.httpsOptions = {
     key: fs.readFileSync(config.KEY_LOCATION),
@@ -12,8 +13,6 @@ if(config.KEY_LOCATION){
 } else {
   config.httpsOptions = {}
 }
-
-console.log(config)
 
 let filePath = config.PIXELS || "rhombicosidodecahedron"
 if (filePath.startsWith("/pixels/"))

@@ -18,7 +18,7 @@ from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
 
-if os.getenv("DEV_MODE"):
+if os.getenv("HAS_EMULATION") or os.getenv("DEV_MODE"):
   def display_pixels(pixels):
     output = np.array(pixels,dtype="<u1").tobytes()
     print("raw_pixels=%s;" % output.hex())

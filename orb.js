@@ -8,14 +8,10 @@ const { spawn } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
 const homedir = require('os').homedir()
 let orbEmulatorBroadcast = () => {}
-if(config.DEV_MODE){
+if(config.HAS_EMULATION || config.DEV_MODE){
   orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
 } // TODO refactor to fix this garbage
 PYTHON_EXECUTABLE = config.PYTHON_EXECUTABLE || PYTHON_EXECUTABLE
-CONNECT_TO_RELAY = config.CONNECT_TO_RELAY
-if (CONNECT_TO_RELAY && !CONNECT_TO_RELAY.startsWith("ws")) {
-  CONNECT_TO_RELAY = "wss://" + CONNECT_TO_RELAY
-}
 
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")
@@ -45,9 +41,14 @@ let orbToServerSocket = null
 function connectOrbToServer(){
   try {
     displayText("CONNECTING")
-    let serverURL = `${CONNECT_TO_RELAY}:7777/relay/${config.ORB_ID}`
-    //console.log("Initializing orb to server socket", serverURL)
-    orbToServerSocket = new WebSocket.WebSocket(serverURL)
+    let relayURL
+    if (config.DEV_MODE) {
+      relayURL = "ws://localhost"
+    } else {
+      relayURL = "wss://orbitron.games"
+    }
+    relayURL += `:7777/relay/${config.ORB_ID}`
+    orbToServerSocket = new WebSocket.WebSocket(relayURL)
     orbToServerSocket.lastPingReceived = Date.now()
     orbToServerSocket.on('message', async (data, isBinary) => {
       displayText("")
@@ -159,13 +160,15 @@ function revalidate(clientID) {
 }
 
 async function relayUpkeep() {
-  if(!config.CONNECT_TO_RELAY || orbToServerSocket) return
+  if(orbToServerSocket) return
   let connected = await checkConnection()
   if(connected){
     connectOrbToServer()
   }
 }
-setInterval(relayUpkeep, 5e3)
+if(!config.IS_RELAY){
+  setInterval(relayUpkeep, 5e3)
+}
 
 function orbPingHandler() {
   if(orbToServerSocket && orbToServerSocket.readyState === WebSocket.OPEN){
