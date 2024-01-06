@@ -34,6 +34,9 @@ GOOD_COLOR_STRING = "#ff00ff"
 BAD_COLOR = np.array((255, 0, 0))
 BAD_COLOR_STRING = "#ff0000"
 FRAMERATE = 30
+SWITCH_GRACE_FRAMES = 3
+
+switch_grace_frames = 0
 
 base_config = {
   "SELECTION_WEIGHTS": [0, 1, 1, 1, 1, 1],
@@ -1147,8 +1150,17 @@ def run_core_loop():
     else:
       update()
 
+ 
     if os.getenv("SWITCH_MODE") == "toggle":
-      is_off = GPIO.input(TOGGLE_PIN) == GPIO.HIGH
+      should_be_off = GPIO.input(TOGGLE_PIN) == GPIO.HIGH
+      if is_off == should_be_off:
+        switch_grace_frames = SWITCH_GRACE_FRAMES
+      else:
+        if switch_grace_frames > 0:
+          switch_grace_frames -= 1
+        else:
+          is_off = should_be_off
+ 
     if os.getenv("SWITCH_MODE") == "push":
       if not is_toggling and GPIO.input(TOGGLE_PIN) == GPIO.HIGH:
         is_off = not is_off
