@@ -36,7 +36,7 @@ BAD_COLOR_STRING = "#ff0000"
 FRAMERATE = 30
 SWITCH_GRACE_FRAMES = 3
 
-switch_grace_frames = 0
+cur_switch_grace_frames = 0
 
 base_config = {
   "SELECTION_WEIGHTS": [0, 1, 1, 1, 1, 1],
@@ -1152,12 +1152,13 @@ def run_core_loop():
 
  
     if os.getenv("SWITCH_MODE") == "toggle":
+      global cur_switch_grace_frames
       should_be_off = GPIO.input(TOGGLE_PIN) == GPIO.HIGH
       if is_off == should_be_off:
-        switch_grace_frames = SWITCH_GRACE_FRAMES
+        cur_switch_grace_frames = SWITCH_GRACE_FRAMES
       else:
-        if switch_grace_frames > 0:
-          switch_grace_frames -= 1
+        if cur_switch_grace_frames > 0:
+          cur_switch_grace_frames -= 1
         else:
           is_off = should_be_off
  
