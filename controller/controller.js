@@ -171,7 +171,7 @@ var app = new Vue({
     carouselCurrentX: 0,
     carouselVelocityX: 0,
 
-    config: {},
+    settings: {},
     prefs: {},
     rawPrefName: "",
     warpedPrefs: {
@@ -261,14 +261,14 @@ var app = new Vue({
   },
 
   watch: {
-    "state.config": function(val, oldValue) {
+    "state.settings": function(val, oldValue) {
       if (!oldValue) {
-        this.config = { ...val }
+        this.settings = { ...val }
         return
       }
       for (let key in val) {
         if (val[key] != oldValue[key]) {
-          this.config = { ...val }
+          this.settings = { ...val }
           return
         }
       }
@@ -782,7 +782,7 @@ var app = new Vue({
       }
     },
     updateSettings(settingsName) {
-      this.send({ type: "settings", update: {[settingsName]: this.config[settingsName] }})
+      this.send({ type: "settings", update: {[settingsName]: this.settings[settingsName] }})
     },
     updatePrefs(prefName) {
       if (this.warpedPrefs[prefName]) {

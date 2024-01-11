@@ -211,18 +211,18 @@
   <div v-else-if="showSettings" id="settings">
     <span style="font-size: 4em">Settings</span>
     <div id="settings-alignment-guide">
-      <div v-for="(item, key, index) in config" class="setting">
+      <div v-for="(item, key, index) in settings" class="setting">
         {{prettifySettingName(key)}}
         <input
           v-if="typeof item == 'boolean'"
           type="checkbox"
-          v-model.number="config[key]"
+          v-model.number="settings[key]"
           @change="updateSettings(key)"
         >
         <textarea
           v-else
           type="number"
-          v-model.number="config[key]"
+          v-model.number="settings[key]"
           @keydown="settingsKeydown"
           @change="updateSettings(key)"
         ></textarea>

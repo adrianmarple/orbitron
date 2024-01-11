@@ -16,7 +16,7 @@ import engine
 Game = engine.Game
 Player = engine.Player
 
-additional_config = {
+additional_settings = {
   "BOMB_FUSE_TIME": 3,
   "BOMB_EXPLOSION_TIME": 0.9, # Should be less than INVUNERABILITY_TIME
   "STARTING_BOMB_POWER": 4,
@@ -385,5 +385,5 @@ class Bomb:
       self.owner = new_owner
 
 
-game = Rhomberman(additional_config)
+game = Rhomberman(additional_settings)
 game.generate_players(Bomberman)

@@ -38,7 +38,7 @@ SWITCH_GRACE_FRAMES = 3
 
 cur_switch_grace_frames = 0
 
-base_config = {
+base_settings = {
   "SELECTION_WEIGHTS": [0, 1, 1, 1, 1, 1],
   "INVULNERABILITY_TIME": 3,
   "MOVE_FREQ": 0.18,
@@ -684,15 +684,15 @@ class Game:
   data = {}
   statuses = ["blank"] * SIZE
 
-  def __init__(self, additional_config=None):
+  def __init__(self, additional_settings=None):
 
-    self.config = {}
-    for (key, value) in base_config.items():
-      self.config[key] = value
+    self.settings = {}
+    for (key, value) in base_settings.items():
+      self.settings[key] = value
       setattr(self, key, value)
-    if additional_config:
-      for (key, value) in additional_config.items():
-        self.config[key] = value
+    if additional_settings:
+      for (key, value) in additional_settings.items():
+        self.settings[key] = value
         setattr(self, key, value)
 
     self.update_prefs()
@@ -906,9 +906,9 @@ class Game:
     for i in range(len(self.statuses)):
       self.statuses[i] = "blank"
 
-  def update_config(self, update):
+  def update_settings(self, update):
     for (key, value) in update.items():
-      self.config[key] = value
+      self.settings[key] = value
       setattr(self, key, value)
 
   def claimed_players(self):
@@ -1094,7 +1094,7 @@ def broadcast_state():
     "gameState": game.state,
     "timeRemaining": time_remaining,
     "victors": [victor.victor_json() for victor in game.victors],
-    "config": game.config,
+    "settings": game.settings,
     "data": game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,

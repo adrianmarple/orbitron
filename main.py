@@ -56,7 +56,7 @@ def consume_input():
       elif message["type"] == "playagain":
         engine.start(engine.game)
       elif message["type"] == "settings":
-        engine.game.update_config(message["update"])
+        engine.game.update_settings(message["update"])
       elif message["type"] == "prefs":
         update = message["update"]
         if "idlePattern" in update:

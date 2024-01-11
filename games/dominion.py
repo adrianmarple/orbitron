@@ -14,7 +14,7 @@ import engine
 Game = engine.Game
 Player = engine.Player
 
-additional_config = {
+additional_settings = {
   "DOMAIN_OFFSET": 0.93,
   "ROTATION_SPEED": 0.01,
   "PUSH_COOLDOWN": 3,
@@ -163,5 +163,5 @@ class Spotlight():
       self.owner.score += 1
 
 
-game = Dominion(additional_config)
+game = Dominion(additional_settings)
 game.generate_players(Domineer)

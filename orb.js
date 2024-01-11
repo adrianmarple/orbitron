@@ -391,7 +391,8 @@ function displayText(text, priority) {
   python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
 }
 
-console.log("config exclude", config.EXCLUDE)
+
+// let env = {...process.env, CONFIG: JSON.stringify(config)}
 let env = {...process.env,...config}
 for (let key in env) {
   let value = env[key]

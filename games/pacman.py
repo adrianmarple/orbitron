@@ -15,7 +15,7 @@ import engine
 Game = engine.Game
 Player = engine.Player
 
-additional_config = {
+additional_settings = {
   "PACMEN_LIVES": 8,
   "NUM_GHOSTS": 3,
   "STARTING_POWER_PELLET_COUNT": 4,
@@ -251,5 +251,5 @@ class Ghost(Player):
     Player.render(self)
 
 
-game = PacMan(additional_config)
+game = PacMan(additional_settings)
 game.generate_players(Pacman)

@@ -15,7 +15,7 @@ import engine
 Game = engine.Game
 Player = engine.Player
 
-additional_config = {
+additional_settings = {
   "CONTINUOUS_MOVEMENT": True,
   "ROUND_TIME": 94.6,
   "START_LENGTH": 4,
@@ -145,5 +145,5 @@ class Snek(Player):
     engine.add_color_to_pixel(self.position, self.current_color())
 
 
-game = Snektron(additional_config)
+game = Snektron(additional_settings)
 game.generate_players(Snek)

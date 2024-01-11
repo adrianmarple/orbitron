@@ -134,7 +134,7 @@ GAMES_INFO = [
       { words: [ "Stop the RED enemies before they reach the bottom" ], },
       { words: [ "Survive the round to collectively win", ], },
     ],
-    victoryCondition: "Survive for {{state.config.ROUND_TIME}} seconds.",
+    victoryCondition: "Survive for {{state.settings.ROUND_TIME}} seconds.",
     statusDisplay: {
       type: "cooperative",
       showLives: true,

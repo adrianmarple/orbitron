@@ -15,7 +15,7 @@ import engine
 Game = engine.Game
 Player = engine.Player
 
-additional_config = {
+additional_settings = {
   "CONTINUOUS_MOVEMENT": True,
   "LIVES": 5,
   "STARTING_SPAWN_DELAY": 6,
@@ -149,5 +149,5 @@ class Invader(Player):
     Player.render(self)
 
 
-game = BaseDefense(additional_config)
+game = BaseDefense(additional_settings)
 game.generate_players(Defender)

@@ -13,7 +13,7 @@ import engine
 Game = engine.Game
 Player = engine.Player
 
-additional_config = {
+additional_settings = {
   "CONTINUOUS_MOVEMENT": True,
   "MOVE_FREQ": 0.28,
   "SELECTION_WEIGHTS": [0, 0, 1, 1, 1, 1],
@@ -63,5 +63,5 @@ class Inkling(Player):
   def current_color(self):
     return self.color * (0.55 + 0.45 * sin(time() * 13))
 
-game = ColorWar(additional_config)
+game = ColorWar(additional_settings)
 game.generate_players(Inkling)

@@ -15,7 +15,7 @@ import engine
 Game = engine.Game
 Player = engine.Player
 
-additional_config = {
+additional_settings = {
   "MIN_RED_LIGHT_TIME": 2,
   "MAX_RED_LIGHT_TIME": 4,
   "MIN_GREEN_LIGHT_TIME": 1.5,
@@ -145,5 +145,5 @@ class Runner(Player):
       duration=0.5)
 
 
-game = RLGL(additional_config)
+game = RLGL(additional_settings)
 game.generate_players(Runner, positions=engine.SOUTHERLY_INITIAL_POSITIONS)
