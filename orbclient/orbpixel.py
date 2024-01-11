@@ -8,7 +8,10 @@ import sys
 from time import time, sleep
 from multiprocessing import Process, Pipe
 import serial
+import json
 import os
+
+config = json.loads(os.getenv("CONFIG"))
 
 # NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
 
@@ -42,7 +45,7 @@ def start_pixel_output_process():
 
 def start_external_pixel_board():
     global external_board
-    if os.getenv("EXTERNAL_PIXEL_BOARD"):
+    if config.get("EXTERNAL_PIXEL_BOARD"):
         if external_board:
             external_board.close()
             external_board = None
@@ -81,12 +84,12 @@ def display_pixels(pixels):
                     continue
                 if response[0] == 0xf8:
                     external_board.write(bytearray([0xf8]))
-                    strand_count = int(os.getenv("STRAND_COUNT"))
+                    strand_count = config.get("STRAND_COUNT")
                     external_board.write(strand_count.to_bytes(1,'big'))
                     print("sent strand count ", strand_count, file=sys.stderr)
                 elif response[0] == 0xf0:
                     external_board.write(bytearray([0xf0]))
-                    pixels_per_strand = int(os.getenv("PIXELS_PER_STRAND"))
+                    pixels_per_strand = config.get("PIXELS_PER_STRAND")
                     external_board.write(pixels_per_strand.to_bytes(2,'big'))
                     print("sent pixels per strand ", pixels_per_strand, file=sys.stderr)
                 elif response[0] == 0xe0:

@@ -392,14 +392,7 @@ function displayText(text, priority) {
 }
 
 
-// let env = {...process.env, CONFIG: JSON.stringify(config)}
-let env = {...process.env,...config}
-for (let key in env) {
-  let value = env[key]
-  if (typeof value == "object") {
-    env[key] = JSON.stringify(value)
-  }
-}
+let env = {...process.env, CONFIG: JSON.stringify(config)}
 const python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`], {env})
 let raw_pixels = null
 let raw_json = null

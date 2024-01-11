@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import json
 import os
 import sys
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
@@ -7,6 +8,8 @@ import pygame._sdl2 as sdl2
 from threading import main_thread, Thread
 from time import time, sleep
 import traceback
+
+config = json.loads(os.getenv("CONFIG"))
 
 MUSIC_DIRECTORY = os.path.dirname(__file__) + "/"
 
@@ -20,7 +23,7 @@ remoteMusicActions = []
 remoteSoundActions = []
 currentMusic = ""
 
-NO_AUDIO = os.getenv("DEV_MODE") or not os.getenv("ORB_AUDIO")
+NO_AUDIO = config.get("DEV_MODE") or not config.get("ORB_AUDIO")
 
 def addRemoteAction(queue,action):
   queue.append(str(time()) + ";" + action)
@@ -222,7 +225,7 @@ def prewarm_audio():
   # Now run prewarm thread
   def thread_func():
     if not NO_AUDIO:
-      mixer.init(devicename=os.getenv("ORB_AUDIO"), channels=1)
+      mixer.init(devicename=config.get("ORB_AUDIO"), channels=1)
 
       global EMPTY_SOUND
       EMPTY_SOUND = mixer.Sound(bytes(1))

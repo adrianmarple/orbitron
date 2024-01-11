@@ -18,7 +18,9 @@ from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
 
-if os.getenv("HAS_EMULATION") == "true":
+config = json.loads(os.getenv("CONFIG"))
+
+if config.get("HAS_EMULATION"):
   def display_pixels(pixels):
     output = np.array(pixels,dtype="<u1").tobytes()
     print("raw_pixels=%s;" % output.hex())
@@ -53,7 +55,7 @@ base_settings = {
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
 
-file_name = os.getenv("PIXELS", "rhombicosidodecahedron")
+file_name = config.get("PIXELS", "rhombicosidodecahedron")
 if file_name.endswith(".json"):
   file_name = file_name[:-5]
 if file_name.startswith("/pixels/"):
@@ -330,7 +332,7 @@ current_text = ""
 priory_texts = []
 display = None
 text_index = 0
-display_type = os.getenv("TEXT_DISPLAY", "")
+display_type = config.get("TEXT_DISPLAY", "")
 if display_type == "Seg14x4":
   try:
     import board
@@ -363,7 +365,7 @@ def update():
       start(idle)
     elif len(game.claimed_players()) == 0 and game != idle:
       start(idle)
-    elif os.getenv("AUTO_GAME") == "true" and len(game.claimed_players()) > 0 and game == idle:
+    elif config.get("AUTO_GAME")and len(game.claimed_players()) > 0 and game == idle:
       start_random_game()
 
     game.update()
@@ -1079,8 +1081,8 @@ def touchall():
 def broadcast_event(event):
   print(json.dumps(event))
 
-exclude = json.loads(os.getenv("EXCLUDE", "{}"))
-if os.getenv("IDLE"):
+exclude = config.get("EXCLUDE", {})
+if config.get("IDLE"):
   exclude["idlePattern"] = True
 def broadcast_state():
   # for line in traceback.format_stack():
@@ -1107,7 +1109,7 @@ def broadcast_state():
 
 # ================================ Core loop =========================================
 
-if os.getenv("SWITCH_MODE"):
+if config.get("SWITCH_MODE"):
   TOGGLE_PIN = 15 # board pin 10/GPIO pin 15
   import RPi.GPIO as GPIO
   GPIO.setwarnings(False)
@@ -1115,7 +1117,7 @@ if os.getenv("SWITCH_MODE"):
 
 def run_core_loop():
   display_text("0000", 0)
-  display_text(os.getenv("DEFAULT_TEXT_DISPLAY", ""), 3)
+  display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 3)
 
   last_frame_time = time()
   framerate_data = {
@@ -1139,7 +1141,7 @@ def run_core_loop():
       framerate_data['very_slow_frame_count'] += 1
       print("Framerate Data: " + str(framerate_data), file=sys.stderr)
 
-    if os.getenv("SHOW_FRAME_INFO") == "true":
+    if config.get("SHOW_FRAME_INFO"):
       print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
 
@@ -1151,7 +1153,7 @@ def run_core_loop():
       update()
 
  
-    if os.getenv("SWITCH_MODE") == "toggle":
+    if config.get("SWITCH_MODE") == "toggle":
       global cur_switch_grace_frames
       should_be_off = GPIO.input(TOGGLE_PIN) == GPIO.HIGH
       if is_off == should_be_off:
@@ -1162,7 +1164,7 @@ def run_core_loop():
         else:
           is_off = should_be_off
  
-    if os.getenv("SWITCH_MODE") == "push":
+    if config.get("SWITCH_MODE") == "push":
       if not is_toggling and GPIO.input(TOGGLE_PIN) == GPIO.HIGH:
         is_off = not is_off
         is_toggling = True
