@@ -3,6 +3,7 @@ addButton("Letter Test", async () => {
   name = "letters"
   ledAtVertex = false
   pixelDensity = 2
+  // cat5PortMidway = true
   makeTwoSided()
   setLaserParams({
     NOTCH_DEPTH: 4,
