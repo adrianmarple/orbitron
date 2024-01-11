@@ -356,6 +356,44 @@ def display_text(text, priority=2):
       return
   current_text = "    "
 
+def update_text_display():
+    global text_index
+    global previous_text
+    global previous_scroll_time
+
+    if current_text != previous_text:
+      for i in range(4):
+        set_digit(i, current_text[i])
+      # display.print(current_text[:4].replace("5","S"))
+      text_index = 4
+      previous_text = current_text
+      previous_scroll_time = time()
+
+    if len(current_text) <= 4: # Don't scroll if entire text can fit on display
+      return
+    if time() - previous_scroll_time < 0.25:
+      return
+
+    display.scroll(1)
+    if text_index < len(current_text):
+      char = current_text[text_index]
+      set_digit(3, char)
+    else:
+      set_digit(3, " ")
+    display.show()
+    text_index = (text_index + 1) % (len(current_text) + 3)
+    previous_scroll_time = time()
+
+def set_digit(index, value):
+  if type(value) == str:
+    if value == "5":
+      value = "S" # 5 is rendered weird so replace it with an "S" to look better
+    display[index] = value
+  elif type(value) == int:
+    display.set_digit_raw(index, value)
+  else:
+    print("Trying to display bad digit %s" % value, file=sys.stderr)
+
 # ================================ UPDATE =========================================
 
 def update():
@@ -381,35 +419,8 @@ def update():
     raw_pixels *= 0
 
     # Text display update tick
-    if display is None:
-      return
-
-    global text_index
-    global previous_text
-    global previous_scroll_time
-
-    if current_text != previous_text:
-      display.print(current_text[:4].replace("5","S"))
-      text_index = 4
-      previous_text = current_text
-      previous_scroll_time = time()
-
-    if len(current_text) <= 4: # Don't scroll if entire text can fit on display
-      return
-    if time() - previous_scroll_time < 0.25:
-      return
-
-    display.scroll(1)
-    if text_index < len(current_text):
-      char = current_text[text_index]
-      if char == "5":
-        char = "S" # 5 is rendered weird so replace it with an "S" to look better
-      display[3] = char
-    else:
-      display[3] = " "
-    display.show()
-    text_index = (text_index + 1) % (len(current_text) + 3)
-    previous_scroll_time = time()
+    if display is not None:
+      update_text_display
 
   except Exception:
     print(traceback.format_exc(), file=sys.stderr)
