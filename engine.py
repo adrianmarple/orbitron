@@ -361,6 +361,12 @@ def update_text_display():
     global previous_text
     global previous_scroll_time
 
+    if current_text == "$LOADING":
+      text = current_text[int(time() / 0.1) % 12]
+      for i in range(4):
+        set_digit(i, text[i])
+      return
+
     if current_text != previous_text:
       for i in range(4):
         set_digit(i, current_text[i])
@@ -392,6 +398,23 @@ def set_digit(index, value):
     display.set_digit_raw(index, value)
   else:
     print("Trying to display bad digit %s" % value, file=sys.stderr)
+
+# Raw digit reference: https://learn.adafruit.com/assets/88406
+
+CHASE_SEQUENCE = [
+  [0b110001, 0, 0, 0],
+  [0b100001, 0b1, 0, 0],
+  [0b1, 0b1, 0b1, 0],
+  [0, 0b1, 0b1, 0b1],
+  [0, 0, 0b1, 0b11],
+  [0, 0, 0, 0b111],
+  [0, 0, 0, 0b1110],
+  [0, 0, 0b1000, 0b1100],
+  [0, 0b1000, 0b1000, 0b1000],
+  [0b1000, 0b1000, 0b1000, 0],
+  [0b11000, 0b1000, 0, 0],
+  [0b111000, 0, 0, 0],
+]
 
 # ================================ UPDATE =========================================
 
