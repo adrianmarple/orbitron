@@ -364,7 +364,6 @@ def update_text_display():
     if current_text != previous_text:
       for i in range(4):
         set_digit(i, current_text[i])
-      # display.print(current_text[:4].replace("5","S"))
       text_index = 4
       previous_text = current_text
       previous_scroll_time = time()
@@ -420,7 +419,7 @@ def update():
 
     # Text display update tick
     if display is not None:
-      update_text_display
+      update_text_display()
 
   except Exception:
     print(traceback.format_exc(), file=sys.stderr)
