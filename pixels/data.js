@@ -327,6 +327,8 @@ function generatePixelInfo() {
 
 
 document.getElementById("download").addEventListener('click', function() {
+  if (!downloadsJSON) return
+
   let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
   let blob = new Blob([fileContent], { type: 'text/plain' })
   let a = document.createElement('a')

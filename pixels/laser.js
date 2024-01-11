@@ -109,17 +109,23 @@ cover = document.getElementById("cover")
 
 document.getElementById("download").addEventListener('click', async () => {
   if (isWall) {
-    IS_BOTTOM = false
-    KERF = ACRYLIC_KERF
-    await createCoverSVG()
-    downloadSVGAsText("cover", "top (acrylic)")
-    IS_BOTTOM = true
-    KERF = WOOD_KERF
-    await createCoverSVG()
-    downloadSVGAsText("cover", "bottom (birch plywood)")
+    if (downloadsTopSVG) {
+      IS_BOTTOM = false
+      KERF = ACRYLIC_KERF
+      await createCoverSVG()
+      downloadSVGAsText("cover", "top (acrylic)")
+    }
+    if (downloadsBottomSVG) {
+      IS_BOTTOM = true
+      KERF = WOOD_KERF
+      await createCoverSVG()
+      downloadSVGAsText("cover", "bottom (birch plywood)")
+    }
 
-    createWallSVG()
-    downloadSVGAsText("wall", "walls (balsa wood)")
+    if (downloadsWallSVG) {
+      createWallSVG()
+      downloadSVGAsText("wall", "walls (balsa wood)")
+    }
   }
 })
 
@@ -540,7 +546,7 @@ function createWallSVG() {
 }
 
 function wallPath(offset, wallLength, notches, isFinalEdge, isPowerCordPort) {
-  path = ""
+  let path = ""
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   offset[0] += wallLength
   if (offset[0] > offset[2]*BALSA_LENGTH - WALL_SVG_PADDING) {
@@ -694,7 +700,9 @@ function printPath(path) {
 
 function downloadSVGAsText(id, name) {
   if (!name) name = id;
-  let fileContent = document.getElementById(id).outerHTML
+  let elem = document.getElementById(id)
+  elem.style.display = "block"
+  let fileContent = elem.outerHTML
   let blob = new Blob([fileContent], { type: 'text/plain' })
   let a = document.createElement('a')
   a.download = name + '.svg'

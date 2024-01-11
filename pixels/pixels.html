@@ -46,6 +46,10 @@ canvas {
   left:  24px;
   top: 24px;
   z-index: 10;
+  height: 144px;
+  display: grid;
+  grid-template-rows: repeat(4, 32px);
+  grid-auto-flow: column;
 }
 #settings > div {
   display: flex;
@@ -66,6 +70,10 @@ canvas {
 <div class="button" id="download">Download</div>
 
 <div id="settings">
+  <div>downloadsJSON</div>
+  <div>downloadsTopSVG</div>
+  <div>downloadsBottomSVG</div>
+  <div>downloadsWallSVG</div>
   <div>showVertexNumbers</div>
   <div>showEdgeNumbers</div>
   <div>showLaserSVG</div>
