@@ -362,7 +362,7 @@ def update_text_display():
     global previous_scroll_time
 
     if current_text == "$LOADING":
-      text = current_text[int(time() / 0.1) % 12]
+      text = CHASE_SEQUENCE[int(time() / 0.1) % 12]
       for i in range(4):
         set_digit(i, text[i])
       return
