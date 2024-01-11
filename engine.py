@@ -1149,7 +1149,7 @@ if config.get("SWITCH_MODE"):
   GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def run_core_loop():
-  display_text("0000", 0)
+  display_text("$LOADING", 0)
   display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 3)
 
   last_frame_time = time()
