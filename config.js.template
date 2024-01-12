@@ -17,6 +17,8 @@ module.exports={
   // IDLE: "lamp",
   // PYTHON_EXECUTABLE: "python3",
   // DEFAULT_TEXT_DISPLAY: "HELLO WORLD",
+  // DEFAULT_TEXT_DISPLAY: [0b111001, 0b1001, 0b1001, 0b1111],
+  // DEFAULT_TEXT_DISPLAY: "$LOADING",
   REQUIRES_LOGIN: false,
   EXCLUDE: {
     // games: true,
