@@ -76,13 +76,11 @@ function respondWithFile(response, filePath){
 async function serverHandler(request, response) {
   // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
-    console.log("Receiving github webhook update.")
     let body = ''
     request.on('data', function(data) {
       body += data
     })
     request.on('end', async function() {
-      console.log(body)
       let handled = false
       for (const listener of postListeners) {
         handled = await listener(response, body)

@@ -233,7 +233,10 @@ addGETListener(async (response, orbID, filePath)=>{
 
 addPOSTListener(async (response, body) => {
   try {
+    // Ignore weird extra POST requests
     if (body.startsWith("0x")) return false
+
+    console.log("Receiving github webhook update.")
     let payload = JSON.parse(body)
     response.writeHead(200)
     response.end('post received')
