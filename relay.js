@@ -233,6 +233,7 @@ addGETListener(async (response, orbID, filePath)=>{
 
 addPOSTListener(async (response, body) => {
   try {
+    if (body.startsWith("0x")) return false
     let payload = JSON.parse(body)
     response.writeHead(200)
     response.end('post received')
