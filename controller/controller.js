@@ -65,12 +65,12 @@ Vue.component('boolean', {
 </div>
 `})
 Vue.component('dropdown', {
-  props: ['name', 'title', 'values', 'labels'],
+  props: ['name', 'title', 'info'],
   template: `  
 <div class="space-between" v-if="!$root.exclude[name]">
   <label :for="name">{{title}}:</label>
   <select :name="name" v-model="$root.prefs[name]" @change="$root.updatePrefs(name)">
-    <option v-for="i in values.length" :value="values[i-1]">{{labels[i-1]}}</option>
+    <option v-for="i in info.length" :value="info[i-1][0]">{{info[i-1][1]}}</option>
   </select>
 </div>
 `})
@@ -256,8 +256,6 @@ var app = new Vue({
     }
     // Do this last just in case localStorage is inaccessible and errors
     // this.localFlags = JSON.parse(localStorage.getItem('flags')) || {}
-
-    this.nav = this.navBarItems[0]
   },
 
   watch: {
@@ -302,6 +300,11 @@ var app = new Vue({
         this.speedbumpCallback = null
       }
     },
+    "state.exclude": function(val) {
+      if (!this.navBarItems.includes(this.nav)) {
+        this.nav = this.navBarItems[0]
+      }
+    },
     localFlags: {
       handler: function (val) {
         localStorage.setItem('flags', JSON.stringify(val))
@@ -322,10 +325,26 @@ var app = new Vue({
     mustLogin() {
       return this.state.mustLogin
     },
+
     navBarItems() {
       return ['timing', 'colors', 'pattern', 'save', 'games']
         .filter(name => !this.exclude[name])
     },
+    patternDropdownInfo() {
+      let info = [
+        ['default', 'Default'],
+        ['static', 'Static'],
+        ['fireflies', 'Fireflies'],
+        ['pulses', 'Ripples'],
+      ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
+      
+      let extra = this.state.extraIdle
+      if (extra) {
+        info.unshift([extra, extra])
+      }
+      return info
+    },
+
     exclude() {
       return this.state.exclude || {}
     },

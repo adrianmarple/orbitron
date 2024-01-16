@@ -132,8 +132,7 @@
       <color v-if="prefs.idleColor == 'fixed'" name="fixedColor" ></color>
 
       <dropdown title="Style" name="idleColor"
-      :values="['rainbow', 'fixed', 'gradient']"
-      :labels="['Rainbow', 'Fixed color', 'Gradient']"
+      :info="[['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']]"
       ></dropdown>
       <slider title="Brightness" name="brightness" ></slider>
     </div>
@@ -159,8 +158,7 @@
           title="Speed" name="idleFrameRate"
           :min="5" :max="30"></slider>
       <dropdown title="Pattern" name="idlePattern"
-          :values="['default', 'static', 'fireflies', 'pulses']"
-          :labels="['Default', 'Static', 'Fireflies', 'Fireworks']"
+          :info="patternDropdownInfo"
       ></dropdown>
     </div>
 

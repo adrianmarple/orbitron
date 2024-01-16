@@ -1114,9 +1114,6 @@ def touchall():
 def broadcast_event(event):
   print(json.dumps(event))
 
-exclude = config.get("EXCLUDE", {})
-if config.get("IDLE"):
-  exclude["idlePattern"] = True
 def broadcast_state():
   # for line in traceback.format_stack():
   #   print(line.strip(), file=sys.stderr)
@@ -1135,7 +1132,8 @@ def broadcast_state():
     "soundActions": remoteSoundActions,
     "prefs": current_prefs,
     "currentText": current_text,
-    "exclude": exclude,
+    "extraIdle": config.get("IDLE"),
+    "exclude": config.get("EXCLUDE", {}),
     "prefNames": pref_names,
   }
   print(json.dumps(message))

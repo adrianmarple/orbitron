@@ -26,6 +26,7 @@ module.exports={
     // timing: true,
     // pattern: true,
     // idlePattern: true,
+    // fireflies: true,
   },
   // SWITCH_MODE: "toggle",
   // SWITCH_MODE: "push",
