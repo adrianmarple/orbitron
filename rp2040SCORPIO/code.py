@@ -80,26 +80,31 @@ def do_loop():
     sync = usb.read(1)
     if not sync or sync[0] != 0xff:
         return
-
-    watchdog.feed()
             
     count = usb.read(1)
     if count and count[0] > 0 and count[0] <= 8:
-        strand_count = count[0]
-        print("STRAND COUNT ", strand_count)
-        if state_machine == None:
+        value = count[0]
+        if value != strand_count:
+            strand_count = value
+            print("STRAND COUNT ", strand_count)
+            reset()
             state_machine = initialize_state_machine(strand_count)
     else:
         print("STRAND COUNT ERROR", count)
+        return
 
     count = usb.read(2)
     if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
-        pixels_per_strand = (count[0]<<8) + count[1]
-        print("PIXELS PER STRAND ", pixels_per_strand)        
-        if pixels == None:
+        value = (count[0]<<8) + count[1]
+        if value != pixels_per_strand:
+            pixels_per_strand = value
+            print("PIXELS PER STRAND ", pixels_per_strand)        
             total_pixel_bytes = strand_count * pixels_per_strand * bpp
             print("TOTAL PIXEL BYTES ", total_pixel_bytes)
             pixels = bytearray(total_pixel_bytes)
+    else:
+        print("PIXELS PER STRAND ERROR", count)
+        return
     
     process_frame()
 
