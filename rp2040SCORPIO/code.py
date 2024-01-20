@@ -82,6 +82,10 @@ def do_loop():
     sync = usb.read(1)
     if not sync or sync[0] != 0xff:
         return
+    sync = bytearray(usb.read(3))
+    if not sync or len(sync) < 3 or sync != bytearray([0x11,0xff,0x11]):
+        usb.reset_input_buffer()
+        return
             
     count = usb.read(1)
     if count and count[0] > 0 and count[0] <= 8:
