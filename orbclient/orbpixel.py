@@ -71,27 +71,10 @@ def display_pixels(pixels):
     if external_board:
         try:
             pixels[:, [0,1]] = pixels[:, [1,0]]
-            out = np.clip(np.uint8(pixels),0,0xfe).tobytes()
-            while True:
-                sync = external_board.read()
-                if not sync or len(sync) == 0 or sync[len(sync)-1] != 0x11:
-                    continue
-                external_board.write(bytearray([0xff]))
-                response = external_board.read(1)
-                if not response or len(response) == 0:
-                    continue
-                if response[0] == 0xf8:
-                    external_board.write(bytearray([0xf8]))
-                    strand_count = config.get("STRAND_COUNT")
-                    external_board.write(strand_count.to_bytes(1,'big'))
-                    print("sent strand count ", strand_count, file=sys.stderr)
-                elif response[0] == 0xf0:
-                    external_board.write(bytearray([0xf0]))
-                    pixels_per_strand = config.get("PIXELS_PER_STRAND")
-                    external_board.write(pixels_per_strand.to_bytes(2,'big'))
-                    print("sent pixels per strand ", pixels_per_strand, file=sys.stderr)
-                elif response[0] == 0xff:
-                    break
+            pixel_data = np.clip(np.uint8(pixels),0,0xfe).tobytes()
+            strand_count = config.get("STRAND_COUNT")
+            pixels_per_strand = config.get("PIXELS_PER_STRAND")
+            out = bytearray([0xff]) + strand_count.to_bytes(1,'big') + external_board.write(pixels_per_strand.to_bytes(2,'big')) + pixel_data
             external_board.write(out)
         except Exception as e:
             print("error writing to external board", file=sys.stderr)

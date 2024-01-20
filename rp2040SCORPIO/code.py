@@ -17,7 +17,6 @@ total_pixel_bytes = -1
 state_machine = None
 bpp = 3
 pixels = None
-temp_pixels = None
 
 time.sleep(1) # necessary to wait for usb init
 usb = usb_cdc.data
@@ -71,7 +70,6 @@ def do_loop():
     global total_pixel_bytes
     global state_machine
     global pixels
-    global temp_pixels
 
     if not usb.connected:
         print("No Sreial Connection!")
@@ -79,47 +77,36 @@ def do_loop():
         watchdog.feed()
         return
     
-    usb.write(bytearray([0x11]))
     sync = usb.read(1)
     if not sync or sync[0] != 0xff:
         return
 
-    if strand_count == -1:
-        usb.write(bytearray([0xf8]))
-        response = usb.read(1)
-        if response and response[0] == 0xf8:
-            watchdog.feed()
-            count = usb.read(1)
-            if count and count[0] > 0 and count[0] <= 8:
-                strand_count = count[0]
-                print("STRAND COUNT ", strand_count)
-                if state_machine == None:
-                    state_machine = initialize_state_machine(strand_count)
-        return
+    watchdog.feed()
+            
+    count = usb.read(1)
+    if count and count[0] > 0 and count[0] <= 8:
+        strand_count = count[0]
+        print("STRAND COUNT ", strand_count)
+        if state_machine == None:
+            state_machine = initialize_state_machine(strand_count)
+    else:
+        print("STRAND COUNT ERROR", count)
 
-    if pixels_per_strand == -1:
-        usb.write(bytearray([0xf0]))
-        response = usb.read(1)
-        if response and response[0] == 0xf0:
-            watchdog.feed()
-            count = usb.read(2)
-            if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
-                pixels_per_strand = (count[0]<<8) + count[1]
-                print("PIXELS PER STRAND ", pixels_per_strand)        
-                if pixels == None:
-                    total_pixel_bytes = strand_count * pixels_per_strand * bpp
-                    print("TOTAL PIXEL BYTES ", total_pixel_bytes)
-                    pixels = bytearray(total_pixel_bytes)
-        return
+    count = usb.read(2)
+    if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
+        pixels_per_strand = (count[0]<<8) + count[1]
+        print("PIXELS PER STRAND ", pixels_per_strand)        
+        if pixels == None:
+            total_pixel_bytes = strand_count * pixels_per_strand * bpp
+            print("TOTAL PIXEL BYTES ", total_pixel_bytes)
+            pixels = bytearray(total_pixel_bytes)
     
-    usb.write(bytearray([0xff]))
     process_frame()
 
 def process_frame():
     global pixels
-    global temp_pixels
     global num_glitches
-
+    
     read = usb.readinto(pixels)
 
     if read != total_pixel_bytes:
