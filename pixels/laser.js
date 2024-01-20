@@ -32,8 +32,8 @@ reset = () => {
     // CHANNEL_DEPTH: 10,
     NOTCH_DEPTH: 5,
     FASTENER_DEPTH: 2.5,
-    WOOD_KERF: 0.14,
-    ACRYLIC_KERF: -0.03,
+    BOTTOM_KERF: 0.14,
+    TOP_KERF: -0.03,
     // ACRYLIC_KERF: -0.06, // Used for hex cat recut
 
     CAT5_HEIGHT: 15.1,
@@ -49,7 +49,8 @@ reset = () => {
     POWER_HOLE_RADIUS: 5.8,
   })
   END_CAP_FACTOR = 0.3872
-  KERF = ACRYLIC_KERF
+  WOOD_KERF = BOTTOM_KERF
+  KERF = TOP_KERF
   IS_BOTTOM = true
 
   BALSA_LENGTH = 96*11.85 // A little more than 11 3/4 inches
@@ -111,13 +112,13 @@ document.getElementById("download").addEventListener('click', async () => {
   if (isWall) {
     if (downloadsTopSVG) {
       IS_BOTTOM = false
-      KERF = ACRYLIC_KERF
+      KERF = TOP_KERF
       await createCoverSVG()
       downloadSVGAsText("cover", "top (acrylic)")
     }
     if (downloadsBottomSVG) {
       IS_BOTTOM = true
-      KERF = WOOD_KERF
+      KERF = BOTTOM_KERF
       await createCoverSVG()
       downloadSVGAsText("cover", "bottom (birch plywood)")
     }
@@ -136,7 +137,7 @@ for (let displayName in buttonClickMap) {
     document.querySelectorAll("path").forEach(path => path.setAttribute('d', ""))
     cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
     if (isWall) {
-      KERF = ACRYLIC_KERF
+      KERF = TOP_KERF
       await createCoverSVG()
       console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
       createWallSVG()
@@ -151,7 +152,43 @@ let minY = 0
 let maxX = 0
 let maxY = 0
 
+async function createChannelTestSVG() {
+  let wallLength = 50 * MM_TO_96DPI
+  let path = ""
+  let kerfs = [0.10, 0.09, 0.08, 0.07]
+  let thicknesses = [2.35, 2.73, 2.75, 2.77]
+  let offset = [0,0]
+  let basis = [[1,0,0], [0,1,0]]
+
+  wallInfo = [{
+    length: wallLength,
+    edgeCenters: [[wallLength, 0]],
+  }]
+
+  for (let kerf of kerfs) {
+    path += decimalPath(kerf, add(offset, [-50, -5]))
+    offset[1] += 40
+  }
+  for (let thickness of thicknesses) {
+    path += decimalPath(thickness, add(offset, [20, -10]))
+    setLaserParams({WALL_THICKNESS: thickness})
+    offset[1] = 0
+    for (let kerf of kerfs) {
+      setLaserParams({KERF: kerf})
+      path += singleChannelPath(wallLength, basis, offset)
+      offset[1] += 40
+    }
+    offset[0] += wallLength
+  }
+  cover.querySelector("path").setAttribute("d", path)
+}
+
 async function createCoverSVG() {
+  if (name == "channeltest") {
+    createChannelTestSVG()
+    return
+  }
+
   wallInfo = []
   minX = 0
   minY = 0
@@ -287,7 +324,7 @@ async function createCoverSVG() {
       }
       edgeLength *= SCALE
       let n = cross(e1, [0,0,-1])
-      let localOffset = scale(v1, SCALE)
+      let offset = scale(v1, SCALE)
 
       let isFinalEdge = vectorEquals(v1, start) && vectorEquals(e1, finalEdgeDirection)
 
@@ -306,8 +343,6 @@ async function createCoverSVG() {
       } else {
         lengthOffset2 *= w2
       }
-      w1 += KERF
-      w2 -= KERF
 
       // if (isFinalEdge) {
       //   // Extra gap for strip to enter in
@@ -315,11 +350,8 @@ async function createCoverSVG() {
       //   lengthOffset1 += CHANNEL_WIDTH / Math.sin(Math.abs(a1))
       // }
 
-      let x1 = lengthOffset1 + NOTCH_DEPTH + KERF
-      let x2 = edgeLength + lengthOffset2 - NOTCH_DEPTH - KERF
-
       let wallLength = edgeLength + lengthOffset2 - lengthOffset1
-      let edgeCenter = add(add(localOffset, scale(e1, edgeLength/2)), scale(n, w1*1.5))
+      let edgeCenter = add(add(offset, scale(e1, edgeLength/2)), scale(n, w1*1.5))
       let addedToCount = false
       for (let wallType of wallInfo) {
         if (epsilonEquals(wallType.length, wallLength, 0.01)) {
@@ -337,30 +369,15 @@ async function createCoverSVG() {
         entryWallLength = wallLength
       }
 
-      let xs = x1
-      for (let center of notchCenters(wallLength, isFinalEdge)) {
-        let next = x1 + center
-        let xt = next - 2*(NOTCH_DEPTH + KERF)
-        let points = [
-          [xs, w1],
-          [xs, w2],
-          [xt, w2],
-          [xt, w1],
-        ]
-        xs = next
-        channelString += "M" + pointsToSVGString(points, [e1, n], localOffset).substring(1) + "Z "
-       }
-
-      let points = [
-        [xs, w1],
-        [xs, w2],
-        [x2, w2],
-        [x2, w1],
-      ]
-      channelString += "M" + pointsToSVGString(points, [e1, n], localOffset).substring(1) + "Z "
-  	
+      channelString += singleChannelPath(wallLength,
+        [e1, n],
+        offset,
+        [lengthOffset1, CHANNEL_WIDTH/2],
+        isFinalEdge)
 
       // Border
+      let x1 = lengthOffset1 + NOTCH_DEPTH + KERF
+      let x2 = edgeLength + lengthOffset2 - NOTCH_DEPTH - KERF
       let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
       let borderLengthOffset = width / -Math.tan((Math.PI - a1)/2)
       
@@ -379,7 +396,7 @@ async function createCoverSVG() {
       } else {
         points = [[borderLengthOffset, width]]
       }
-      borderString += pointsToSVGString(points, [e1, n], localOffset)
+      borderString += pointsToSVGString(points, [e1, n], offset)
 
       points = [
         [x1 + FASTENER_DEPTH, w2],
@@ -389,7 +406,7 @@ async function createCoverSVG() {
         [x2, w2],
         [x2 - FASTENER_DEPTH, w2],
       ]
-      minimalBorderString += pointsToSVGString(points, [e1, n], localOffset)
+      minimalBorderString += pointsToSVGString(points, [e1, n], offset)
     } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false
@@ -448,6 +465,37 @@ async function createCoverSVG() {
       }
     }
   }
+}
+
+function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) {
+  let path = ""
+  if (localOffset) {
+    offset = add(offset, add(scale(basis[0], localOffset[0]), scale(basis[1], localOffset[1])))
+  }
+  let w1 = KERF
+  let w2 = WALL_THICKNESS - KERF
+  let xs = NOTCH_DEPTH + KERF
+  for (let center of notchCenters(wallLength, isFinalEdge)) {
+    let next = NOTCH_DEPTH + KERF + center
+    let xt = next - 2*(NOTCH_DEPTH + KERF)
+    let points = [
+      [xs, w1],
+      [xs, w2],
+      [xt, w2],
+      [xt, w1],
+    ]
+    xs = next
+    path += "M" + pointsToSVGString(points, basis, offset).substring(1) + "Z "
+  }
+  let xt = wallLength - (NOTCH_DEPTH + KERF)
+
+  let points = [
+    [xs, w1],
+    [xs, w2],
+    [xt, w2],
+    [xt, w1],
+  ]
+  return path + "M" + pointsToSVGString(points, basis, offset).substring(1) + "Z "
 }
 
 function pointsToSVGString(points, basis, offset, flip) {
@@ -664,9 +712,11 @@ let decimalToRomanNumeral = [
   "XXX",
 ]
 function romanNumeralPath(x, offset) {
+  minX = Math.min(minX, offset[0])
+  minY = Math.min(minY, offset[1])
+  x = parseInt(x)
   let roman = decimalToRomanNumeral[x]
   let path = ""
-  let width = 0
   for (let d of roman) {
     if (d == "V" || d == "X") offset[0] -= 2
     path += `M${offset[0]} ${offset[1]}`
@@ -688,6 +738,70 @@ function romanNumeralPath(x, offset) {
         break
     }
   }
+  maxX = Math.min(maxX, offset[0])
+  maxY = Math.min(maxY, offset[1] + 30)
+  return path
+}
+
+function decimalPath(x, offset) {
+  minX = Math.min(minX, offset[0])
+  minY = Math.min(minY, offset[1])
+
+  x = "" + x
+  let path = ""
+  for (let d of x) {
+    if (d == ".") {
+      path += `M${offset[0]-4} ${offset[1] + 20}
+      v -1 h 1 v 1 Z`
+      continue
+    }
+
+    switch(d) {
+      case "0":
+        path += `M${offset[0]} ${offset[1]}
+        h 10 v 20 h -10 v -16`
+        break
+      case "1":
+        path += `M${offset[0] + 10} ${offset[1]}
+        v 20`
+        break
+      case "2":
+        path += `M${offset[0]} ${offset[1]}
+        h 10 v 10 h -10 v 10 h 10`
+        break
+      case "3":
+        path += `M${offset[0]} ${offset[1]}
+        h 10 v 20 h -10 m 0 -10 h 10`
+        break
+      case "4":
+        path += `M${offset[0]} ${offset[1]}
+        v 10 h 10 v -10 v 20`
+        break
+      case "5":
+        path += `M${offset[0] + 10} ${offset[1]}
+        h -10 v 10 h 10 v 10 h -10`
+        break
+      case "6":
+        path += `M${offset[0] + 10} ${offset[1]}
+        h -10 v 20 h 10 v -10 h -6`
+        break
+      case "7":
+        path += `M${offset[0]} ${offset[1]}
+        h 10 v 20`
+        break
+      case "8":
+        path += `M${offset[0]} ${offset[1]}
+        h 10 v 20 h -10 v -16 m 0 6 h 6`
+        break
+      case "9":
+        path += `M${offset[0] + 10} ${offset[1] + 20}
+        v -20 h -10 v 10 h 6`
+        break
+    }
+    offset[0] += 17
+  }
+  maxX = Math.max(maxX, offset[0])
+  maxY = Math.max(maxY, offset[1] + 20)
   return path
 }
 
