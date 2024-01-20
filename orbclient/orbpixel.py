@@ -10,7 +10,7 @@ from multiprocessing import Process, Pipe
 import serial
 import json
 import os
-import hashlib
+import zlib
 
 config = json.loads(os.getenv("CONFIG"))
 
@@ -34,7 +34,6 @@ external_board = None
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
-md5 = hashlib.md5()
 
 
 def start_pixel_output_process():
@@ -74,11 +73,10 @@ def display_pixels(pixels):
         try:
             pixels[:, [0,1]] = pixels[:, [1,0]]
             pixel_data = np.clip(np.uint8(pixels),0,0xfe).tobytes()
-            md5.update(pixel_data)
-            hash_val = md5.digest()
+            crc = zlib.crc32(pixel_data).to_bytes(4, 'big', signed=False)
             strand_count = config.get("STRAND_COUNT")
             pixels_per_strand = config.get("PIXELS_PER_STRAND")
-            out = bytearray([0xff,0x11,0xff,0x11]) + strand_count.to_bytes(1,'big') + pixels_per_strand.to_bytes(2,'big') + hash_val + pixel_data
+            out = bytearray([0xff,0x11,0xff,0x11]) + strand_count.to_bytes(1,'big') + pixels_per_strand.to_bytes(2,'big') + crc + pixel_data
             external_board.write(out)
         except Exception as e:
             print("error writing to external board", file=sys.stderr)

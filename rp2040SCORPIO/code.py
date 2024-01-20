@@ -8,7 +8,7 @@ import bitops
 import supervisor
 from microcontroller import watchdog
 from watchdog import WatchDogMode
-import adafruit_hashlib as hashlib
+import binascii
 
 first_led_pin = NEOPIXEL0
 
@@ -23,7 +23,6 @@ time.sleep(1) # necessary to wait for usb init
 usb = usb_cdc.data
 boot_time = ticks_ms()
 num_glitches = 0
-md5 = hashlib.md5()
 
 def reset():
     global strand_count
@@ -117,13 +116,13 @@ def do_loop():
 def process_frame():
     global pixels
     global num_glitches
-    hash_val = bytearray(usb.read(16))
+    expected_crc = bytearray(usb.read(4))
     read = usb.readinto(pixels)
-    md5.update(pixels)
-    if bytearray(md5.digest()) != hash_val:
-        print("HASH MISMATCH!")
-        print(hash_val)
-        print(md5.digest())
+    crc = binascii.crc32(pixels).to_bytes(4, 'big', signed=False)
+    if crc != expected_crc:
+        print("CRC MISMATCH!")
+        print(expected_crc)
+        print(crc)
 
     if read != total_pixel_bytes:
         print("skipping frame, didn't read enough bytes: %d" % read)
