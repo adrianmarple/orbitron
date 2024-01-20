@@ -76,6 +76,7 @@ def do_loop():
     if not usb.connected:
         print("No Sreial Connection!")
         time.sleep(0.1)
+        watchdog.feed()
         return
     
     usb.write(bytearray([0x11]))
@@ -124,7 +125,7 @@ def process_frame():
     if read != total_pixel_bytes:
         print("skipping frame, didn't read enough bytes: %d" % read)
         num_glitches = num_glitches + 1
-        gpm = num_glitches / ((ticks_ms() - boot_time) / 60000.0)
+        gpm = num_glitches / ((ticks_ms() - boot_time) / 60000)
         print("glitches per minute: %f" % gpm)
         return
     
