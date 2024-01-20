@@ -30,7 +30,6 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 _led_strip = None
 process_conn = None
 external_board = None
-should_restart_external_board = True
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
@@ -69,7 +68,6 @@ def pixel_output_loop(conn):
 
 def display_pixels(pixels):
     global external_board
-    global should_restart_external_board
     if external_board:
         try:
             pixels[:, [0,1]] = pixels[:, [1,0]]
@@ -78,7 +76,7 @@ def display_pixels(pixels):
                 sync = external_board.read()
                 if not sync or len(sync) == 0 or sync[len(sync)-1] != 0x11:
                     continue
-                external_board.write(bytearray([0xff,(0xe0 if should_restart_external_board else 0xff)]))
+                external_board.write(bytearray([0xff]))
                 response = external_board.read(1)
                 if not response or len(response) == 0:
                     continue
@@ -92,17 +90,12 @@ def display_pixels(pixels):
                     pixels_per_strand = config.get("PIXELS_PER_STRAND")
                     external_board.write(pixels_per_strand.to_bytes(2,'big'))
                     print("sent pixels per strand ", pixels_per_strand, file=sys.stderr)
-                elif response[0] == 0xe0:
-                    print("external board resetting", file=sys.stderr)
-                    should_restart_external_board = False
-                    start_external_pixel_board()
                 elif response[0] == 0xff:
                     break
             external_board.write(out)
         except Exception as e:
             print("error writing to external board", file=sys.stderr)
             print(e, file=sys.stderr)
-            should_restart_external_board = True
             start_external_pixel_board()
         return
     pixels = np.uint32(pixels)

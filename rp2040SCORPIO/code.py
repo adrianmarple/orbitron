@@ -46,8 +46,7 @@ def main():
     # tc = 0
     # dt = 0
     reset()
-    time.sleep(1)
-    watchdog.timeout = 1
+    watchdog.timeout = 2
     watchdog.mode = WatchDogMode.RESET
     watchdog.feed()
     print("READY")
@@ -58,7 +57,6 @@ def main():
         except Exception as e:
             print(e)
             reset()
-        watchdog.feed()
         # dt = (tc * dt + ticks_ms() - t0)/(tc+1)
         # tc += 1
         # if tc == 120:
@@ -81,20 +79,15 @@ def do_loop():
         return
     
     usb.write(bytearray([0x11]))
-    sync = usb.read(2)
+    sync = usb.read(1)
     if not sync or sync[0] != 0xff:
-        return
-    if len(sync) > 1 and sync[1] == 0xe0:
-        usb.write(bytearray([0xe0]))
-        print("RESETTING")
-        time.sleep(0.1)
-        supervisor.reload()
         return
 
     if strand_count == -1:
         usb.write(bytearray([0xf8]))
         response = usb.read(1)
         if response and response[0] == 0xf8:
+            watchdog.feed()
             count = usb.read(1)
             if count and count[0] > 0 and count[0] <= 8:
                 strand_count = count[0]
@@ -107,6 +100,7 @@ def do_loop():
         usb.write(bytearray([0xf0]))
         response = usb.read(1)
         if response and response[0] == 0xf0:
+            watchdog.feed()
             count = usb.read(2)
             if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
                 pixels_per_strand = (count[0]<<8) + count[1]
@@ -130,12 +124,13 @@ def process_frame():
     if read != total_pixel_bytes:
         print("skipping frame, didn't read enough bytes: %d" % read)
         num_glitches = num_glitches + 1
-        gpm = num_glitches / ((ticks_ms() - boot_time) / 60000)
-        print("glitches per minute: %d" % gpm)
+        gpm = num_glitches / ((ticks_ms() - boot_time) / 60000.0)
+        print("glitches per minute: %f" % gpm)
         return
     
     try:
         transmit(state_machine, strand_count, pixels)
+        watchdog.feed()
     except Exception as e:
         print(e)
 
