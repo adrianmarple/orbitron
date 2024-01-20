@@ -75,10 +75,10 @@ def display_pixels(pixels):
             pixels[:, [0,1]] = pixels[:, [1,0]]
             pixel_data = np.clip(np.uint8(pixels),0,0xfe).tobytes()
             md5.update(pixel_data)
-            hash = bytearray(md5.digest())
+            hash_val = md5.digest()
             strand_count = config.get("STRAND_COUNT")
             pixels_per_strand = config.get("PIXELS_PER_STRAND")
-            out = bytearray([0xff,0x11,0xff,0x11]) + strand_count.to_bytes(1,'big') + pixels_per_strand.to_bytes(2,'big') + hash + pixel_data
+            out = bytearray([0xff,0x11,0xff,0x11]) + strand_count.to_bytes(1,'big') + pixels_per_strand.to_bytes(2,'big') + hash_val + pixel_data
             external_board.write(out)
         except Exception as e:
             print("error writing to external board", file=sys.stderr)

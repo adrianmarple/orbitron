@@ -117,12 +117,12 @@ def do_loop():
 def process_frame():
     global pixels
     global num_glitches
-    hash = bytearray(usb.read(16))
+    hash_val = bytearray(usb.read(16))
     read = usb.readinto(pixels)
-    md5.update(read)
-    if bytearray(md5.digest()) != hash:
+    md5.update(pixels)
+    if bytearray(md5.digest()) != hash_val:
         print("HASH MISMATCH!")
-        print(hash)
+        print(hash_val)
         print(md5.digest())
 
     if read != total_pixel_bytes:
