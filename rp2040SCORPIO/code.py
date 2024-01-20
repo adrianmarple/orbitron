@@ -85,9 +85,9 @@ def do_loop():
     if count and count[0] > 0 and count[0] <= 8:
         value = count[0]
         if value != strand_count:
+            reset()
             strand_count = value
             print("STRAND COUNT ", strand_count)
-            reset()
             state_machine = initialize_state_machine(strand_count)
     else:
         print("STRAND COUNT ERROR", count)
