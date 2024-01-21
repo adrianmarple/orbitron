@@ -119,18 +119,21 @@ def process_frame():
     expected_crc = bytearray(usb.read(4))
     read = usb.readinto(pixels)
     crc = binascii.crc32(pixels).to_bytes(4, 'big', signed=False)
+    failed = False
     if crc != expected_crc:
-        print("CRC MISMATCH!")
-        print(expected_crc)
-        print(crc)
+        print("CRC mismatch, skipping frame:  expected %s - got %s" % (expected_crc, crc))
+        failed = True
 
     if read != total_pixel_bytes:
-        print("skipping frame, didn't read enough bytes: %d" % read)
+        print("skipping frame, didn't read enough bytes: expected %d - got %d" % (total_pixel_bytes, read))
+        failed = True
+    
+    if failed:
         num_glitches = num_glitches + 1
         gpm = num_glitches / ((ticks_ms() - boot_time) / 60000)
         print("glitches per minute: %f" % gpm)
         return
-    
+
     try:
         transmit(state_machine, strand_count, pixels)
         watchdog.feed()
