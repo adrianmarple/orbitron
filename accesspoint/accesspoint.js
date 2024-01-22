@@ -4,18 +4,31 @@ const qs = require('querystring')
 const { checkConnection, execute, delay} = require('../lib')
 const { displayText } = require('../orb')
 const { respondWithFile } = require('../server')
+const { clearInterval } = require('timers')
 
 // ---Wifi Setup Code---
 let numTimesNetworkCheckFailed = 0
 let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 
+let accessPointConnectionInterval = null
+let hasAccessPointConnection = false
+
 async function startAccessPoint(){
   removeWifiProfile("OrbHotspot")
   await execute('sudo nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Super Orbitron" ipv4.method shared ipv6.method shared')
   await execute('sudo nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
-  displayText("JOIN WIFI SUPER ORBITRON")
+
+  accessPointConnectionInterval = setInterval(async () => {
+    let out = await execute("iw dev wlan0 station dump")
+    hasAccessPointConnection = out.includes("Station")
+    if (hasAccessPointConnection) {
+      displayText("VISIT ORBITRON.GAMES")
+    } else {
+      displayText("JOIN WIFI SUPER ORBITRON")
+    }
+  }, 100)
 }
 
 async function stopAccessPoint(ssid, password){
@@ -29,6 +42,8 @@ async function stopAccessPoint(ssid, password){
     await execute(`sudo nmcli connection add con-name "${ssid}" type wifi ssid "${ssid}" ${password} autoconnect yes save yes`)
     await execute(`sudo nmcli connection up "${SSID}"`)
   }
+  hasAccessPointConnection = false
+  clearInterval(accessPointConnectionInterval)
 }
 
 async function removeWifiProfile(connectionName){
@@ -69,7 +84,10 @@ async function networkCheck() {
   } else {
     numTimesAccessPointStarted += 1
     await startAccessPoint()
-    await delay(600e3)
+    await delay(120e3)
+    while (hasAccessPointConnection) {
+      await delay(10e3)
+    }
   }
   networkCheck()
 }
