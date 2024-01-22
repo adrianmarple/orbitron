@@ -57,7 +57,8 @@ class PacMan(Game):
     num_ghosts = self.NUM_GHOSTS + len(self.claimed_players())
     self.ghosts = []
     for i in range(num_ghosts):
-      self.ghosts.append(Ghost(engine.north_pole[i]))
+      if i < len(engine.north_pole):
+        self.ghosts.append(Ghost(engine.north_pole[i]))
 
     Game.start_ontimeout(self)
 
