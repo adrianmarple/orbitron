@@ -48,7 +48,7 @@ async function stopAccessPoint(ssid, password) {
       password =  `802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ${password}`
     }
     await execute(`sudo nmcli connection add con-name "${ssid}" type wifi ssid "${ssid}" ${password} autoconnect yes save yes`)
-    await execute(`sudo nmcli connection up "${SSID}"`)
+    await execute(`sudo nmcli connection up "${ssid}"`)
   }
 }
 
@@ -80,7 +80,7 @@ async function networkCheck() {
   displayText("CHECKING FOR INTERNET")
   numTimesNetworkCheckFailed += 1
   await stopAccessPoint()
-  await delay(isFirstNetworkCheck ? 25e3 : 100e3)
+  await delay(isFirstNetworkCheck ? 15e3 : 60e3)
 
   isFirstNetworkCheck = false
   connected = await checkConnection()
