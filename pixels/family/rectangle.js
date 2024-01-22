@@ -12,5 +12,5 @@ addButton("Rectangle", () => {
   addPolygon(4, [0,0,0], [60,90])
   console.log(verticies.length)
   
-  EulerianPath(0)
+  EulerianPath(1)
 })

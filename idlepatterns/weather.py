@@ -20,13 +20,13 @@ class Weather(Idle):
   previous_time = 0
 
   def update_weather_data(self):
+    # Reference: https://openweathermap.org/api/one-call-3
     url = "https://api.openweathermap.org/data/3.0/onecall?lat=%s&lon=%s&exclude=%s&appid=%s" % (
       config["LAT"],
       config["LON"],
       "current,minutely,daily,alerts",
       config["WEATHER_API_KEY"]
     )
-    print(url, file=sys.stderr)
     contents = urllib.request.urlopen(url).read()
     self.weather_data = json.loads(contents)["hourly"]
     self.previous_update_time = time()
@@ -57,7 +57,13 @@ class Weather(Idle):
     self.wind = a * wind_vector(snapshot0) + (1-a) * wind_vector(snapshot1) # m/s
     self.uvi = a * snapshot0["uvi"] + (1-a) * snapshot1["uvi"]
     self.temp = a * snapshot0["temp"] + (1-a) * snapshot1["temp"] # Kelvin
-    self.rain = a * snapshot0["rain"]["1h"] + (1-a) * snapshot1["rain"]["1h"] # mm/h
+    rain0 = 0
+    if "rain" in snapshot0:
+      rain0 = snapshot0["rain"]["1h"]
+    rain1 = 0
+    if "rain" in snapshot1:
+      rain1 = snapshot1["rain"]["1h"]
+    self.rain = a * rain0 + (1-a) * rain1 # mm/h
 
   def init_values(self):
     self.set_current_weather()
@@ -79,8 +85,8 @@ class Weather(Idle):
     end_colors = np.outer(1 - rectified_target_values, end)
     colors = start_colors + end_colors
 
-    uvf = 1 - 1 / (1 + self.uvi)
-    uv_color = np.array((1 - 0.4*uvf, 1 - 0.7*uvf, 1 - 0.9*uvf))
+    uvf = 1 / (1 + self.uvi)
+    uv_color = np.array((1 - 0.4*uvf, 1 - 0.8*uvf, 1 - 0.9*uvf))
     self.render_values = np.outer(self.render_values, uv_color)
     self.render_values = np.multiply(self.render_values, colors)
 
