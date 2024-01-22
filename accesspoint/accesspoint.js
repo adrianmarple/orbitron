@@ -29,7 +29,7 @@ async function startAccessPoint() {
     let out = await execute("iw dev wlan0 station dump")
     hasAccessPointConnection = out.includes("Station")
     if (hasAccessPointConnection) {
-      displayText("VISIT ORBITRON.GAMES")
+      displayText("VISIT URL 10.42.0.1")
     } else {
       displayText("JOIN WIFI SUPER ORBITRON")
     }
@@ -43,7 +43,7 @@ async function stopAccessPoint(ssid, password) {
   removeWifiProfile("OrbHotspot")
   if(ssid){
     removeWifiProfile(ssid)
-    displayText(`ADDING SSID ${ssid}`)
+    displayText(`ADDING SSID ${ssid} PASS ${password}`)
     if(password != ""){
       password =  `802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ${password}`
     }
