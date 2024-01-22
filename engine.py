@@ -390,7 +390,9 @@ def update_text_display():
     previous_scroll_time = time()
 
 def set_digit(index, value):
-  if type(value) == str:
+  if value == ".":
+    display.set_digit_raw(index, 0x40)
+  elif type(value) == str:
     if value == "5":
       value = "S" # 5 is rendered weird so replace it with an "S" to look better
     display[index] = value
