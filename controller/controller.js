@@ -339,8 +339,9 @@ var app = new Vue({
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
       
       let extra = this.state.extraIdle
+      let extraDisplayName = extra[0].toUpperCase() + extra.slice(1)
       if (extra) {
-        info.unshift([extra, extra])
+        info.unshift([extra, extraDisplayName])
       }
       return info
     },

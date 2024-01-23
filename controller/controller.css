@@ -183,16 +183,17 @@ body, #app, .main {
   background-color: rgba(0,0,100, 0.9);
 }
 
+/* SAVE MENU */
 #restore-defaults {
   position: absolute;
-  top: 10rem;
+  top: 2rem;
   padding: 1rem;
 }
 .scroll-containter {
   /* display: flex;
   flex-direction: column;
   justify-content: flex-end; */
-  height: 40rem;
+  height: calc(100vh - 36rem);
   width: 100%;
   overflow-y: auto;
 }
@@ -215,6 +216,11 @@ body, #app, .main {
   border-radius: 0.5rem;
   font-size: 3rem;
 }
+.pref-list-item .delete {
+  width: 4rem;
+  height: 4rem;
+}
+
 #save-bottom-stuff {
   display: flex;
   justify-content: space-between;

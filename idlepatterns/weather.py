@@ -54,7 +54,8 @@ class Weather(Idle):
     snapshot0 = self.weather_data[index - 1]
     snapshot1 = self.weather_data[index]
 
-    self.wind = a * wind_vector(snapshot0) + (1-a) * wind_vector(snapshot1) # m/s
+    self.wind_speed = a * snapshot0["wind_speed"] + (1-a) * snapshot1["wind_speed"]
+    self.wind_vector = a * wind_vector(snapshot0) + (1-a) * wind_vector(snapshot1) # m/s
     self.uvi = a * snapshot0["uvi"] + (1-a) * snapshot1["uvi"]
     self.temp = a * snapshot0["temp"] + (1-a) * snapshot1["temp"] # Kelvin
     rain0 = 0
@@ -67,8 +68,10 @@ class Weather(Idle):
 
   def init_values(self):
     self.set_current_weather()
-    self.render_values = np.matmul(self.wind, unique_coord_matrix)
-    self.time_factor += (time() - self.previous_time) * 2*pi / 20 * np.linalg.norm(self.wind)
+    self.render_values = np.matmul(self.wind_vector, unique_coord_matrix) * 5
+    if self.wind_speed != 0:
+      self.render_values /= sqrt(self.wind_speed)
+    self.time_factor += (time() - self.previous_time) * 2*pi / 20 * self.wind_speed
     self.previous_time = time()
     self.render_values += self.time_factor
     self.render_values = (np.sin(self.render_values) + 1.1)/2.1
