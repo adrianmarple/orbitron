@@ -42,7 +42,7 @@ async function stopAccessPoint(ssid, password) {
   clearInterval(accessPointConnectionInterval)
   removeWifiProfile("OrbHotspot")
   if(ssid){
-    displayText(`ADDING SSID ${ssid} PASS ${password}`)
+    displayText(`ADDING SSID ${ssid}`)
     await removeWifiProfile(ssid)
     if(password != ""){
       password =  `802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ${password}`
@@ -114,7 +114,6 @@ let wifiSetupServer = http.createServer(function (req, res) {
     })
     req.on('end', function() {
       let formData = qs.parse(body)
-      console.log(formData)
       respondWithFile(res, "/accesspoint/submitted.html")
       submitSSID(formData)
     })
