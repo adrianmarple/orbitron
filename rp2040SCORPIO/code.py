@@ -1,5 +1,4 @@
-from adafruit_ticks import ticks_ms
-import time
+from time import sleep, time
 from board import *
 import rp2pio
 import adafruit_pioasm
@@ -19,9 +18,9 @@ state_machine = None
 bpp = 3
 pixels = None
 
-time.sleep(1) # necessary to wait for usb init
+sleep(1) # necessary to wait for usb init
 usb = usb_cdc.data
-boot_time = ticks_ms()
+boot_time = time()
 num_glitches = 0
 
 def reset():
@@ -43,26 +42,17 @@ def reset():
     usb.write_timeout = 0
 
 def main():
-    # tc = 0
-    # dt = 0
     reset()
     watchdog.timeout = 2
     watchdog.mode = WatchDogMode.RESET
     watchdog.feed()
     print("READY")
     while True:
-        # t0 = ticks_ms()
         try:
             do_loop()
         except Exception as e:
             print(e)
             reset()
-        # dt = (tc * dt + ticks_ms() - t0)/(tc+1)
-        # tc += 1
-        # if tc == 120:
-        #     print("avg frame time last 120 frames: ", dt)
-        #     tc = 0
-        #     dt = 0
 
 
 def do_loop():
@@ -74,7 +64,7 @@ def do_loop():
 
     if not usb.connected:
         print("No Sreial Connection!")
-        time.sleep(0.1)
+        sleep(0.1)
         watchdog.feed()
         return
     
@@ -82,7 +72,7 @@ def do_loop():
     if not sync or sync[0] != 0xff:
         return
     sync = bytearray(usb.read(3))
-    if not sync or len(sync) < 3 or sync != bytearray([0x11,0xff,0x11]):
+    if not sync or len(sync) < 3 or sync != bytearray([0x22,0xee,0x11]):
         usb.reset_input_buffer()
         return
             
@@ -130,7 +120,7 @@ def process_frame():
     
     if failed:
         num_glitches = num_glitches + 1
-        gpm = num_glitches / ((ticks_ms() - boot_time) / 60000)
+        gpm = num_glitches / ((time() - boot_time) / 60)
         print("glitches per minute: %f" % gpm)
         return
 
