@@ -50,6 +50,7 @@ def main():
     while True:
         try:
             do_loop()
+            watchdog.feed()
         except Exception as e:
             print(e)
             reset()
@@ -65,15 +66,16 @@ def do_loop():
     if not usb.connected:
         print("No Sreial Connection!")
         sleep(0.1)
-        watchdog.feed()
         return
     
     sync = usb.read(1)
     if not sync or sync[0] != 0xff:
         return
+    
     sync = bytearray(usb.read(3))
     if not sync or len(sync) < 3 or sync != bytearray([0x22,0xee,0x11]):
         usb.reset_input_buffer()
+        print("Bad sync!")
         return
             
     count = usb.read(1)
@@ -91,7 +93,7 @@ def do_loop():
     count = usb.read(2)
     if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
         value = (count[0]<<8) + count[1]
-        if value != pixels_per_strand:
+        if value < 5000 and value != pixels_per_strand:
             pixels_per_strand = value
             print("PIXELS PER STRAND ", pixels_per_strand)        
             total_pixel_bytes = strand_count * pixels_per_strand * bpp
@@ -126,7 +128,6 @@ def process_frame():
 
     try:
         transmit(state_machine, strand_count, pixels)
-        watchdog.feed()
     except Exception as e:
         print(e)
 
