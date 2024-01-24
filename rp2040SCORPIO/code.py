@@ -65,7 +65,7 @@ def main():
         if failed:
             num_glitches = num_glitches + 1
             t = localtime(time())
-            print("%s:%s num glitches this minute: %d" % (t.tm_hour, t.tm_minute, num_glitches))
+            print("%s:%s num glitches this minute: %d" % (t.tm_hour, t.tm_min, num_glitches))
             if(num_glitches >= 15):
                 print("OVER 15 GLITCHES IN A MINUTE")
                 # let watchdog timeout
