@@ -69,6 +69,9 @@ function resize(permanently) {
   return 1/maxMagnitude
 }
 
+function fromMagAngle(mag, angle) { //angle is in deg
+  return rotateZ([mag, 0, 0], angle / 180 * Math.PI)
+}
 
 function rotateXAll(theta, permanently) {
   rotateAll(rotateX, theta, permanently)

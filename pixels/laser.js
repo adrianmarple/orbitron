@@ -237,8 +237,8 @@ async function createCoverSVG() {
       }
       if (!leftmostTurn) break
       if (epsilonEquals(minAngle, Math.PI)) {
+        // End cap for double back
         dPath.push(leftmostTurn[0])
-        continue
       }
       directedEdges.splice(directedEdges.indexOf(leftmostTurn), 1)
       if (epsilonEquals(minAngle, 0) && !epsilonEquals(magnitude(e0), 0)) {
@@ -398,15 +398,15 @@ async function createCoverSVG() {
       }
       borderString += pointsToSVGString(points, [e1, n], offset)
 
-      points = [
-        [x1 + FASTENER_DEPTH, w2],
-        [x1, w2],
-        [x1, w1],
-        [x2, w1],
-        [x2, w2],
-        [x2 - FASTENER_DEPTH, w2],
-      ]
-      minimalBorderString += pointsToSVGString(points, [e1, n], offset)
+      // points = [
+      //   [x1 + FASTENER_DEPTH, w2],
+      //   [x1, w2],
+      //   [x1, w1],
+      //   [x2, w1],
+      //   [x2, w2],
+      //   [x2 - FASTENER_DEPTH, w2],
+      // ]
+      // minimalBorderString += pointsToSVGString(points, [e1, n], offset)
     } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false

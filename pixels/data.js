@@ -185,14 +185,11 @@ function generatePixelInfo() {
         }
       }
       if (alpha == 0 && epsilonEquals(dot(e1, e2), -magnitude(e1) * edgeLength)) {
-        // Skip LED when doubling back
-        // Still add connection to dupe
-        // Dupe should necessarily exist
-        if (dupeIndex == -1) {
-          console.error ("Doubleback detected with no dupe")
+        // Skip LED when doubling back and dupe exists
+        if (dupeIndex > -1) {
+          // Previous pixel should necessarily be unique
+          additionalNeighbors.push([dupeIndex, coords.length-1])
         }
-        // Previous pixel should necessarily be unique
-        additionalNeighbors.push([dupeIndex, coords.length-1])
       }
       else if (dupeIndex >= 0) {
         uniqueToDupe.push(dupeIndex)

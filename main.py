@@ -24,7 +24,10 @@ for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   engine.games[module_name] = module.game
   engine.game_selection_weights[module_name] = 1
 
-idlepatterns.set_idle(config.get("IDLE", engine.get_pref("idlePattern")))
+default_pattern = engine.prefs.get("idlePattern")
+if default_pattern is None:
+  default_pattern = config.get("IDLE", "default")
+idlepatterns.set_idle(default_pattern)
 
 def check_all_ready():
   if engine.game.state != "start":

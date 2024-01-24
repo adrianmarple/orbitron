@@ -132,6 +132,13 @@ function findEdgeFromCenter(center) {
   return null
 }
 
+
+function addLine(vertex, length, angle) {
+  let coords = add(vertex.ogCoords, fromMagAngle(length, angle))
+  let newVertex = addVertex(coords)
+  return addEdge(vertex, newVertex)
+}
+
 // Based on Futurologist's answer from https://math.stackexchange.com/questions/2228018/how-to-calculate-the-third-point-if-two-points-and-all-distances-between-the-poi
 // Assumes z coordinate is always 0
 function addTriangulation(v1, v2, a, b) {
@@ -173,6 +180,23 @@ function addSquareulation(v1, v2, a, b) {
   addEdge(v4,v2)
 
   return [v3,v4]
+}
+
+function splitEdge(edge, distance) {
+  let delta = edgeDelta(edge)
+  if (distance < 0) {
+    distance = magnitude(delta) + distance
+  }
+  delta = normalize(delta)
+  delta = scale(delta, distance)
+  let coords = add(edge.verticies[0].ogCoords, delta)
+  let newVertex = addVertex(coords)
+  let v1 = edge.verticies[1]
+  v1.edges.splice(v1.edges.indexOf(edge), 1)
+  edge.verticies[1] = newVertex
+  newVertex.edges.push(edge)
+  addEdge(newVertex, v1)
+  return newVertex
 }
 
 
