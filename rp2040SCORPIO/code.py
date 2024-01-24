@@ -58,8 +58,10 @@ def main():
             reset()
         if failed:
             num_glitches = num_glitches + 1
-            gpm = num_glitches / ((time() - boot_time) / 60)
-            print("glitches per minute: %f" % gpm)
+            dt = ((time() - boot_time) / 60)
+            if dt > 0:
+                gpm = num_glitches / dt
+                print("glitches per minute: %f" % gpm)
 
 def do_loop():
     global strand_count
