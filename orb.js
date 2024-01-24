@@ -410,7 +410,7 @@ python_process.stdout.on('data', data => {
       for (let id in connections) {
         connections[id].lastActivityTime = Date.now()
       }
-    } else if (raw_pixels === null) {
+    } else if (raw_pixels === null && raw_json === null) {
       console.log("UNHANDLED STDOUT MESSAGE: `" + message + "`")
     }
 
@@ -418,10 +418,10 @@ python_process.stdout.on('data', data => {
       raw_json += message
       if (raw_json.endsWith("}")) {
         try {
-          broadcast(JSON.parse(message));
-          orbEmulatorBroadcast(message);
+          broadcast(JSON.parse(raw_json))
+          orbEmulatorBroadcast(raw_json)
         } catch(e) {
-          console.error("broadcast error", e, message);
+          console.error("broadcast error", e, raw_json)
         }
         raw_json = null
       }
@@ -431,7 +431,6 @@ python_process.stdout.on('data', data => {
       raw_pixels += message
       if (raw_pixels.endsWith(";")) {
         try {
-          //console.log(pako.inflate(pako.deflate(message.substr(11).trim()),{to:"string"}))
           orbEmulatorBroadcast(pako.deflate(raw_pixels.slice(0, -1)))
         } catch(e) {
           console.error("orbEmulatorBroadcast error", e, raw_pixels)
