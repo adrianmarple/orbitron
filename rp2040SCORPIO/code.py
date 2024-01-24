@@ -4,7 +4,6 @@ import rp2pio
 import adafruit_pioasm
 import usb_cdc
 import bitops
-import supervisor
 from microcontroller import watchdog
 from watchdog import WatchDogMode
 import binascii
@@ -42,19 +41,25 @@ def reset():
     usb.write_timeout = 0
 
 def main():
+    global num_glitches
     reset()
     watchdog.timeout = 2
     watchdog.mode = WatchDogMode.RESET
     watchdog.feed()
     print("READY")
     while True:
+        failed = False
         try:
-            do_loop()
+            failed = do_loop()
             watchdog.feed()
         except Exception as e:
+            failed = True
             print(e)
             reset()
-
+        if failed:
+            num_glitches = num_glitches + 1
+            gpm = num_glitches / ((time() - boot_time) / 60)
+            print("glitches per minute: %f" % gpm)
 
 def do_loop():
     global strand_count
@@ -66,17 +71,17 @@ def do_loop():
     if not usb.connected:
         print("No Sreial Connection!")
         sleep(0.1)
-        return
+        return False
     
     sync = usb.read(1)
     if not sync or sync[0] != 0xff:
-        return
+        return False
     
     sync = bytearray(usb.read(3))
     if not sync or len(sync) < 3 or sync != bytearray([0x22,0xee,0x11]):
         usb.reset_input_buffer()
         print("Bad sync!")
-        return
+        return True
             
     count = usb.read(1)
     if count and count[0] > 0 and count[0] <= 8:
@@ -88,7 +93,7 @@ def do_loop():
             state_machine = initialize_state_machine(strand_count)
     else:
         print("STRAND COUNT ERROR", count)
-        return
+        return True
 
     count = usb.read(2)
     if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
@@ -101,35 +106,30 @@ def do_loop():
             pixels = bytearray(total_pixel_bytes)
     else:
         print("PIXELS PER STRAND ERROR", count)
-        return
+        return True
     
-    process_frame()
+    return process_frame()
 
 def process_frame():
     global pixels
-    global num_glitches
     expected_crc = bytearray(usb.read(4))
     read = usb.readinto(pixels)
     crc = binascii.crc32(pixels).to_bytes(4, 'big', signed=False)
-    failed = False
+
     if crc != expected_crc:
         print("CRC mismatch, skipping frame:  expected %s - got %s" % (expected_crc, crc))
-        failed = True
+        return True
 
     if read != total_pixel_bytes:
         print("skipping frame, didn't read enough bytes: expected %d - got %d" % (total_pixel_bytes, read))
-        failed = True
-    
-    if failed:
-        num_glitches = num_glitches + 1
-        gpm = num_glitches / ((time() - boot_time) / 60)
-        print("glitches per minute: %f" % gpm)
-        return
+        return True        
 
     try:
         transmit(state_machine, strand_count, pixels)
+        return False
     except Exception as e:
         print(e)
+        return True
 
 def transmit(sm, num_strands, buffer):
     if num_strands == 1:
