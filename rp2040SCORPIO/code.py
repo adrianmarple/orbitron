@@ -4,8 +4,8 @@ import rp2pio
 import adafruit_pioasm
 import usb_cdc
 import bitops
-from microcontroller import watchdog
-from watchdog import WatchDogMode
+#from microcontroller import watchdog
+#from watchdog import WatchDogMode
 import binascii
 
 first_led_pin = NEOPIXEL0
@@ -45,9 +45,9 @@ def main():
     global num_glitches
     global current_minute
     reset()
-    watchdog.timeout = 2
-    watchdog.mode = WatchDogMode.RESET
-    watchdog.feed()
+    #watchdog.timeout = 2
+    #watchdog.mode = WatchDogMode.RESET
+    #watchdog.feed()
     print("READY")
     while True:
         failed = False
@@ -57,18 +57,20 @@ def main():
             num_glitches = 0
         try:
             failed = do_loop()
-            watchdog.feed()
+            # watchdog.feed()
         except Exception as e:
             failed = True
             print(e)
             reset()
         if failed:
             num_glitches = num_glitches + 1
-            print("num glitches this minute: %d" % num_glitches)
+            t = time.localtime(time())
+            print("%s:%s num glitches this minute: %d" % (t.tm_hour, t.tm_minute, num_glitches))
             if(num_glitches >= 15):
+                print("OVER 15 GLITCHES IN A MINUTE")
                 # let watchdog timeout
-                while True:
-                    pass
+                # while True:
+                #     pass
 
 def do_loop():
     global strand_count
@@ -78,12 +80,13 @@ def do_loop():
     global pixels
 
     if not usb.connected:
-        print("No Sreial Connection!")
+        print("No Serial Connection!")
         sleep(1)
         return True
     
     sync = usb.read(1)
     if not sync or sync[0] != 0xff:
+        print("No Sync")
         return False
     
     sync = bytearray(usb.read(3))
