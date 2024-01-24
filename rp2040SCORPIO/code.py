@@ -79,8 +79,8 @@ def do_loop():
 
     if not usb.connected:
         print("No Sreial Connection!")
-        sleep(0.1)
-        return False
+        sleep(1)
+        return True
     
     sync = usb.read(1)
     if not sync or sync[0] != 0xff:
