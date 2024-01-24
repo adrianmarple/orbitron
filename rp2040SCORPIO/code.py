@@ -1,4 +1,4 @@
-from time import sleep, time
+from time import sleep, time, localtime
 from board import *
 import rp2pio
 import adafruit_pioasm
@@ -64,7 +64,7 @@ def main():
             reset()
         if failed:
             num_glitches = num_glitches + 1
-            t = time.localtime(time())
+            t = localtime(time())
             print("%s:%s num glitches this minute: %d" % (t.tm_hour, t.tm_minute, num_glitches))
             if(num_glitches >= 15):
                 print("OVER 15 GLITCHES IN A MINUTE")
