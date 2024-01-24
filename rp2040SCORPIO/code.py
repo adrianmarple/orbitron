@@ -21,6 +21,7 @@ sleep(1) # necessary to wait for usb init
 usb = usb_cdc.data
 boot_time = time()
 num_glitches = 0
+current_minute = 0
 
 def reset():
     global strand_count
@@ -42,6 +43,7 @@ def reset():
 
 def main():
     global num_glitches
+    global current_minute
     reset()
     watchdog.timeout = 2
     watchdog.mode = WatchDogMode.RESET
@@ -49,6 +51,10 @@ def main():
     print("READY")
     while True:
         failed = False
+        minute = int(((time() - boot_time)/60) % 60)
+        if minute != current_minute:
+            current_minute = minute
+            num_glitches = 0
         try:
             failed = do_loop()
             watchdog.feed()
@@ -58,10 +64,11 @@ def main():
             reset()
         if failed:
             num_glitches = num_glitches + 1
-            dt = ((time() - boot_time) / 60)
-            if dt > 0:
-                gpm = num_glitches / dt
-                print("glitches per minute: %f" % gpm)
+            print("num glitches this minute: %d" % num_glitches)
+            if(num_glitches >= 15):
+                # let watchdog timeout
+                while True:
+                    pass
 
 def do_loop():
     global strand_count
