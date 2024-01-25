@@ -86,7 +86,6 @@ def do_loop():
     
     sync = usb.read(1)
     if not sync or sync[0] != 0xff:
-        print("No Sync")
         return False
     
     sync = bytearray(usb.read(3))
