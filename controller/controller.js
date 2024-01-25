@@ -67,7 +67,7 @@ Vue.component('boolean', {
 Vue.component('dropdown', {
   props: ['name', 'title', 'info'],
   template: `  
-<div class="space-between">
+<div class="space-between" v-if="!$root.exclude[name]>
   <label :for="name">{{title}}:</label>
   <select :name="name" v-model="$root.prefs[name]" @change="$root.updatePrefs(name)">
     <option v-for="i in info.length" :value="info[i-1][0]">{{info[i-1][1]}}</option>
@@ -339,8 +339,8 @@ var app = new Vue({
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
       
       let extra = this.state.extraIdle
-      let extraDisplayName = extra[0].toUpperCase() + extra.slice(1)
       if (extra) {
+        let extraDisplayName = extra[0].toUpperCase() + extra.slice(1)
         info.unshift([extra, extraDisplayName])
       }
       return info
