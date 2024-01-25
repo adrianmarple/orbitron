@@ -43,6 +43,18 @@ class Idle(Game):
   def __init__(self):
     Game.__init__(self)
     self.generate_players(Player)
+    self.birthday = engine.config.get("BIRTHDAY")
+    if self.birthday is not None:
+      try:
+        self.birthday = datetime.strptime(self.birthday, '%b %d')
+      except:
+        try:
+          self.birthday = datetime.strptime(self.birthday, '%B %d')
+        except:
+          try:
+            self.birthday = datetime.strptime(self.birthday, '%m-%d')
+          except:
+            self.birthday = None
 
   def update_prefs(self):
     now = datetime.now()
@@ -85,7 +97,22 @@ class Idle(Game):
     if not get_pref("applyIdleMinBefore"):
       self.apply_min()
 
+    self.render_birthday()
+
     engine.raw_pixels = self.render_values * 255
+  
+  def render_birthday(self):
+    if self.birthday is None:
+      return
+    now = datetime.now()
+    todays_your_birthday = now.month == self.birthday.month and \
+        now.day == self.birthday.day
+
+    if todays_your_birthday and self.render_values.sum() > 1:
+      engine.display_text("HAPPY BIRTHDAY", 3)
+    else:
+      engine.display_text("", 3)
+
   
   previous_fluid_time = 0
   def wait_for_frame_end(self):

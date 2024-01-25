@@ -1150,7 +1150,7 @@ if config.get("SWITCH_MODE"):
 
 def run_core_loop():
   display_text("$LOADING", 0)
-  display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 3)
+  display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 4)
 
   last_frame_time = time()
   framerate_data = {
