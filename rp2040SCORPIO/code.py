@@ -4,8 +4,9 @@ import rp2pio
 import adafruit_pioasm
 import usb_cdc
 import bitops
-#from microcontroller import watchdog
-#from watchdog import WatchDogMode
+import microcontroller
+from microcontroller import watchdog
+from watchdog import WatchDogMode
 import binascii
 
 first_led_pin = NEOPIXEL0
@@ -20,6 +21,7 @@ pixels = None
 sleep(1) # necessary to wait for usb init
 usb = usb_cdc.data
 boot_time = time()
+total_num_glitches = 0
 num_glitches = 0
 current_minute = 0
 
@@ -38,16 +40,17 @@ def reset():
     state_machine = None
     usb.reset_input_buffer()
     usb.reset_output_buffer()
-    usb.timeout = 0.1
-    usb.write_timeout = 0
+    usb.timeout = 0.5
+    usb.write_timeout = 0.5
 
 def main():
     global num_glitches
+    global total_num_glitches
     global current_minute
     reset()
-    #watchdog.timeout = 2
-    #watchdog.mode = WatchDogMode.RESET
-    #watchdog.feed()
+    watchdog.timeout = 2
+    watchdog.mode = WatchDogMode.RAISE
+    watchdog.feed()
     print("READY")
     while True:
         failed = False
@@ -56,21 +59,28 @@ def main():
             current_minute = minute
             num_glitches = 0
         try:
+            watchdog.feed()
             failed = do_loop()
-            # watchdog.feed()
+        except watchdog.WatchDogTimeout as e:
+            print("Watchdog expired")
+            reset()
+            failed = True
         except Exception as e:
             failed = True
             print(e)
             reset()
         if failed:
             num_glitches = num_glitches + 1
+            total_num_glitches = total_num_glitches + 1
+            dt = (time() - boot_time)/60
+            if dt > 0:
+                gpm = total_num_glitches / dt
+                print("avg glitches per minute: %f" % gpm)
             t = localtime(time())
             print("%s:%s num glitches this minute: %d" % (t.tm_hour, t.tm_min, num_glitches))
             if(num_glitches >= 15):
-                print("OVER 15 GLITCHES IN A MINUTE")
-                # let watchdog timeout
-                # while True:
-                #     pass
+                print("15 GLITCHES IN A MINUTE, RESETTING")
+                microcontroller.reset()
 
 def do_loop():
     global strand_count
@@ -115,6 +125,8 @@ def do_loop():
             total_pixel_bytes = strand_count * pixels_per_strand * bpp
             print("TOTAL PIXEL BYTES ", total_pixel_bytes)
             pixels = bytearray(total_pixel_bytes)
+        else:
+            print("INVALID PIXELS PER STRAND %d" % value)
     else:
         print("PIXELS PER STRAND ERROR", count)
         return True

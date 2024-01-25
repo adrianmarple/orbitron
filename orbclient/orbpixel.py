@@ -49,13 +49,15 @@ def start_external_pixel_board():
         if external_board:
             external_board.close()
             external_board = None
-            sleep(2)
+            sleep(1)
         while external_board == None:
             try:
-                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.01)
+                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.2, write_timeout=0.2)
                 #print("BAUD RATES ", external_board.BAUDRATES, file=sys.stderr)
             except Exception as e:
-                external_board = None
+                if external_board:
+                    external_board.close()
+                    external_board = None
                 print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
                 print("will retry...", file=sys.stderr)
                 sleep(1)
