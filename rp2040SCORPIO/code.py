@@ -5,8 +5,6 @@ import adafruit_pioasm
 import usb_cdc
 import bitops
 import microcontroller
-from microcontroller import watchdog
-from watchdog import WatchDogMode
 import binascii
 
 first_led_pin = NEOPIXEL0
@@ -48,9 +46,6 @@ def main():
     global total_num_glitches
     global current_minute
     reset()
-    watchdog.timeout = 2
-    watchdog.mode = WatchDogMode.RAISE
-    watchdog.feed()
     print("READY")
     while True:
         failed = False
@@ -59,12 +54,7 @@ def main():
             current_minute = minute
             num_glitches = 0
         try:
-            watchdog.feed()
             failed = do_loop()
-        except watchdog.WatchDogTimeout as e:
-            print("Watchdog expired")
-            reset()
-            failed = True
         except Exception as e:
             failed = True
             print(e)
