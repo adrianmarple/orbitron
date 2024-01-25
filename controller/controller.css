@@ -231,6 +231,7 @@ body, #app, .main {
 #save-bottom-stuff textarea {
   font-size: 4rem;
   height: 5rem;
+  width: 27rem;
   vertical-align: center;
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -812,4 +813,91 @@ a:active {
 .pure-material-checkbox > input:indeterminate:disabled + span::before {
   border-color: transparent;
   background-color: currentColor;
+}
+
+
+.custom-select {
+  position: relative;
+  width: 100%;
+  text-align: left;
+  outline: none;
+  height: 3rem;
+  line-height: 3rem;
+}
+
+.custom-select .selection {
+  background-color: white;
+  border-radius: 0.5rem;
+  border: 0.1rem solid #666;
+  padding-left: 2.5rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-select .selection.open {
+  display: none;
+}
+
+.custom-select .selection:after {
+  position: absolute;
+  content: "";
+  top: 1.3rem;
+  right: 1rem;
+  width: 0;
+  height: 0;
+  border: 0.5rem solid transparent;
+  border-color: black transparent transparent transparent;
+}
+.custom-select .selection.open:after {
+  top: 1.1rem;
+  right: 1.2rem;
+  border-color: transparent black transparent transparent;
+}
+.custom-select .items .checked {
+  position: relative;
+}
+.custom-select .items .checked:before {
+  position: absolute;
+  content: "";
+  top: 0.7rem;
+  left: 0.5rem;
+  width: 0.8rem;
+  height: 0.3rem;
+  border: 0.3rem solid transparent;
+  border-radius: 0.2rem;
+  border-bottom-left-radius: 0;
+  border-color: transparent transparent black black;
+  transform: rotate(-45deg);
+}
+
+.custom-select .items {
+  color: #121212;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 0.1rem solid #666;
+  position: absolute;
+  background-color: white;
+  left: 0;
+  right: 0;
+  bottom: -0.2rem;
+  z-index: 1;
+}
+
+.custom-select .items div {
+  color: #121212;
+  padding-left: 2.5rem;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 0.5rem;
+}
+.custom-select .items div:first-child {
+  margin: 0;
+}
+
+.custom-select .items div:hover {
+  background-color: #eee;
+}
+
+.selectHide {
+  display: none;
 }

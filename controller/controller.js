@@ -64,16 +64,55 @@ Vue.component('boolean', {
   <span>{{title}}</span>
 </div>
 `})
+
 Vue.component('dropdown', {
-  props: ['name', 'title', 'info'],
-  template: `  
-<div class="space-between" v-if="!$root.exclude[name]>
-  <label :for="name">{{title}}:</label>
-  <select :name="name" v-model="$root.prefs[name]" @change="$root.updatePrefs(name)">
-    <option v-for="i in info.length" :value="info[i-1][0]">{{info[i-1][1]}}</option>
-  </select>
-</div>
-`})
+  props: ['name', 'title', 'options', 'selection'],
+  data() {
+    return { open: false }
+  },
+  methods: {
+    opened() {
+      this.open = true
+      setTimeout(() => {
+        document.addEventListener('click', this.close)
+      }, 100)
+    },
+    close() {
+      this.open = false
+      document.removeEventListener('click', this.close)
+    },
+    clicked(value) {
+      this.$root.prefs[this.name] = value
+      this.$root.updatePrefs(this.name)
+    },
+    toDisplay(value) {
+      for (let [v, display] of this.options) {
+        if (v == value) return display
+      }
+      return value
+    },
+  },
+  template: `
+<div class="space-between" v-if="!$root.exclude[name]"
+  style="align-items: center">
+  <div style="margin-right: 2rem">{{title}}:</div>
+  <div class="custom-select" @blur="close">
+    <div class="selection" :class="{ open: open }" @click="opened">
+      {{ toDisplay(selection) }}
+    </div>
+    <div class="items" :class="{ selectHide: !open }">
+      <div
+        v-for="[value, display] of options"
+        :value="value"
+        :key="value"
+        :class="{ checked: value == selection }"
+        @click="clicked(value)"
+      >
+        {{ display }}
+      </div>
+    </div>
+  </div>
+</div>`})
 Vue.component('vector', {
   props: ['name', 'title'],
   data() {
