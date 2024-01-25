@@ -90,7 +90,7 @@ class Idle(Game):
       self.apply_min()
     if get_pref("hasStartAndEnd"):
       self.apply_fade()
-    self.target_values = self.render_values * 1
+    self.target_values = self.render_values.copy()
     self.blend_pixels()
     self.apply_color()
     self.apply_brightness()
@@ -222,10 +222,10 @@ class Idle(Game):
       pixel_delta = np.minimum(pixel_delta, frame_delta * 2)
       self.render_values = self.previous_values + pixel_delta
     else:
-      self.render_values = self.target_values * 1
+      self.render_values = self.target_values.copy()
 
     self.previous_render_time = time()
-    self.previous_values = self.render_values * 1
+    self.previous_values = self.render_values.copy()
 
 
 

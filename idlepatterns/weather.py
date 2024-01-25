@@ -54,7 +54,7 @@ class Weather(Idle):
     snapshot0 = self.weather_data[index - 1]
     snapshot1 = self.weather_data[index]
 
-    self.wind_speed = a * snapshot0["wind_speed"] + (1-a) * snapshot1["wind_speed"] # m/s
+    self.wind_speed = a * snapshot0["wind_speed"] + (1-a) * snapshot1["wind_speed"] 
     self.wind_vector = a * wind_vector(snapshot0) + (1-a) * wind_vector(snapshot1) # m/s
     self.uvi = a * snapshot0["uvi"] + (1-a) * snapshot1["uvi"]
     self.temp = a * snapshot0["temp"] + (1-a) * snapshot1["temp"] # Kelvin
@@ -82,7 +82,7 @@ class Weather(Idle):
     start = np.array((0.1, 0.9, 0.1))
     start[2] += sqrt(self.rain)/2
 
-    rectified_target_values = self.target_values * 1
+    rectified_target_values = self.target_values.copy()
     rectified_target_values = np.minimum(1, rectified_target_values)
     start_colors = np.outer(rectified_target_values, start)
     end_colors = np.outer(1 - rectified_target_values, end)

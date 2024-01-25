@@ -149,12 +149,12 @@
       <vector v-if="prefs.idlePattern == 'fireflies'"
           title="Bias" name="patternBias"></vector>
       
-      <slider v-if="prefs.idlePattern != 'static'" 
+      <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
           title="Blend" name="idleBlend" ></slider>
-      <slider v-if="prefs.idlePattern != 'static'" 
+      <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
           title="Density" name="idleDensity"
           :min="10"></slider>
-      <slider v-if="prefs.idlePattern != 'static'" 
+      <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
           title="Speed" name="idleFrameRate"
           :min="5" :max="30"></slider>
       <dropdown title="Pattern" name="idlePattern"
