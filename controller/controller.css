@@ -821,7 +821,7 @@ a:active {
   width: 100%;
   text-align: left;
   outline: none;
-  height: 3rem;
+  /* height: 3rem; */
   line-height: 3rem;
 }
 
@@ -829,23 +829,20 @@ a:active {
   background-color: white;
   border-radius: 0.5rem;
   border: 0.1rem solid #666;
-  padding-left: 2.5rem;
+  padding: 0.8rem 0.5rem 0.8rem 3rem;
+  padding-left: 3rem;
   cursor: pointer;
   user-select: none;
-}
-
-.custom-select .selection.open {
-  display: none;
 }
 
 .custom-select .selection:after {
   position: absolute;
   content: "";
-  top: 1.3rem;
-  right: 1rem;
+  top: 2.1rem;
+  right: 1.4rem;
   width: 0;
   height: 0;
-  border: 0.5rem solid transparent;
+  border: 0.7rem solid transparent;
   border-color: black transparent transparent transparent;
 }
 .custom-select .selection.open:after {
@@ -853,14 +850,15 @@ a:active {
   right: 1.2rem;
   border-color: transparent black transparent transparent;
 }
+
 .custom-select .items .checked {
   position: relative;
 }
 .custom-select .items .checked:before {
   position: absolute;
   content: "";
-  top: 0.7rem;
-  left: 0.5rem;
+  top: 1.5rem;
+  left: 1rem;
   width: 0.8rem;
   height: 0.3rem;
   border: 0.3rem solid transparent;
@@ -879,16 +877,16 @@ a:active {
   background-color: white;
   left: 0;
   right: 0;
-  bottom: -0.2rem;
+  bottom: 0;
   z-index: 1;
 }
 
 .custom-select .items div {
   color: #121212;
-  padding-left: 2.5rem;
+  padding: 0.8rem 0.5rem 0.8rem 3rem;
+  padding-left: 3rem;
   cursor: pointer;
   user-select: none;
-  margin-top: 0.5rem;
 }
 .custom-select .items div:first-child {
   margin: 0;
