@@ -206,10 +206,13 @@ async function createCoverSVG() {
     directedEdges.push([edge.verticies[0], edge.verticies[1]])
   }
 
+  let outerPath = null
+
   for (let i = 0; i < 1000; i++) {
     if (directedEdges.length == 0) break
     let lastEdge = directedEdges.pop()
     let dPath = [...lastEdge]
+    let cumulativeAngle = 0
 
     for (let j = 0; j < 1000; j++) {
       let e0 = delta(dPath[dPath.length-1].ogCoords, dPath[dPath.length-2].ogCoords)
@@ -244,6 +247,7 @@ async function createCoverSVG() {
       if (epsilonEquals(minAngle, 0) && !epsilonEquals(magnitude(e0), 0)) {
         dPath.pop() // Join edges if the path is straight
       }
+      cumulativeAngle += minAngle
       dPath.push(leftmostTurn[1])
     }
   	dPath.pop() // Remove duplicated first/last vertex
@@ -251,23 +255,23 @@ async function createCoverSVG() {
     // Start and end might be straight still
     e0 = delta(dPath[0].ogCoords, dPath[dPath.length-1].ogCoords)
     e1 = delta(dPath[1].ogCoords, dPath[0].ogCoords)
-    if (epsilonEquals(signedAngle(e1, e0), 0)) {
+    let lastAngle = signedAngle(e1, e0)
+    if (epsilonEquals(lastAngle, 0)) {
       dPath.shift() // Remove middle (start) vertex if start and end is straight
     }
-
+    cumulativeAngle += lastAngle
+    if (epsilonEquals(cumulativeAngle, 2*Math.PI)) {
+      outerPath = dPath
+    } else if (!epsilonEquals(cumulativeAngle, -2*Math.PI)) {
+      // Should always be either 2pi or -2pi
+      console.error("Cumulative angle not single turn: " + cumulativeAngle);
+    }
     paths.push(dPath)
   }
   paths.sort((a,b) => b.length - a.length)
 
-  // Draw border and channels
 
-  // let offsetX = 0;
-  // let offsetY = 0;
-  // for (let v of verticies) {
-  // 	offsetX = Math.min(offsetX, v.ogCoords[0])
-  // 	offsetY = Math.min(offsetY, v.ogCoords[1])
-  // }
-  // let offset = [2 - offsetX, 2 - offsetY, 0]
+  // Draw border and channels
 
   let start = startVertex().ogCoords
   let penultimate = penultimateVertex().ogCoords
@@ -326,7 +330,8 @@ async function createCoverSVG() {
       let n = cross(e1, [0,0,-1])
       let offset = scale(v1, SCALE)
 
-      let isFinalEdge = vectorEquals(v1, start) && vectorEquals(e1, finalEdgeDirection)
+      let isFinalEdge = dPath == outerPath && i == dPath.length - 1
+      // let isFinalEdge = vectorEquals(v1, start) && vectorEquals(e1, finalEdgeDirection)
 
       // Channels
       let w1 = CHANNEL_WIDTH/2
@@ -398,15 +403,15 @@ async function createCoverSVG() {
       }
       borderString += pointsToSVGString(points, [e1, n], offset)
 
-      // points = [
-      //   [x1 + FASTENER_DEPTH, w2],
-      //   [x1, w2],
-      //   [x1, w1],
-      //   [x2, w1],
-      //   [x2, w2],
-      //   [x2 - FASTENER_DEPTH, w2],
-      // ]
-      // minimalBorderString += pointsToSVGString(points, [e1, n], offset)
+      points = [
+        [x1 + FASTENER_DEPTH, w2],
+        [x1, w2],
+        [x1, w1],
+        [x2, w1],
+        [x2, w2],
+        [x2 - FASTENER_DEPTH, w2],
+      ]
+      minimalBorderString += pointsToSVGString(points, [e1, n], offset)
     } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false
