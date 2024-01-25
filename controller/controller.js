@@ -67,7 +67,7 @@ Vue.component('boolean', {
 Vue.component('dropdown', {
   props: ['name', 'title', 'info'],
   template: `  
-<div class="space-between" v-if="!$root.exclude[name]">
+<div class="space-between">
   <label :for="name">{{title}}:</label>
   <select :name="name" v-model="$root.prefs[name]" @change="$root.updatePrefs(name)">
     <option v-for="i in info.length" :value="info[i-1][0]">{{info[i-1][1]}}</option>
