@@ -109,14 +109,15 @@ def do_loop():
     count = usb.read(2)
     if count and len(count) == 2 and (count[0] > 0 or count[1] > 0):
         value = (count[0]<<8) + count[1]
-        if value < 5000 and value != pixels_per_strand:
+        if value >= 5000:
+            print("INVALID PIXELS PER STRAND %d" % value)
+        elif value != pixels_per_strand:
             pixels_per_strand = value
             print("PIXELS PER STRAND ", pixels_per_strand)        
             total_pixel_bytes = strand_count * pixels_per_strand * bpp
             print("TOTAL PIXEL BYTES ", total_pixel_bytes)
             pixels = bytearray(total_pixel_bytes)
-        else:
-            print("INVALID PIXELS PER STRAND %d" % value)
+            
     else:
         print("PIXELS PER STRAND ERROR", count)
         return True
