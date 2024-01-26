@@ -19,6 +19,9 @@ function add(v1,v2) {
 function edgeDelta(edge) {
   return delta(edge.verticies[1].ogCoords, edge.verticies[0].ogCoords)
 }
+function edgeLength(edge) {
+  return magnitude(edgeDelta(edge))
+}
 function delta(v1, v2) {
   return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]]
 }

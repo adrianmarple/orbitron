@@ -170,7 +170,7 @@ function generatePixelInfo() {
       if (ledAtVertex && epsilonEquals(edgeLength, alpha, 0.01)) break
       if (!ledAtVertex && epsilonEquals(edgeLength, alpha - pixelDensity/2, 0.01)) break
       if (alpha > edgeLength) {
-        console.log(alpha, edgeLength)
+        console.log(alpha/resizeScale, edgeLength/resizeScale)
         console.error("Edge legnth not a integer multiple of pixel density")
         return
       }
