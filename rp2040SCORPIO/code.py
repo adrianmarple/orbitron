@@ -57,19 +57,24 @@ def main():
             failed = do_loop()
         except Exception as e:
             failed = True
+            print("LOOP THREW EXCEPTION")
             print(e)
             reset()
         if failed:
             num_glitches = num_glitches + 1
             total_num_glitches = total_num_glitches + 1
+
+            t = localtime(time())
+            print("%s:%s num glitches this minute: %d" % (t.tm_hour, t.tm_min, num_glitches))
+
             dt = (time() - boot_time)/60
             if dt > 0:
                 gpm = total_num_glitches / dt
                 print("avg glitches per minute: %f" % gpm)
-            t = localtime(time())
-            print("%s:%s num glitches this minute: %d" % (t.tm_hour, t.tm_min, num_glitches))
+
             if(num_glitches >= 15):
                 print("15 GLITCHES IN A MINUTE, RESETTING")
+                sleep(0.1)
                 microcontroller.reset()
 
 def do_loop():
@@ -81,7 +86,7 @@ def do_loop():
 
     if not usb.connected:
         print("No Serial Connection!")
-        sleep(1)
+        sleep(0.5)
         return True
     
     sync = usb.read(1)
@@ -116,8 +121,7 @@ def do_loop():
             print("PIXELS PER STRAND ", pixels_per_strand)        
             total_pixel_bytes = strand_count * pixels_per_strand * bpp
             print("TOTAL PIXEL BYTES ", total_pixel_bytes)
-            pixels = bytearray(total_pixel_bytes)
-            
+            pixels = bytearray(total_pixel_bytes)    
     else:
         print("PIXELS PER STRAND ERROR", count)
         return True
@@ -138,12 +142,8 @@ def process_frame():
         print("skipping frame, didn't read enough bytes: expected %d - got %d" % (total_pixel_bytes, read))
         return True        
 
-    try:
-        transmit(state_machine, strand_count, pixels)
-        return False
-    except Exception as e:
-        print(e)
-        return True
+    transmit(state_machine, strand_count, pixels)
+    return False
 
 def transmit(sm, num_strands, buffer):
     if num_strands == 1:
