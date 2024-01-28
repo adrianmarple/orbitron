@@ -31,6 +31,7 @@ LED_STRIP = None  # We manage the color order within the neopixel library
 _led_strip = None
 process_conn = None
 external_board = None
+external_board_logs = None
 
 gpio = digitalio.DigitalInOut(board.D18)
 gpio.direction = digitalio.Direction.OUTPUT
@@ -45,22 +46,28 @@ def start_pixel_output_process():
 
 def start_external_pixel_board():
     global external_board
+    global external_board_logs
+    close_external_pixel_board()
     if config.get("EXTERNAL_PIXEL_BOARD"):
-        if external_board:
-            external_board.close()
-            external_board = None
-            sleep(1)
-        while external_board == None:
+        while external_board == None or external_board_logs == None:
             try:
                 external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.6, write_timeout=0.6)
-                #print("BAUD RATES ", external_board.BAUDRATES, file=sys.stderr)
+                external_board_logs = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if00", timeout=0.6, write_timeout=0.6)
             except Exception as e:
-                if external_board:
-                    external_board.close()
-                    external_board = None
                 print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
                 print("will retry...", file=sys.stderr)
-                sleep(1)
+                close_external_pixel_board()
+
+def close_external_pixel_board():
+    global external_board
+    global external_board_logs
+    if external_board:
+        external_board.close()
+        external_board = None
+    if external_board_logs:
+        external_board_logs.close()
+        external_board_logs = None
+    sleep(1)
 
 def pixel_output_loop(conn):
     print("Pixel process stared", file=sys.stderr)
@@ -70,7 +77,6 @@ def pixel_output_loop(conn):
         conn.send("done")
 
 def display_pixels(pixels):
-    global external_board
     if external_board:
         try:
             pixels[:, [0,1]] = pixels[:, [1,0]]
@@ -84,6 +90,14 @@ def display_pixels(pixels):
             print("error writing to external board", file=sys.stderr)
             print(e, file=sys.stderr)
             start_external_pixel_board()
+        if external_board_logs:
+            try:
+                logs = external_board_logs.read_all()
+                if logs:
+                    print("EXTERNAL BOARD: %s" % logs.decode(), file=sys.stderr)
+            except Exception as e:
+                print("error reading external board logs", file=sys.stderr)
+                print(e, file=sys.stderr)
         return
     pixels = np.uint32(pixels)
     buf = pixels[:,1]*(1<<16) + pixels[:,0]*(1<<8) + pixels[:,2]
