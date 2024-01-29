@@ -8,7 +8,7 @@ addButton("Space Invader", async () => {
 
   // pixelDensity = 0.25
   // imageUrl = "spaceinvaders/invader1A.png"
-  pixelDensity = 0.5
+  pixelDensity = 0.3333333
   imageUrl = "spaceinvaders/invader1B.png"
   await addSquaresFromPixels()
   doubleEdges()

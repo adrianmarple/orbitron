@@ -330,9 +330,8 @@ async function createCoverSVG() {
       let n = cross(e1, [0,0,-1])
       let offset = scale(v1, SCALE)
 
-      let isFinalEdge = dPath == outerPath && i == dPath.length - 1
-      // let isFinalEdge = vectorEquals(v1, start) && vectorEquals(e1, finalEdgeDirection)
-
+      let isFinalEdge = dPath == outerPath && vectorEquals(normalize(e1), normalize(delta(v2, start)))
+      
       // Channels
       let w1 = CHANNEL_WIDTH/2
       let w2 = w1 + WALL_THICKNESS
@@ -541,7 +540,7 @@ function notchCenters(wallLength, isFinalEdge) {
     if (cat5PortMidway) {
       centers.push((wallLength + CAT5_WIDTH)/2 + NOTCH_DEPTH + KERF)
       centers.push((wallLength - CAT5_WIDTH)/2 - (NOTCH_DEPTH + KERF))
-      centers = centers.sort()
+      centers.sort((a,b) => a-b)
     } else {
       centers.unshift(CAT5_WIDTH + 2*(NOTCH_DEPTH + KERF))
     }
@@ -566,6 +565,14 @@ function createWallSVG() {
     if (targetCount > 30) targetCount += 1
     for (let i = 0; i < targetCount; i++) {
       let isFinalEdge = epsilonEquals(wallType.length, entryWallLength, 0.01) && i == 0
+      let cat5Offset = NaN
+      if (isFinalEdge) {
+        if (cat5PortMidway) {
+          cat5Offset = wallLength/2
+        } else {
+          cat5Offset = NOTCH_DEPTH + CAT5_WIDTH / 2
+        }
+      }
       let powerHoleInstanceIndex = epsilonEquals(wallType.length, entryWallLength, 0.01) ? 1:0
       let isPowerCordPort = wallIndex == powerHoleWallIndex && i == powerHoleInstanceIndex
       
@@ -576,17 +583,18 @@ function createWallSVG() {
         if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH)
             || (notches[0] > MAX_WALL_LENGTH)) {
           let tempWallLength = nextNotches.pop()
-          path += wallPath(offset, tempWallLength, nextNotches, isFinalEdge, isPowerCordPort)
+          path += wallPath(offset, tempWallLength, nextNotches, cat5Offset, isPowerCordPort)
           nextNotches = []
           notches = notches.map(x => x - tempWallLength)
           remainingWallLength -= tempWallLength
+          cat5Offset -= tempWallLength
         } else if (notches.length == 0) {
           break
         } else {
           nextNotches.push(notches.shift())
         }
       }
-      path += wallPath(offset, remainingWallLength, nextNotches, isFinalEdge, isPowerCordPort)
+      path += wallPath(offset, remainingWallLength, nextNotches, cat5Offset, isPowerCordPort)
     }
     offset[0] += 20
   }
@@ -598,7 +606,7 @@ function createWallSVG() {
   wall.setAttribute("viewBox", `0 0 ${offset[2]*BALSA_LENGTH} ${BALSA_LENGTH}`)
 }
 
-function wallPath(offset, wallLength, notches, isFinalEdge, isPowerCordPort) {
+function wallPath(offset, wallLength, notches, cat5Offset, isPowerCordPort) {
   let path = ""
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   offset[0] += wallLength
@@ -636,13 +644,11 @@ function wallPath(offset, wallLength, notches, isFinalEdge, isPowerCordPort) {
     Z`
 
   // Is the entry wall for CAT5 port
-  if (isFinalEdge) {
-    let x0 = offset[0]
-    if (cat5PortMidway) {
-      x0 -= wallLength/2
-    } else {
-      x0 -= NOTCH_DEPTH + CAT5_WIDTH / 2
-    }
+  if (cat5Offset !== undefined &&
+      cat5Offset !== NaN &&
+      cat5Offset < wallLength + CAT5_WIDTH/2 &&
+      cat5Offset > -CAT5_WIDTH/2) {
+    let x0 = offset[0] - cat5Offset
     let x1 = x0 - CAT5_WIRES_WIDTH/2 - CAT5_ADDITONAL_OFFSET
     let y1 = offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH
     let x2 = x0 - CAT5_SNAP_DISTANCE/2 - CAT5_ADDITONAL_OFFSET

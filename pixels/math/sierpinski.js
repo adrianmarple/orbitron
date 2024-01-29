@@ -1,6 +1,7 @@
 
 addButton("Sierpinski", function() {
   name = "sierpinski"
+  cat5PortMidway = true
   setLaserParams({
     NOTCH_DEPTH: 4,
     BORDER: 5,
@@ -19,7 +20,7 @@ addButton("Sierpinski", function() {
   subdivide(triangle, iterations)
   rotateZAll(Math.PI/3, true)
 
-  EulerianPath(2, 1)
+  EulerianPath(26)
 })
 
 function subdivide(triangle, iterations) {
