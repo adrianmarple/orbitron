@@ -12,7 +12,7 @@
 
 # Getting Pi Hardware Set Up
 
-- Download SD card image from https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/Orbitron.img.zip?rlkey=cfcn58lnl0pesi8mir0tjp9s4&dl=0
+- Download SD card image from dropbox ([64bit](https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/Orbitron.img.zip?rlkey=cfcn58lnl0pesi8mir0tjp9s4&dl=0)) ([32bit](https://www.dropbox.com/scl/fi/ne9wkzyzw1fwcz2slw6lc/orbitron-32bit.zip?rlkey=ficqr8w6p3yw4oba0fclzr9kx&dl=0))
 - Burn to SD card using `dd` or Balena Etcher (https://etcher.balena.io/)
 - Using `dd`
   - Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
