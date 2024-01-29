@@ -135,6 +135,13 @@ function signedAngle(v, w) {
   return Math.atan2(w[1]*v[0] - w[0]*v[1], w[0]*v[0] + w[1]*v[1])
 }
 
+function angle3D(v, w) {
+  let ratio = dot(v, w) / magnitude(v) / magnitude(w)
+  if (ratio <= 0) return Math.PI
+  if (ratio >= 1) return 0
+  return Math.acos(ratio)
+}
+
 function linearCombo(v1, v2, alpha) {
   return [
     v1[0] * alpha + v2[0] * (1 - alpha),

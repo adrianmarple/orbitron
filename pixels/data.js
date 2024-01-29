@@ -22,27 +22,19 @@ async function EulerianPath(currentVertex, pathOverride) {
   shuffle(edgesCopy)
 
   previousEdge = edges[path[path.length - 1]]
+  p = sortOverride || potential
   function distance(edge) {
     let v0 = otherVertex(previousEdge, currentVertex).coordinates
     let v1 = currentVertex.coordinates
     let v2 = otherVertex(edge, currentVertex).coordinates
-
-    if (!isWall) return d(v0, v2)
-
+  
     let e0 = delta(v1, v0)
-  	let e1 = delta(v2, v1)
-    let angle = Math.abs(signedAngle(e1, e0))
+    let e1 = delta(v2, v1)
+    let angle = angle3D(e1, e0)
 
-    if (edge.isDupe != previousEdge.isDupe) {
-      if (epsilonEquals(angle, Math.PI)) {
-        angle = Math.PI/5 
-      }
-      angle = -angle + 1e6
-    }
-    return -angle
+    return p(edge, previousEdge, angle)
   }
 
-  // Sort by straightest path
   edgesCopy.sort((a,b) => distance(b) - distance(a))
 
   for (let edge of edgesCopy) {
@@ -80,6 +72,16 @@ async function EulerianPath(currentVertex, pathOverride) {
       path.pop()
     }
   }
+}
+
+function potential(edge, previousEdge, angle) {
+  if (edge.isDupe != previousEdge.isDupe) {
+    if (epsilonEquals(angle, Math.PI)) {
+      angle = Math.PI/5 
+    }
+    angle = -angle + 1e6
+  }
+  return -angle
 }
 
 function startVertex() {

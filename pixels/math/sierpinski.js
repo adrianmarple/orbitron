@@ -6,6 +6,13 @@ addButton("Sierpinski", function() {
     BORDER: 5,
   })
 
+  sortOverride = (edge, previousEdge, angle) => {
+    if (epsilonEquals(angle, 0)) {
+      angle = Math.PI
+    }
+    return -angle
+  }
+
   let iterations = 3
 
   let triangle = addPolygon(3, [0,0,0], 4 << iterations)
