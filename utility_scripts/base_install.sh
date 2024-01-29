@@ -16,7 +16,7 @@ sudo cp /home/pi/orbitron/utility_scripts/00-dnsmasq.conf /etc/NetworkManager/co
 sudo cp /home/pi/orbitron/utility_scripts/00-orb.conf /etc/NetworkManager/dnsmasq-shared.d/
 
 # Set up python
-sudo python -m venv --system-site-packages ~/.env
+python -m venv --system-site-packages ~/.env
 source ~/.env/bin/activate
 pip3 install adafruit-circuitpython-neopixel adafruit-circuitpython-ht16k33 adafruit-python-shell setuptools RPi.GPIO adafruit-blinka rpi_ws281x
 deactivate

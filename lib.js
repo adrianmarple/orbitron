@@ -1,4 +1,3 @@
-const PYTHON_EXECUTABLE = '/home/pi/.env/bin/python3'
 let { exec, execSync } = require('child_process')
 const fs = require('fs')
 
@@ -13,6 +12,7 @@ if(config.KEY_LOCATION){
 } else {
   config.httpsOptions = {}
 }
+const PYTHON_EXECUTABLE = config.PYTHON_EXECUTABLE || '/home/pi/.env/bin/python3'
 
 let filePath = config.PIXELS || "rhombicosidodecahedron"
 if (filePath.startsWith("/pixels/"))
