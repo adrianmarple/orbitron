@@ -10,6 +10,7 @@ function addPolygram(sideCount, center, edgeLengths) {
   let edgeVector = [1,0,0]
   let point = [0,0,0]
   let points = []
+  edgeVector = rotateZ(edgeVector, Math.PI*4 / sideCount)
   for (let i = 0; i < sideCount; i++) {
     edgeVector = normalize(edgeVector)
     edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
