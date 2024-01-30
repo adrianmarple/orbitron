@@ -114,11 +114,11 @@ let wifiSetupServer = http.createServer(function (req, res) {
     })
     req.on('end', function() {
       let formData = qs.parse(body)
-      response.writeHead(200, { 'Content-Type': 'application/json' })
+      res.writeHead(200, { 'Content-Type': 'application/json' })
       let responseData = {
         redirect: `https://orbitron.games/${config.ORB_ID}`
       }
-      response.end(JSON.stringify(responseData), 'utf-8')
+      res.end(JSON.stringify(responseData), 'utf-8')
       submitSSID(formData)
     })
   }
