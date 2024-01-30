@@ -60,9 +60,18 @@ async function pullAndRestart() {
     console.log("Git pull failed: " + output)
   } else if(output.indexOf("fast-forward") >= 0 || output.indexOf("files changed") >= 0){
     console.log("Has git updates, restarting!")
-    execute("pm2 restart all")
+    restartOrbitron()
   } else {
     console.error("Inconclusive git pull results: ", output)
+  }
+}
+
+async function restartOrbitron(){
+  let pm2Running = (await execute("ps -ea | grep pm2")).trim()
+  if(pm2Running){
+    execute("pm2 restart all")
+  } else {
+    execute("reboot")
   }
 }
 
@@ -71,5 +80,5 @@ if(runDirectly){
 }
 
 module.exports = {
-  checkForUpdates, pullAndRestart
+  checkForUpdates, pullAndRestart, restartOrbitron
 }

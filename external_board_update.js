@@ -17,11 +17,11 @@ async function update_external_board(){
     }
     if(uuid){
       console.log("Found UUID: ", uuid)
-      await execute("sudo mkdir -p /mnt/external_board")
-      await execute("sudo chown -R pi:pi /mnt/external_board")
-      await execute(`sudo mount UUID=${uuid} /mnt/external_board`)
-      await execute("sudo cp -f /home/pi/orbitron/rp2040SCORPIO/code.py /mnt/external_board/code.py")
-      await execute("sudo umount /mnt/external_board")
+      await execute("mkdir -p /mnt/external_board")
+      await execute("chown -R pi:pi /mnt/external_board")
+      await execute(`mount UUID=${uuid} /mnt/external_board`)
+      await execute("cp -f /home/pi/orbitron/rp2040SCORPIO/code.py /mnt/external_board/code.py")
+      await execute("umount /mnt/external_board")
       console.log("external board updated!")
     }
   }

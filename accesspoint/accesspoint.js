@@ -16,8 +16,8 @@ let hasAccessPointConnection = false
 
 async function startAccessPoint() {
   removeWifiProfile("OrbHotspot")
-  await execute('sudo nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Super Orbitron" ipv4.method shared ipv6.method shared')
-  await execute('sudo nmcli connection up OrbHotspot')
+  await execute('nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Super Orbitron" ipv4.method shared ipv6.method shared')
+  await execute('nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
 
   let localIntervalRef = setInterval(async () => {
@@ -47,16 +47,16 @@ async function stopAccessPoint(ssid, password) {
     if(password != ""){
       password =  `802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ${password}`
     }
-    await execute(`sudo nmcli connection add con-name "${ssid}" type wifi ssid "${ssid}" ${password} autoconnect yes save yes`)
-    await execute(`sudo nmcli connection up "${ssid}"`)
+    await execute(`nmcli connection add con-name "${ssid}" type wifi ssid "${ssid}" ${password} autoconnect yes save yes`)
+    await execute(`nmcli connection up "${ssid}"`)
   }
 }
 
 async function removeWifiProfile(connectionName){
-  let connectionExists = (await execute("sudo nmcli connection show")).indexOf(connectionName) >= 0
+  let connectionExists = (await execute("nmcli connection show")).indexOf(connectionName) >= 0
   if(connectionExists){
     console.log("Removed Wifi Profile: ", connectionName)
-    await execute(`sudo nmcli connection delete ${connectionName}`)
+    await execute(`nmcli connection delete ${connectionName}`)
   }
 }
 

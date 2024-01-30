@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { config, execute } = require('./lib')
+const { config, execute, restartOrbitron } = require('./lib')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
@@ -155,7 +155,7 @@ async function updateCert(){
   }
   fs.writeFileSync(certLastUpdatedFile, JSON.stringify(lastUpdated))
   console.log("RESTARTING AFTER CERT UPDATE")
-  await execute("pm2 restart all")
+  await restartOrbitron()
 }
 
 async function openRootServer(){
