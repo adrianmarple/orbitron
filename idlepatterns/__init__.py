@@ -79,12 +79,7 @@ class Idle(Game):
     pass
 
   def render(self):
-    if not self.wait_for_frame_end():
-      self.blend_pixels()
-      self.apply_color()
-      engine.raw_pixels = self.render_values * 255
-      return
-
+    self.wait_for_frame_end()
     self.init_values()
     if get_pref("applyIdleMinBefore"):
       self.apply_min()
@@ -117,12 +112,9 @@ class Idle(Game):
   previous_fluid_time = 0
   def wait_for_frame_end(self):
     time_to_wait = self.previous_fluid_time + 1.0/get_pref("idleFrameRate") - time()
-    if time_to_wait > 2.0/FRAMERATE:
-      return False
     if time_to_wait > 0:
       sleep(time_to_wait)
     self.previous_fluid_time = time()
-    return True
 
   fluid_heads = [0]
   fluid_values = np.array([1.0] + [0.0] * (RAW_SIZE - 1))
