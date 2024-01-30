@@ -67,6 +67,15 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+async function restartOrbitron(){
+  let pm2Running = (await execute("ps -ea")).trim().indexOf("pm2") >= 0
+  if(pm2Running){
+    execute("pm2 restart all")
+  } else {
+    execute("reboot")
+  }
+}
+
 module.exports = {
-  execute, checkConnection, delay, config, PYTHON_EXECUTABLE
+  execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron
 }

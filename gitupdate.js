@@ -66,6 +66,7 @@ async function pullAndRestart() {
   }
 }
 
+// Copied from lib, but we don't want any internal dependencies for this file
 async function restartOrbitron(){
   let pm2Running = (await execute("ps -ea")).trim().indexOf("pm2") >= 0
   if(pm2Running){
@@ -80,5 +81,5 @@ if(runDirectly){
 }
 
 module.exports = {
-  checkForUpdates, pullAndRestart, restartOrbitron
+  checkForUpdates, pullAndRestart
 }
