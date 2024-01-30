@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const http = require('http')
 const qs = require('querystring')
-const { checkConnection, execute, delay} = require('../lib')
+const { checkConnection, execute, delay, config} = require('../lib')
 const { displayText } = require('../orb')
 const { respondWithFile } = require('../server')
 const { clearInterval } = require('timers')
@@ -114,7 +114,11 @@ let wifiSetupServer = http.createServer(function (req, res) {
     })
     req.on('end', function() {
       let formData = qs.parse(body)
-      respondWithFile(res, "/accesspoint/submitted.html")
+      response.writeHead(200, { 'Content-Type': 'application/json' })
+      let responseData = {
+        redirect: `https://orbitron.games/${config.ORB_ID}`
+      }
+      response.end(JSON.stringify(responseData), 'utf-8')
       submitSSID(formData)
     })
   }

@@ -6,13 +6,50 @@
 </head>
 
 <body>
-  <form action="/" method="post" id="form">
-
+  <form id="form" style="display: inline;">
     <div id="title">Add wifi network</div>
-    SSID:
-    <input type = "text" name = "ssid" />
+    SSID: <input type = "text" name = "ssid" />
     Password: <input type = "password" name = "password" />
     <input class="button" type = "submit" name = "submit" value = "Submit" />
   </form>
+  <div id="feedback" style="display:none;">
+    <p>SSID and Password submitted.</p>
+    <p>WiFi will now restart to apply changes and the page will refresh.</p>
+  </div>
+  <div id="errorMessage" style="display:none;">
+    <p>There was an error submitting the SSID and password.</p>
+    <p>Please refresh the page and try again.</p>
+  </div>
+  <script>
+    const form = document.querySelector("#form")
+    const feedback = document.querySelector("#feedback")
+    const errorMessage = document.querySelector("#errorMessage")
+    async function sendData() {
+      const formData = new FormData(form)
+      form.reset()
+      try {
+        const response = await fetch(location.origin, {
+          method: "POST",
+          body: formData,
+        })
+        const data = await response.json()
+        if(data.redirect){
+          await new Promise(r => setTimeout(r, 3000))
+          location.assign(data.redirect)
+        }
+      } catch (e) {
+        feedback.style.display = "none"
+        errorMessage.style.display = "inline"
+        console.error(e)
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault()
+      form.style.display = "none"
+      feedback.style.display = "inline"
+      sendData()
+    })
+  </script>
 </body>
 </html>
