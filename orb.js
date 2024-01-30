@@ -10,8 +10,7 @@ const homedir = require('os').homedir()
 let orbEmulatorBroadcast = () => {}
 if(config.HAS_EMULATION){
   orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
-} // TODO refactor to fix this garbage
-PYTHON_EXECUTABLE = config.PYTHON_EXECUTABLE || PYTHON_EXECUTABLE
+}
 
 function handleKill(signal){
   console.log("GOT KILL SIGNAL")
