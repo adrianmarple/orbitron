@@ -67,7 +67,7 @@ async function pullAndRestart() {
 }
 
 async function restartOrbitron(){
-  let pm2Running = (await execute("ps -ea | grep pm2")).trim()
+  let pm2Running = (await execute("ps -ea")).trim().indexOf("pm2") >= 0
   if(pm2Running){
     execute("pm2 restart all")
   } else {
