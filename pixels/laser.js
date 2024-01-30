@@ -530,6 +530,8 @@ function pointsToSVGString(points, basis, offset, flip) {
 }
 
 function notchCenters(wallLength, isFinalEdge) {
+  if (wallLength === Infinity || wallLength === NaN) return []
+  
   let notchCount = Math.ceil(wallLength / MAX_NOTCH_DISTANCE) // Effectively includes starting/ending half notches
   let notchDistance = wallLength / notchCount
   let centers = []
