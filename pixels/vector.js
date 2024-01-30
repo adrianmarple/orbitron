@@ -137,7 +137,7 @@ function signedAngle(v, w) {
 
 function angle3D(v, w) {
   let ratio = dot(v, w) / magnitude(v) / magnitude(w)
-  if (ratio <= 0) return Math.PI
+  if (ratio <= -1) return Math.PI
   if (ratio >= 1) return 0
   return Math.acos(ratio)
 }
