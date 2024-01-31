@@ -7,7 +7,7 @@ addButton("MADE", async () => {
   pixelDensity = 0.333333
   // pixelDensity = 0.25
   BOTTOM_THICKNESS = TOP_THICKNESS
-  minimalInnerBorder = true
+  // minimalInnerBorder = true
   isWall = true
 
   // imageUrl = "MADE/made2D (old).png"
