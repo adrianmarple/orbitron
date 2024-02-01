@@ -157,7 +157,7 @@
       <slider v-if="prefs.idlePattern == 'sin'"
           title="Min Value" name="sinMin" :min="-255" :max="255"></slider>
 
-      <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
+      <slider v-if="!['weather', 'static', 'sin'].includes(prefs.idlePattern)" 
           title="Blend" name="idleBlend" ></slider>
       <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
           title="Density" name="idleDensity"
