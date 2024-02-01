@@ -16,10 +16,10 @@ from engine import config, get_pref, Game, Player, SIZE, RAW_SIZE, FRAMERATE, ne
 name_to_idle_game = {}
 
 if config.get("BEAT_MODE"):
-  TOGGLE_PIN = 15 # board pin 10/GPIO pin 15
+  BEAT_PIN = 15 # board pin 10/GPIO pin 15
   import RPi.GPIO as GPIO
   GPIO.setwarnings(False)
-  GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+  GPIO.setup(BEAT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def set_idle(name):
   idle = None
@@ -88,15 +88,21 @@ class Idle(Game):
   def beat_factor(self):
     if not config.get("BEAT_MODE"):
       return 1
-    time_since_last_beat = time() - self.previous_beat_time
-    return 5 * exp(-10*time_since_last_beat) + 0.1
+
+    if GPIO.input(BEAT_PIN) == GPIO.HIGH:
+      return 5
+    else:
+      return 0.2
+
+    # time_since_last_beat = time() - self.previous_beat_time
+    # return 5 * exp(-10*time_since_last_beat) + 0.1
 
   def render(self):
     if (config.get("BEAT_MODE") and
         time() - self.previous_beat_time > 0.11 and
-        GPIO.input(TOGGLE_PIN) == GPIO.HIGH):
+        GPIO.input(BEAT_PIN) == GPIO.HIGH):
       self.previous_beat_time = time()
-      
+
     self.wait_for_frame_end()
     self.init_values()
     if get_pref("applyIdleMinBefore"):
