@@ -159,6 +159,7 @@ default_prefs = {
   "staticRotationTime": 8.0, 
   "staticDirection": "1,1,0",
   "patternBias": "0,-1,0",
+  "rippleWidth": 9,
 
   # COLOR
   "brightness": 100,
@@ -1045,7 +1046,8 @@ def ortho_proj(u, v):
 
 
 def render_pulse(direction=None, color=None,
-    start_time=0, duration=READY_PULSE_DURATION, reverse=False, crisp=False):
+    start_time=0, duration=READY_PULSE_DURATION, width=0.083333,
+    reverse=False, crisp=False):
   t = (time() - start_time) / duration
   if (t >= 1):
     return np.zeros(RAW_SIZE)
@@ -1064,7 +1066,7 @@ def render_pulse(direction=None, color=None,
     ds += 1
     ds /= 2
 
-  ds = 12*ds - 7*t - 5
+  ds = (ds - (0.5 + width)*t - 0.5 + width) / width
   if crisp:
     if reverse:
       ds = np.multiply(1-ds, np.maximum(0, np.sign(ds)))
@@ -1072,7 +1074,7 @@ def render_pulse(direction=None, color=None,
       ds = np.multiply(ds, np.maximum(0, np.sign(1-ds)))
     ds = np.maximum(0, ds) / 10
   else:
-    ds =np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
+    ds = np.maximum(0, np.multiply(ds, (1 - ds)) / 3)
 
   if color is not None:
     global raw_pixels

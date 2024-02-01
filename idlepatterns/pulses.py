@@ -24,17 +24,26 @@ class Pulses(Idle):
       values = pulse.render()
       self.render_values += np.multiply(values, values) * 12
 
+    pulse_is_definitely_visible = False
+
     if len(self.pulses) > 0:
       pulse = self.pulses[0]
-      if pulse.start_time + pulse.duration < time():
+      time_left = pulse.start_time + pulse.duration - time()
+      if time_left / pulse.duration > 0.5:
+        pulse_is_definitely_visible = True
+      if time_left < 0:
         self.pulses.pop(0)
 
+    max_pulses = max(2, get_pref("idleDensity") / 5)
+    if len(self.pulses) > max_pulses:
+      return
+
     x = get_pref("idleDensity") / 50 / FRAMERATE
-    if random() < x or len(self.pulses) == 0:
+    if random() < x or not pulse_is_definitely_visible:
       self.pulses.append(Pulse(self.base_duration*(1 + random()), (2*random()-1, 2*random()-1, 0)))
 
   def wait_for_frame_end(self):
-    return True
+    pass
 
 
 class Pulse():
@@ -48,6 +57,7 @@ class Pulse():
       direction=self.location,
       start_time=self.start_time,
       duration=self.duration,
+      width=get_pref("rippleWidth") / 100.0,
       reverse=True)
 
   def update_speed(self, ratio):
