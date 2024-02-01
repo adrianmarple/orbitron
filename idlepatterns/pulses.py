@@ -26,15 +26,14 @@ class Pulses(Idle):
 
     pulse_is_definitely_visible = False
 
-    if len(self.pulses) > 0:
-      pulse = self.pulses[0]
+    for pulse in self.pulses[:]:
       time_left = pulse.start_time + pulse.duration - time()
       if time_left / pulse.duration > 0.5:
         pulse_is_definitely_visible = True
       if time_left < 0:
-        self.pulses.pop(0)
+        self.pulses.remove(pulse)
 
-    max_pulses = max(2, get_pref("idleDensity") / 5)
+    max_pulses = max(2, get_pref("idleDensity") / 10)
     if len(self.pulses) > max_pulses:
       return
 
