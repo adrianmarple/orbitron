@@ -32,10 +32,12 @@ class Sin(Idle):
     return get_pref("sinDirection")
 
   def period(self):
-    return get_pref("idleDensity") / 2
+    return get_pref("idleDensity") * get_pref("idleDensity") / 150
 
   def speed(self):
-    return get_pref("idleFrameRate") / 40
+    return get_pref("idleFrameRate") * self.period() / 200
 
+  def wait_for_frame_end(self):
+    pass
 
 idle = Sin()
