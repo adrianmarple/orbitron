@@ -83,12 +83,7 @@ class Idle(Game):
       self.start += timedelta(days=1)
 
   def update(self):
-    if config.get("BEAT_MODE"):
-      if time() - self.previous_beat_time < 0.11:
-        return
-      
-      if GPIO.input(TOGGLE_PIN) == GPIO.HIGH:
-        self.previous_beat_time = time()
+    pass
 
   def beat_factor(self):
     if not config.get("BEAT_MODE"):
@@ -97,6 +92,11 @@ class Idle(Game):
     return 5 * exp(-10*time_since_last_beat) + 0.1
 
   def render(self):
+    if (config.get("BEAT_MODE") and
+        time() - self.previous_beat_time > 0.11 and
+        GPIO.input(TOGGLE_PIN) == GPIO.HIGH):
+      self.previous_beat_time = time()
+      
     self.wait_for_frame_end()
     self.init_values()
     if get_pref("applyIdleMinBefore"):
@@ -130,11 +130,11 @@ class Idle(Game):
   previous_fluid_time = 0
   def wait_for_frame_end(self):
     time_to_wait = self.previous_fluid_time + self.get_frame_time() - time()
-    return time_to_wait # * self.beat_factor()
+    return time_to_wait
 
   def get_frame_time(self):
     frame_time = 1.0/get_pref("idleFrameRate")
-    return frame_time / self.beat_factor()
+    return frame_time # / self.beat_factor()
 
 
   fluid_heads = [0]
