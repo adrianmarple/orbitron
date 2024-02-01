@@ -1142,12 +1142,6 @@ def broadcast_state():
 
 # ================================ Core loop =========================================
 
-if config.get("SWITCH_MODE"):
-  TOGGLE_PIN = 15 # board pin 10/GPIO pin 15
-  import RPi.GPIO as GPIO
-  GPIO.setwarnings(False)
-  GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-
 def run_core_loop():
   display_text("$LOADING", 0)
   display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 4)
@@ -1184,23 +1178,3 @@ def run_core_loop():
       display_pixels(raw_pixels)
     else:
       update()
-
- 
-    if config.get("SWITCH_MODE") == "toggle":
-      global cur_switch_grace_frames
-      should_be_off = GPIO.input(TOGGLE_PIN) == GPIO.HIGH
-      if is_off == should_be_off:
-        cur_switch_grace_frames = SWITCH_GRACE_FRAMES
-      else:
-        if cur_switch_grace_frames > 0:
-          cur_switch_grace_frames -= 1
-        else:
-          is_off = should_be_off
- 
-    if config.get("SWITCH_MODE") == "push":
-      if not is_toggling and GPIO.input(TOGGLE_PIN) == GPIO.HIGH:
-        is_off = not is_off
-        is_toggling = True
-      if GPIO.input(TOGGLE_PIN) == GPIO.LOW:
-        is_toggling = False
-

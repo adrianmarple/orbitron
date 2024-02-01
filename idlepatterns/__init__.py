@@ -11,9 +11,15 @@ from random import randrange, random
 from time import sleep, time
 
 import engine
-from engine import get_pref, Game, Player, SIZE, RAW_SIZE, FRAMERATE, neighbors, dupe_to_uniques
+from engine import config, get_pref, Game, Player, SIZE, RAW_SIZE, FRAMERATE, neighbors, dupe_to_uniques
 
 name_to_idle_game = {}
+
+if config.get("BEAT_MODE"):
+  TOGGLE_PIN = 15 # board pin 10/GPIO pin 15
+  import RPi.GPIO as GPIO
+  GPIO.setwarnings(False)
+  GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def set_idle(name):
   idle = None
@@ -39,11 +45,12 @@ class Idle(Game):
   target_values = np.zeros((RAW_SIZE, 1))
 
   previous_render_time = 0
+  previous_beat_time = 0
 
   def __init__(self):
     Game.__init__(self)
     self.generate_players(Player)
-    self.birthday = engine.config.get("BIRTHDAY")
+    self.birthday = config.get("BIRTHDAY")
     if self.birthday is not None:
       try:
         self.birthday = datetime.strptime(self.birthday, '%b %d')
@@ -76,7 +83,19 @@ class Idle(Game):
       self.start += timedelta(days=1)
 
   def update(self):
-    pass
+    if config.get("BEAT_MODE"):
+      if time() - self.previous_beat_time < 0.11:
+        return
+      
+      if GPIO.input(TOGGLE_PIN) == GPIO.HIGH:
+        self.previous_beat_time = time()
+
+  def beat_factor(self):
+    time_since_last_beat = time() - self.previous_beat_time
+    if time_since_last_beat < 1:
+      return 1 - 0.5/(1 + time_since_last_beat)
+    else:
+      return 1
 
   def render(self):
     self.wait_for_frame_end()
@@ -111,10 +130,13 @@ class Idle(Game):
   
   previous_fluid_time = 0
   def wait_for_frame_end(self):
-    time_to_wait = self.previous_fluid_time + 1.0/get_pref("idleFrameRate") - time()
-    if time_to_wait > 0:
-      sleep(time_to_wait)
-    self.previous_fluid_time = time()
+    time_to_wait = self.previous_fluid_time + self.get_frame_time() - time()
+    return time_to_wait * self.beat_factor()
+
+  def get_frame_time(self):
+    frame_time = 1.0/get_pref("idleFrameRate")
+    return frame_time / self.beat_factor()
+
 
   fluid_heads = [0]
   fluid_values = np.array([1.0] + [0.0] * (RAW_SIZE - 1))
@@ -201,7 +223,7 @@ class Idle(Game):
     self.render_values = np.maximum(self.render_values, get_pref("idleMin")/255)
 
   def apply_brightness(self):
-    self.render_values *= get_pref("brightness") / 100
+    self.render_values *= get_pref("brightness") / 100 * self.beat_factor()
 
   def blend_pixels(self):
     frame_delta = (time() - self.previous_render_time)
