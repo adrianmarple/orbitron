@@ -1067,8 +1067,8 @@ def render_pulse(direction=None, color=None,
     ds = np.matmul(direction, unique_coord_matrix) / 2 + 0.5
     ds += 1
     ds /= 2
-
-  ds = (ds - (0.5 + width)*t - 0.5 + width) / width
+  ds /= width
+  ds += -0.5*(t + 1)/width + 1 - t
   if crisp:
     if reverse:
       ds = np.multiply(1-ds, np.maximum(0, np.sign(ds)))
