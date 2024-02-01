@@ -10,7 +10,6 @@ function addPolygram(sideCount, center, edgeLengths) {
   let edgeVector = [1,0,0]
   let point = [0,0,0]
   let points = []
-  edgeVector = rotateZ(edgeVector, -Math.PI*4 / sideCount)
   for (let i = 0; i < sideCount; i++) {
     edgeVector = normalize(edgeVector)
     edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
@@ -51,5 +50,6 @@ addButton("pentagram", () => {
     let v1 = verticies[(i+3)%5]
     addTriangulation(v0, v1, 56)
   }
+  rotateZAll(-Math.PI*4/5, true)
   EulerianPath(0)
 })

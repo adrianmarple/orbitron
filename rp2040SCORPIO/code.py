@@ -40,27 +40,29 @@ def reset():
     usb.reset_output_buffer()
     usb.timeout = 0.5
     usb.write_timeout = 0.5
+    print("Parameters reset!")
 
 def main():
     global num_glitches
     global total_num_glitches
     global current_minute
     reset()
-    print("READY")
+    print("BOARD READY")
     while True:
-        failed = False
+        loopFailed = False
+        loopThrew = False
         minute = int(((time() - boot_time)/60) % 60)
         if minute != current_minute:
             current_minute = minute
             num_glitches = 0
         try:
-            failed = do_loop()
+            loopFailed = do_loop()
         except Exception as e:
-            failed = True
+            loopThrew = True
             print("LOOP THREW EXCEPTION")
             print(e)
-            reset()
-        if failed:
+        if loopFailed or loopThrew:
+            print("Loop Failed: %s  Loop Threw: %s" % (loopFailed, loopThrew))
             num_glitches = num_glitches + 1
             total_num_glitches = total_num_glitches + 1
 
@@ -73,9 +75,12 @@ def main():
                 print("avg glitches per minute: %f" % gpm)
 
             if(num_glitches >= 15):
-                print("15 GLITCHES IN A MINUTE, RESETTING")
-                sleep(0.1)
+                print("15 GLITCHES IN A MINUTE, RESETTING BOARD")
+                sleep(0.2)
                 microcontroller.reset()
+            elif loopThrew:
+                reset()
+    print("THIS SHOULD NEVER HAPPEN")
 
 def do_loop():
     global strand_count
