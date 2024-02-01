@@ -114,7 +114,7 @@ Vue.component('dropdown', {
   </div>
 </div>`})
 Vue.component('vector', {
-  props: ['name', 'title'],
+  props: ['name', 'title', 'normalize'],
   data() {
     return {
       isMoving: false,
@@ -141,6 +141,13 @@ Vue.component('vector', {
       y = -2*y + 1
       if (Math.abs(x) > 1 || Math.abs(y) > 1) {
         return
+      }
+      if (this.normalize) {
+        let magnitude = Math.sqrt(x*x + y*y)
+        if (magnitude > 0) {
+          x /= magnitude
+          y /= magnitude
+        }
       }
       this.$root.warpedPrefs[this.name].value = vectorToPolar([x,y])
       this.$root.updatePrefs(this.name)
@@ -237,6 +244,10 @@ var app = new Vue({
         inverseF: toVectorString,
       },
       patternBias: {
+        f: fromVectorString,
+        inverseF: toVectorString,
+      },
+      sinDirection: {
         f: fromVectorString,
         inverseF: toVectorString,
       },
@@ -371,10 +382,11 @@ var app = new Vue({
     },
     patternDropdownInfo() {
       let info = [
-        ['default', 'Default'],
         ['static', 'Static'],
         ['fireflies', 'Fireflies'],
         ['pulses', 'Ripples'],
+        ['sin', 'Sine'],
+        ['default', 'Default'],
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
       
       let extra = this.state.extraIdle

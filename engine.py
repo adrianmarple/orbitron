@@ -158,8 +158,10 @@ default_prefs = {
   "staticRotation": False,
   "staticRotationTime": 8.0, 
   "staticDirection": "1,1,0",
-  "patternBias": "0,-1,0",
+  "patternBias": "0,0,0",
   "rippleWidth": 9,
+  "sinDirection": "1,0,0",
+  "sinMin": 25,
 
   # COLOR
   "brightness": 100,

@@ -10,11 +10,11 @@ import urllib.request
 
 import engine
 from engine import RAW_SIZE, unique_coord_matrix
-from idlepatterns import Idle
+from idlepatterns.sin import Sin
 
 config = json.loads(os.getenv("CONFIG"))
 
-class Weather(Idle):
+class Weather(Sin):
   previous_update_time = 0
   time_factor = 0
   previous_time = 0
@@ -31,7 +31,7 @@ class Weather(Idle):
     self.weather_data = json.loads(contents)["hourly"]
     self.previous_update_time = time()
 
-  def set_current_weather(self):
+  def init_values(self):
     if time() - self.previous_update_time > 60*60:
       self.update_weather_data()
 
@@ -55,7 +55,9 @@ class Weather(Idle):
     snapshot1 = self.weather_data[index]
 
     self.wind_speed = a * snapshot0["wind_speed"] + (1-a) * snapshot1["wind_speed"] 
-    self.wind_vector = a * wind_vector(snapshot0) + (1-a) * wind_vector(snapshot1) # m/s
+    self.wind_direction = a * wind_vector(snapshot0) + (1-a) * wind_vector(snapshot1) # m/s
+    if np.sum(self.wind_direction) != 0:
+      self.wind_direction /= np.linalg.norm(self.wind_direction)
     self.uvi = a * snapshot0["uvi"] + (1-a) * snapshot1["uvi"]
     self.temp = a * snapshot0["temp"] + (1-a) * snapshot1["temp"] # Kelvin
     rain0 = 0
@@ -66,15 +68,21 @@ class Weather(Idle):
       rain1 = snapshot1["rain"]["1h"]
     self.rain = a * rain0 + (1-a) * rain1 # mm/h
 
-  def init_values(self):
-    self.set_current_weather()
-    self.render_values = np.matmul(self.wind_vector, unique_coord_matrix) * 3
-    if self.wind_speed != 0:
-      self.render_values /= sqrt(self.wind_speed)
-    self.time_factor += (time() - self.previous_time) * 2*pi / 15 * self.wind_speed
-    self.previous_time = time()
-    self.render_values += self.time_factor
-    self.render_values = (np.sin(self.render_values) + 1.1)/2.1
+    Sin.init_values(self)
+
+
+  def min_value(self):
+    return 0.1
+
+  def direction(self):
+    return -self.wind_direction
+
+  def period(self):
+    return sqrt(self.wind_speed * 3)
+
+  def speed(self):
+    return self.wind_speed / 15
+
 
   def apply_color(self):
     end = np.array((0, 0, 0.9))

@@ -151,6 +151,11 @@
       
       <slider v-if="prefs.idlePattern == 'pulses'"
           title="Width" name="rippleWidth" :min="1" :max="50"></slider>
+      
+      <vector v-if="prefs.idlePattern == 'sin'"
+          title="Direction" name="sinDirection" normalize="true"></vector>
+      <slider v-if="prefs.idlePattern == 'sin'"
+          title="Min Value" name="sinMin" :min="-255" :max="255"></slider>
 
       <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
           title="Blend" name="idleBlend" ></slider>
