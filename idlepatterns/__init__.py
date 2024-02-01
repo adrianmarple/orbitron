@@ -88,14 +88,8 @@ class Idle(Game):
   def beat_factor(self):
     if not config.get("BEAT_MODE"):
       return 1
-
-    if GPIO.input(BEAT_PIN) == GPIO.HIGH:
-      return 5
-    else:
-      return 0.2
-
-    # time_since_last_beat = time() - self.previous_beat_time
-    # return 5 * exp(-10*time_since_last_beat) + 0.1
+    time_since_last_beat = time() - self.previous_beat_time
+    return 4 * exp(-10*time_since_last_beat) + 0.3
 
   def render(self):
     if (config.get("BEAT_MODE") and
