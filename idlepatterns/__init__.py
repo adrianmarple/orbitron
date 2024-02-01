@@ -89,7 +89,7 @@ class Idle(Game):
     if not config.get("BEAT_MODE"):
       return 1
     time_since_last_beat = time() - self.previous_beat_time
-    return 4 * exp(-10*time_since_last_beat) + 0.3
+    return 2 * exp(-10*time_since_last_beat) + 0.3
 
   def render(self):
     if (config.get("BEAT_MODE") and
@@ -134,7 +134,7 @@ class Idle(Game):
 
   def get_frame_time(self):
     frame_time = 1.0/get_pref("idleFrameRate")
-    return frame_time # / self.beat_factor()
+    return frame_time / self.beat_factor()
 
 
   fluid_heads = [0]
@@ -228,6 +228,8 @@ class Idle(Game):
     frame_delta = (time() - self.previous_render_time)
     frame_delta *= get_pref("idleFrameRate") / 15
     frame_delta *= exp(2.7 - get_pref("idleBlend")/25)
+    if time() - self.previous_beat_time < 0.01:
+      frame_delta = 2
     if frame_delta < 1:
       alpha = exp(-10 * frame_delta)
       self.render_values = self.target_values * (1-alpha) + self.previous_values * alpha
