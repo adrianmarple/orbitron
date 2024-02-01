@@ -130,7 +130,8 @@ class Idle(Game):
   previous_fluid_time = 0
   def wait_for_frame_end(self):
     time_to_wait = self.previous_fluid_time + self.get_frame_time() - time()
-    return time_to_wait
+    if time_to_wait > 0:
+      sleep(time_to_wait)
 
   def get_frame_time(self):
     frame_time = 1.0/get_pref("idleFrameRate")
