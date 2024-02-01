@@ -91,11 +91,10 @@ class Idle(Game):
         self.previous_beat_time = time()
 
   def beat_factor(self):
-    time_since_last_beat = time() - self.previous_beat_time
-    if time_since_last_beat < 1:
-      return 1 - 0.5/(1 + time_since_last_beat)
-    else:
+    if not config.get("BEAT_MODE"):
       return 1
+    time_since_last_beat = time() - self.previous_beat_time
+    return 5 * exp(-10*time_since_last_beat) + 0.1
 
   def render(self):
     self.wait_for_frame_end()
@@ -131,7 +130,7 @@ class Idle(Game):
   previous_fluid_time = 0
   def wait_for_frame_end(self):
     time_to_wait = self.previous_fluid_time + self.get_frame_time() - time()
-    return time_to_wait * self.beat_factor()
+    return time_to_wait # * self.beat_factor()
 
   def get_frame_time(self):
     frame_time = 1.0/get_pref("idleFrameRate")
