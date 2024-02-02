@@ -136,7 +136,10 @@ class Idle(Game):
 
   def get_frame_time(self):
     frame_time = 1.0/get_pref("idleFrameRate")
-    return frame_time / self.beat_factor()
+    if config.get("BEAT_MODE"):
+      return frame_time / (self.beat_factor() + 0.3)
+    else:
+      return frame_time
 
 
   fluid_heads = [0]
