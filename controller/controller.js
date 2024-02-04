@@ -8,29 +8,43 @@ document.addEventListener("click", event => {
   }
 })
 
+debounce = (func, self) => { // Fucking arrow functions vs functions! 
+  let timeout = null
+  return function() {
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+    timeout = setTimeout(func.bind(this), 100)
+  }
+}
 
 
-Vue.component('color', {
+Vue.component('number', {
   props: ['name', 'title'],
   template: `
-<span style="width: 100%;" v-if="!$root.exclude[name]">
-<div v-if="title">{{title}}</div>
-<div class="color-component"
-  v-for="component in ['red','green','blue']">
-  <div class="label">
-    <div>{{component[0]}}: {{$root.warpedPrefs[name].value[component]}}</div>
-  </div>
-  <input type="range" min="0" max="255" class="slider"
-    v-model="$root.warpedPrefs[name].value[component]"
-    @change="$root.updatePrefs(name)"
-    :style="{'accent-color': component}"
-  >
+<div class="row" v-if="!$root.exclude[name]">
+  {{title}}:
+  <input type="number" v-model="$root.prefs[name]">
   </input>
 </div>
-</span>
 `})
+Vue.component('boolean', {
+  props: ['name', 'title'],
+  template: `
+<div class="pure-material-checkbox" @click="$root.prefs[name] = !$root.prefs[name]">
+  <input type="checkbox" v-model="$root.prefs[name]">
+  <span>{{title}}</span>
+</div>
+`})
+
 Vue.component('slider', {
   props: ['name', 'title', 'min', 'max'],
+  data() { return { value: 0 }},
+  watch: {  
+    "$root.prefs": debounce(function() { this.value = this.$root.prefs[this.name] }),
+    value() { this.$root.prefs[this.name] = this.value },
+  },
+  mounted() { this.value = this.$root.prefs[this.name] },
   computed: {
     trueMin() { return this.min || 0 },
     trueMax() { return this.max || 100 },
@@ -39,30 +53,57 @@ Vue.component('slider', {
 <div class="slider-container" v-if="!$root.exclude[name]">
   <div class="label">
     <div>{{title}}:</div>
-    <div>{{$root.prefs[name]}}</div>
+    <div>{{value}}</div>
   </div>
-  <input type="range" :min="trueMin" :max="trueMax" class="slider" v-model="$root.prefs[name]"
-    @change="$root.updatePrefs(name)">
+  <input type="range" :min="trueMin" :max="trueMax" class="slider"
+      v-model="value">
   </input>
 </div>
 `})
-Vue.component('number', {
+
+Vue.component('color', {
   props: ['name', 'title'],
+  data() {
+    return { value: [0,0,0] }
+  },
+  mounted() {
+    this.updateFromPrefs()
+  },
+  watch: {
+    "$root.prefs": debounce(function() { this.updateFromPrefs() }),
+    value: {
+      handler: function({red, green, blue}) {
+        this.$root.prefs[this.name] = "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1)
+      },
+      deep: true,
+    },
+  },
+  methods: {
+    updateFromPrefs() {
+      let hex = this.$root.prefs[this.name]
+      var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+      this.value = result ? {
+        red: parseInt(result[1], 16),
+        green: parseInt(result[2], 16),
+        blue: parseInt(result[3], 16)
+      } : [0,0,0]
+    },
+  },
   template: `
-<div class="row" v-if="!$root.exclude[name]">
-  {{title}}:
-  <input type="number" v-model="$root.prefs[name]"
-    @change="$root.updatePrefs(name)">
+<span style="width: 100%;" v-if="!$root.exclude[name]">
+<div v-if="title">{{title}}</div>
+<div class="color-component"
+  v-for="component in ['red','green','blue']">
+  <div class="label">
+    <div>{{component[0]}}: {{value[component]}}</div>
+  </div>
+  <input type="range" min="0" max="255" class="slider"
+    v-model="value[component]"
+    :style="{'accent-color': component}"
+  >
   </input>
 </div>
-`})
-Vue.component('boolean', {
-  props: ['name', 'title'],
-  template: `
-<div class="pure-material-checkbox" @click="$root.togglePref(name)">
-  <input type="checkbox" v-model="$root.prefs[name]">
-  <span>{{title}}</span>
-</div>
+</span>
 `})
 
 Vue.component('dropdown', {
@@ -113,18 +154,40 @@ Vue.component('dropdown', {
     </div>
   </div>
 </div>`})
+
 Vue.component('vector', {
   props: ['name', 'title', 'normalize'],
   data() {
     return {
       isMoving: false,
       style: {},
+      value: { angle: 0, magnitude: 0 },
     }
   },
   mounted() {
-    this.setStyle()
+    this.updateFromPrefs()
+  },
+  watch: {
+    "$root.prefs": debounce(function() { this.updateFromPrefs() }),
+    value() {
+      let angle = -this.value.angle
+      let mag = this.value.magnitude
+      let xOffset = (Math.cos(angle) - 1) * mag * 15/2
+      let yOffset = Math.sin(angle) * mag * 15/2
+      this.style = {
+        transform: `
+          translateX(${xOffset}rem)
+          translateY(${yOffset}rem)
+          rotate(${angle}rad)`,
+        width: `${mag * 15}rem`,
+      }
+    },
   },
   methods: {
+    updateFromPrefs() {
+      let v = this.$root.prefs[this.name].split(",").map(x => parseFloat(x))
+      this.value = this.vectorToPolar(v)
+    },
     startMove(event) {
       this.isMoving = true
       this.onMove(event)
@@ -149,21 +212,13 @@ Vue.component('vector', {
           y /= magnitude
         }
       }
-      this.$root.warpedPrefs[this.name].value = vectorToPolar([x,y])
-      this.$root.updatePrefs(this.name)
-      this.setStyle()
+      this.value = this.vectorToPolar([x,y])
+      this.$root.prefs[this.name] = `${x},${y},0`
     },
-    setStyle() {
-      let angle = -this.$root.warpedPrefs[this.name].value.angle
-      let mag = this.$root.warpedPrefs[this.name].value.magnitude
-      let xOffset = (Math.cos(angle) - 1) * mag * 15/2
-      let yOffset = Math.sin(angle) * mag * 15/2
-      this.style = {
-        transform: `
-          translateX(${xOffset}rem)
-          translateY(${yOffset}rem)
-          rotate(${angle}rad)`,
-        width: `${mag * 15}rem`,
+    vectorToPolar(v) {
+      return {
+        angle: Math.atan2(v[1], v[0]),
+        magnitude: Math.sqrt(v[0]*v[0] + v[1]*v[1])
       }
     },
   },
@@ -220,38 +275,6 @@ var app = new Vue({
     settings: {},
     prefs: {},
     rawPrefName: "",
-    warpedPrefs: {
-      idleMin: {
-        // f: x => Math.log(x + 1)/Math.log(2),
-        // inverseF: x => Math.round(Math.pow(2, x) - 1),
-        f: x => Math.pow(x + 1,1/3),
-        inverseF: x => Math.round(Math.pow(x,3) - 1),
-      },
-      fixedColor: {
-        f: hexToRgb,
-        inverseF: rgbToHex,
-      },
-      gradientStartColor: {
-        f: hexToRgb,
-        inverseF: rgbToHex,
-      },
-      gradientEndColor: {
-        f: hexToRgb,
-        inverseF: rgbToHex,
-      },
-      staticDirection: {
-        f: fromVectorString,
-        inverseF: toVectorString,
-      },
-      patternBias: {
-        f: fromVectorString,
-        inverseF: toVectorString,
-      },
-      sinDirection: {
-        f: fromVectorString,
-        inverseF: toVectorString,
-      },
-    },
     GAMES_INFO,
     uuid: uuid(),
 
@@ -271,11 +294,6 @@ var app = new Vue({
         this.ping()
       }
     }, 3000)
-    // setInterval(() => {
-    //   this.homeStyle = {
-    //     background: phaseColor()
-    //   }
-    // }, 30)
     onfocus = () => {
       this.blurred = false
       if (!this.ws) {
@@ -324,8 +342,10 @@ var app = new Vue({
     "state.prefs": function(val, oldValue) {
       if (!oldValue) {
         this.prefs = { ...val }
-        for (let key in this.warpedPrefs) {
-          this.warpedPrefs[key].value = this.warpedPrefs[key].f(val[key])
+        for (let key in val) {
+          this.$watch('prefs.' + key, (v, vOld) => {
+            this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
+          })
         }
         return
       }
@@ -333,9 +353,6 @@ var app = new Vue({
         let hasChange = false
         if (val[key] != oldValue[key]) {
           hasChange = true
-          if (this.warpedPrefs[key]) {
-            this.warpedPrefs[key].value = this.warpedPrefs[key].f(val[key])
-          }
         }
         if (hasChange) {
           this.prefs = { ...val }
@@ -855,17 +872,6 @@ var app = new Vue({
     updateSettings(settingsName) {
       this.send({ type: "settings", update: {[settingsName]: this.settings[settingsName] }})
     },
-    updatePrefs(prefName) {
-      if (this.warpedPrefs[prefName]) {
-        let value = this.warpedPrefs[prefName].value
-        this.prefs[prefName] = this.warpedPrefs[prefName].inverseF(value)
-      }
-      this.send({ type: "prefs", update: {[prefName]: this.prefs[prefName] }})
-    },
-    togglePref(prefName) {
-      this.prefs[prefName] = !this.prefs[prefName]
-      this.updatePrefs(prefName)
-    },
 
     prettifySettingName(name) {
       return name.toLowerCase().replaceAll("_", " ")
@@ -917,56 +923,4 @@ function uuid() {
 }
 function isNothing(val) {
   return val === undefined || val === null
-}
-
-function rgbToHex({red, green, blue}) {
-  return "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1);
-}
-function hexToRgb(hex) {
-  // // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
-  // var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-  // hex = hex.replace(shorthandRegex, function(m, r, g, b) {
-  //   return r + r + g + g + b + b;
-  // });
-  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    red: parseInt(result[1], 16),
-    green: parseInt(result[2], 16),
-    blue: parseInt(result[3], 16)
-  } : null;
-}
-
-function toVectorString(polar) {
-  return `${Math.cos(polar.angle) * polar.magnitude},${Math.sin(polar.angle)*polar.magnitude},0`
-}
-function fromVectorString(vectorString) {
-  let v = vectorString.split(",").map(x => parseFloat(x))
-  return vectorToPolar(v)
-}
-function vectorToPolar(v) {
-  return {
-    angle: Math.atan2(v[1], v[0]),
-    magnitude: Math.sqrt(v[0]*v[0] + v[1]*v[1])
-  }
-}
-
-function phaseColor() {
-  let colorPhase = (Date.now()/1000.0/10) % 1
-  let r,g,b
-  if (colorPhase < 0.333) {
-    r = 1 - 3 * colorPhase
-    g = 3 * colorPhase
-    b = 0
-  } else if (colorPhase < 0.666) {
-    r = 0
-    g = 2 - 3 * colorPhase
-    b = 3 * colorPhase - 1
-  } else {
-    r = 3 * colorPhase - 2
-    g = 0
-    b = 3 - 3 * colorPhase
-  }
-  const min = 200
-  const range = 50
-  return `rgb(${min + r*range},${min + g*range},${min + b*range})`
 }
