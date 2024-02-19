@@ -51,8 +51,8 @@ def start_external_pixel_board():
     if config.get("EXTERNAL_PIXEL_BOARD"):
         while external_board == None or external_board_logs == None:
             try:
-                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.6, write_timeout=0.6)
-                external_board_logs = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if00", timeout=0.6, write_timeout=0.6)
+                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.6, write_timeout=2)
+                external_board_logs = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if00")
             except Exception as e:
                 print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
                 print("will retry...", file=sys.stderr)
@@ -89,7 +89,7 @@ def display_pixels(pixels):
         except Exception as e:
             print("error writing to external board", file=sys.stderr)
             print(e, file=sys.stderr)
-            start_external_pixel_board()
+            #start_external_pixel_board()
         if external_board_logs:
             try:
                 logs = external_board_logs.read_all()
