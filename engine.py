@@ -25,9 +25,10 @@ if config.get("HAS_EMULATION"):
     output = np.array(pixels,dtype="<u1").tobytes()
     print("raw_pixels=%s;" % output.hex())
 else:
-  from orbclient.orbpixel import display_pixels, start_pixel_output_process, start_external_pixel_board
+  from orbclient.orbpixel import display_pixels, start_pixel_output_process, start_external_pixel_board, start_external_pixel_board_logging
   # start_pixel_output_process()
   start_external_pixel_board()
+  start_external_pixel_board_logging()
 
 prewarm_audio()
 

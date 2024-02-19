@@ -46,13 +46,11 @@ def start_pixel_output_process():
 
 def start_external_pixel_board():
     global external_board
-    global external_board_logs
     close_external_pixel_board()
     if config.get("EXTERNAL_PIXEL_BOARD"):
-        while external_board == None or external_board_logs == None:
+        while external_board == None:
             try:
-                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.6, write_timeout=2)
-                external_board_logs = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if00")
+                external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.6, write_timeout=0.6)
             except Exception as e:
                 print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
                 print("will retry...", file=sys.stderr)
@@ -60,14 +58,27 @@ def start_external_pixel_board():
 
 def close_external_pixel_board():
     global external_board
-    global external_board_logs
     if external_board:
         external_board.close()
         external_board = None
+
+def start_external_pixel_board_logging():
+    global external_board_logs
+    close_external_pixel_board_logging()
+    if config.get("EXTERNAL_PIXEL_BOARD"):
+        while external_board_logs == None:
+            try:
+                external_board_logs = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if00")
+            except Exception as e:
+                print("ERROR CONNECTING TO EXTERNAL BOARD LOGGING", e, file=sys.stderr)
+                print("will retry...", file=sys.stderr)
+                close_external_pixel_board_logging()
+
+def close_external_pixel_board_logging():
+    global external_board_logs
     if external_board_logs:
         external_board_logs.close()
         external_board_logs = None
-    sleep(1)
 
 def pixel_output_loop(conn):
     print("Pixel process stared", file=sys.stderr)
@@ -89,7 +100,7 @@ def display_pixels(pixels):
         except Exception as e:
             print("error writing to external board", file=sys.stderr)
             print(e, file=sys.stderr)
-            #start_external_pixel_board()
+            start_external_pixel_board()
         if external_board_logs:
             try:
                 logs = external_board_logs.read_all()
@@ -98,6 +109,7 @@ def display_pixels(pixels):
             except Exception as e:
                 print("error reading external board logs", file=sys.stderr)
                 print(e, file=sys.stderr)
+                start_external_pixel_board_logging()
         return
     pixels = np.uint32(pixels)
     buf = pixels[:,1]*(1<<16) + pixels[:,0]*(1<<8) + pixels[:,2]
