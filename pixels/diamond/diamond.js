@@ -1,6 +1,5 @@
 
-addButton("Diamond", () => {
-  name = "diamond"
+addButton("diamond/diamond", () => {
   pixelDensity = 0.25
 
   for (let i = -6; i <= 6; i++) {

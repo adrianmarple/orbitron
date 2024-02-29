@@ -1,5 +1,5 @@
 
-addButton("MADE", async () => {
+addButton("MADE/MADE", async () => {
   // setLaserParams({
   //   PIXEL_DISTANCE: 10,
   // })

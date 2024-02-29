@@ -1,6 +1,5 @@
 
-addButton("Rectangle", () => {
-  name = "mieke"
+addButton("family/rectangle", () => {
   setLaserParams({
     BORDER: 4,
     CHANNEL_WIDTH: 5,

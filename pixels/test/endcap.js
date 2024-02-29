@@ -1,6 +1,6 @@
+// SKIP
 
-addButton("End Cap", async () => {
-  name = "endcap"
+addButton("test/endcap", async () => {
   BOTTOM_THICKNESS = TOP_THICKNESS
   ledAtVertex = false
   setLaserParams({

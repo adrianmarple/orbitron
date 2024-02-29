@@ -1,6 +1,5 @@
 
-addButton("Sierpinski", function() {
-  name = "sierpinski"
+addButton("math/sierpinski", function() {
   cat5PortMidway = true
   setLaserParams({
     NOTCH_DEPTH: 4,

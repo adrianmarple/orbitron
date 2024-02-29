@@ -34,8 +34,7 @@ l = 20
 // k = 1
 // l = 10
 
-addButton("de Ruyter Crest", () => {
-  name = "deruyter"
+addButton("family/crest", () => {
   // setLaserParams({
   //   BORDER: 4,
   //   CHANNEL_WIDTH: 5,

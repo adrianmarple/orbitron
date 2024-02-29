@@ -1,7 +1,5 @@
-
-addButton("Simple Grid", function() {
-  name = "simple"
-  isWall = true
+// SKIP
+addButton("test/simple", function() {
   pixelDensity = 0.25
 
   for (let i = -3; i <= 3; i++) {

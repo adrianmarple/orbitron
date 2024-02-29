@@ -1,6 +1,5 @@
 
-addButton("The Hive", async () => {
-  name = "hive"
+addButton("hackerdojo/hive", async () => {
   BOTTOM_THICKNESS = TOP_THICKNESS
   ledAtVertex = false
   pixelDensity = 2

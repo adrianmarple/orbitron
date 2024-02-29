@@ -1,8 +1,6 @@
+// SKIP
 
-
-addButton("Square", () => {
-  name = "square"
-  isWall = true
+addButton("test/square", () => {
   pixelDensity = 0.25
 
   addPolygon(4, [0,0,0])

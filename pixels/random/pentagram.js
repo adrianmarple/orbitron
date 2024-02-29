@@ -33,9 +33,8 @@ function addPolygram(sideCount, center, edgeLengths) {
   return newEdges
 }
 
-
-addButton("pentagram", () => {
-  name = "pentagram"
+// SKIP
+addButton("random/pentagram", () => {
   sortOverride = (edge, previousEdge, angle) => {
     if(epsilonEquals(angle,Math.PI*4/5)){
       return 1

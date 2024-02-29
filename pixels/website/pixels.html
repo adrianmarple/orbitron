@@ -1,6 +1,6 @@
 <html>
 <head>
-  <link rel="shortcut icon" href="/favicon.png" />
+<link rel="shortcut icon" href="/website/favicon.png" />
 
 <style>
 body, html {
@@ -21,8 +21,8 @@ canvas {
 }
 .button {
   z-index: 1;
-  padding: 12px 24px;
-  margin: 12px;
+  padding: 10px 20px;
+  margin: 8px;
   font-size: 24px;
   border: 1px solid black;
   border-radius: 12px;
@@ -34,10 +34,12 @@ canvas {
   right:  24px;
   top: 24px;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
 }
-#download {
+#actions {
   position: fixed;
-  right:  24px;
+  left:  24px;
   bottom: 24px;
 }
 
@@ -67,13 +69,14 @@ canvas {
 <canvas width="1000" height="1000"></canvas>
 
 <div id="type-buttons"></div>
-<div class="button" id="download">Download</div>
+<div id="actions">
+  <div class="button" id="downloadJSON">Download JSON</div>
+  <div class="button" id="downloadTop">Download Top SVG</div>
+  <div class="button" id="downloadBottom">Download Bottom SVG</div>
+  <div class="button" id="genWalls">Generate Wall .gcode</div>
+</div>
 
 <div id="settings">
-  <div>downloadsJSON</div>
-  <div>downloadsTopSVG</div>
-  <div>downloadsBottomSVG</div>
-  <div>downloadsWallSVG</div>
   <div>showVertexNumbers</div>
   <div>showEdgeNumbers</div>
   <div>showLaserSVG</div>
@@ -255,21 +258,23 @@ function delay(ms) {
 }
 
 buttonClickMap = {}
-function addButton(displayName, onClick) {
-  buttonClickMap[displayName] = async () => {
-    name = displayName
-    localStorage.setItem("button", displayName)
+fullProjectNames = []
+function addButton(name, onClick) {
+  buttonClickMap[name] = async () => {
+    fullProjectName = name
+    localStorage.setItem("button", name)
     reset()
     await onClick()
     generatePixelInfo()
   }
   button = document.createElement("div")
-  button.innerHTML = displayName
+  button.innerHTML = name.split("/")[1]
 
   document.getElementById("type-buttons").appendChild(button)
   button.classList.add("button")
+  button.style.order = fullProjectNames.indexOf(name)
   button.addEventListener('click', () => {
-    buttonClickMap[displayName]()
+    buttonClickMap[name]()
   })
 }
 setTimeout(() => {
@@ -279,33 +284,37 @@ setTimeout(() => {
   }
 }, 50)
 
+function download(fileName, data) {
+  fetch("/", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "download",
+      fileName,
+      data,
+    }),
+    headers: {
+      "Content-type": "application/json; charset=UTF-8"
+    }
+  });
+}
+
+async function appendButtonScripts() {
+  let urls = await (await fetch("buttonUrls.json")).json()
+  fullProjectNames = urls.map(url => url.slice(0,-3))
+  for (let url of urls) {
+    let s = document.createElement('script')
+    s.setAttribute('src', url)
+    document.body.appendChild(s)
+  }
+}
+appendButtonScripts()
+
 </script>
 
-<script type="text/javascript" src="topology.js"></script>
-<script type="text/javascript" src="data.js"></script>
-<script type="text/javascript" src="vector.js"></script>
+<script type="text/javascript" src="website/topology.js"></script>
+<script type="text/javascript" src="website/data.js"></script>
+<script type="text/javascript" src="website/vector.js"></script>
+<script type="text/javascript" src="website/laser.js"></script>
 
-<script type="text/javascript" src="test/channeltest.js"></script>
-<script type="text/javascript" src="THEBOX/button.js"></script>
-<!-- <script type="text/javascript" src="rhombicosidodecahedron/button.js"></script> -->
-<script type="text/javascript" src="rhombicosidodecahedron/helmet.js"></script>
-<!-- <script type="text/javascript" src="diamond/button.js"></script> -->
-<script type="text/javascript" src="organic wall/button.js"></script>
-<script type="text/javascript" src="sixfold/hexcat.js"></script>
-<script type="text/javascript" src="spaceinvaders/button.js"></script>
-<script type="text/javascript" src="MADE/button.js"></script>
-<script type="text/javascript" src="family/crest.js"></script>
-<!-- <script type="text/javascript" src="family/spiral.js"></script> -->
-<script type="text/javascript" src="family/rectangle.js"></script>
-<script type="text/javascript" src="hackerdojo/button.js"></script>
-<!-- <script type="text/javascript" src="test/letters.js"></script> -->
-<script type="text/javascript" src="sixfold/mandala.js"></script>
-<script type="text/javascript" src="manifoldmarkets/logo.js"></script>
-<script type="text/javascript" src="math/sierpinski.js"></script>
-<script type="text/javascript" src="random/VVVVVV.js"></script>
-<script type="text/javascript" src="random/pentagram.js"></script>
-
-<!-- laser.js must come after adding buttons -->
-<script type="text/javascript" src="laser.js"></script>
 </body>
 </html>

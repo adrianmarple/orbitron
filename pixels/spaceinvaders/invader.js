@@ -1,6 +1,5 @@
 
-addButton("Space Invader", async () => {
-  name = "invader"
+addButton("spaceinvaders/invader", async () => {
   pixelDensity = 0.25
   BOTTOM_THICKNESS = TOP_THICKNESS
   WOOD_KERF = 0.12 * MM_TO_96DPI

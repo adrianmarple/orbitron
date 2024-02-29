@@ -1,5 +1,5 @@
 
-addButton("Mandala", () => {
+addButton("sixfold/mandala", () => {
   name = "mandala"
   
   let dodecEdges = addDodecagon([0,0,0], 3)

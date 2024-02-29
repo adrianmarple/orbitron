@@ -1,6 +1,5 @@
 
-addButton("Helmet", () => {
-  name = "helmet";
+addButton("rhombicosidodecahedron/helmet", () => {
   pixelDensity = 0.4
   isWall = false
   centerOffset = false

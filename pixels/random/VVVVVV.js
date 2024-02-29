@@ -1,6 +1,6 @@
+// SKIP
 
-addButton("VVVVVV", () => {
-  name = "VVVVVV"
+addButton("random/VVVVVV", () => {
   // setLaserParams({
   //   BORDER: 4,
   //   CHANNEL_WIDTH: 5,

@@ -1,6 +1,5 @@
-
-addButton("Organic Wall", () => {
-  name = "organic wall"
+// SKIP
+addButton("organic wall/organic wall", () => {
   pixelDensity = 0.25
   minimalInnerBorder = true
 

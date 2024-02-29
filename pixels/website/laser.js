@@ -23,17 +23,24 @@ reset = () => {
   ogReset()
   useCAT5forChannelDepth = true
   setLaserParams({
-    BOTTOM_THICKNESS: 5,
-    TOP_THICKNESS: 2.9,
-    WALL_THICKNESS: 2.35,
+    TOP_THICKNESS: 2.8,
+    BOTTOM_THICKNESS: 2.8,
+    // BOTTOM_THICKNESS: 5, // 1/4 plywood
+    WALL_THICKNESS: 2.78, // 1/8" Acrylic (thick one I guess)
+    // WALL_THICKNESS: 2.76, // 1/8" Acrylic
+    // WALL_THICKNESS: 2.35, // balsa wood
     BORDER: 6,
     PIXEL_DISTANCE: 16.66666, // 16.6
     CHANNEL_WIDTH: 12,
     // CHANNEL_DEPTH: 10,
     NOTCH_DEPTH: 5,
     FASTENER_DEPTH: 2.5,
-    BOTTOM_KERF: 0.14,
-    TOP_KERF: -0.03,
+
+    // BOTTOM_KERF: 0.14, // old value
+    // BOTTOM_KERF: 0.1, // 1/4 plywood
+    // BOTTOM_KERF: 0.07, // Acrylic
+    BOTTOM_KERF: -0.02, // Acrylic
+    TOP_KERF: -0.04,
     // ACRYLIC_KERF: -0.06, // Used for hex cat recut
 
     CAT5_HEIGHT: 15.1,
@@ -53,12 +60,12 @@ reset = () => {
   KERF = TOP_KERF
   IS_BOTTOM = true
 
-  BALSA_LENGTH = 96*11.85 // A little more than 11 3/4 inches
+  BALSA_LENGTH = 2*96*11.85 // A little more than 11 3/4 inches
   WALL_SVG_PADDING = 24
   WALL_SVG_GAP = 6
 
   MAX_WALL_LENGTH = BALSA_LENGTH - 2*WALL_SVG_PADDING
-  MAX_NOTCH_DISTANCE = MAX_WALL_LENGTH / 2
+  MAX_NOTCH_DISTANCE = MAX_WALL_LENGTH / 4
 
   minimalInnerBorder = false
   exteriorOnly = false
@@ -108,31 +115,34 @@ cover.outerHTML = `
 cover = document.getElementById("cover")
 
 
-document.getElementById("download").addEventListener('click', async () => {
-  if (isWall) {
-    if (downloadsTopSVG) {
-      IS_BOTTOM = false
-      KERF = TOP_KERF
-      await createCoverSVG()
-      downloadSVGAsText("cover", "top (acrylic)")
-    }
-    if (downloadsBottomSVG) {
-      IS_BOTTOM = true
-      KERF = BOTTOM_KERF
-      await createCoverSVG()
-      downloadSVGAsText("cover", "bottom (birch plywood)")
-    }
-
-    if (downloadsWallSVG) {
-      createWallSVG()
-      downloadSVGAsText("wall", "walls (balsa wood)")
-    }
-  }
+document.getElementById("downloadTop").addEventListener('click', async () => {
+  IS_BOTTOM = false
+  KERF = TOP_KERF
+  await createCoverSVG()
+  let elem = document.getElementById("cover")
+  elem.style.display = "block"
+  download(fullProjectName + " top.svg", elem.outerHTML)
+})
+document.getElementById("downloadBottom").addEventListener('click', async () => {
+  IS_BOTTOM = true
+  KERF = BOTTOM_KERF
+  await createCoverSVG()
+  let elem = document.getElementById("cover")
+  elem.style.display = "block"
+  download(fullProjectName + " bottom.svg", elem.outerHTML)
+})
+document.getElementById("genWalls").addEventListener('click', async () => {
+  createWallSVG()
+  let elem = document.getElementById("wall")
+  elem.style.display = "block"
+  download(fullProjectName + " walls.svg", elem.outerHTML)
 })
 
-for (let displayName in buttonClickMap) {
-  let onClick = buttonClickMap[displayName]
-  buttonClickMap[displayName] = async () => {
+
+
+function addLaserStuffToClick(name) {
+  let onClick = buttonClickMap[name]
+  buttonClickMap[name] = async () => {
     await onClick()
     document.querySelectorAll("path").forEach(path => path.setAttribute('d', ""))
     cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
@@ -144,6 +154,14 @@ for (let displayName in buttonClickMap) {
     }
   }
 }
+for (let name in buttonClickMap) {
+  addLaserStuffToClick(name)
+}
+ogAddButton = addButton
+addButton = (name, onClick) => {
+  ogAddButton(name, onClick)
+  addLaserStuffToClick(name)
+}
 
 let wallInfo = []
 let entryWallLength = 0
@@ -153,10 +171,11 @@ let maxX = 0
 let maxY = 0
 
 async function createChannelTestSVG() {
-  let wallLength = 50 * MM_TO_96DPI
+  // let wallLength = 40 * MM_TO_96DPI
+  let wallLength = 135.44366220593486
   let path = ""
-  let kerfs = [0.10, 0.09, 0.08, 0.07]
-  let thicknesses = [2.35, 2.73, 2.75, 2.77]
+  let kerfs = [-0.01, -0.02]
+  let thicknesses = [2.78, 2.79, 2.8, 2.81]
   let offset = [0,0]
   let basis = [[1,0,0], [0,1,0]]
 
@@ -279,6 +298,8 @@ async function createCoverSVG() {
 
   let totalPathString = ""
   for (let dPath of paths) {
+    if (exteriorOnly && dPath != outerPath) continue
+
     let channelString = ""
   	let borderString = ""
   	let minimalBorderString = ""
@@ -414,7 +435,7 @@ async function createCoverSVG() {
     } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false
-    if (imageUrl && dPath.length == 4) {
+    if (imageUrl && imageUrl.endsWith(".png") && dPath.length == 4) {
       let center = [0,0,0]
       for (let i = 0; i < 4; i++) {
         center = add(center, dPath[i].ogCoords)
@@ -450,7 +471,6 @@ async function createCoverSVG() {
       }
   	  totalPathString += channelString
     }
-    if (exteriorOnly) break
   } // END for (let dPath of paths)
   cover.querySelector("path").setAttribute("d", totalPathString)
 
@@ -531,7 +551,7 @@ function pointsToSVGString(points, basis, offset, flip) {
 
 function notchCenters(wallLength, isFinalEdge) {
   if (wallLength === Infinity || wallLength === NaN) return []
-  
+
   let notchCount = Math.ceil(wallLength / MAX_NOTCH_DISTANCE) // Effectively includes starting/ending half notches
   let notchDistance = wallLength / notchCount
   let centers = []

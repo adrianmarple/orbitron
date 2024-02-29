@@ -1,6 +1,6 @@
+// SKIP
 
-addButton("Letter Test", async () => {
-  name = "letters"
+addButton("test/letters", async () => {
   ledAtVertex = false
   pixelDensity = 2
   // cat5PortMidway = true

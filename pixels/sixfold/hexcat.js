@@ -1,5 +1,5 @@
 
-addButton("Hex Cat", () => {
+addButton("sixfold/hexcat", () => {
   name = "bramble"
 
   let smallEdge = 4

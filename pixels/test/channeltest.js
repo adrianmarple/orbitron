@@ -1,5 +1,9 @@
+// SKIP
 
-addButton("Channel Test", () => {
-  name = "channeltest"
+addButton("test/channeltest", () => {
   isWall = true
+
+  setLaserParams({
+    NOTCH_DEPTH: 4,
+  })
 })

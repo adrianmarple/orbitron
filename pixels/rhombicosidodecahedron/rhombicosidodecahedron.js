@@ -1,6 +1,6 @@
+// SKIP
 
-addButton("Rhombicosidodecahedron", () => {
-  name = "rhombicosidodecahedron"
+addButton("rhombicosidodecahedron/rhombicosidodecahedron", () => {
   pixelDensity = 0.5
   isWall = false
   baseVerticies = [

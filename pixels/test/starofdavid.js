@@ -1,7 +1,5 @@
-
-addButton("Star of David", () => {
-  name = "sod"
-  isWall = true
+// SKIP
+addButton("test/starofdavid", () => {
   pixelDensity = 0.25
 
   let hexEdges = addPolygon(6, [0,0,0])

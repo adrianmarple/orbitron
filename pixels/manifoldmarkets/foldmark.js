@@ -1,6 +1,5 @@
 
-addButton("Manifold Logo", () => {
-  name = "foldmark"
+addButton("manifoldmarkets/foldmark", () => {
   // setLaserParams({
   //   BORDER: 4,
   //   CHANNEL_WIDTH: 5,

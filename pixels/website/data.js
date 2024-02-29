@@ -265,6 +265,7 @@ function generatePixelInfo() {
   let RAW_SIZE = uniqueToDupe.length
   console.log(RAW_SIZE, SIZE)
 
+  let name = fullProjectName.split("/")[1]
   let info = {
     name,
     SIZE,
@@ -325,17 +326,11 @@ function generatePixelInfo() {
 }
 
 
-document.getElementById("download").addEventListener('click', function() {
-  if (!downloadsJSON) return
-
+document.getElementById("downloadJSON").addEventListener('click', function() {
   let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
-  let blob = new Blob([fileContent], { type: 'text/plain' })
-  let a = document.createElement('a')
-  a.download = name + '.json'
-  a.href = window.URL.createObjectURL(blob)
-  a.textContent = 'Download ready'
-  a.style='display:none'
-  a.click()
+  let fileName = fullProjectName + '.json'
+  download(fileName, fileContent)
+  console.log("Downloaded " + fileName)
 })
 
 // Emergency one off manipulation

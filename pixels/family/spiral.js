@@ -1,7 +1,5 @@
 
-addButton("Spiral", () => {
-  name = "spiral"
-
+addButton("family/spiral", () => {
   let octEdges = addPolygon(7, [0,0,0], 8)
   let addedVerticies = []
   for (let i = 0; i < octEdges.length; i++) {
