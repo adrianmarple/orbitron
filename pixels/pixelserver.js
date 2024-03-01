@@ -97,7 +97,7 @@ async function serverHandler(request, response) {
   }
 
   // http GET stuff
-  let [filePath, queryParams] = request.url.split("?")
+  let [filePath, queryParams] = decodeURI(request.url).split("?")
   if (queryParams) {
     queryParams = queryParams.split("&")
   } else {

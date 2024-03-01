@@ -11,8 +11,10 @@ addButton("THEBOX/thebox", async () => {
     CHANNEL_WIDTH: 0,
     // CHANNEL_DEPTH: 16.2,
     BORDER: 4,
+    BOTTOM_THICKNESS: 0,
   })
-  CHANNEL_DEPTH = CAT5_HEIGHT,
+  CHANNEL_DEPTH = CAT5_HEIGHT
+  HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   
   // let x = 9
   // let dodecEdges = addDodecagon([0,0,0], [4*x, 5*x])

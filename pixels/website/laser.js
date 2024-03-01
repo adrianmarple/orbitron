@@ -5,7 +5,7 @@ let ogReset = reset
 
 function setLaserParams(obj) {
   for (let key in obj) {
-    window[key] = obj[key] * MM_TO_96DPI
+    window[key] = obj[key]// * MM_TO_96DPI
   }
   if (obj.CHANNEL_DEPTH) {
     useCAT5forChannelDepth = false
@@ -60,12 +60,17 @@ reset = () => {
   KERF = TOP_KERF
   IS_BOTTOM = true
 
-  BALSA_LENGTH = 2*96*11.85 // A little more than 11 3/4 inches
-  WALL_SVG_PADDING = 24
-  WALL_SVG_GAP = 6
+  // BALSA_LENGTH = 2*96*11.85 // A little more than 11 3/4 inches
+  // WALL_SVG_PADDING = 24
+  // WALL_SVG_GAP = 6
 
-  MAX_WALL_LENGTH = BALSA_LENGTH - 2*WALL_SVG_PADDING
-  MAX_NOTCH_DISTANCE = MAX_WALL_LENGTH / 4
+  WALL_PANEL_HEIGHT = 200
+  WALL_PANEL_WIDTH = 250
+  WALL_SVG_PADDING = 6
+  WALL_SVG_GAP = 3
+
+  MAX_WALL_LENGTH = WALL_PANEL_WIDTH - 2*WALL_SVG_PADDING
+  MAX_NOTCH_DISTANCE = 120
 
   minimalInnerBorder = false
   exteriorOnly = false
@@ -527,6 +532,7 @@ function pointsToSVGString(points, basis, offset, flip) {
   for (let point of points) {
   	let truePoint = add(scale(basis[0], point[0]), scale(basis[1], point[1]))
   	truePoint = add(truePoint, offset)
+    truePoint = scale(truePoint, MM_TO_96DPI)
     if (truePoint[0] > 1e6 || truePoint[1] > 1e6) {
       console.error(truePoint)
       return ""
@@ -581,7 +587,7 @@ function createWallSVG() {
     let wallType = wallInfo[wallIndex]
     let wallLength = wallType.length + 2*WOOD_KERF
     let targetCount = wallType.edgeCenters.length
-    path += romanNumeralPath(wallIndex, offset)
+    // path += romanNumeralPath(wallIndex, offset)
 
     if (targetCount > 8) targetCount += 1
     if (targetCount > 30) targetCount += 1
@@ -623,23 +629,23 @@ function createWallSVG() {
   
   let pathElems = wall.querySelectorAll("path")
   pathElems[0].setAttribute("d", path)
-  wall.setAttribute("width", offset[2]*BALSA_LENGTH)
-  wall.setAttribute("height", BALSA_LENGTH)
-  wall.setAttribute("viewBox", `0 0 ${offset[2]*BALSA_LENGTH} ${BALSA_LENGTH}`)
+  wall.setAttribute("width", offset[2]*WALL_PANEL_WIDTH)
+  wall.setAttribute("height", WALL_PANEL_HEIGHT)
+  wall.setAttribute("viewBox", `0 0 ${offset[2]*WALL_PANEL_WIDTH} ${WALL_PANEL_HEIGHT}`)
 }
 
 function wallPath(offset, wallLength, notches, cat5Offset, isPowerCordPort) {
   let path = ""
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   offset[0] += wallLength
-  if (offset[0] > offset[2]*BALSA_LENGTH - WALL_SVG_PADDING) {
-    offset[0] = (offset[2] - 1)*BALSA_LENGTH + WALL_SVG_PADDING + wallLength
+  if (offset[0] > offset[2]*WALL_PANEL_WIDTH - WALL_SVG_PADDING) {
+    offset[0] = (offset[2] - 1)*WALL_PANEL_WIDTH + WALL_SVG_PADDING + wallLength
     offset[1] += wallHeight + WALL_SVG_GAP
   }
-  if (offset[1] + wallHeight > BALSA_LENGTH - WALL_SVG_PADDING) {
-    offset[0] = offset[2]*BALSA_LENGTH + WALL_SVG_PADDING + wallLength
+  if (offset[1] + wallHeight > WALL_PANEL_HEIGHT - WALL_SVG_PADDING) {
+    offset[0] = offset[2]*WALL_PANEL_WIDTH + WALL_SVG_PADDING + wallLength
     offset[1] = WALL_SVG_PADDING
-    offset[2] += 1
+    offset[2] += 0.3
   }
 
   path += `
