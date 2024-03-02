@@ -57,7 +57,8 @@ reset = () => {
     POWER_HOLE_RADIUS: 5.8,
   })
   END_CAP_FACTOR = 0.3872
-  WOOD_KERF = BOTTOM_KERF
+  // WOOD_KERF = BOTTOM_KERF
+  WOOD_KERF = 0
   KERF = TOP_KERF
   IS_BOTTOM = true
 
@@ -140,7 +141,6 @@ document.getElementById("downloadBottom").addEventListener('click', async () => 
 document.getElementById("genWalls").addEventListener('click', async () => {
   let svgs = []
   createWallSVG(svgs)
-  console.log(svgs)
   wall.style.display = "block"
   fetch("/", {
     method: "POST",
@@ -517,7 +517,8 @@ function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) 
   let w1 = KERF
   let w2 = WALL_THICKNESS - KERF
   let xs = NOTCH_DEPTH + KERF
-  for (let center of notchCenters(wallLength, isFinalEdge)) {
+  for (let {center, bottomOnly} of generateNotches(wallLength, isFinalEdge)) {
+    if (!IS_BOTTOM && bottomOnly) continue
     let next = NOTCH_DEPTH + KERF + center
     let xt = next - 2*(NOTCH_DEPTH + KERF)
     let points = [
@@ -568,25 +569,36 @@ function pointsToSVGString(points, basis, offset, flip) {
   return s
 }
 
-function notchCenters(wallLength, isFinalEdge) {
+function generateNotches(wallLength, isFinalEdge) {
   if (wallLength === Infinity || wallLength === NaN) return []
 
   let notchCount = Math.ceil(wallLength / MAX_NOTCH_DISTANCE) // Effectively includes starting/ending half notches
   let notchDistance = wallLength / notchCount
-  let centers = []
+  let notches = []
   for (let i = 1; i < notchCount; i++) {
-    centers.push(notchDistance * i)
+    notches.push({
+      center: notchDistance * i,
+    })
   }
   if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
     if (cat5PortMidway) {
-      centers.push((wallLength + CAT5_WIDTH)/2 + NOTCH_DEPTH + KERF)
-      centers.push((wallLength - CAT5_WIDTH)/2 - (NOTCH_DEPTH + KERF))
-      centers.sort((a,b) => a-b)
+      notches.push({
+        center: (wallLength + CAT5_WIDTH)/2 + NOTCH_DEPTH + KERF,
+        bottomOnly: true,
+      })
+      notches.push({
+        center: (wallLength - CAT5_WIDTH)/2 - (NOTCH_DEPTH + KERF),
+        bottomOnly: true,
+      })
+      notches.sort((a,b) => a.center - b.center)
     } else {
-      centers.unshift(CAT5_WIDTH + 2*(NOTCH_DEPTH + KERF))
+      notches.unshift({
+        center: CAT5_WIDTH + 2*(NOTCH_DEPTH + KERF),
+        bottomOnly: true,
+      })
     }
   }
-  return centers
+  return notches
 }
 
 // =======================================================================
@@ -622,16 +634,16 @@ function createWallSVG(paginationList) {
       let powerHoleInstanceIndex = epsilonEquals(wallType.length, entryWallLength, 0.01) ? 1:0
       let isPowerCordPort = wallIndex == powerHoleWallIndex && i == powerHoleInstanceIndex
       
-      let notches = notchCenters(wallLength, isFinalEdge)
+      let notches = generateNotches(wallLength, isFinalEdge)
       let nextNotches = []
       let remainingWallLength = wallLength
       for (let k = 0; k < 100; k++) {
-        if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH)
-            || (notches[0] > MAX_WALL_LENGTH)) {
-          let tempWallLength = nextNotches.pop()
+        if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH) ||
+            (notches.length > 0 && notches[0].center > MAX_WALL_LENGTH)) {
+          let tempWallLength = nextNotches.pop().center
           path = wallPath(path, offset, tempWallLength, nextNotches, cat5Offset, isPowerCordPort)
           nextNotches = []
-          notches = notches.map(x => x - tempWallLength)
+          notches.forEach(notch => notch.center -= tempWallLength)
           remainingWallLength -= tempWallLength
           cat5Offset -= tempWallLength
         } else if (notches.length == 0) {
@@ -674,14 +686,25 @@ function wallPath(path, offset, wallLength, notches, cat5Offset, isPowerCordPort
   path += `
     M${offset[0] - wallLength} ${offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH}
     h${NOTCH_DEPTH + WOOD_KERF}
-    v${TOP_THICKNESS}
-    h${wallLength - 2*NOTCH_DEPTH}
+    v${TOP_THICKNESS}`
+  for (let {center, bottomOnly} of [...notches].reverse()) { // Top notches
+    if (bottomOnly) continue
+    console.log(center)
+    path += `
+    H${offset[0] - center - NOTCH_DEPTH}
+    v${-TOP_THICKNESS}
+    h${2*NOTCH_DEPTH}
+    v${TOP_THICKNESS}`
+  }
+    // h${wallLength - 2*NOTCH_DEPTH}
+  path += `
+    H${offset[0] - NOTCH_DEPTH}
     v${-TOP_THICKNESS}
     h${NOTCH_DEPTH + WOOD_KERF}
     v${-CHANNEL_DEPTH}
     h${-NOTCH_DEPTH - WOOD_KERF}
     v${-BOTTOM_THICKNESS}`
-  for (let center of notches) {
+  for (let {center} of notches) { // Bottom notches
     path += `
     H${offset[0] - center + NOTCH_DEPTH}
     v${BOTTOM_THICKNESS}
