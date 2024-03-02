@@ -2,6 +2,7 @@
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
+const { exec } = require('child_process')
 
 const getListeners = []
 const postListeners = []
@@ -143,7 +144,7 @@ addPOSTListener(async (response, body) => {
   if (body && body.type == "download") {
     let filePath = ""
     if (!body.fileName.endsWith(".json")) {
-      filePath = path.join(process.env.HOME, "Dropbox/Orbitron Manufacturing/")
+      filePath = path.join(process.env.HOME, "Dropbox/OrbitronManufacturing/")
       let dirPath = filePath + body.fileName.split("/")[0]
       if (!fs.existsSync(dirPath)) {
         await fs.promises.mkdir(dirPath)
@@ -152,11 +153,49 @@ addPOSTListener(async (response, body) => {
     filePath += body.fileName
     console.log(filePath)
     await fs.promises.writeFile(filePath, body.data)
+    generateSTL(filePath)
     response.writeHead(200)
     response.end('post received')
     return true
   }
 })
+
+addPOSTListener(async (response, body) => {
+  if (body && body.type == "gcode") {
+    let filePath = path.join(process.env.HOME, "Dropbox/OrbitronManufacturing/")
+    let dirPath = filePath + body.fullProjectName.split("/")[0]
+    if (!fs.existsSync(dirPath)) {
+      await fs.promises.mkdir(dirPath)
+    }
+    body.fullProjectName = filePath + body.fullProjectName
+    for (let i = 0; i < body.svgs.length; i++) {
+      await generateGCode(body, i) // Slic3r doesn't seem to work when running in parallel
+    }
+    response.writeHead(200)
+    response.end('post received')
+    return true
+  }
+})
+
+async function generateGCode(info, index) {
+  let svgFilePath = `${info.fullProjectName}${index}.svg`
+  let scadFilePath = `${info.fullProjectName}${index}.scad`
+  let stlFilePath = `${info.fullProjectName}${index}.stl`.replace(" ", "")
+
+  await fs.promises.writeFile(svgFilePath, info.svgs[index])
+  let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
+  let scadFileContents = `
+linear_extrude(height = ${info.thickness})
+scale([${scale},${scale},${scale}])
+import("${svgFilePath}");
+`
+  console.log("Making .scad")
+  await fs.promises.writeFile(scadFilePath, scadFileContents)
+  console.log("Generating .stl")
+  await exec(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
+  console.log("Generating .gcode")
+  await exec(`/Applications/Slic3r.app/Contents/MacOS/Slic3r --load slic3r_config.ini --rotate 90 "${stlFilePath}"`)
+}
 
 addGETListener((response, filePath) => {
   if (filePath == "" || filePath == "pixels.html") {

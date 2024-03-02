@@ -26,9 +26,10 @@ reset = () => {
     TOP_THICKNESS: 2.8,
     BOTTOM_THICKNESS: 2.8,
     // BOTTOM_THICKNESS: 5, // 1/4 plywood
-    WALL_THICKNESS: 2.78, // 1/8" Acrylic (thick one I guess)
+    // WALL_THICKNESS: 2.78, // 1/8" Acrylic (thick one I guess)
     // WALL_THICKNESS: 2.76, // 1/8" Acrylic
     // WALL_THICKNESS: 2.35, // balsa wood
+    WALL_THICKNESS: 2.6, // 3D printing
     BORDER: 6,
     PIXEL_DISTANCE: 16.66666, // 16.6
     CHANNEL_WIDTH: 12,
@@ -137,10 +138,22 @@ document.getElementById("downloadBottom").addEventListener('click', async () => 
   download(fullProjectName + " bottom.svg", elem.outerHTML)
 })
 document.getElementById("genWalls").addEventListener('click', async () => {
-  createWallSVG()
-  let elem = document.getElementById("wall")
-  elem.style.display = "block"
-  download(fullProjectName + " walls.svg", elem.outerHTML)
+  let svgs = []
+  createWallSVG(svgs)
+  console.log(svgs)
+  wall.style.display = "block"
+  fetch("/", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "gcode",
+      fullProjectName,
+      svgs,
+      thickness: WALL_THICKNESS,
+    }),
+    headers: {
+      "Content-type": "application/json; charset=UTF-8"
+    }
+  })
 })
 
 
@@ -579,8 +592,13 @@ function notchCenters(wallLength, isFinalEdge) {
 // =======================================================================
 // WALL CREATION
 // =======================================================================
-function createWallSVG() {
+function createWallSVG(paginationList) {
   wall.querySelectorAll("text").forEach(elem => wall.removeChild(elem))
+  // Set now in case of pagination
+  wall.setAttribute("width", WALL_PANEL_WIDTH)
+  wall.setAttribute("height", WALL_PANEL_HEIGHT)
+  wall.setAttribute("viewBox", `0 0 ${WALL_PANEL_WIDTH} ${WALL_PANEL_HEIGHT}`)
+
   let path = ""
   let offset = [WALL_SVG_PADDING, WALL_SVG_PADDING, 1] // offset[2] is panelCount
   for (let wallIndex = 0; wallIndex < wallInfo.length; wallIndex++) {
@@ -611,7 +629,7 @@ function createWallSVG() {
         if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH)
             || (notches[0] > MAX_WALL_LENGTH)) {
           let tempWallLength = nextNotches.pop()
-          path += wallPath(offset, tempWallLength, nextNotches, cat5Offset, isPowerCordPort)
+          path = wallPath(path, offset, tempWallLength, nextNotches, cat5Offset, isPowerCordPort)
           nextNotches = []
           notches = notches.map(x => x - tempWallLength)
           remainingWallLength -= tempWallLength
@@ -622,20 +640,18 @@ function createWallSVG() {
           nextNotches.push(notches.shift())
         }
       }
-      path += wallPath(offset, remainingWallLength, nextNotches, cat5Offset, isPowerCordPort)
+      path = wallPath(path, offset, remainingWallLength, nextNotches, cat5Offset, isPowerCordPort, paginationList)
     }
     offset[0] += 20
   }
   
-  let pathElems = wall.querySelectorAll("path")
-  pathElems[0].setAttribute("d", path)
+  wall.querySelector("path").setAttribute("d", path)
   wall.setAttribute("width", offset[2]*WALL_PANEL_WIDTH)
   wall.setAttribute("height", WALL_PANEL_HEIGHT)
   wall.setAttribute("viewBox", `0 0 ${offset[2]*WALL_PANEL_WIDTH} ${WALL_PANEL_HEIGHT}`)
 }
 
-function wallPath(offset, wallLength, notches, cat5Offset, isPowerCordPort) {
-  let path = ""
+function wallPath(path, offset, wallLength, notches, cat5Offset, isPowerCordPort, paginationList) {
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   offset[0] += wallLength
   if (offset[0] > offset[2]*WALL_PANEL_WIDTH - WALL_SVG_PADDING) {
@@ -643,9 +659,16 @@ function wallPath(offset, wallLength, notches, cat5Offset, isPowerCordPort) {
     offset[1] += wallHeight + WALL_SVG_GAP
   }
   if (offset[1] + wallHeight > WALL_PANEL_HEIGHT - WALL_SVG_PADDING) {
-    offset[0] = offset[2]*WALL_PANEL_WIDTH + WALL_SVG_PADDING + wallLength
+    if (paginationList) {
+      wall.querySelector("path").setAttribute("d", path)
+      paginationList.push(wall.outerHTML)
+      path = ""
+      offset[0] = WALL_SVG_PADDING + wallLength
+    } else {
+      offset[0] = offset[2]*WALL_PANEL_WIDTH + WALL_SVG_PADDING + wallLength
+      offset[2] += 1
+    }
     offset[1] = WALL_SVG_PADDING
-    offset[2] += 0.3
   }
 
   path += `
