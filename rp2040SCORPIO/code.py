@@ -76,7 +76,7 @@ def main():
 
             if(num_glitches >= 15):
                 print("15 GLITCHES IN A MINUTE, RESETTING BOARD")
-                sleep(0.2)
+                sleep(2)
                 microcontroller.reset()
             elif loopThrew:
                 reset()
