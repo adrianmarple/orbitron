@@ -99,14 +99,12 @@
         <div class="row">
           <div>
             Start Time:
-            <input type="time" v-model="prefs.startTime"
-              @change="updatePrefs('startTime')">
+            <input type="time" v-model="prefs.startTime">
             </input>
           </div>
           <div>
             End Time:
-            <input type="time" v-model="prefs.endTime"
-              @change="updatePrefs('endTime')">
+            <input type="time" v-model="prefs.endTime">
             </input>
           </div>
         </div>
@@ -157,9 +155,9 @@
       <slider v-if="prefs.idlePattern == 'sin'"
           title="Min Value" name="sinMin" :min="-255" :max="255"></slider>
 
-      <slider v-if="!['weather', 'static', 'sin'].includes(prefs.idlePattern)" 
+      <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
           title="Blend" name="idleBlend" ></slider>
-      <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
+      <slider v-if="!['weather', 'static', 'lightfield'].includes(prefs.idlePattern)" 
           title="Density" name="idleDensity"
           :min="10"></slider>
       <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 

@@ -124,7 +124,6 @@ Vue.component('dropdown', {
     },
     clicked(value) {
       this.$root.prefs[this.name] = value
-      this.$root.updatePrefs(this.name)
     },
     toDisplay(value) {
       for (let [v, display] of this.options) {
@@ -403,6 +402,7 @@ var app = new Vue({
         ['fireflies', 'Fireflies'],
         ['pulses', 'Ripples'],
         ['sin', 'Sine'],
+        ['lightfield', 'Light Field'],
         ['default', 'Default'],
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
       
