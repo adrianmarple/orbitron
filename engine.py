@@ -195,9 +195,12 @@ def pref_path_from_name(name):
 if not os.path.exists(save_prefs_path):
   os.makedirs(save_prefs_path)
 
+def sort_pref_names():
+  pref_names.sort(key=lambda v: v.upper())
+
 pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no file
 pref_names = [filename.split(".")[0] for filename in pref_names]
-pref_names.sort()
+sort_pref_names()
 
 def update_prefs(update):
   for key in update.keys():
@@ -228,7 +231,7 @@ def save_prefs(name):
   shutil.copy(pref_path, new_path)
   if name not in pref_names:
     pref_names.append(name)
-    pref_names.sort()
+    sort_pref_names()
 
 def load_prefs(name=None):
   global current_prefs, prefs
@@ -255,7 +258,7 @@ def delete_prefs(name):
   if os.path.exists(path):
     os.remove(path)
     pref_names.remove(name)
-    pref_names.sort()
+    sort_pref_names()
   else:
     print("Tried to delete non-existant pref: %s" % name, file=sys.stderr)
 
