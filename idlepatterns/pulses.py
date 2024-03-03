@@ -11,6 +11,10 @@ class Pulses(Idle):
   pulses = []
   base_duration = 5
 
+  def clear(self):
+    Idle.clear(self)
+    self.pulses = []
+
   def update_prefs(self):
     Idle.update_prefs(self)
     new_base_duration = 70 / get_pref("idleFrameRate")

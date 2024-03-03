@@ -33,7 +33,7 @@ def set_idle(name):
     spec.loader.exec_module(module)
     idle = module.idle
     name_to_idle_game[name] = idle
-
+  idle.clear()
   engine.idle = idle
   engine.start(idle)
 
@@ -62,6 +62,12 @@ class Idle(Game):
             self.birthday = datetime.strptime(self.birthday, '%m-%d')
           except:
             self.birthday = None
+
+  def clear(self):
+    self.render_values = None
+    self.previous_values = None
+    self.target_values *= 0
+
 
   def update_prefs(self):
     now = datetime.now()
