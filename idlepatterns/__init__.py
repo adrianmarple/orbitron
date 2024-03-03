@@ -64,8 +64,6 @@ class Idle(Game):
             self.birthday = None
 
   def clear(self):
-    self.render_values = None
-    self.previous_values = None
     self.target_values *= 0
 
 
