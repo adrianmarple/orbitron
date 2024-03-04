@@ -30,7 +30,7 @@ class LightField(Idle):
     self.render_values = np.multiply(np.maximum(np.sin(self.pixel_times), 0), self.pixel_max_brightness)
 
   def speed(self):
-    return get_pref("idleFrameRate") / 128
+    return get_pref("idleFrameRate") / 300
 
   def wait_for_frame_end(self):
     pass
