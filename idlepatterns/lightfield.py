@@ -16,7 +16,7 @@ from idlepatterns import Idle
 class LightField(Idle):
   pixel_times = np.zeros(RAW_SIZE)
   pixel_factors = (np.random.rand(RAW_SIZE) * 10) + 0.5
-  pixel_max_brightness = np.maximum(np.random.rand(RAW_SIZE), 0.1)
+  pixel_max_brightness = np.power(np.random.rand(RAW_SIZE) * 0.9 + 0.1,2)
   previous_time = 0
 
   def clear(self):
