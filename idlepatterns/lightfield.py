@@ -15,7 +15,7 @@ from idlepatterns import Idle
 
 class LightField(Idle):
   pixel_times = np.zeros(RAW_SIZE)
-  pixel_factors = np.random.rand(RAW_SIZE) + 0.1
+  pixel_factors = (np.random.rand(RAW_SIZE) * 10) + 0.5
   previous_time = 0
 
   def clear(self):
@@ -26,10 +26,10 @@ class LightField(Idle):
     delta = np.full(RAW_SIZE, (time() - self.previous_time) * 2*pi * self.speed())
     self.previous_time = time()
     self.pixel_times += delta * self.pixel_factors
-    self.render_values = (np.sin(self.pixel_times) + 1) / 2
+    self.render_values = np.maximum(np.sin(self.pixel_times), 0)
 
   def speed(self):
-    return get_pref("idleFrameRate") / 200
+    return get_pref("idleFrameRate") / 128
 
   def wait_for_frame_end(self):
     pass
