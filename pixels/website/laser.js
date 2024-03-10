@@ -23,13 +23,15 @@ reset = () => {
   ogReset()
   useCAT5forChannelDepth = true
   setLaserParams({
-    TOP_THICKNESS: 2.8,
-    BOTTOM_THICKNESS: 2.8,
+    // TOP_THICKNESS: 2.8,
+    // BOTTOM_THICKNESS: 2.8,
+    TOP_THICKNESS: 3, // For 3D printing
+    BOTTOM_THICKNESS: 3, // For 3D printing
     // BOTTOM_THICKNESS: 5, // 1/4 plywood
     // WALL_THICKNESS: 2.78, // 1/8" Acrylic (thick one I guess)
-    // WALL_THICKNESS: 2.76, // 1/8" Acrylic
+    WALL_THICKNESS: 2.76, // 1/8" Acrylic
     // WALL_THICKNESS: 2.35, // balsa wood
-    WALL_THICKNESS: 2.6, // 3D printing
+    WALL_VERT_KERF: 0.2,
     BORDER: 6,
     PIXEL_DISTANCE: 16.66666, // 16.6
     CHANNEL_WIDTH: 12,
@@ -66,8 +68,10 @@ reset = () => {
   // WALL_SVG_PADDING = 24
   // WALL_SVG_GAP = 6
 
-  WALL_PANEL_HEIGHT = 200
-  WALL_PANEL_WIDTH = 250
+  // WALL_PANEL_HEIGHT = 200 // Makergear 2
+  // WALL_PANEL_WIDTH = 250  // Makergear 2
+  WALL_PANEL_HEIGHT = 180 // Prusa Mini
+  WALL_PANEL_WIDTH = 180  // Pruse Mini
   WALL_SVG_PADDING = 6
   WALL_SVG_GAP = 3
 
@@ -139,17 +143,10 @@ document.getElementById("downloadBottom").addEventListener('click', async () => 
   download(fullProjectName + " bottom.svg", elem.outerHTML)
 })
 document.getElementById("genWalls").addEventListener('click', async () => {
-  let svgs = []
-  createWallSVG(svgs)
   wall.style.display = "block"
   fetch("/", {
     method: "POST",
-    body: JSON.stringify({
-      type: "gcode",
-      fullProjectName,
-      svgs,
-      thickness: WALL_THICKNESS,
-    }),
+    body: JSON.stringify(createPrintInfo()),
     headers: {
       "Content-type": "application/json; charset=UTF-8"
     }
@@ -168,7 +165,7 @@ function addLaserStuffToClick(name) {
       KERF = TOP_KERF
       await createCoverSVG()
       console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
-      createWallSVG()
+      createPrintInfo(true)
     }
   }
 }
@@ -394,17 +391,35 @@ async function createCoverSVG() {
       // }
 
       let wallLength = edgeLength + lengthOffset2 - lengthOffset1
+      let angle1 = a1/2
+      let angle2 = -a2/2
+      if (angle1 < 0 && angle2 < 0) {
+        let t = angle1
+        angle1 = -angle2
+        angle2 = -t
+      }
+      if (epsilonEquals(TOP_THICKNESS, BOTTOM_THICKNESS) && !isFinalEdge &&
+          angle1 > angle2) {
+        let t = angle1
+        angle1 = angle2
+        angle2 = t
+      }
       let edgeCenter = add(add(offset, scale(e1, edgeLength/2)), scale(n, w1*1.5))
       let addedToCount = false
       for (let wallType of wallInfo) {
-        if (epsilonEquals(wallType.length, wallLength, 0.01)) {
+        if (epsilonEquals(wallType.length, wallLength, 0.01) &&
+            epsilonEquals(wallType.angle1, angle1, 0.01) &&
+            epsilonEquals(wallType.angle2, angle2, 0.01)) {
           wallType.edgeCenters.push(edgeCenter)
           addedToCount = true
+          break
         }
       }
       if (!addedToCount) {
         wallInfo.push({
           length: wallLength,
+          angle1,
+          angle2,
           edgeCenters: [edgeCenter],
         })
       }
@@ -604,7 +619,18 @@ function generateNotches(wallLength, isFinalEdge) {
 // =======================================================================
 // WALL CREATION
 // =======================================================================
-function createWallSVG(paginationList) {
+function createPrintInfo(displayOnly) {
+  let printInfo = null
+  if (!displayOnly) {
+    printInfo = {
+      type: "gcode",
+      fullProjectName,
+      thickness: WALL_THICKNESS + WALL_VERT_KERF,
+      prints: [{
+        wedges: [] 
+      }],
+    }
+  }
   wall.querySelectorAll("text").forEach(elem => wall.removeChild(elem))
   // Set now in case of pagination
   wall.setAttribute("width", WALL_PANEL_WIDTH)
@@ -637,11 +663,14 @@ function createWallSVG(paginationList) {
       let notches = generateNotches(wallLength, isFinalEdge)
       let nextNotches = []
       let remainingWallLength = wallLength
+      let angle1 = wallType.angle1
+      let angle2 = wallType.angle2
       for (let k = 0; k < 100; k++) {
         if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH) ||
             (notches.length > 0 && notches[0].center > MAX_WALL_LENGTH)) {
           let tempWallLength = nextNotches.pop().center
-          path = wallPath(path, offset, tempWallLength, nextNotches, cat5Offset, isPowerCordPort)
+          path = wallPath(path, offset, tempWallLength, angle1, 0, nextNotches, cat5Offset, false, printInfo)
+          angle1 = 0
           nextNotches = []
           notches.forEach(notch => notch.center -= tempWallLength)
           remainingWallLength -= tempWallLength
@@ -652,18 +681,29 @@ function createWallSVG(paginationList) {
           nextNotches.push(notches.shift())
         }
       }
-      path = wallPath(path, offset, remainingWallLength, nextNotches, cat5Offset, isPowerCordPort, paginationList)
+      // TODO check angles of split walls
+      path = wallPath(path, offset, remainingWallLength, angle1, angle2,
+          nextNotches, cat5Offset, isPowerCordPort, printInfo)
+
+      // if (i == 0) break // REMOVE ME
     }
     offset[0] += 20
+    // break // REMOVE ME
   }
   
+  let width = (offset[2]+1)*WALL_PANEL_WIDTH
   wall.querySelector("path").setAttribute("d", path)
-  wall.setAttribute("width", offset[2]*WALL_PANEL_WIDTH)
-  wall.setAttribute("height", WALL_PANEL_HEIGHT)
-  wall.setAttribute("viewBox", `0 0 ${offset[2]*WALL_PANEL_WIDTH} ${WALL_PANEL_HEIGHT}`)
+  wall.setAttribute("width", width)
+  wall.setAttribute("viewBox", `0 0 ${width} ${WALL_PANEL_HEIGHT}`)
+  if (printInfo) {
+    printInfo.prints[printInfo.prints.length - 1].svg = wall.outerHTML
+  }
+
+  return printInfo
 }
 
-function wallPath(path, offset, wallLength, notches, cat5Offset, isPowerCordPort, paginationList) {
+function wallPath(path, offset, wallLength, angle1, angle2,
+    notches, cat5Offset, isPowerCordPort, printInfo) {
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   offset[0] += wallLength
   if (offset[0] > offset[2]*WALL_PANEL_WIDTH - WALL_SVG_PADDING) {
@@ -671,9 +711,10 @@ function wallPath(path, offset, wallLength, notches, cat5Offset, isPowerCordPort
     offset[1] += wallHeight + WALL_SVG_GAP
   }
   if (offset[1] + wallHeight > WALL_PANEL_HEIGHT - WALL_SVG_PADDING) {
-    if (paginationList) {
+    if (printInfo) {
       wall.querySelector("path").setAttribute("d", path)
-      paginationList.push(wall.outerHTML)
+      printInfo.prints[printInfo.prints.length - 1].svg = wall.outerHTML
+      printInfo.prints.push({ wedges: []})
       path = ""
       offset[0] = WALL_SVG_PADDING + wallLength
     } else {
@@ -683,13 +724,37 @@ function wallPath(path, offset, wallLength, notches, cat5Offset, isPowerCordPort
     offset[1] = WALL_SVG_PADDING
   }
 
+  offset[0] += Math.tan(Math.abs(angle1)) * WALL_THICKNESS
+
+  if (printInfo) {
+    let y = WALL_PANEL_HEIGHT - offset[1] - BOTTOM_THICKNESS - CHANNEL_DEPTH/2
+    let print = printInfo.prints[printInfo.prints.length - 1]
+    if (!epsilonEquals(angle1, 0)) {
+      print.wedges.push({ //angle, position, direction_angle, width, thickness
+        angle: angle1 * 180/Math.PI,
+        position: [offset[0] - wallLength, y, 0],
+        directionAngle: 180,
+        width: CHANNEL_DEPTH,
+        thickness: printInfo.thickness,
+      })
+    }
+    if (!epsilonEquals(angle2, 0)) {
+      print.wedges.push({ //angle, position, direction_angle, width, thickness
+        angle: angle2 * 180/Math.PI,
+        position: [offset[0], y, 0],
+        directionAngle: 0,
+        width: CHANNEL_DEPTH,
+        thickness: printInfo.thickness,
+      })
+    }
+  }
+
   path += `
     M${offset[0] - wallLength} ${offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH}
     h${NOTCH_DEPTH + WOOD_KERF}
     v${TOP_THICKNESS}`
   for (let {center, bottomOnly} of [...notches].reverse()) { // Top notches
     if (bottomOnly) continue
-    console.log(center)
     path += `
     H${offset[0] - center - NOTCH_DEPTH}
     v${-TOP_THICKNESS}
@@ -759,6 +824,7 @@ function wallPath(path, offset, wallLength, notches, cat5Offset, isPowerCordPort
       a ${r},${r} 0 1,0,${-r*2},0`
   }
 
+  offset[0] += Math.tan(Math.abs(angle2)) * WALL_THICKNESS
   offset[0] += WALL_SVG_GAP
   return path
 }

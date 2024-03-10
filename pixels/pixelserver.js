@@ -4,6 +4,18 @@ const fs = require('fs')
 const path = require('path')
 const { exec } = require('child_process')
 
+
+function execute(command){
+  return new Promise(resolve => {
+    exec(command, (error, stdout, stderr) => {
+      if(error){
+        console.error("execute Error:", error, stdout, stderr)
+      }
+      resolve(stdout.toString() + " " + stderr.toString())
+    })
+  })
+}
+
 const getListeners = []
 const postListeners = []
 
@@ -168,7 +180,7 @@ addPOSTListener(async (response, body) => {
       await fs.promises.mkdir(dirPath)
     }
     body.fullProjectName = filePath + body.fullProjectName
-    for (let i = 0; i < body.svgs.length; i++) {
+    for (let i = 0; i < body.prints.length; i++) {
       await generateGCode(body, i) // Slic3r doesn't seem to work when running in parallel
     }
     response.writeHead(200)
@@ -178,23 +190,57 @@ addPOSTListener(async (response, body) => {
 })
 
 async function generateGCode(info, index) {
-  let svgFilePath = `${info.fullProjectName}${index}.svg`
-  let scadFilePath = `${info.fullProjectName}${index}.scad`
-  let stlFilePath = `${info.fullProjectName}${index}.stl`.replace(" ", "")
+  let print = info.prints[index]
+  let svgFilePath = `${info.fullProjectName}${index} walls.svg`
+  let scadFilePath = `${info.fullProjectName}${index} walls.scad`
+  let stlFilePath = `${info.fullProjectName}${index}_walls.stl`.replace(" ", "_")
 
-  await fs.promises.writeFile(svgFilePath, info.svgs[index])
+  console.log("Starting gcode generation...")
+  await fs.promises.writeFile(svgFilePath, print.svg, {encoding:'utf8',flag:'w'})
   let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
+  // scale *= 1.005 // Something seems off with the 3D printer and everything is just slightly too small
   let scadFileContents = `
-linear_extrude(height = ${info.thickness})
-scale([${scale},${scale},${scale}])
-import("${svgFilePath}");
+module wedge(angle, position, direction_angle, width, thickness) {
+    pivot_z = angle < 0 ? 0 : thickness;
+    actual_angle = angle < 0 ? -90 - angle : 90 - angle;
+    
+    translate(position)
+    rotate(a=direction_angle, v=[0,0,1])
+    difference() {
+        translate([0, -width/2, pivot_z])
+        rotate(a=actual_angle, v=[0,1,0])
+        translate([0, 0, -pivot_z])
+        cube([90, width, thickness]);
+        
+        translate([0,0,-100])
+        cube([200,200,200], center=true);
+        
+        translate([0,0,100 + thickness])
+        cube([200,200,200], center=true);
+    }
+}
+
+union() {`
+for (let wedge of print.wedges) {
+  scadFileContents += `
+  wedge(${wedge.angle}, [${wedge.position}], ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
+}
+scadFileContents += `
+
+  linear_extrude(height = ${info.thickness})
+  scale([${scale},${scale},${scale}])
+  import("${svgFilePath}");
+}
 `
   console.log("Making .scad")
+  console.log(scadFileContents)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
   console.log("Generating .stl")
-  await exec(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
+  await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
   console.log("Generating .gcode")
-  await exec(`/Applications/Slic3r.app/Contents/MacOS/Slic3r --load slic3r_config.ini --rotate 90 "${stlFilePath}"`)
+  // await execute(`/Applications/Slic3r.app/Contents/MacOS/Slic3r --load makergear2_slic3r_config.ini --rotate 90 "${stlFilePath}"`)
+  await execute(`/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer -g --load prusamini_config.ini --rotate 90 "${stlFilePath}"`)
+  console.log("Done.")
 }
 
 addGETListener((response, filePath) => {

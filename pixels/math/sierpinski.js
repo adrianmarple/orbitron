@@ -1,10 +1,9 @@
 
 addButton("math/sierpinski", function() {
   cat5PortMidway = true
-  setLaserParams({
-    NOTCH_DEPTH: 4,
-    BORDER: 5,
-  })
+  NOTCH_DEPTH = 4
+  BORDER = 5
+  MAX_NOTCH_DISTANCE = 160
 
   sortOverride = (edge, previousEdge, angle) => {
     if (epsilonEquals(angle, 0)) {
