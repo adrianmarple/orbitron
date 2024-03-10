@@ -7,10 +7,7 @@ function setLaserParams(obj) {
   for (let key in obj) {
     window[key] = obj[key]// * MM_TO_96DPI
   }
-  if (obj.CHANNEL_DEPTH) {
-    useCAT5forChannelDepth = false
-  }
-  if (useCAT5forChannelDepth) {
+  if (!obj.CHANNEL_DEPTH) {
     CHANNEL_DEPTH = CAT5_HEIGHT - BOTTOM_THICKNESS
   }
   HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
@@ -36,6 +33,7 @@ reset = () => {
     PIXEL_DISTANCE: 16.66666, // 16.6
     CHANNEL_WIDTH: 12,
     // CHANNEL_DEPTH: 10,
+    MIN_NON_NOTCH_LENGTH: 5,
     NOTCH_DEPTH: 5,
     FASTENER_DEPTH: 2.5,
 
@@ -59,8 +57,6 @@ reset = () => {
     POWER_HOLE_RADIUS: 5.8,
   })
   END_CAP_FACTOR = 0.3872
-  // WOOD_KERF = BOTTOM_KERF
-  WOOD_KERF = 0
   KERF = TOP_KERF
   IS_BOTTOM = true
 
@@ -515,8 +511,8 @@ async function createCoverSVG() {
       wallType.id = index
       for (let edgeCenter of wallType.edgeCenters) {
         let txt = document.createElementNS("http://www.w3.org/2000/svg", "text")
-        txt.setAttribute("x", edgeCenter[0])
-        txt.setAttribute("y", edgeCenter[1])
+        txt.setAttribute("x", edgeCenter[0] * MM_TO_96DPI)
+        txt.setAttribute("y", edgeCenter[1] * MM_TO_96DPI)
         txt.innerHTML = "" + index
         cover.appendChild(txt)
       }
@@ -531,7 +527,7 @@ function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) 
   }
   let w1 = KERF
   let w2 = WALL_THICKNESS - KERF
-  let xs = NOTCH_DEPTH + KERF
+  let xs = trueNotchDepth(wallLength) + KERF
   for (let {center, bottomOnly} of generateNotches(wallLength, isFinalEdge)) {
     if (!IS_BOTTOM && bottomOnly) continue
     let next = NOTCH_DEPTH + KERF + center
@@ -545,7 +541,7 @@ function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) 
     xs = next
     path += "M" + pointsToSVGString(points, basis, offset).substring(1) + "Z "
   }
-  let xt = wallLength - (NOTCH_DEPTH + KERF)
+  let xt = wallLength - (trueNotchDepth(wallLength) + KERF)
 
   let points = [
     [xs, w1],
@@ -554,6 +550,14 @@ function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) 
     [xt, w1],
   ]
   return path + "M" + pointsToSVGString(points, basis, offset).substring(1) + "Z "
+}
+
+function trueNotchDepth(wallLength) {
+  if (2*NOTCH_DEPTH + MIN_NON_NOTCH_LENGTH > wallLength) {
+    return (wallLength - MIN_NON_NOTCH_LENGTH)/2
+  } else {
+    return NOTCH_DEPTH
+  }
 }
 
 function pointsToSVGString(points, basis, offset, flip) {
@@ -641,7 +645,7 @@ function createPrintInfo(displayOnly) {
   let offset = [WALL_SVG_PADDING, WALL_SVG_PADDING, 1] // offset[2] is panelCount
   for (let wallIndex = 0; wallIndex < wallInfo.length; wallIndex++) {
     let wallType = wallInfo[wallIndex]
-    let wallLength = wallType.length + 2*WOOD_KERF
+    let wallLength = wallType.length
     let targetCount = wallType.edgeCenters.length
     // path += romanNumeralPath(wallIndex, offset)
 
@@ -749,9 +753,11 @@ function wallPath(path, offset, wallLength, angle1, angle2,
     }
   }
 
+  let endNotchDepth = trueNotchDepth(wallLength)
+
   path += `
     M${offset[0] - wallLength} ${offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH}
-    h${NOTCH_DEPTH + WOOD_KERF}
+    h${endNotchDepth}
     v${TOP_THICKNESS}`
   for (let {center, bottomOnly} of [...notches].reverse()) { // Top notches
     if (bottomOnly) continue
@@ -763,11 +769,11 @@ function wallPath(path, offset, wallLength, angle1, angle2,
   }
     // h${wallLength - 2*NOTCH_DEPTH}
   path += `
-    H${offset[0] - NOTCH_DEPTH}
+    H${offset[0] - endNotchDepth}
     v${-TOP_THICKNESS}
-    h${NOTCH_DEPTH + WOOD_KERF}
+    h${endNotchDepth}
     v${-CHANNEL_DEPTH}
-    h${-NOTCH_DEPTH - WOOD_KERF}
+    h${-endNotchDepth}
     v${-BOTTOM_THICKNESS}`
   for (let {center} of notches) { // Bottom notches
     path += `
@@ -777,9 +783,9 @@ function wallPath(path, offset, wallLength, angle1, angle2,
     v${-BOTTOM_THICKNESS}`
   }
   path += `
-    H${offset[0] - wallLength + NOTCH_DEPTH + WOOD_KERF}
+    H${offset[0] - wallLength + endNotchDepth}
     v${BOTTOM_THICKNESS}
-    h${-NOTCH_DEPTH - WOOD_KERF}
+    h${-endNotchDepth}
     Z`
 
   // Is the entry wall for CAT5 port
