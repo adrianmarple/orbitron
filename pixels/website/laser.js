@@ -22,13 +22,14 @@ reset = () => {
   setLaserParams({
     // TOP_THICKNESS: 2.8,
     // BOTTOM_THICKNESS: 2.8,
-    TOP_THICKNESS: 3, // For 3D printing
-    BOTTOM_THICKNESS: 3, // For 3D printing
+    TOP_THICKNESS: 3.1, // For 3D printing
+    BOTTOM_THICKNESS: 3.1, // For 3D printing
     // BOTTOM_THICKNESS: 5, // 1/4 plywood
     // WALL_THICKNESS: 2.78, // 1/8" Acrylic (thick one I guess)
     WALL_THICKNESS: 2.76, // 1/8" Acrylic
     // WALL_THICKNESS: 2.35, // balsa wood
-    WALL_VERT_KERF: 0.2,
+    WALL_THICKNESS: 2,
+    WALL_VERT_KERF: 0.3,
     BORDER: 6,
     PIXEL_DISTANCE: 16.66666, // 16.6
     CHANNEL_WIDTH: 12,
@@ -36,12 +37,10 @@ reset = () => {
     MIN_NON_NOTCH_LENGTH: 5,
     NOTCH_DEPTH: 5,
     FASTENER_DEPTH: 2.5,
-
-    // BOTTOM_KERF: 0.14, // old value
-    // BOTTOM_KERF: 0.1, // 1/4 plywood
-    // BOTTOM_KERF: 0.07, // Acrylic
-    BOTTOM_KERF: -0.02, // Acrylic
-    TOP_KERF: -0.04,
+    BOTTOM_KERF: 0,
+    TOP_KERF: -0.05,
+    WALL_KERF: 0.12,
+    // TOP_KERF: -0.1,
     // ACRYLIC_KERF: -0.06, // Used for hex cat recut
 
     CAT5_HEIGHT: 15.1,
@@ -57,17 +56,17 @@ reset = () => {
     POWER_HOLE_RADIUS: 5.8,
   })
   END_CAP_FACTOR = 0.3872
-  KERF = TOP_KERF
+  KERF = BOTTOM_KERF
   IS_BOTTOM = true
 
   // BALSA_LENGTH = 2*96*11.85 // A little more than 11 3/4 inches
   // WALL_SVG_PADDING = 24
   // WALL_SVG_GAP = 6
 
-  // WALL_PANEL_HEIGHT = 200 // Makergear 2
-  // WALL_PANEL_WIDTH = 250  // Makergear 2
-  WALL_PANEL_HEIGHT = 180 // Prusa Mini
-  WALL_PANEL_WIDTH = 180  // Pruse Mini
+  WALL_PANEL_HEIGHT = 200  // Prusa MK4
+  WALL_PANEL_WIDTH = 250  // Prusa MK4
+  // WALL_PANEL_HEIGHT = 180 // Prusa Mini
+  // WALL_PANEL_WIDTH = 180  // Pruse Mini
   WALL_SVG_PADDING = 6
   WALL_SVG_GAP = 3
 
@@ -140,13 +139,15 @@ document.getElementById("downloadBottom").addEventListener('click', async () => 
 })
 document.getElementById("genWalls").addEventListener('click', async () => {
   wall.style.display = "block"
+  let printInfo = createPrintInfo()
   fetch("/", {
     method: "POST",
-    body: JSON.stringify(createPrintInfo()),
+    body: JSON.stringify(printInfo),
     headers: {
       "Content-type": "application/json; charset=UTF-8"
     }
   })
+  console.log("Generating gcode", printInfo)
 })
 
 
@@ -624,12 +625,16 @@ function generateNotches(wallLength, isFinalEdge) {
 // WALL CREATION
 // =======================================================================
 function createPrintInfo(displayOnly) {
+  WALL_PANEL_WIDTH =  useMINI ? 180 : 250
+  WALL_PANEL_HEIGHT = useMINI ? 180 : 200
+
   let printInfo = null
   if (!displayOnly) {
     printInfo = {
       type: "gcode",
       fullProjectName,
       thickness: WALL_THICKNESS + WALL_VERT_KERF,
+      printer: useMINI ? "prusamini" : "prusamk4",
       prints: [{
         wedges: [] 
       }],
@@ -689,10 +694,10 @@ function createPrintInfo(displayOnly) {
       path = wallPath(path, offset, remainingWallLength, angle1, angle2,
           nextNotches, cat5Offset, isPowerCordPort, printInfo)
 
-      // if (i == 0) break // REMOVE ME
+      if (onlyOneWall) break
     }
     offset[0] += 20
-    // break // REMOVE ME
+    if (onlyOneWall) break
   }
   
   let width = (offset[2]+1)*WALL_PANEL_WIDTH
@@ -753,7 +758,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
     }
   }
 
-  let endNotchDepth = trueNotchDepth(wallLength)
+  let endNotchDepth = trueNotchDepth(wallLength) - WALL_KERF
 
   path += `
     M${offset[0] - wallLength} ${offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH}

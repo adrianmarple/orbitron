@@ -1,5 +1,5 @@
 
-addButton("math/sierpinski", function() {
+addButton("math/sierp", function() {
   cat5PortMidway = true
   // NOTCH_DEPTH = 4
   // BORDER = 5
@@ -12,14 +12,13 @@ addButton("math/sierpinski", function() {
     return -angle
   }
 
-  let iterations = 3
+  let iterations = 2
 
   let triangle = addPolygon(3, [0,0,0], 4 << iterations)
   subdivide(triangle, iterations)
   rotateZAll(Math.PI/3, true)
 
   EulerianPath(9)
-  EulerianPath(26)
 })
 
 function subdivide(triangle, iterations) {

@@ -163,9 +163,7 @@ addPOSTListener(async (response, body) => {
       }
     }
     filePath += body.fileName
-    console.log(filePath)
     await fs.promises.writeFile(filePath, body.data)
-    generateSTL(filePath)
     response.writeHead(200)
     response.end('post received')
     return true
@@ -173,6 +171,7 @@ addPOSTListener(async (response, body) => {
 })
 
 addPOSTListener(async (response, body) => {
+  console.log(body.fullProjectName)
   if (body && body.type == "gcode") {
     let filePath = path.join(process.env.HOME, "Dropbox/OrbitronManufacturing/")
     let dirPath = filePath + body.fullProjectName.split("/")[0]
@@ -195,10 +194,9 @@ async function generateGCode(info, index) {
   let scadFilePath = `${info.fullProjectName}${index} walls.scad`
   let stlFilePath = `${info.fullProjectName}${index}_walls.stl`.replace(" ", "_")
 
-  console.log("Starting gcode generation...")
   await fs.promises.writeFile(svgFilePath, print.svg, {encoding:'utf8',flag:'w'})
   let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
-  // scale *= 1.005 // Something seems off with the 3D printer and everything is just slightly too small
+  let extra_scale = 1.002 // Something seems off with the 3D printer and everything is just slightly too small
   let scadFileContents = `
 module wedge(angle, position, direction_angle, width, thickness) {
     pivot_z = angle < 0 ? 0 : thickness;
@@ -220,6 +218,7 @@ module wedge(angle, position, direction_angle, width, thickness) {
     }
 }
 
+scale([${extra_scale, extra_scale, 1}])
 union() {`
 for (let wedge of print.wedges) {
   scadFileContents += `
@@ -233,13 +232,13 @@ scadFileContents += `
 }
 `
   console.log("Making .scad")
-  console.log(scadFileContents)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
   console.log("Generating .stl")
   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
   console.log("Generating .gcode")
+
   // await execute(`/Applications/Slic3r.app/Contents/MacOS/Slic3r --load makergear2_slic3r_config.ini --rotate 90 "${stlFilePath}"`)
-  await execute(`/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer -g --load prusamini_config.ini --rotate 90 "${stlFilePath}"`)
+  await execute(`/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer -g --load ${info.printer}_config.ini "${stlFilePath}"`)
   console.log("Done.")
 }
 
@@ -273,7 +272,6 @@ async function findAllButtons() {
       if (fileContents.includes("SKIP")) continue
       if (!fileContents.includes("addButton")) continue
 
-      console.log(fileName)
       let replacement = `addButton("${path.slice(0,-3)}"`
       fileContents = fileContents.replace(/addButton\(\"(.*)\"/, replacement)
       fs.promises.writeFile(path, fileContents)
@@ -284,6 +282,6 @@ async function findAllButtons() {
 }
 
 findAllButtons()
-// setInterval(findAllButtons, 10 * 1000)
+setInterval(findAllButtons, 10 * 1000)
 
 openRootServer()

@@ -10,7 +10,7 @@ addButton("THEBOX/thebox", async () => {
     PIXEL_DISTANCE: pixelDensity,
     CHANNEL_WIDTH: 0,
     // CHANNEL_DEPTH: 16.2,
-    BORDER: 4,
+    // BORDER: 4,
     BOTTOM_THICKNESS: 0,
   })
   CHANNEL_DEPTH = CAT5_HEIGHT

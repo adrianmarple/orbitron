@@ -325,6 +325,26 @@ function generatePixelInfo() {
   return info
 }
 
+function random() {
+  let x = Math.sin(seed++) * 10000
+  return x - Math.floor(x)
+}
+function shuffle(array) {
+  let currentIndex = array.length, temporaryValue, randomIndex
+  while (0 !== currentIndex) {
+    randomIndex = Math.floor(random() * currentIndex)
+    currentIndex -= 1
+    temporaryValue = array[currentIndex]
+    array[currentIndex] = array[randomIndex]
+    array[randomIndex] = temporaryValue
+  }
+  return array
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 
 document.getElementById("downloadJSON").addEventListener('click', function() {
   let fileContent = JSON.stringify(generatePixelInfo(), null, 2)

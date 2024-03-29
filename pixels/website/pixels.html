@@ -83,6 +83,8 @@ canvas {
   <div>showLaserSVG</div>
   <div>showWallSVG</div>
   <div>generateWallNumbers</div>
+  <div>useMINI</div>
+  <div>onlyOneWall</div>
 </div>
 
 <script>
@@ -107,6 +109,8 @@ function reset() {
 }
 reset()
 
+// ===================== interaction =====================
+
 for (let setting of document.querySelectorAll("#settings > div")) {
   let varName = setting.innerHTML
   window[varName] = false
@@ -118,12 +122,65 @@ for (let setting of document.querySelectorAll("#settings > div")) {
     window[varName] = !window[varName]
     checkbox.checked = window[varName]
     localStorage.setItem(varName, window[varName])
+    buttonClickMap[fullProjectName]() // Reset
   })
   setting.prepend(checkbox)
 }
 
+buttonClickMap = {}
+fullProjectNames = []
+function addButton(name, onClick) {
+  buttonClickMap[name] = async () => {
+    fullProjectName = name
+    localStorage.setItem("button", name)
+    reset()
+    await onClick()
+    generatePixelInfo()
+  }
+  button = document.createElement("div")
+  button.innerHTML = name.split("/")[1]
 
-// ===================== rendering and interaction =====================
+  document.getElementById("type-buttons").appendChild(button)
+  button.classList.add("button")
+  button.style.order = fullProjectNames.indexOf(name)
+  button.addEventListener('click', () => {
+    buttonClickMap[name]()
+  })
+}
+setTimeout(() => {
+  let buttonToClick = localStorage.getItem("button")
+  if (buttonToClick && buttonClickMap[buttonToClick]) {
+    buttonClickMap[buttonToClick]()
+  }
+}, 50)
+
+function download(fileName, data) {
+  fetch("/", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "download",
+      fileName,
+      data,
+    }),
+    headers: {
+      "Content-type": "application/json; charset=UTF-8"
+    }
+  })
+  console.log(`Downloading ${fileName}`, data)
+}
+
+async function appendButtonScripts() {
+  let urls = await (await fetch("buttonUrls.json")).json()
+  fullProjectNames = urls.map(url => url.slice(0,-3))
+  for (let url of urls) {
+    let s = document.createElement('script')
+    s.setAttribute('src', url)
+    document.body.appendChild(s)
+  }
+}
+appendButtonScripts()
+
+// ===================== rendering =====================
 
 const ROTATION_SCALE = 0.01
 let previousXY = null
@@ -236,79 +293,6 @@ function render() {
   document.getElementById("cover").style.display = showLaserSVG ? "block" : "none"
   document.getElementById("wall").style.display = showWallSVG ? "block" : "none"
 }
-
-
-function random() {
-  let x = Math.sin(seed++) * 10000
-  return x - Math.floor(x)
-}
-function shuffle(array) {
-  let currentIndex = array.length, temporaryValue, randomIndex
-  while (0 !== currentIndex) {
-    randomIndex = Math.floor(random() * currentIndex)
-    currentIndex -= 1
-    temporaryValue = array[currentIndex]
-    array[currentIndex] = array[randomIndex]
-    array[randomIndex] = temporaryValue
-  }
-  return array
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-buttonClickMap = {}
-fullProjectNames = []
-function addButton(name, onClick) {
-  buttonClickMap[name] = async () => {
-    fullProjectName = name
-    localStorage.setItem("button", name)
-    reset()
-    await onClick()
-    generatePixelInfo()
-  }
-  button = document.createElement("div")
-  button.innerHTML = name.split("/")[1]
-
-  document.getElementById("type-buttons").appendChild(button)
-  button.classList.add("button")
-  button.style.order = fullProjectNames.indexOf(name)
-  button.addEventListener('click', () => {
-    buttonClickMap[name]()
-  })
-}
-setTimeout(() => {
-  let buttonToClick = localStorage.getItem("button")
-  if (buttonToClick && buttonClickMap[buttonToClick]) {
-    buttonClickMap[buttonToClick]()
-  }
-}, 50)
-
-function download(fileName, data) {
-  fetch("/", {
-    method: "POST",
-    body: JSON.stringify({
-      type: "download",
-      fileName,
-      data,
-    }),
-    headers: {
-      "Content-type": "application/json; charset=UTF-8"
-    }
-  })
-}
-
-async function appendButtonScripts() {
-  let urls = await (await fetch("buttonUrls.json")).json()
-  fullProjectNames = urls.map(url => url.slice(0,-3))
-  for (let url of urls) {
-    let s = document.createElement('script')
-    s.setAttribute('src', url)
-    document.body.appendChild(s)
-  }
-}
-appendButtonScripts()
 
 </script>
 
