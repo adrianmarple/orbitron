@@ -298,6 +298,7 @@ var app = new Vue({
 
     speedbumpCallback: null,
     speedbumpMessage: "",
+    speedbumpTimestamp: 0,
 
     homeStyle: {background: "rgb(200,200,255)"},
     nav: "timing",
@@ -393,6 +394,9 @@ var app = new Vue({
         localStorage.setItem('flags', JSON.stringify(val))
       },
       deep: true
+    },
+    speedbumpCallback: function() {
+      this.speedbumpTimestamp = Date.now()
     },
   },
 
@@ -722,9 +726,11 @@ var app = new Vue({
     },
 
     confirmSpeedbump() {
+      if (Date.now() - this.speedbumpTimestamp < 100) return
       this.speedbumpCallback()
     },
     clearSpeedbump() {
+      if (Date.now() - this.speedbumpTimestamp < 100) return
       this.speedbumpCallback = null
       this.speedbumpMessage = ""
     },
