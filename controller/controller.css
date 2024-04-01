@@ -122,6 +122,8 @@ body, #app, .main {
   font-size: 3em;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
   max-width: 100%;
   width: 40rem;
 }
@@ -185,14 +187,13 @@ body, #app, .main {
 
 /* SAVE MENU */
 #restore-defaults {
-  position: absolute;
-  top: 2rem;
   padding: 1rem;
+  margin-bottom: 1rem;
 }
 .scroll-containter {
-  /* display: flex;
+  display: flex;
   flex-direction: column;
-  justify-content: flex-end; */
+  justify-content: flex-end;
   height: calc(100vh - 36rem);
   width: 100%;
   overflow-y: auto;
