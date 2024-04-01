@@ -565,12 +565,8 @@ var app = new Vue({
     },
 
     saveScrollContainerHeight() {
-      console.log(window.innerHeight)
-      console.log()
-      // Needed for iOS and maybe more
-      let percent = 100 * document.body.getBoundingClientRect().height / window.innerHeight
-      console.log(percent)
-      return `calc(${percent}vh - 32rem)`
+      let rem = Math.min(1.5*window.innerHeight, 2*window.innerWidth) / 100;
+      return `${document.body.getBoundingClientRect().height - 32*rem}px`
     },
   },
 
