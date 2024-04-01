@@ -191,9 +191,6 @@ body, #app, .main {
   margin-bottom: 1rem;
 }
 .scroll-containter {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
   width: 100%;
   overflow-y: auto;
 }
