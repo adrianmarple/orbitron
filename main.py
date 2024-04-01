@@ -66,7 +66,7 @@ def consume_input():
         update = message["update"]
         if "idlePattern" in update:
           idlepatterns.set_idle(update["idlePattern"])
-        engine.update_prefs(update)
+        engine.update_prefs(update, client_timestamp=message["timestamp"])
       elif message["type"] == "clearPrefs":
         engine.clear_prefs()
       elif message["type"] == "savePrefs":

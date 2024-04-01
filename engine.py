@@ -184,6 +184,7 @@ for (key, value) in default_prefs.items():
 prefs = {}
 current_prefs = {}
 converted_prefs = {}
+pref_to_client_timestamp = {}
 current_prefs.update(default_prefs)
 
 
@@ -202,9 +203,12 @@ pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no fil
 pref_names = [filename.split(".")[0] for filename in pref_names]
 sort_pref_names()
 
-def update_prefs(update):
+def update_prefs(update, client_timestamp=0):
+  if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
+      client_timestamp = 0
   for key in update.keys():
     converted_prefs[key] = None
+    pref_to_client_timestamp[key] = client_timestamp
   prefs.update(update)
   current_prefs.update(update)
   idle.update_prefs()
@@ -1144,11 +1148,13 @@ def broadcast_state():
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
     "prefs": current_prefs,
+    "prefTimestamps": pref_to_client_timestamp,
     "currentText": current_text,
     "extraIdle": config.get("IDLE"),
     "exclude": config.get("EXCLUDE", {}),
     "prefNames": pref_names,
   }
+  pref_to_client_timestamp.clear()
   print(json.dumps(message))
 
 # ================================ Core loop =========================================
@@ -1164,8 +1170,7 @@ def run_core_loop():
     'very_slow_frame_count': 0,
     'slowest_frame': 0,
   }
-  is_toggling = False
-  is_off = False
+
   while True:
     time_to_wait = last_frame_time + 1.0/FRAMERATE - time()
     if time_to_wait > 0:
@@ -1183,9 +1188,4 @@ def run_core_loop():
       print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
 
-    if is_off:
-      global raw_pixels
-      raw_pixels *= 0
-      display_pixels(raw_pixels)
-    else:
-      update()
+    update()

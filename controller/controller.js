@@ -8,16 +8,6 @@ document.addEventListener("click", event => {
   }
 })
 
-debounce = (func, self) => { // Fucking arrow functions vs functions! 
-  let timeout = null
-  return function() {
-    if (timeout) {
-      clearTimeout(timeout)
-    }
-    timeout = setTimeout(func.bind(this), 100)
-  }
-}
-
 
 Vue.component('number', {
   props: ['title'],
@@ -48,7 +38,7 @@ Vue.component('slider', {
   props: ['title', 'min', 'max'],
   data() { return { value: 0 }},
   watch: {  
-    "$root.prefs": debounce(function() { this.value = this.$root.prefs[this.name] }),
+    "$root.prefs": function() { this.value = this.$root.prefs[this.name] },
     value() { this.$root.prefs[this.name] = this.value },
   },
   mounted() { this.value = this.$root.prefs[this.name] },
@@ -81,7 +71,7 @@ Vue.component('color', {
     name() { return this.$vnode.key },
   },
   watch: {
-    "$root.prefs": debounce(function() { this.updateFromPrefs() }),
+    "$root.prefs": function() { this.updateFromPrefs() },
     value: {
       handler: function({red, green, blue}) {
         this.$root.prefs[this.name] = "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1)
@@ -184,7 +174,7 @@ Vue.component('vector', {
     name() { return this.$vnode.key },
   },
   watch: {
-    "$root.prefs": debounce(function() { this.updateFromPrefs() }),
+    "$root.prefs": function() { this.updateFromPrefs() },
     value() {
       let angle = -this.value.angle
       let mag = this.value.magnitude
@@ -290,6 +280,7 @@ var app = new Vue({
 
     settings: {},
     prefs: {},
+    lastPrefUpdateTime: {},
     rawPrefName: "",
     GAMES_INFO,
     uuid: uuid(),
@@ -366,14 +357,19 @@ var app = new Vue({
         }
         return
       }
+      let hasChange = false
       for (let key in val) {
-        let hasChange = false
-        if (val[key] != oldValue[key]) {
+        if (val[key] != oldValue[key] &&
+            (!this.state.prefTimestamps[key] ||
+             !this.lastPrefUpdateTime[key] ||
+             this.lastPrefUpdateTime[key] < this.state.prefTimestamps[key])) {
+          this.prefs[key] = val[key]
+          this.lastPrefUpdateTime[key] = this.state.prefTimestamps[key]
           hasChange = true
         }
-        if (hasChange) {
-          this.prefs = { ...val }
-        }
+      }
+      if (hasChange) {
+        this.prefs = { ...this.prefs }
       }
     },
     "state.gameId": function(val, oldValue) {
