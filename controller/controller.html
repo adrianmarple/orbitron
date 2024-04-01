@@ -65,7 +65,7 @@
       <div class="button" id="restore-defaults" @click="clearPrefs()" >
         Restore Defaults
       </div>
-      <div class="scroll-containter">
+      <div class="scroll-containter" :style="{height: saveScrollContainerHeight}">
         <div v-for="name in state.prefNames"
             class="pref-list-item"
             :class="{selected: prefName == name}"

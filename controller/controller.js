@@ -563,6 +563,15 @@ var app = new Vue({
     prefName() {
       return this.rawPrefName.replace(/[^0-9a-zA-Z ]/gi, '')
     },
+
+    saveScrollContainerHeight() {
+      console.log(window.innerHeight)
+      console.log()
+      // Needed for iOS and maybe more
+      let percent = 100 * document.body.getBoundingClientRect().height / window.innerHeight
+      console.log(percent)
+      return `calc(${percent}vh - 32rem)`
+    },
   },
 
   methods: {

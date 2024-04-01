@@ -194,7 +194,6 @@ body, #app, .main {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  height: calc(100vh - 36rem);
   width: 100%;
   overflow-y: auto;
 }
