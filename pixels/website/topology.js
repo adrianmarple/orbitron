@@ -206,8 +206,8 @@ function removeVertex(vertex) {
     vertex = verticies[vertex]
   }
   remove(verticies, vertex)
-  for (let edge of vertex.edges) {
-    remove(edges, edge)
+  for (let edge of [...vertex.edges]) {
+    removeEdge(edge)
   }
   resetInidices()
 }

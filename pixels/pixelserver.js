@@ -258,6 +258,7 @@ addGETListener((response, filePath) => {
 
 let buttonUrls = []
 async function findAllButtons() {
+  // TODO: Log diff when there's a change
   buttonUrls = []
   const folderNames = (await fs.promises.readdir(".", { withFileTypes: true }))
       .filter(file => file.isDirectory())
