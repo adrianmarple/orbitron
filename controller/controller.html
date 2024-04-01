@@ -94,8 +94,8 @@
     <!-- TIMING MENU -->
     <div v-else-if="nav=='timing'" class="nav-page">
       <div v-if="prefs.hasStartAndEnd" class="column" style="align-items: center; width: 100%;">
-        <number title="Fade Start (min)" name="startFade"></number>
-        <number title="Fade End (min)" name="endFade"></number>
+        <number title="Fade Start (min)" key="startFade"></number>
+        <number title="Fade End (min)" key="endFade"></number>
         <div class="row">
           <div>
             Start Time:
@@ -109,61 +109,61 @@
           </div>
         </div>
       </div>
-      <boolean title="Use Timer" name="hasStartAndEnd"></boolean>
+      <boolean title="Use Timer" key="hasStartAndEnd"></boolean>
     </div>
 
     <!-- COLORS MENU -->
     <div v-else-if="nav=='colors'" class="nav-page">
       <slider v-if="prefs.idleColor == 'rainbow'" 
-          title="Rainbow gradient" name="rainbowFade" ></slider>
+          title="Rainbow gradient" key="rainbowFade" ></slider>
       <number v-if="prefs.idleColor == 'rainbow'"
-          title="Cycle time (sec)" name="rainbowDuration"></number>
+          title="Cycle time (sec)" key="rainbowDuration"></number>
       
       <color v-if="prefs.idleColor == 'gradient'"
-          name="gradientStartColor" title="Start Color" ></color>
+          key="gradientStartColor" title="Start Color" ></color>
       <color v-if="prefs.idleColor == 'gradient'"
-          name="gradientEndColor" title="End Color" ></color>
+          key="gradientEndColor" title="End Color" ></color>
       <slider v-if="prefs.idleColor == 'gradient'" 
-          title="Threshold" name="gradientThreshold"
+          title="Threshold" key="gradientThreshold"
           :min="1"></slider>
 
-      <color v-if="prefs.idleColor == 'fixed'" name="fixedColor" ></color>
+      <color v-if="prefs.idleColor == 'fixed'" key="fixedColor" ></color>
 
-      <dropdown title="Style" key="idleColor" name="idleColor" :selection="prefs['idleColor']"
+      <dropdown title="Style" key="idleColor" :selection="prefs['idleColor']"
       :options="[['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']]"
       ></dropdown>
-      <slider title="Brightness" name="brightness" ></slider>
+      <slider title="Brightness" key="brightness" ></slider>
     </div>
 
     <!-- PATTERN MENU -->
     <div v-else-if="nav=='pattern'" class="nav-page">
       <number v-if="prefs.idlePattern == 'static' && prefs.staticRotation"
-          title="Rotatation Time" name="staticRotationTime"></number>
+          title="Rotatation Time" key="staticRotationTime"></number>
       <vector v-if="prefs.idlePattern == 'static' && !prefs.staticRotation"
-          title="Direction" name="staticDirection"></vector>
+          title="Direction" key="staticDirection"></vector>
       <boolean v-if="prefs.idlePattern == 'static'"
-          title="Rotate Direction" name="staticRotation"></boolean>
+          title="Rotate Direction" key="staticRotation"></boolean>
 
       <vector v-if="prefs.idlePattern == 'fireflies'"
-          title="Bias" name="patternBias"></vector>
+          title="Bias" key="patternBias"></vector>
       
       <slider v-if="prefs.idlePattern == 'pulses'"
-          title="Width" name="rippleWidth" :min="1" :max="50"></slider>
+          title="Width" key="rippleWidth" :min="1" :max="50"></slider>
       
       <vector v-if="prefs.idlePattern == 'sin'"
-          title="Direction" name="sinDirection" normalize="true"></vector>
+          title="Direction" key="sinDirection" normalize="true"></vector>
       <slider v-if="prefs.idlePattern == 'sin'"
-          title="Min Value" name="sinMin" :min="-255" :max="255"></slider>
+          title="Min Value" key="sinMin" :min="-255" :max="255"></slider>
 
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
-          title="Blend" name="idleBlend" ></slider>
+          title="Blend" key="idleBlend" ></slider>
       <slider v-if="!['weather', 'static', 'lightfield'].includes(prefs.idlePattern)" 
-          title="Density" name="idleDensity"
+          title="Density" key="idleDensity"
           :min="10"></slider>
       <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
-          title="Speed" name="idleFrameRate"
+          title="Speed" key="idleFrameRate"
           :min="5" :max="30"></slider>
-      <dropdown title="Pattern" key="idlePattern" name="idlePattern"
+      <dropdown title="Pattern" key="idlePattern"
           :selection="prefs['idlePattern']"
           :options="patternDropdownInfo"
       ></dropdown>

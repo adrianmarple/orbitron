@@ -20,7 +20,10 @@ debounce = (func, self) => { // Fucking arrow functions vs functions!
 
 
 Vue.component('number', {
-  props: ['name', 'title'],
+  props: ['title'],
+  computed: {
+    name() { return this.$vnode.key },
+  },
   template: `
 <div class="row" v-if="!$root.exclude[name]">
   {{title}}:
@@ -28,8 +31,12 @@ Vue.component('number', {
   </input>
 </div>
 `})
+
 Vue.component('boolean', {
-  props: ['name', 'title'],
+  props: ['title'],
+  computed: {
+    name() { return this.$vnode.key },
+  },
   template: `
 <div class="pure-material-checkbox" @click="$root.prefs[name] = !$root.prefs[name]">
   <input type="checkbox" v-model="$root.prefs[name]">
@@ -38,7 +45,7 @@ Vue.component('boolean', {
 `})
 
 Vue.component('slider', {
-  props: ['name', 'title', 'min', 'max'],
+  props: ['title', 'min', 'max'],
   data() { return { value: 0 }},
   watch: {  
     "$root.prefs": debounce(function() { this.value = this.$root.prefs[this.name] }),
@@ -48,6 +55,7 @@ Vue.component('slider', {
   computed: {
     trueMin() { return this.min || 0 },
     trueMax() { return this.max || 100 },
+    name() { return this.$vnode.key },
   },
   template: `
 <div class="slider-container" v-if="!$root.exclude[name]">
@@ -62,12 +70,15 @@ Vue.component('slider', {
 `})
 
 Vue.component('color', {
-  props: ['name', 'title'],
+  props: ['title'],
   data() {
     return { value: [0,0,0] }
   },
   mounted() {
     this.updateFromPrefs()
+  },
+  computed: {
+    name() { return this.$vnode.key },
   },
   watch: {
     "$root.prefs": debounce(function() { this.updateFromPrefs() }),
@@ -107,9 +118,12 @@ Vue.component('color', {
 `})
 
 Vue.component('dropdown', {
-  props: ['name', 'title', 'options', 'selection'],
+  props: ['title', 'options', 'selection'],
   data() {
     return { open: false }
+  },
+  computed: {
+    name() { return this.$vnode.key },
   },
   methods: {
     opened() {
@@ -155,7 +169,7 @@ Vue.component('dropdown', {
 </div>`})
 
 Vue.component('vector', {
-  props: ['name', 'title', 'normalize'],
+  props: ['title', 'normalize'],
   data() {
     return {
       isMoving: false,
@@ -165,6 +179,9 @@ Vue.component('vector', {
   },
   mounted() {
     this.updateFromPrefs()
+  },
+  computed: {
+    name() { return this.$vnode.key },
   },
   watch: {
     "$root.prefs": debounce(function() { this.updateFromPrefs() }),
