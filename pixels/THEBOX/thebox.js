@@ -9,9 +9,8 @@ addButton("THEBOX/thebox", async () => {
   setLaserParams({
     PIXEL_DISTANCE: pixelDensity,
     CHANNEL_WIDTH: 0,
-    // CHANNEL_DEPTH: 16.2,
-    // BORDER: 4,
-    BOTTOM_THICKNESS: 0,
+    TOP_KERF: -0.2,
+    // BOTTOM_THICKNESS: 0,
   })
   CHANNEL_DEPTH = CAT5_HEIGHT
   HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS

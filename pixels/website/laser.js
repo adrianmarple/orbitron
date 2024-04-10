@@ -26,10 +26,10 @@ reset = () => {
     BOTTOM_THICKNESS: 3.1, // For 3D printing
     // BOTTOM_THICKNESS: 5, // 1/4 plywood
     // WALL_THICKNESS: 2.78, // 1/8" Acrylic (thick one I guess)
-    WALL_THICKNESS: 2.76, // 1/8" Acrylic
+    // WALL_THICKNESS: 2.76, // 1/8" Acrylic
     // WALL_THICKNESS: 2.35, // balsa wood
     WALL_THICKNESS: 2,
-    WALL_VERT_KERF: 0.3,
+    WALL_VERT_KERF: 0.2,
     BORDER: 6,
     PIXEL_DISTANCE: 16.66666, // 16.6
     CHANNEL_WIDTH: 12,
@@ -38,8 +38,9 @@ reset = () => {
     NOTCH_DEPTH: 5,
     FASTENER_DEPTH: 2.5,
     BOTTOM_KERF: 0,
-    TOP_KERF: -0.05,
-    WALL_KERF: 0.12,
+    TOP_KERF: -0.15,
+    WALL_KERF: 0.09,
+    WALL_STRAIGHT_KERF: 0.1,
     // TOP_KERF: -0.1,
     // ACRYLIC_KERF: -0.06, // Used for hex cat recut
 
@@ -55,9 +56,13 @@ reset = () => {
 
     POWER_HOLE_RADIUS: 5.8,
   })
+  EXTRA_SCALE = 1
   END_CAP_FACTOR = 0.3872
   KERF = BOTTOM_KERF
   IS_BOTTOM = true
+
+  STARTING_WALL_INDEX = 0
+  STARTING_I = 0
 
   // BALSA_LENGTH = 2*96*11.85 // A little more than 11 3/4 inches
   // WALL_SVG_PADDING = 24
@@ -635,6 +640,8 @@ function createPrintInfo(displayOnly) {
       fullProjectName,
       thickness: WALL_THICKNESS + WALL_VERT_KERF,
       printer: useMINI ? "prusamini" : "prusamk4",
+      noInputShaper,
+      EXTRA_SCALE,
       prints: [{
         wedges: [] 
       }],
@@ -648,7 +655,7 @@ function createPrintInfo(displayOnly) {
 
   let path = ""
   let offset = [WALL_SVG_PADDING, WALL_SVG_PADDING, 1] // offset[2] is panelCount
-  for (let wallIndex = 0; wallIndex < wallInfo.length; wallIndex++) {
+  for (let wallIndex = STARTING_WALL_INDEX; wallIndex < wallInfo.length; wallIndex++) {
     let wallType = wallInfo[wallIndex]
     let wallLength = wallType.length
     let targetCount = wallType.edgeCenters.length
@@ -656,7 +663,7 @@ function createPrintInfo(displayOnly) {
 
     if (targetCount > 8) targetCount += 1
     if (targetCount > 30) targetCount += 1
-    for (let i = 0; i < targetCount; i++) {
+    for (let i = STARTING_I; i < targetCount; i++) {
       let isFinalEdge = epsilonEquals(wallType.length, entryWallLength, 0.01) && i == 0
       let cat5Offset = NaN
       if (isFinalEdge) {
@@ -733,25 +740,25 @@ function wallPath(path, offset, wallLength, angle1, angle2,
     offset[1] = WALL_SVG_PADDING
   }
 
-  offset[0] += Math.tan(Math.abs(angle1)) * WALL_THICKNESS
+  offset[0] += Math.tan(Math.abs(angle2)) * WALL_THICKNESS
 
   if (printInfo) {
     let y = WALL_PANEL_HEIGHT - offset[1] - BOTTOM_THICKNESS - CHANNEL_DEPTH/2
     let print = printInfo.prints[printInfo.prints.length - 1]
     if (!epsilonEquals(angle1, 0)) {
-      print.wedges.push({ //angle, position, direction_angle, width, thickness
+      print.wedges.push({
         angle: angle1 * 180/Math.PI,
-        position: [offset[0] - wallLength, y, 0],
-        directionAngle: 180,
+        directionAngle: 0,
+        position: [offset[0], y, 0],
         width: CHANNEL_DEPTH,
         thickness: printInfo.thickness,
       })
     }
     if (!epsilonEquals(angle2, 0)) {
-      print.wedges.push({ //angle, position, direction_angle, width, thickness
+      print.wedges.push({
         angle: angle2 * 180/Math.PI,
-        position: [offset[0], y, 0],
-        directionAngle: 0,
+        directionAngle: 180,
+        position: [offset[0] - wallLength, y, 0],
         width: CHANNEL_DEPTH,
         thickness: printInfo.thickness,
       })
@@ -759,10 +766,15 @@ function wallPath(path, offset, wallLength, angle1, angle2,
   }
 
   let endNotchDepth = trueNotchDepth(wallLength) - WALL_KERF
+  let extra_end_bit = epsilonEquals(angle1, 0) ? WALL_STRAIGHT_KERF : 0
+  let extra_start_bit = epsilonEquals(angle2, 0) ? WALL_STRAIGHT_KERF : 0
 
   path += `
-    M${offset[0] - wallLength} ${offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH}
-    h${endNotchDepth}
+    M${offset[0] - wallLength + endNotchDepth} ${offset[1]}
+    v${BOTTOM_THICKNESS}
+    h${-endNotchDepth - extra_start_bit}
+    v${CHANNEL_DEPTH}
+    h${endNotchDepth + extra_start_bit}
     v${TOP_THICKNESS}`
   for (let {center, bottomOnly} of [...notches].reverse()) { // Top notches
     if (bottomOnly) continue
@@ -776,9 +788,9 @@ function wallPath(path, offset, wallLength, angle1, angle2,
   path += `
     H${offset[0] - endNotchDepth}
     v${-TOP_THICKNESS}
-    h${endNotchDepth}
+    h${endNotchDepth + extra_end_bit}
     v${-CHANNEL_DEPTH}
-    h${-endNotchDepth}
+    h${-endNotchDepth - extra_end_bit}
     v${-BOTTOM_THICKNESS}`
   for (let {center} of notches) { // Bottom notches
     path += `
@@ -787,11 +799,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
     h${-2*NOTCH_DEPTH}
     v${-BOTTOM_THICKNESS}`
   }
-  path += `
-    H${offset[0] - wallLength + endNotchDepth}
-    v${BOTTOM_THICKNESS}
-    h${-endNotchDepth}
-    Z`
+  path += `Z`
 
   // Is the entry wall for CAT5 port
   if (cat5Offset !== undefined &&
@@ -835,7 +843,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       a ${r},${r} 0 1,0,${-r*2},0`
   }
 
-  offset[0] += Math.tan(Math.abs(angle2)) * WALL_THICKNESS
+  offset[0] += Math.tan(Math.abs(angle1)) * WALL_THICKNESS
   offset[0] += WALL_SVG_GAP
   return path
 }

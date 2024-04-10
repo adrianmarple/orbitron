@@ -4,6 +4,7 @@ addButton("math/sierp", function() {
   // NOTCH_DEPTH = 4
   // BORDER = 5
   // MAX_NOTCH_DISTANCE = 160
+  EXTRA_SCALE = 1.013
 
   sortOverride = (edge, previousEdge, angle) => {
     if (epsilonEquals(angle, 0)) {

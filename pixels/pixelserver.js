@@ -57,7 +57,6 @@ function getContentType(filePath){
     case '.zip':
       contentType = 'application/zip'
   }
-  // console.log(filePath, extname, contentType)
   return contentType
 }
 
@@ -84,7 +83,6 @@ function respondWithFile(response, filePath) {
 
 
 async function serverHandler(request, response) {
-  // POST stuff
   if (request.method === 'POST') {
     let rawbody = ''
     request.on('data', function(data) {
@@ -196,7 +194,6 @@ async function generateGCode(info, index) {
 
   await fs.promises.writeFile(svgFilePath, print.svg, {encoding:'utf8',flag:'w'})
   let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
-  let extra_scale = 1.002 // Something seems off with the 3D printer and everything is just slightly too small
   let scadFileContents = `
 module wedge(angle, position, direction_angle, width, thickness) {
     pivot_z = angle < 0 ? 0 : thickness;
@@ -218,7 +215,7 @@ module wedge(angle, position, direction_angle, width, thickness) {
     }
 }
 
-scale([${extra_scale, extra_scale, 1}])
+scale([${info.EXTRA_SCALE}, 1, 1])
 union() {`
 for (let wedge of print.wedges) {
   scadFileContents += `
@@ -238,7 +235,9 @@ scadFileContents += `
   console.log("Generating .gcode")
 
   // await execute(`/Applications/Slic3r.app/Contents/MacOS/Slic3r --load makergear2_slic3r_config.ini --rotate 90 "${stlFilePath}"`)
-  await execute(`/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer -g --load ${info.printer}_config.ini "${stlFilePath}"`)
+  let slic3rPath = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"
+  let suffix = info.noInputShaper ? "_noIS" : ""
+  await execute(`${slic3rPath} -g --load ${info.printer}_config${suffix}.ini "${stlFilePath}"`)
   console.log("Done.")
 }
 
