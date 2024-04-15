@@ -3,13 +3,6 @@ addButton("hackerdojo/hive", async () => {
   BOTTOM_THICKNESS = TOP_THICKNESS
   ledAtVertex = false
   pixelDensity = 2
-  // setLaserParams({
-  //   BORDER: 4,
-  //   CHANNEL_WIDTH: 5,
-  //   CHANNEL_DEPTH: 8,
-  //   NOTCH_DEPTH: 3,
-  //   PIXEL_DISTANCE: 8.333, //https://www.superlightingled.com/4mm-ws2812c-individually-addressable-rgb-led-strip-light-120ledsm-328ft1m-p-4003.html
-  // })
   BORDER = 5
 
   await addFromSVG("hackerdojo/hive.svg")
@@ -21,5 +14,5 @@ addButton("hackerdojo/hive", async () => {
   center()
   // EulerianPath(37, 1)
   // EulerianPath(76)
-  EulerianPath(75, 1)
+  EulerianPath(11)
 })
