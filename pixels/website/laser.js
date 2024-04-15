@@ -20,29 +20,21 @@ reset = () => {
   ogReset()
   useCAT5forChannelDepth = true
   setLaserParams({
-    // TOP_THICKNESS: 2.8,
-    // BOTTOM_THICKNESS: 2.8,
     TOP_THICKNESS: 3.1, // For 3D printing
     BOTTOM_THICKNESS: 3.1, // For 3D printing
-    // BOTTOM_THICKNESS: 5, // 1/4 plywood
-    // WALL_THICKNESS: 2.78, // 1/8" Acrylic (thick one I guess)
-    // WALL_THICKNESS: 2.76, // 1/8" Acrylic
-    // WALL_THICKNESS: 2.35, // balsa wood
     WALL_THICKNESS: 2,
     WALL_VERT_KERF: 0.2,
     BORDER: 6,
-    PIXEL_DISTANCE: 16.66666, // 16.6
+    PIXEL_DISTANCE: 16.66666,
     CHANNEL_WIDTH: 12,
-    // CHANNEL_DEPTH: 10,
     MIN_NON_NOTCH_LENGTH: 5,
     NOTCH_DEPTH: 5,
     FASTENER_DEPTH: 2.5,
     BOTTOM_KERF: 0,
-    TOP_KERF: -0.15,
-    WALL_KERF: 0.09,
-    WALL_STRAIGHT_KERF: 0.1,
-    // TOP_KERF: -0.1,
-    // ACRYLIC_KERF: -0.06, // Used for hex cat recut
+    TOP_KERF: -0.1,
+    WALL_KERF: 0.05,
+    NOTCH_KERF: -0.05,
+    WALL_STRAIGHT_KERF: 0.11,
 
     CAT5_HEIGHT: 15.1,
     CAT5_WIDTH: 15.3,
@@ -56,17 +48,12 @@ reset = () => {
 
     POWER_HOLE_RADIUS: 5.8,
   })
-  EXTRA_SCALE = 1
+  EXTRA_SCALE = 1.0025
   END_CAP_FACTOR = 0.3872
   KERF = BOTTOM_KERF
   IS_BOTTOM = true
 
-  STARTING_WALL_INDEX = 0
   STARTING_I = 0
-
-  // BALSA_LENGTH = 2*96*11.85 // A little more than 11 3/4 inches
-  // WALL_SVG_PADDING = 24
-  // WALL_SVG_GAP = 6
 
   WALL_PANEL_HEIGHT = 200  // Prusa MK4
   WALL_PANEL_WIDTH = 250  // Prusa MK4
@@ -187,44 +174,7 @@ let minY = 0
 let maxX = 0
 let maxY = 0
 
-async function createChannelTestSVG() {
-  // let wallLength = 40 * MM_TO_96DPI
-  let wallLength = 135.44366220593486
-  let path = ""
-  let kerfs = [-0.01, -0.02]
-  let thicknesses = [2.78, 2.79, 2.8, 2.81]
-  let offset = [0,0]
-  let basis = [[1,0,0], [0,1,0]]
-
-  wallInfo = [{
-    length: wallLength,
-    edgeCenters: [[wallLength, 0]],
-  }]
-
-  for (let kerf of kerfs) {
-    path += decimalPath(kerf, add(offset, [-50, -5]))
-    offset[1] += 40
-  }
-  for (let thickness of thicknesses) {
-    path += decimalPath(thickness, add(offset, [20, -10]))
-    setLaserParams({WALL_THICKNESS: thickness})
-    offset[1] = 0
-    for (let kerf of kerfs) {
-      setLaserParams({KERF: kerf})
-      path += singleChannelPath(wallLength, basis, offset)
-      offset[1] += 40
-    }
-    offset[0] += wallLength
-  }
-  cover.querySelector("path").setAttribute("d", path)
-}
-
 async function createCoverSVG() {
-  if (name == "channeltest") {
-    createChannelTestSVG()
-    return
-  }
-
   wallInfo = []
   minX = 0
   minY = 0
@@ -395,7 +345,9 @@ async function createCoverSVG() {
       let wallLength = edgeLength + lengthOffset2 - lengthOffset1
       let angle1 = a1/2
       let angle2 = -a2/2
-      if (angle1 < 0 && angle2 < 0) {
+      if (angle1 < 0 && angle2 < 0 ||
+          -angle1 > angle2 ||
+          -angle2 > angle1) {
         let t = angle1
         angle1 = -angle2
         angle2 = -t
@@ -659,7 +611,11 @@ function createPrintInfo(displayOnly) {
     let wallType = wallInfo[wallIndex]
     let wallLength = wallType.length
     let targetCount = wallType.edgeCenters.length
-    // path += romanNumeralPath(wallIndex, offset)
+    if (displayOnly) {
+      path += decimalPath(wallIndex, offset)
+    } else {
+      offset[0] += 8 * (""+wallIndex).length
+    }
 
     if (targetCount > 8) targetCount += 1
     if (targetCount > 30) targetCount += 1
@@ -703,7 +659,7 @@ function createPrintInfo(displayOnly) {
 
       if (onlyOneWall) break
     }
-    offset[0] += 20
+    // offset[0] += 5
     if (onlyOneWall) break
   }
   
@@ -766,6 +722,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
   }
 
   let endNotchDepth = trueNotchDepth(wallLength) - WALL_KERF
+  let midNotchDepth = trueNotchDepth(wallLength) - NOTCH_KERF
   let extra_end_bit = epsilonEquals(angle1, 0) ? WALL_STRAIGHT_KERF : 0
   let extra_start_bit = epsilonEquals(angle2, 0) ? WALL_STRAIGHT_KERF : 0
 
@@ -779,12 +736,11 @@ function wallPath(path, offset, wallLength, angle1, angle2,
   for (let {center, bottomOnly} of [...notches].reverse()) { // Top notches
     if (bottomOnly) continue
     path += `
-    H${offset[0] - center - NOTCH_DEPTH}
+    H${offset[0] - center - midNotchDepth}
     v${-TOP_THICKNESS}
-    h${2*NOTCH_DEPTH}
+    h${2*midNotchDepth}
     v${TOP_THICKNESS}`
   }
-    // h${wallLength - 2*NOTCH_DEPTH}
   path += `
     H${offset[0] - endNotchDepth}
     v${-TOP_THICKNESS}
@@ -794,9 +750,9 @@ function wallPath(path, offset, wallLength, angle1, angle2,
     v${-BOTTOM_THICKNESS}`
   for (let {center} of notches) { // Bottom notches
     path += `
-    H${offset[0] - center + NOTCH_DEPTH}
+    H${offset[0] - center + midNotchDepth}
     v${BOTTOM_THICKNESS}
-    h${-2*NOTCH_DEPTH}
+    h${-2*midNotchDepth}
     v${-BOTTOM_THICKNESS}`
   }
   path += `Z`
@@ -888,28 +844,28 @@ function romanNumeralPath(x, offset) {
   let roman = decimalToRomanNumeral[x]
   let path = ""
   for (let d of roman) {
-    if (d == "V" || d == "X") offset[0] -= 2
+    if (d == "V" || d == "X") offset[0] -= 1
     path += `M${offset[0]} ${offset[1]}`
     switch(d) {
       case "I":
-        path += "v 30"
-        offset[0] += 6
+        path += "v 15"
+        offset[0] += 3
         break
       case "V":
-        path += "l8 30 l8 -30"
-        offset[0] += 22
+        path += "l4 15 l4 -15"
+        offset[0] += 11
         break
       case "X":
-        let subwidth = 14
-        path += `l${subwidth} 30
+        let subwidth = 7
+        path += `l${subwidth} 15
           M${offset[0] + subwidth} ${offset[1]}
-          l-${subwidth} 30`
-        offset[0] += subwidth + 6
+          l-${subwidth} 15`
+        offset[0] += subwidth + 3
         break
     }
   }
   maxX = Math.min(maxX, offset[0])
-  maxY = Math.min(maxY, offset[1] + 30)
+  maxY = Math.min(maxY, offset[1] + 15)
   return path
 }
 
@@ -921,7 +877,7 @@ function decimalPath(x, offset) {
   let path = ""
   for (let d of x) {
     if (d == ".") {
-      path += `M${offset[0]-4} ${offset[1] + 20}
+      path += `M${offset[0]-2} ${offset[1] + 10}
       v -1 h 1 v 1 Z`
       continue
     }
@@ -929,49 +885,49 @@ function decimalPath(x, offset) {
     switch(d) {
       case "0":
         path += `M${offset[0]} ${offset[1]}
-        h 10 v 20 h -10 v -16`
+        h 5 v 10 h -5 v -8`
         break
       case "1":
-        path += `M${offset[0] + 10} ${offset[1]}
-        v 20`
+        path += `M${offset[0] + 5} ${offset[1]}
+        v 10`
         break
       case "2":
         path += `M${offset[0]} ${offset[1]}
-        h 10 v 10 h -10 v 10 h 10`
+        h 5 v 5 h -5 v 5 h 5`
         break
       case "3":
         path += `M${offset[0]} ${offset[1]}
-        h 10 v 20 h -10 m 0 -10 h 10`
+        h 5 v 10 h -5 m 0 -5 h 5`
         break
       case "4":
         path += `M${offset[0]} ${offset[1]}
-        v 10 h 10 v -10 v 20`
+        v 5 h 5 v -5 v 10`
         break
       case "5":
-        path += `M${offset[0] + 10} ${offset[1]}
-        h -10 v 10 h 10 v 10 h -10`
+        path += `M${offset[0] + 5} ${offset[1]}
+        h -5 v 5 h 5 v 5 h -5`
         break
       case "6":
-        path += `M${offset[0] + 10} ${offset[1]}
-        h -10 v 20 h 10 v -10 h -6`
+        path += `M${offset[0] + 5} ${offset[1]}
+        h -5 v 10 h 5 v -5 h -3`
         break
       case "7":
         path += `M${offset[0]} ${offset[1]}
-        h 10 v 20`
+        h 5 v 10`
         break
       case "8":
         path += `M${offset[0]} ${offset[1]}
-        h 10 v 20 h -10 v -16 m 0 6 h 6`
+        h 5 v 10 h -5 v -8 m 0 3 h 3`
         break
       case "9":
-        path += `M${offset[0] + 10} ${offset[1] + 20}
-        v -20 h -10 v 10 h 6`
+        path += `M${offset[0] + 5} ${offset[1] + 10}
+        v -10 h -5 v 5 h 3`
         break
     }
-    offset[0] += 17
+    offset[0] += 8
   }
   maxX = Math.max(maxX, offset[0])
-  maxY = Math.max(maxY, offset[1] + 20)
+  maxY = Math.max(maxY, offset[1] + 10)
   return path
 }
 

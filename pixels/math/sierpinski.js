@@ -1,9 +1,7 @@
 
 addButton("math/sierpinski", function() {
   cat5PortMidway = true
-  EXTRA_SCALE = 1
-  STARTING_WALL_INDEX = 1
-
+  EXTRA_SCALE = 1.0025
 
   sortOverride = (edge, previousEdge, angle) => {
     if (epsilonEquals(angle, 0)) {

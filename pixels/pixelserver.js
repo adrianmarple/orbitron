@@ -188,6 +188,9 @@ addPOSTListener(async (response, body) => {
 
 async function generateGCode(info, index) {
   let print = info.prints[index]
+  if (info.prints.length == 1) {
+    index = ""
+  }
   let svgFilePath = `${info.fullProjectName}${index} walls.svg`
   let scadFilePath = `${info.fullProjectName}${index} walls.scad`
   let stlFilePath = `${info.fullProjectName}${index}_walls.stl`.replace(" ", "_")
@@ -228,17 +231,17 @@ scadFileContents += `
   import("${svgFilePath}");
 }
 `
-  console.log("Making .scad")
+  console.log("Making .scad " + index)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
-  console.log("Generating .stl")
+  console.log("Generating .stl " + index)
   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
-  console.log("Generating .gcode")
+  console.log("Generating .gcode " + index)
 
   // await execute(`/Applications/Slic3r.app/Contents/MacOS/Slic3r --load makergear2_slic3r_config.ini --rotate 90 "${stlFilePath}"`)
   let slic3rPath = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"
   let suffix = info.noInputShaper ? "_noIS" : ""
   await execute(`${slic3rPath} -g --load ${info.printer}_config${suffix}.ini "${stlFilePath}"`)
-  console.log("Done.")
+  console.log("Done " + index)
 }
 
 addGETListener((response, filePath) => {

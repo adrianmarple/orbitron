@@ -1,11 +1,8 @@
 
 addButton("random/mirrorframe", () => {
-  setLaserParams({
-    BORDER: 9,
-    NOTCH_DEPTH: 9,
-  })
-  // let longSequence = [4,5,6,7,8,8,7,6,5,4,3,3,3]
-  // let shortSequence = [4,5,6,7,7,6,5,4,3,3,3]
+  BORDER = 9
+  NOTCH_DEPTH = 9
+  
   let longSequence = [5,6,8,10,10,8,6,5,4,4,4]
   let shortSequence = [5,6,8,8,6,5,4,4,4]
   longSequence = shortSequence

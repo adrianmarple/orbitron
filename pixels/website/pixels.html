@@ -53,17 +53,22 @@ canvas {
   display: grid;
   grid-template-rows: repeat(4, 32px);
   grid-auto-flow: column;
+  color: white;
 }
 #settings > div {
   display: flex;
   font-size: 24px;
-  color: white;
   cursor: pointer;
 }
-#settings input {
+#settings input[type="checkbox"] {
   width: 1.3em;
   margin-right: 12px;
 }
+#settings input[type="number"] {
+  width: 3em;
+  margin: 0 12px;
+}
+
 </style>
 </head>
 <body>
@@ -86,6 +91,10 @@ canvas {
   <div>useMINI</div>
   <div>noInputShaper</div>
   <div>onlyOneWall</div>
+  <span>
+    <input id="STARTING_WALL_INDEX" type="number" value="0" min="0" />
+    STARTING_WALL_INDEX
+  </span>
 </div>
 
 <script>
@@ -109,6 +118,17 @@ function reset() {
   sortOverride = null
 }
 reset()
+
+let wallIndexInput = document.getElementById("STARTING_WALL_INDEX")
+STARTING_WALL_INDEX = localStorage.getItem("STARTING_WALL_INDEX") || 0
+wallIndexInput.value = STARTING_WALL_INDEX
+wallIndexInput.addEventListener("change", () => {
+  STARTING_WALL_INDEX = wallIndexInput.value
+  localStorage.setItem("STARTING_WALL_INDEX", STARTING_WALL_INDEX)
+  if (fullProjectName)
+    buttonClickMap[fullProjectName]() // Reset
+})
+STARTING_I = 0
 
 // ===================== interaction =====================
 
