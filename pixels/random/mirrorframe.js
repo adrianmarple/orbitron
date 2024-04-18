@@ -22,7 +22,7 @@ addButton("random/mirrorframe", () => {
     verticies[verticies.length - 1], [...longSequence], false)
 
   center()
-  EulerianPath(60)
+  EulerianPath(59)
 })
 
 function diamonds(base0, base1, lengths, handedness) {

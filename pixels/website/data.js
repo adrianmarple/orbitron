@@ -142,7 +142,7 @@ function generatePixelInfo() {
   let uniqueToDupe = []
   let dupeToUniques = []
   let previousVertex = startVertex(path)
-  let v0 = [0,0,0]
+  let v0 = [NaN,NaN,NaN]
 
   let centerOffset = [0,0,0]
   if (centerOnExport) {
