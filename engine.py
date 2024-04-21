@@ -220,10 +220,11 @@ def update_prefs(update, client_timestamp=0):
 
 def clear_prefs():
   global prefs, current_prefs, converted_prefs
-  prefs = {}
-  current_prefs = {}
+  prefs.clear()
+  pref_to_client_timestamp.clear()
+  converted_prefs.clear()
+  current_prefs.clear()
   current_prefs.update(default_prefs)
-  converted_prefs = {}
   idle.update_prefs()
   for game in games.values():
     game.update_prefs()
