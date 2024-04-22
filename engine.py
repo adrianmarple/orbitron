@@ -143,7 +143,6 @@ default_prefs = {
   # TIMING
   "startTime": "00:00",
   "endTime": "23:59",
-  "idleColor": "rainbow",
   "idleMin": 0,
   "applyIdleMinBefore": False,
   "hasStartAndEnd": False,
@@ -165,10 +164,11 @@ default_prefs = {
   "sinMin": 25,
 
   # COLOR
+  "idleColor": "gradient",
   "brightness": 100,
   "fixedColor": "#ffffff",
-  "gradientStartColor": "#ff0000",
-  "gradientEndColor": "#0000ff",
+  "gradientStartColor": "#ffa214",
+  "gradientEndColor": "#ff6000",
   "gradientThreshold": 66,
   "rainbowDuration": 10.0,
   "rainbowFade": 0.0,
