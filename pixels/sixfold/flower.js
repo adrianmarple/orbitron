@@ -1,35 +1,30 @@
 
-addButton("sixfold/mandala", () => {  
+addButton("sixfold/flower", () => {
+  cat5PortMidway = true
+  
   let dodecEdges = addDodecagon([0,0,0], 3)
-  // tieFighter(dodecEdges, 1)
   for (let i = 0; i < dodecEdges.length; i++) {
     let edge = dodecEdges[i]
     if (i%2 == 1) {
       // extrudePolygon(edge, 4, null, true)
       let squedges = extrudePolygon(edge, 4)
       let outerDodecEdges = extrudePolygon(squedges[2], 12)
-      // if (i%4 == 1) {
-        tieFighter(outerDodecEdges)
-      // } else {
-        // squedges = extrudePolygon(outerDodecEdges[6], 4)
-        // extrudePolygon(squedges[1], 6)
-        // extrudePolygon(squedges[3], 6)
-      // }
+      processDodec(outerDodecEdges)
     } else {
       let hedges = extrudePolygon(edge, 6)
       let squedges = extrudePolygon(hedges[3], 4)
       hedges = extrudePolygon(squedges[2], 6)
-      extrudePolygon(hedges[2], 4)
-      extrudePolygon(hedges[4], 4)
+      // extrudePolygon(hedges[2], 4)
+      // extrudePolygon(hedges[4], 4)
     }
   }
-  rotateZAll(-Math.PI/6, true)
+
   doubleEdges()
   let startingEdge = 47
-  EulerianPath(139)
+  EulerianPath(90)
 })
 
-function tieFighter(dodecEdges, parity) {
+function processDodec(dodecEdges, parity) {
   parity = parity || 0
   let center = [0,0,0]
   for (let edge of dodecEdges) {
@@ -43,15 +38,25 @@ function tieFighter(dodecEdges, parity) {
     let toCenter = delta(center, edge.verticies[0].ogCoords)
     let negate = cross(toCenter, edgeDelta(edge))[2] > 0
 
-    if (i%4 == parity + 2) {
+    if (i%4 == parity) {
       let squedges = extrudePolygon(edge,4,null,negate)
-      if (i == parity+2) extrudePolygon(squedges[2], 6)
+      if (i == parity) {
+        extrudePolygon(squedges[2], 6)
+        // extrudePolygon(squedges[2], 3)
+        // removeEdge(squedges[0])
+        removeEdge(squedges[2])
+      }
+      if (i == 4) {
+        removeEdge(squedges[1])
+      }
+      if (i == 8) {
+        removeEdge(squedges[3])
+      }
     }
 
-    // if (i%2 == parity) {
-    //   extrudePolygon(edge,4,null,negate)
-    // } else {
-    //   extrudePolygon(edge,3,null,negate)
-    // }
+    if (i > 3 && i < 9) {
+      removeEdge(dodecEdges[i])
+    }
+
   }
 }

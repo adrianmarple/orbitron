@@ -149,3 +149,15 @@ function linearCombo(v1, v2, alpha) {
     v1[2] * alpha + v2[2] * (1 - alpha),
   ]
 }
+
+// TODO vector object?
+
+class Plain {
+  offset = 0
+  normal = [0,0,1]
+
+  mirror(v) {
+    // TODO
+    return v
+  }
+}
