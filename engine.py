@@ -170,6 +170,7 @@ default_prefs = {
   "gradientStartColor": "#ffa214",
   "gradientEndColor": "#ff6000",
   "gradientThreshold": 66,
+  "fadeToBlack": True,
   "rainbowDuration": 10.0,
   "rainbowFade": 0.0,
 }

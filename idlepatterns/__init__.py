@@ -108,7 +108,10 @@ class Idle(Game):
     if get_pref("hasStartAndEnd"):
       self.apply_fade()
     self.target_values = self.render_values.copy()
-    self.blend_pixels()
+    if not get_pref("fadeToBlack"):
+      self.render_values = 1 + self.render_values*0
+    else:
+      self.blend_pixels()
     self.apply_color()
     self.apply_brightness()
     if not get_pref("applyIdleMinBefore"):
