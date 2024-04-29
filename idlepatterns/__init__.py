@@ -110,6 +110,9 @@ class Idle(Game):
     self.target_values = self.render_values.copy()
     if not get_pref("fadeToBlack"):
       self.render_values = 1 + self.render_values*0
+      if get_pref("hasStartAndEnd"):
+        self.apply_fade()
+      
     else:
       self.blend_pixels()
     self.apply_color()

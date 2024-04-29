@@ -220,14 +220,14 @@ var app = new Vue({
         subGroup.add(pixel)
         points.push(new THREE.Vector3(point[0], point[1], point[2]))
       }
-      let start = this.pixelData.coords[0]
-      points.push(new THREE.Vector3(start[0], start[1], start[2]))
-      let lineMaterial = new THREE.LineBasicMaterial({
-        color: stripColor,
-      })
-      let lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
-      let line = new THREE.Line(lineGeometry, lineMaterial)
-      subGroup.add(line)
+      // let start = this.pixelData.coords[0]
+      // points.push(new THREE.Vector3(start[0], start[1], start[2]))
+      // let lineMaterial = new THREE.LineBasicMaterial({
+      //   color: stripColor,
+      // })
+      // let lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
+      // let line = new THREE.Line(lineGeometry, lineMaterial)
+      // subGroup.add(line)
 
       if (!this.pixelData.isWall) {
         let innerSphereGeometry = new THREE.SphereGeometry( 0.8 * scale, 32, 16 )

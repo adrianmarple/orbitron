@@ -1,10 +1,7 @@
 // SKIP
-addButton("math/sierp", function() {
+addButton("math/sierpinskitron", function() {
   cat5PortMidway = true
-  // NOTCH_DEPTH = 4
-  // BORDER = 5
-  // MAX_NOTCH_DISTANCE = 160
-  EXTRA_SCALE = 1.013
+  EXTRA_SCALE = 1.0025
 
   sortOverride = (edge, previousEdge, angle) => {
     if (epsilonEquals(angle, 0)) {
@@ -13,13 +10,14 @@ addButton("math/sierp", function() {
     return -angle
   }
 
-  let iterations = 2
+  let iterations = 4
 
   let triangle = addPolygon(3, [0,0,0], 4 << iterations)
   subdivide(triangle, iterations)
   rotateZAll(Math.PI/3, true)
 
   EulerianPath(9)
+  EulerianPath(26)
 })
 
 function subdivide(triangle, iterations) {
