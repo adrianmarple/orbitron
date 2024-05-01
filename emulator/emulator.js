@@ -1,5 +1,19 @@
 var canPlayAudio = false
 
+for (let param of new URLSearchParams(location.search)) {
+  if (param[0] == 'bgopacity') {
+    try {
+      document.getElementById("audio-root").style.opacity = parseFloat(param[1])
+    } catch(e) {
+      console.error(e)
+    }
+  }
+  if (param[0] == "musicon") {
+    window.MUSICON = true
+  }
+}
+
+
 function clamp(num, min, max){
   return Math.min(Math.max(num, min), max)
 } 
@@ -175,15 +189,14 @@ var app = new Vue({
   },
   methods: {
     init() {
-      this.warmUpAudio()
-      this.warmUpMusic()
+      // this.warmUpAudio()
+      // this.warmUpMusic()
       let w = window.innerWidth - 20
       let h = window.innerHeight - 20
 
       this.orbitronGroup = new THREE.Group()
       let subGroup = new THREE.Group()
       let bgColor = new THREE.Color(0)
-      let stripColor = new THREE.Color(0x282828)
       let scene = new THREE.Scene()
       scene.background = bgColor
 
@@ -220,14 +233,6 @@ var app = new Vue({
         subGroup.add(pixel)
         points.push(new THREE.Vector3(point[0], point[1], point[2]))
       }
-      // let start = this.pixelData.coords[0]
-      // points.push(new THREE.Vector3(start[0], start[1], start[2]))
-      // let lineMaterial = new THREE.LineBasicMaterial({
-      //   color: stripColor,
-      // })
-      // let lineGeometry = new THREE.BufferGeometry().setFromPoints(points)
-      // let line = new THREE.Line(lineGeometry, lineMaterial)
-      // subGroup.add(line)
 
       if (!this.pixelData.isWall) {
         let innerSphereGeometry = new THREE.SphereGeometry( 0.8 * scale, 32, 16 )
@@ -464,7 +469,7 @@ var app = new Vue({
       localStorage.setItem("sfxVolume", this.sfxVolume)
     },
     processAudio() {
-      if(!canPlayAudio) return
+      if(!canPlayAudio || !MUSICON) return
       let soundActions = this.gameState.soundActions
       if(soundActions) {
         for(actionString of soundActions){
