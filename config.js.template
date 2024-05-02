@@ -8,6 +8,7 @@ module.exports={
   DEV_MODE: false,
   HAS_EMULATION: false,
   IS_RELAY: false,
+  CLEAR_PREFS_ON_DISCONNECT: false,
   //CERT_LOCATION: "",
   //KEY_LOCATION: "",
   // PIXELS: "diamond",

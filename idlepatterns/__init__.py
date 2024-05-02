@@ -21,7 +21,8 @@ if config.get("BEAT_MODE"):
   GPIO.setwarnings(False)
   GPIO.setup(BEAT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-def set_idle(name):
+def set_idle():
+  name = engine.get_pref("idlePattern")
   idle = None
   if name in name_to_idle_game:
     idle = name_to_idle_game[name]

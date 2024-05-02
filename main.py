@@ -24,10 +24,7 @@ for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   engine.games[module_name] = module.game
   engine.game_selection_weights[module_name] = 1
 
-default_pattern = engine.prefs.get("idlePattern")
-if default_pattern is None:
-  default_pattern = config.get("IDLE", "default")
-idlepatterns.set_idle(default_pattern)
+idlepatterns.set_idle()
 
 def check_all_ready():
   if engine.game.state != "start":
@@ -38,6 +35,10 @@ def check_all_ready():
     if not player.is_ready:
       return
   engine.game.ontimeout()
+
+def clear_prefs():
+  engine.clear_prefs()
+  idlepatterns.set_idle()
 
 def consume_input():
   for line in fileinput.input():
@@ -63,17 +64,15 @@ def consume_input():
       elif message["type"] == "settings":
         engine.game.update_settings(message["update"])
       elif message["type"] == "prefs":
-        update = message["update"]
-        if "idlePattern" in update:
-          idlepatterns.set_idle(update["idlePattern"])
-        engine.update_prefs(update, client_timestamp=message["timestamp"])
+        engine.update_prefs(message["update"], client_timestamp=message["timestamp"])
+        idlepatterns.set_idle()
       elif message["type"] == "clearPrefs":
-        engine.clear_prefs()
+        clear_prefs()
       elif message["type"] == "savePrefs":
         engine.save_prefs(message["name"])
       elif message["type"] == "loadPrefs":
         engine.load_prefs(message["name"])
-        idlepatterns.set_idle(engine.current_prefs["idlePattern"])
+        idlepatterns.set_idle()
       elif message["type"] == "deletePrefs":
         engine.delete_prefs(message["name"])
 
@@ -90,6 +89,8 @@ def consume_input():
       elif message["type"] == "release":
         player.is_claimed = False
         check_all_ready()
+        if config.get("CLEAR_PREFS_ON_DISCONNECT") and len(engine.game.claimed_players()) == 0:
+          clear_prefs()
       elif message["type"] == "ready":
         player.set_ready()
         check_all_ready()

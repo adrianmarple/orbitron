@@ -174,6 +174,8 @@ default_prefs = {
   "rainbowDuration": 10.0,
   "rainbowFade": 0.0,
 }
+default_prefs["idlePattern"] = config.get("IDLE", default_prefs["idlePattern"])
+
 pref_type = {}
 for (key, value) in default_prefs.items():
   pref_type[key] = type(value)

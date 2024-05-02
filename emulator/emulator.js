@@ -1,15 +1,33 @@
 var canPlayAudio = false
+MUSICON = false
+DISABLE_WHEEL = true
+CAMERA_Z = 17
+CONTROLLER = "default"
 
 for (let param of new URLSearchParams(location.search)) {
-  if (param[0] == 'bgopacity') {
-    try {
-      document.getElementById("audio-root").style.opacity = parseFloat(param[1])
-    } catch(e) {
-      console.error(e)
+  try {
+    switch (param[0]) {
+      case 'bgopacity':
+        document.getElementById("audio-root").style.opacity = parseFloat(param[1])
+        break
+      case 'cameraz':
+        CAMERA_Z = parseFloat(param[1])
+        break
+      case 'controller':
+        if (param[1] == "none") {
+          document.getElementById("controller").remove()
+        }
+        CONTROLLER = param[1]
+        break
+      case 'musicon':
+        MUSICON = true
+        break
+      case 'disablewheel':
+        DISABLE_WHEEL = true
+        break
     }
-  }
-  if (param[0] == "musicon") {
-    window.MUSICON = true
+  } catch(e) {
+    console.error(e)
   }
 }
 
@@ -80,7 +98,6 @@ var yOffset = 0
 document.addEventListener("mousedown", dragStart, false)
 document.addEventListener("mouseup", dragEnd, false)
 document.addEventListener("mousemove", drag, false)
-document.addEventListener("wheel", wheel, true)
 
 function dragStart(e) {
   canPlayAudio = true
@@ -119,6 +136,9 @@ function drag(e) {
   }
 }
 
+if (!DISABLE_WHEEL) {
+  document.addEventListener("wheel", wheel, true)
+}
 function wheel(e) {
   let camera = app.$data.camera
   camera.position.z = clamp(camera.position.z + e.deltaY * 0.02, 8, 100)
@@ -127,7 +147,7 @@ function wheel(e) {
 var app = new Vue({
   el: "#app",
   data: {
-    showController: false,
+    showController: CONTROLLER == "auto",
     followingPlayer:-1,
     pixelData:{},
     camera:{},
@@ -201,7 +221,7 @@ var app = new Vue({
       scene.background = bgColor
 
       this.camera = new THREE.PerspectiveCamera(50, w/h, 1, 10000)
-      this.camera.position.z = 17
+      this.camera.position.z = CAMERA_Z
       scene.add(this.camera)
 
       let points = []
