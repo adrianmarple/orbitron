@@ -1,6 +1,6 @@
 var canPlayAudio = false
 MUSICON = false
-DISABLE_WHEEL = true
+DISABLE_WHEEL = false
 CAMERA_Z = 17
 CONTROLLER = "default"
 
@@ -147,6 +147,7 @@ function wheel(e) {
 var app = new Vue({
   el: "#app",
   data: {
+    CONTROLLER,
     showController: CONTROLLER == "auto",
     followingPlayer:-1,
     pixelData:{},

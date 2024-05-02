@@ -101,7 +101,7 @@ p {
   <div id=audio-root></div>
   <div id=orb-canvas></div>
   <div id=app>
-    <div id=player-picker>
+    <div v-if="CONTROLLER != 'none'" id=player-picker>
       <span
           v-for="(player,index) in gameState.players"
           v-if="player.isClaimed"
