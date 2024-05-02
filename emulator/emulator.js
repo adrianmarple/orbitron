@@ -211,8 +211,8 @@ var app = new Vue({
     init() {
       // this.warmUpAudio()
       // this.warmUpMusic()
-      let w = window.innerWidth - 20
-      let h = window.innerHeight - 20
+      let w = window.innerWidth
+      let h = window.innerHeight
 
       this.orbitronGroup = new THREE.Group()
       let subGroup = new THREE.Group()
