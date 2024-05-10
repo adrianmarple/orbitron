@@ -154,7 +154,7 @@ addPOSTListener(async (response, body) => {
   if (body && body.type == "download") {
     let filePath = ""
     if (!body.fileName.endsWith(".json")) {
-      filePath = path.join(process.env.HOME, "Dropbox/OrbitronManufacturing/")
+      filePath = path.join(process.env.HOME, "Dropbox/LumatronManufacturing/")
       let dirPath = filePath + body.fileName.split("/")[0]
       if (!fs.existsSync(dirPath)) {
         await fs.promises.mkdir(dirPath)
@@ -171,7 +171,7 @@ addPOSTListener(async (response, body) => {
 addPOSTListener(async (response, body) => {
   console.log(body.fullProjectName)
   if (body && body.type == "gcode") {
-    let filePath = path.join(process.env.HOME, "Dropbox/OrbitronManufacturing/")
+    let filePath = path.join(process.env.HOME, "Dropbox/LumatronManufacturing/")
     let dirPath = filePath + body.fullProjectName.split("/")[0]
     if (!fs.existsSync(dirPath)) {
       await fs.promises.mkdir(dirPath)

@@ -1,4 +1,6 @@
 
+startMidwayDownFinalEdge = false
+
 noncovergenceGuard = 1e4
 async function EulerianPath(currentVertex, pathOverride) {
   if (typeof currentVertex == 'number') {
@@ -160,6 +162,14 @@ function generatePixelInfo() {
     vertexAdjacencies.push([])
   }
 
+  let lastEdge = edges[path[path.length - 1]]
+  if (startMidwayDownFinalEdge) {
+    previousVertex = otherVertex(lastEdge, previousVertex)
+    path.unshift(path[path.length - 1])
+  }
+  console.log(path)
+  hasSeenLastEdge = false
+
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
     let nextVertex = otherVertex(edge, previousVertex)
@@ -171,6 +181,12 @@ function generatePixelInfo() {
     for (let alpha = ledAtVertex ? 0 : pixelDensity/2; true; alpha += pixelDensity) {
       if (ledAtVertex && epsilonEquals(edgeLength, alpha, 0.01)) break
       if (!ledAtVertex && epsilonEquals(edgeLength, alpha - pixelDensity/2, 0.01)) break
+      
+      if (startMidwayDownFinalEdge && edge == lastEdge) {
+        if (!hasSeenLastEdge && alpha < edgeLength/2) continue
+        if (hasSeenLastEdge && alpha >= edgeLength/2) continue
+      }
+      
       if (alpha > edgeLength) {
         console.log(alpha/resizeScale, edgeLength/resizeScale)
         console.error("Edge legnth not a integer multiple of pixel density")
@@ -210,6 +226,12 @@ function generatePixelInfo() {
     }
     v0 = previousVertex.ogCoords
     previousVertex = nextVertex
+    if (edge == lastEdge) {
+      hasSeenLastEdge = true
+    }
+  }
+  if (startMidwayDownFinalEdge) {
+    path.shift()
   }
 
   let SIZE = coords.length

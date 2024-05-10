@@ -60,7 +60,7 @@ reset = () => {
   // WALL_PANEL_HEIGHT = 180 // Prusa Mini
   // WALL_PANEL_WIDTH = 180  // Pruse Mini
   WALL_SVG_PADDING = 6
-  WALL_SVG_GAP = 3
+  WALL_SVG_GAP = 4
 
   MAX_WALL_LENGTH = WALL_PANEL_WIDTH - 2*WALL_SVG_PADDING
   MAX_NOTCH_DISTANCE = 120
@@ -637,20 +637,29 @@ function createPrintInfo(displayOnly) {
       let remainingWallLength = wallLength
       let angle1 = wallType.angle1
       let angle2 = wallType.angle2
+      let bottomOnlyNotches = []
       for (let k = 0; k < 100; k++) {
         if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH) ||
             (notches.length > 0 && notches[0].center > MAX_WALL_LENGTH)) {
           let tempWallLength = nextNotches.pop().center
           path = wallPath(path, offset, tempWallLength, angle1, 0, nextNotches, cat5Offset, false, printInfo)
           angle1 = 0
-          nextNotches = []
+          nextNotches = bottomOnlyNotches
+          nextNotches.forEach(notch => notch.center -= tempWallLength)
           notches.forEach(notch => notch.center -= tempWallLength)
           remainingWallLength -= tempWallLength
           cat5Offset -= tempWallLength
         } else if (notches.length == 0) {
           break
         } else {
-          nextNotches.push(notches.shift())
+          let notch = notches.shift()
+          if (notch.bottomOnly) {
+            bottomOnlyNotches.push(notch)
+          } else {
+            nextNotches.concat(bottomOnlyNotches)
+            bottomOnlyNotches = []
+            nextNotches.push(notch)
+          }
         }
       }
       // TODO check angles of split walls
