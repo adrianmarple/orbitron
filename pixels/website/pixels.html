@@ -79,7 +79,7 @@ canvas {
   <div class="button" id="downloadJSON">Download JSON</div>
   <div class="button" id="downloadTop">Download Top SVG</div>
   <div class="button" id="downloadBottom">Download Bottom SVG</div>
-  <div class="button" id="genWalls">Generate Wall .gcode</div>
+  <div class="button" id="genWalls">Generate Walls</div>
 </div>
 
 <div id="settings">
@@ -95,6 +95,14 @@ canvas {
     <input id="STARTING_WALL_INDEX" type="number" value="0" min="0" />
     STARTING_WALL_INDEX
   </span>
+  <span>
+  <select name="Process Stoping Point" id="PROCESS_STOP">
+    <option value="scad">Make OpenScade file</option>
+    <option value="stl">Generate .stl</option>
+    <option value="bgcode">Generate .bgcode</option>
+    <option value="upload">Upload .bgcode</option>
+  </select>
+</span>
 </div>
 
 <script>
@@ -129,6 +137,16 @@ wallIndexInput.addEventListener("change", () => {
     buttonClickMap[fullProjectName]() // Reset
 })
 STARTING_I = 0
+
+
+let processStopSelect = document.getElementById("PROCESS_STOP")
+PROCESS_STOP = localStorage.getItem("PROCESS_STOP") || "upload"
+processStopSelect.value = PROCESS_STOP
+processStopSelect.addEventListener("change", () => {
+  PROCESS_STOP = processStopSelect.value
+  localStorage.setItem("PROCESS_STOP", PROCESS_STOP)
+  console.log(PROCESS_STOP)
+})
 
 // ===================== interaction =====================
 

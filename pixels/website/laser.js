@@ -594,6 +594,7 @@ function createPrintInfo(displayOnly) {
       printer: useMINI ? "prusamini" : "prusamk4",
       noInputShaper,
       EXTRA_SCALE,
+      PROCESS_STOP,
       prints: [{
         wedges: [] 
       }],

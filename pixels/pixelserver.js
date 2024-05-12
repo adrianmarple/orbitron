@@ -171,14 +171,17 @@ addPOSTListener(async (response, body) => {
 addPOSTListener(async (response, body) => {
   console.log(body.fullProjectName)
   if (body && body.type == "gcode") {
+    let heirarchy = body.fullProjectName.split("/")
     let filePath = path.join(process.env.HOME, "Dropbox/LumatronManufacturing/")
-    let dirPath = filePath + body.fullProjectName.split("/")[0]
+    let dirPath = filePath + heirarchy[0]
     if (!fs.existsSync(dirPath)) {
       await fs.promises.mkdir(dirPath)
     }
-    body.fullProjectName = filePath + body.fullProjectName
+    body.fileName = heirarchy[heirarchy.length - 1]
+    body.fullPath = filePath + body.fullProjectName
     for (let i = 0; i < body.prints.length; i++) {
       await generateGCode(body, i) // Slic3r doesn't seem to work when running in parallel
+      console.log("Done " + i)
     }
     response.writeHead(200)
     response.end('post received')
@@ -191,11 +194,14 @@ async function generateGCode(info, index) {
   if (info.prints.length == 1) {
     index = ""
   }
-  let svgFilePath = `${info.fullProjectName}${index} walls.svg`
-  let scadFilePath = `${info.fullProjectName}${index} walls.scad`
-  let stlFilePath = `${info.fullProjectName}${index}_walls.stl`.replace(" ", "_")
+  let svgFilePath = `${info.fullPath}${index} walls.svg`
+  let scadFilePath = `${info.fullPath}${index} walls.scad`
+  let stlFilePath = `${info.fullPath}${index}_walls.stl`.replace(" ", "_")
+  let bgcodeFilePath = `${info.fullPath}${index}_walls.bgcode`.replace(" ", "_")
+  let bgcodePrinterFile = `${info.fileName}${index}_walls.bgcode`
 
   await fs.promises.writeFile(svgFilePath, print.svg, {encoding:'utf8',flag:'w'})
+
   let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
   let scadFileContents = `
 module wedge(angle, position, direction_angle, width, thickness) {
@@ -233,15 +239,22 @@ scadFileContents += `
 `
   console.log("Making .scad " + index)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
+  if (info.PROCESS_STOP == "scad") return
+
   console.log("Generating .stl " + index)
   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
-  console.log("Generating .gcode " + index)
+  if (info.PROCESS_STOP == "stl") return
 
-  // await execute(`/Applications/Slic3r.app/Contents/MacOS/Slic3r --load makergear2_slic3r_config.ini --rotate 90 "${stlFilePath}"`)
+  console.log("Generating .gcode " + index)
   let slic3rPath = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"
   let suffix = info.noInputShaper ? "_noIS" : ""
-  await execute(`${slic3rPath} -g --load ${info.printer}_config${suffix}.ini "${stlFilePath}"`)
-  console.log("Done " + index)
+  await execute(`${process.env.SLICER_PATH} -g --load ${info.printer}_config${suffix}.ini "${stlFilePath}" --output ${bgcodeFilePath}`)
+  if (info.PROCESS_STOP == "bgcode") return
+  
+  console.log("Uploading .gcode " + index)
+  await execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+  await execute(`curl -X PUT 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
+  if (info.PROCESS_STOP == "upload") return
 }
 
 addGETListener((response, filePath) => {
