@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <link rel="icon" href="/favicon.png">
+    <title>Lumatron</title>
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+    <canvas width="1000" height="1000"></canvas>
+    <svg id="wall" width=1000 height=100 viewBox="0 0 1000 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path stroke="#808080"/>
+    </svg>
+    <svg id="cover" width=1000 height=1000 viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scaleY(-1)">
+      <path stroke="#808080"/>
+    </svg>
+
+    <script>
+
+const initialSeed = 3
+const PHI = (1 + Math.sqrt(5))/ 2
+
+var isWall = false
+
+function reset() {
+  verticies = []
+  edges = []
+  edgeCentersBlacklist = []
+  path = []
+  seed = initialSeed
+  pixelDensity = 1
+  imageUrl = null
+  centerOnExport = true
+  resizeOnExport = true
+  isWall = true
+  ledAtVertex = true
+  sortOverride = null
+
+  useCAT5forChannelDepth = true
+  TOP_THICKNESS = 3.1 // For 3D printing
+  BOTTOM_THICKNESS = 3.1, // For 3D printing
+  WALL_THICKNESS = 2
+  WALL_VERT_KERF = 0.2
+  BORDER = 6
+  PIXEL_DISTANCE = 16.6
+  CHANNEL_WIDTH = 12
+  MIN_NON_NOTCH_LENGTH = 5
+  NOTCH_DEPTH = 5
+  FASTENER_DEPTH = 2.5
+  BOTTOM_KERF = 0
+  TOP_KERF = -0.1
+  WALL_KERF = 0.05
+  NOTCH_KERF = -0.05
+  WALL_STRAIGHT_KERF = 0.11
+
+  CAT5_HEIGHT = 15.1
+  CAT5_WIDTH = 15.3
+  CAT5_SNAP_DISTANCE = 13.6
+  CAT5_SNAP_WIDTH = 2
+  CAT5_SNAP_HEIGHT = 3.1
+  CAT5_SNAP_Y = 6.6
+  CAT5_WIRES_WIDTH = 12
+  CAT5_WIRES_HEIGHT = 5.6
+  CAT5_ADDITONAL_OFFSET = 0
+
+  POWER_HOLE_RADIUS = 5.8
+
+  CHANNEL_DEPTH = CAT5_HEIGHT - BOTTOM_THICKNESS
+  HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
+  
+  EXTRA_SCALE = 1.0025
+  END_CAP_FACTOR = 0.3872
+  KERF = BOTTOM_KERF
+  IS_BOTTOM = true
+
+  STARTING_I = 0
+
+  WALL_PANEL_HEIGHT = 200  // Prusa MK4
+  WALL_PANEL_WIDTH = 250  // Prusa MK4
+  WALL_SVG_PADDING = 6
+  WALL_SVG_GAP = 4
+
+  MAX_WALL_LENGTH = WALL_PANEL_WIDTH - 2*WALL_SVG_PADDING
+  MAX_NOTCH_DISTANCE = 120
+
+  minimalInnerBorder = false
+  exteriorOnly = false
+  cat5PortMidway = false
+
+  powerHoleWallIndex = -1
+}
+reset()
+
+
+// ===================== rendering =====================
+
+const ROTATION_SCALE = 0.01
+let previousXY = null
+let isDragging = false
+document.onmousedown = e => {
+  isDragging = true
+  previousXY = [e.clientX, e.clientY]
+}
+document.onmousemove = e => {
+  if (!isDragging || !previousXY) return
+
+  let newXY = [e.clientX, e.clientY]
+  let deltaX = newXY[0] - previousXY[0]
+  let deltaY = newXY[1] - previousXY[1]
+  if (isWall) {
+    let vector = [deltaX, -deltaY, 0]
+    translateAll(scale(vector, 0.1))
+  } else {
+    rotateXAll(ROTATION_SCALE * deltaY)
+    rotateYAll(-ROTATION_SCALE * deltaX)
+  }
+  previousXY = newXY
+}
+document.onmouseup = e => {
+  isRotating = false
+  previousXY = null
+}
+
+let pathIndex = -1;
+document.onkeydown = e => {
+  if (e.which === 39 || e.which === 38) {
+    pathIndex += 1
+  }
+  if (e.which === 37 || e.which === 40) {
+    pathIndex -= 1
+  }
+}
+
+let c = document.querySelector("canvas")
+let ctx = c.getContext("2d")
+
+setInterval(render, 30)
+function render() {
+  // ctx.fillStyle = "black"
+  ctx.clearRect(0, 0, 1000, 1000)
+
+  let subPath = null
+  if (path) {
+    subPath = path.slice(0, pathIndex)
+  }
+
+  let maxMagnitude = 0
+  for (let vertex of verticies) {
+    let point = vertex.coordinates
+    maxMagnitude = Math.max(maxMagnitude, magnitude(point))
+  }
+  let projScale = 8 / (0.6 + maxMagnitude)
+
+  let edgesCopy = edges.slice()
+  edgesCopy.sort((a, b) => {
+    let pathFactor = 0
+    if (path) {
+      pathFactor = subPath.includes(a.index) ? 0.1 : 0
+      pathFactor += a.isDupe ? 0.01 : 0
+      pathFactor -= subPath.includes(b.index) ? 0.1 : 0
+      pathFactor -= b.isDupe ? 0.01 : 0
+    }
+    return pathFactor + b.verticies[0].coordinates[2] - a.verticies[0].coordinates[2]
+  })
+  for (let edge of edgesCopy) {
+    let xy0 = project(edge.verticies[0].coordinates, projScale)
+    let xy1 = project(edge.verticies[1].coordinates, projScale)
+    let z = edge.verticies[0].coordinates[2] + 5.5
+    ctx.beginPath()
+
+    let alpha = 2/z
+    if (subPath && subPath.includes(edge.index)) {
+      alpha *= 1.5
+      ctx.strokeStyle = `rgba(255,255,185,${alpha})`
+      if (edge.isDupe) {
+        ctx.strokeStyle = `rgba(215,255,255,${alpha})`
+      }
+    } else {
+      ctx.strokeStyle = `rgba(255,25,255,${alpha})`
+    }
+    ctx.lineWidth = 100 / (z + 10)
+    ctx.moveTo(xy0[0], xy0[1])
+    ctx.lineTo(xy1[0], xy1[1])
+    ctx.closePath()
+    ctx.stroke()
+  }
+
+  ctx.fillStyle = "white"
+  ctx.fontSize = 30
+  for (let vertex of verticies) {
+    let xy0 = project(vertex.coordinates, projScale)
+    if (showVertexNumbers) {
+      ctx.fillText(vertex.index, xy0[0] + 4, xy0[1] - 5)
+    }
+  }
+  for (let edge of edges) {
+    let center = add(edge.verticies[0].coordinates, edge.verticies[1].coordinates)
+    center = scale(center, 0.5)
+    let xy0 = project(center, projScale)
+    if (showEdgeNumbers && !edge.isDupe) {
+      ctx.fillText(edge.index, xy0[0] + 4, xy0[1] - 5)
+    }
+  }
+
+  document.getElementById("cover").style.display = window.showLaserSVG ? "block" : "none"
+  document.getElementById("wall").style.display = window.showWallSVG ? "block" : "none"
+}
+    </script>
+    
+    <script type="text/javascript" src="topology.js"></script>
+    <script type="text/javascript" src="data.js"></script>
+    <script type="text/javascript" src="vector.js"></script>
+    <script type="text/javascript" src="laser.js"></script>
+  </body>
+</html>
