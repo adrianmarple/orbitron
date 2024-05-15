@@ -135,6 +135,7 @@ async function closeRootServer() {
 }
 
 MANUFACTURING_FOLDER = "Dropbox/LumatronManufacturing/" // Move to .env?
+MANUFACTURING_FOLDER = path.join(process.env.HOME, MANUFACTURING_FOLDER)
 
 addPOSTListener(async (response, body) => {
   if (body && body.type == "download") {
@@ -142,7 +143,7 @@ addPOSTListener(async (response, body) => {
     if (body.fileName.endsWith(".json")) {
       filePath = "../pixels/"
     } else {
-      filePath = path.join(process.env.HOME, MANUFACTURING_FOLDER)
+      filePath = MANUFACTURING_FOLDER
     }
     let dirPath = filePath + body.fileName.split("/")[0]
     if (!fs.existsSync(dirPath)) {
@@ -156,16 +157,108 @@ addPOSTListener(async (response, body) => {
   }
 })
 
+async function fleshOutBody(body) {
+  let heirarchy = body.fullProjectName.split("/")
+  let filePath = MANUFACTURING_FOLDER
+  let dirPath = filePath + heirarchy[0]
+  if (!fs.existsSync(dirPath)) {
+    await fs.promises.mkdir(dirPath)
+  }
+  body.fileName = heirarchy[heirarchy.length - 1]
+  body.fullPath = filePath + body.fullProjectName
+}
+
+addPOSTListener(async (response, body) => {
+  if (body && body.type == "qr") {
+    await fleshOutBody(body)
+    console.log("Downloading png")
+    await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.png", body.data, 'base64')
+    console.log("Converting to bmp")
+    await execute(`sips -s format bmp ${MANUFACTURING_FOLDER}qr.png --out ${MANUFACTURING_FOLDER}qr.bmp`)
+    console.log("Tracing to create svg")
+    await execute(`${process.env.POTRACE} ${MANUFACTURING_FOLDER}qr.bmp -s`)
+    console.log("Generating stl")
+    let scadFileContents = `
+    $fn=32;
+    w = 72;
+    h = 108.2;
+    thickness1 = 2;
+    thickness2 = 3;
+    
+    window_w = 51.8;
+    window_h = 22;
+    window_h_offset = 14.6;
+    magnet_r = 3.5;
+    magnet_offset = 1.5;
+    
+    qr_base_w = 51.6;
+    qr_w = 48;
+    SCALE = ${body.scale} * 2.83464566929;
+    
+    union() {
+      difference() {
+        cube([w, h, thickness1]);
+          
+        translate([(w - window_w)/2, h - window_h - window_h_offset, -1])
+        cube([window_w, window_h, thickness1 + 2]);
+          
+        translate([0, 0, -1])
+        union() {
+          translate([magnet_r + magnet_offset, magnet_r + magnet_offset, 0])
+          cylinder(h=thickness1, r=magnet_r);
+            
+          translate([w - magnet_r - magnet_offset, magnet_r + magnet_offset, 0])
+          cylinder(h=thickness1, r=magnet_r);
+            
+          translate([w - magnet_r - magnet_offset, h - magnet_r - magnet_offset, 0])
+          cylinder(h=thickness1, r=magnet_r);
+            
+          translate([magnet_r + magnet_offset, h - magnet_r - magnet_offset, 0])
+          cylinder(h=thickness1, r=magnet_r);
+        }
+      }
+      
+      translate([(w - qr_base_w)/2, (w - qr_base_w)/2, thickness1])
+      cube([qr_base_w, qr_base_w, thickness2]);
+    
+    
+      translate([(w - qr_w)/2, (w - qr_w)/2, thickness1 + thickness2])
+      scale([SCALE, SCALE, 1])
+      linear_extrude(height = 0.2)
+      import("${MANUFACTURING_FOLDER}qr.svg");
+    }`
+    await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.scad", scadFileContents)
+    let stlFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.stl"
+    await execute(`openscad -o "${stlFilePath}" "${MANUFACTURING_FOLDER}qr.scad"`)
+
+    console.log("Generating gcode")
+    let gcodeFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.gcode"
+    await execute(`${process.env.SLICER} -g --load box_top_config.ini "${stlFilePath}" --output ${gcodeFilePath}`)
+    let gcodeContents = (await fs.promises.readFile(gcodeFilePath)).toString()
+    let chunkToReplace = gcodeContents.match(/;Z:5\.1.*?G1 E\.7 F2100/s)[0]
+    if (chunkToReplace.length < 300) {
+      let chunkLines = chunkToReplace.split("\n")
+      chunkLines.pop()
+      chunkLines = chunkLines.concat(["M600", "G1 E0.3 F1500"]) // Color change
+      gcodeContents = gcodeContents.replace(chunkToReplace, chunkLines.join("\n"))
+      await fs.promises.writeFile(gcodeFilePath, gcodeContents)
+    }
+    
+    console.log("Uploading bgcode")
+    let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_box_top.gcode"
+    await execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+    await execute(`curl -X PUT 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${gcodeFilePath}`)
+
+    response.writeHead(200)
+    response.end('post received')
+    console.log("All Done!")
+    return true
+  }
+})
+
 addPOSTListener(async (response, body) => {
   if (body && body.type == "gcode") {
-    let heirarchy = body.fullProjectName.split("/")
-    let filePath = path.join(process.env.HOME, MANUFACTURING_FOLDER)
-    let dirPath = filePath + heirarchy[0]
-    if (!fs.existsSync(dirPath)) {
-      await fs.promises.mkdir(dirPath)
-    }
-    body.fileName = heirarchy[heirarchy.length - 1]
-    body.fullPath = filePath + body.fullProjectName
+    await fleshOutBody(body)
     for (let i = 0; i < body.prints.length; i++) {
       await generateGCode(body, i) // Slic3r doesn't seem to work when running in parallel
       console.log("Done " + i)
@@ -192,39 +285,38 @@ async function generateGCode(info, index) {
 
   let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
   let scadFileContents = `
-module wedge(angle, position, direction_angle, width, thickness) {
-    pivot_z = angle < 0 ? 0 : thickness;
-    actual_angle = angle < 0 ? -90 - angle : 90 - angle;
-    
-    translate(position)
-    rotate(a=direction_angle, v=[0,0,1])
-    difference() {
-        translate([0, -width/2, pivot_z])
-        rotate(a=actual_angle, v=[0,1,0])
-        translate([0, 0, -pivot_z])
-        cube([90, width, thickness]);
-        
-        translate([0,0,-100])
-        cube([200,200,200], center=true);
-        
-        translate([0,0,100 + thickness])
-        cube([200,200,200], center=true);
-    }
-}
+  module wedge(angle, position, direction_angle, width, thickness) {
+      pivot_z = angle < 0 ? 0 : thickness;
+      actual_angle = angle < 0 ? -90 - angle : 90 - angle;
+      
+      translate(position)
+      rotate(a=direction_angle, v=[0,0,1])
+      difference() {
+          translate([0, -width/2, pivot_z])
+          rotate(a=actual_angle, v=[0,1,0])
+          translate([0, 0, -pivot_z])
+          cube([90, width, thickness]);
+          
+          translate([0,0,-100])
+          cube([200,200,200], center=true);
+          
+          translate([0,0,100 + thickness])
+          cube([200,200,200], center=true);
+      }
+  }
 
-scale([${info.EXTRA_SCALE}, 1, 1])
-union() {`
-for (let wedge of print.wedges) {
+  scale([${info.EXTRA_SCALE}, 1, 1])
+  union() {`
+  for (let wedge of print.wedges) {
+    scadFileContents += `
+    wedge(${wedge.angle}, [${wedge.position}], ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
+  }
   scadFileContents += `
-  wedge(${wedge.angle}, [${wedge.position}], ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
-}
-scadFileContents += `
 
-  linear_extrude(height = ${info.thickness})
-  scale([${scale},${scale},${scale}])
-  import("${svgFilePath}");
-}
-`
+    linear_extrude(height = ${info.thickness})
+    scale([${scale},${scale},${scale}])
+    import("${svgFilePath}");
+  }`
   console.log("Making .scad " + index)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
   if (info.PROCESS_STOP == "scad") return
@@ -234,8 +326,7 @@ scadFileContents += `
   if (info.PROCESS_STOP == "stl") return
 
   console.log("Generating .gcode " + index)
-  let slic3rPath = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"
-  await execute(`${process.env.SLICER_PATH} -g --load wall_config.ini "${stlFilePath}" --output ${bgcodeFilePath}`)
+  await execute(`${process.env.SLICER} -g --load wall_config.ini "${stlFilePath}" --output ${bgcodeFilePath}`)
   if (info.PROCESS_STOP == "bgcode") return
   
   console.log("Uploading .gcode " + index)

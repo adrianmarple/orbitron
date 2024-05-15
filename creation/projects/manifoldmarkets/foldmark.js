@@ -1,17 +1,5 @@
 
 module.exports = () => {
-  // setLaserParams({
-  //   BORDER: 4,
-  //   CHANNEL_WIDTH: 5,
-  //   CHANNEL_DEPTH: 8,
-  //   NOTCH_DEPTH: 3,
-  //   PIXEL_DISTANCE: 8.333, //https://www.superlightingled.com/4mm-ws2812c-individually-addressable-rgb-led-strip-light-120ledsm-328ft1m-p-4003.html
-  // })
-  setLaserParams({
-    NOTCH_DEPTH: 4,
-    BORDER: 5,
-  })
-
   let v0 = addVertex([0,0,0])
   let e0 = addLine(v0, 16, 15)
   let v1 = e0.verticies[1]

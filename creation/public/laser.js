@@ -734,7 +734,7 @@ function downloadSVGAsText(id, name) {
 }
 
 async function generateManufacturingInfo() {
-  document.querySelectorAll("path").forEach(path => path.setAttribute('d', ""))
+  document.querySelectorAll("path.laser").forEach(path => path.setAttribute('d', ""))
   cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
   if (isWall) {
     KERF = TOP_KERF

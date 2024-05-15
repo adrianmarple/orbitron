@@ -11,6 +11,7 @@
   <div class="button" @click="downloadCover(false)">Download Top SVG</div>
   <div class="button" @click="downloadCover(true)">Download Bottom SVG</div>
   <div class="button" @click="genWalls">Generate Walls</div>
+  <div class="button" @click="genBoxTop">Generate Box Top</div>
 </div>
 
 <div id="settings">
@@ -66,6 +67,7 @@
 </template>
 
 <script>
+import QRCodeStyling from 'qr-code-styling'
 
 export default {
   name: 'App',
@@ -93,6 +95,7 @@ export default {
         },
       ],
       buttons: [],
+      qrCode: null,
     }
   },
   created() {
@@ -108,7 +111,17 @@ export default {
         setting.value = setting.value == "true"
       window[setting.name] = setting.value
     }
-    
+
+    this.qrCode = new QRCodeStyling({
+      width: 25 * 20,
+      height: 25 * 20,
+      margin: 0,
+      type: "svg",
+      data: "https://a.lumatron.art/",
+      dotsOptions: { type: "rounded" },
+      cornersSquareOptions: { type: "extra-rounded" },
+      qrOptions: { errorCorrectionLevel: "L" },
+    })
     this.fetchButtons()
   },
   computed: {
@@ -127,9 +140,16 @@ export default {
       localStorage.setItem("button", name)
       reset()
       await require("../projects/" + name + ".js")()
-      // await window.buttonClickMap[name]()
       generatePixelInfo()
       await generateManufacturingInfo()
+      window.orbID = window.orbID || name.split("/")[1]
+      let qrUrl = 'https://a.lumatron.art/' + orbID
+      this.qrSize = (qrUrl.length <= 32 ? 25 : 29) * 20
+      this.qrCode.update({
+        width: this.qrSize,
+        height: this.qrSize,
+        data: qrUrl
+      })
     },
     async fetchButtons() {
       this.buttons = await (await fetch("/buttonlist.json")).json()
@@ -139,34 +159,39 @@ export default {
       
       this.openProject(localStorage.getItem("button"))
     },
-    download(fileName, data) {
+
+    push(bodyJSON) {
       fetch("http://localhost:8000/", {
         method: "POST",
         mode: 'no-cors',
-        body: JSON.stringify({
-          type: "download",
-          fileName,
-          data,
-        }),
+        body: JSON.stringify(bodyJSON),
         headers: {
           "Content-type": "application/json; charset=UTF-8"
         }
+      })
+    },
+    download(fileName, data) {
+      this.push({
+        type: "download",
+        fileName,
+        data,
       })
       console.log(`Downloading ${fileName}`, data)
     },
     genWalls() {
       let wall = document.getElementById("wall")
       wall.style.display = "block"
-      let printInfo = createPrintInfo()
-      fetch("http://localhost:8000/", {
-        method: "POST",
-        mode: 'no-cors',
-        body: JSON.stringify(printInfo),
-        headers: {
-          "Content-type": "application/json; charset=UTF-8"
-        }
+      this.push(createPrintInfo())
+      console.log("Generating gcode")
+    },
+    async genBoxTop() {
+      let data = await blobToBase64(await this.qrCode.getRawData())
+      this.push({
+        fullProjectName,
+        type: "qr",
+        scale: 48.0 / this.qrSize,
+        data
       })
-      console.log("Generating gcode", printInfo)
     },
     downloadJSON() {
       let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
@@ -183,6 +208,14 @@ export default {
       this.download(`${fullProjectName} ${isBottom ? "bottom":"top"}.svg`, elem.outerHTML)
     },
   },
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, _) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result.split(",")[1])
+    reader.readAsDataURL(blob)
+  })
 }
 </script>
 
