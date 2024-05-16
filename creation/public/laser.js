@@ -493,13 +493,14 @@ function createPrintInfo(displayOnly) {
           if (notch.bottomOnly) {
             bottomOnlyNotches.push(notch)
           } else {
-            nextNotches.concat(bottomOnlyNotches)
+            nextNotches = nextNotches.concat(bottomOnlyNotches)
             bottomOnlyNotches = []
             nextNotches.push(notch)
           }
         }
       }
       // TODO check angles of split walls
+      nextNotches = nextNotches.concat(bottomOnlyNotches)
       path = wallPath(path, offset, remainingWallLength, angle1, angle2,
           nextNotches, cat5Offset, isPowerCordPort, printInfo)
 
@@ -710,13 +711,6 @@ function decimalPath(x, offset) {
   maxX = Math.max(maxX, offset[0])
   maxY = Math.max(maxY, offset[1] + 10)
   return path
-}
-
-function printPath(path) {
-  	console.log("path", path.length)
-  	for (let vertex of path) {
-  	  console.log(vertex.index)
-  	}
 }
 
 function downloadSVGAsText(id, name) {
