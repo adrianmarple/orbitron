@@ -46,6 +46,10 @@ function getContentType(filePath){
       break;
     case '.zip':
       contentType = 'application/zip'
+      break;
+    case '.oft':
+      contentType = 'font/otf'
+      break;
   }
   //console.log(filePath, extname, contentType)
   return contentType

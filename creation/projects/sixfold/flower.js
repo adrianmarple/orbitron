@@ -38,6 +38,8 @@ function processDodec(dodecEdges, parity) {
 
 module.exports = () => {
   cat5PortMidway = true
+  startMidwayDownFinalEdge = true
+  ledAtVertex = false
 
   let dodecEdges = addDodecagon([0,0,0], 3)
   for (let i = 0; i < dodecEdges.length; i++) {

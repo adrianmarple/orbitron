@@ -8,244 +8,6 @@ document.addEventListener("click", event => {
   }
 })
 
-
-Vue.component('number', {
-  props: ['title'],
-  computed: {
-    name() { return this.$vnode.key },
-  },
-  template: `
-<div class="row" v-if="!$root.exclude[name]">
-  {{title}}:
-  <input type="number" v-model="$root.prefs[name]">
-  </input>
-</div>
-`})
-
-Vue.component('boolean', {
-  props: ['title'],
-  computed: {
-    name() { return this.$vnode.key },
-  },
-  template: `
-<div class="pure-material-checkbox" @click="$root.prefs[name] = !$root.prefs[name]">
-  <input type="checkbox" v-model="$root.prefs[name]">
-  <span>{{title}}</span>
-</div>
-`})
-
-Vue.component('slider', {
-  props: ['title', 'min', 'max'],
-  data() { return { value: 0 }},
-  watch: {  
-    "$root.prefs": function() { this.value = this.$root.prefs[this.name] },
-    value() { this.$root.prefs[this.name] = this.value },
-  },
-  mounted() { this.value = this.$root.prefs[this.name] },
-  computed: {
-    trueMin() { return this.min || 0 },
-    trueMax() { return this.max || 100 },
-    name() { return this.$vnode.key },
-  },
-  template: `
-<div class="slider-container" v-if="!$root.exclude[name]">
-  <div class="label">
-    <div>{{title}}:</div>
-    <div>{{value}}</div>
-  </div>
-  <input type="range" :min="trueMin" :max="trueMax" class="slider"
-      v-model="value">
-  </input>
-</div>
-`})
-
-Vue.component('color', {
-  props: ['title'],
-  data() {
-    return { value: [0,0,0] }
-  },
-  mounted() {
-    this.updateFromPrefs()
-  },
-  computed: {
-    name() { return this.$vnode.key },
-  },
-  watch: {
-    "$root.prefs": function() { this.updateFromPrefs() },
-    value: {
-      handler: function({red, green, blue}) {
-        this.$root.prefs[this.name] = "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1)
-      },
-      deep: true,
-    },
-  },
-  methods: {
-    updateFromPrefs() {
-      let hex = this.$root.prefs[this.name]
-      var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-      this.value = result ? {
-        red: parseInt(result[1], 16),
-        green: parseInt(result[2], 16),
-        blue: parseInt(result[3], 16)
-      } : [0,0,0]
-    },
-  },
-  template: `
-<span style="width: 100%;" v-if="!$root.exclude[name]">
-<div v-if="title">{{title}}</div>
-<div class="color-component"
-  v-for="component in ['red','green','blue']">
-  <div class="label">
-    <div>{{component[0]}}: {{value[component]}}</div>
-  </div>
-  <input type="range" min="0" max="255" class="slider"
-    v-model="value[component]"
-    :style="{'accent-color': component}"
-  >
-  </input>
-</div>
-</span>
-`})
-
-Vue.component('dropdown', {
-  props: ['title', 'options', 'selection'],
-  data() {
-    return { open: false }
-  },
-  computed: {
-    name() { return this.$vnode.key },
-  },
-  methods: {
-    opened() {
-      this.open = true
-      setTimeout(() => {
-        document.addEventListener('click', this.close)
-      }, 100)
-    },
-    close() {
-      this.open = false
-      document.removeEventListener('click', this.close)
-    },
-    clicked(value) {
-      this.$root.prefs[this.name] = value
-    },
-    toDisplay(value) {
-      for (let [v, display] of this.options) {
-        if (v == value) return display
-      }
-      return value
-    },
-  },
-  template: `
-<div class="space-between" v-if="!$root.exclude[name]"
-  style="align-items: center">
-  <div style="margin-right: 2rem">{{title}}:</div>
-  <div class="custom-select" @blur="close">
-    <div class="selection" :class="{ open: open }" @click="opened">
-      {{ toDisplay(selection) }}
-    </div>
-    <div class="items" :class="{ selectHide: !open }">
-      <div
-        v-for="[value, display] of options"
-        :value="value"
-        :key="value"
-        :class="{ checked: value == selection }"
-        @click="clicked(value)"
-      >
-        {{ display }}
-      </div>
-    </div>
-  </div>
-</div>`})
-
-Vue.component('vector', {
-  props: ['title', 'normalize'],
-  data() {
-    return {
-      isMoving: false,
-      style: {},
-      value: { angle: 0, magnitude: 0 },
-    }
-  },
-  mounted() {
-    this.updateFromPrefs()
-  },
-  computed: {
-    name() { return this.$vnode.key },
-  },
-  watch: {
-    "$root.prefs": function() { this.updateFromPrefs() },
-    value() {
-      let angle = -this.value.angle
-      let mag = this.value.magnitude
-      let xOffset = (Math.cos(angle) - 1) * mag * 15/2
-      let yOffset = Math.sin(angle) * mag * 15/2
-      this.style = {
-        transform: `
-          translateX(${xOffset}rem)
-          translateY(${yOffset}rem)
-          rotate(${angle}rad)`,
-        width: `${mag * 15}rem`,
-      }
-    },
-  },
-  methods: {
-    updateFromPrefs() {
-      let v = this.$root.prefs[this.name].split(",").map(x => parseFloat(x))
-      this.value = this.vectorToPolar(v)
-    },
-    startMove(event) {
-      this.isMoving = true
-      this.onMove(event)
-    },
-    endMove() {
-      this.isMoving = false
-    },
-    onMove(event) {
-      if (!this.isMoving) return
-      let rect = this.$el.getBoundingClientRect()
-      let x = (event.clientX - rect.x) / rect.width
-      x = 2*x - 1
-      let y = (event.clientY - rect.y) / rect.height
-      y = -2*y + 1
-      if (Math.abs(x) > 1 || Math.abs(y) > 1) {
-        return
-      }
-      if (this.normalize) {
-        let magnitude = Math.sqrt(x*x + y*y)
-        if (magnitude > 0) {
-          x /= magnitude
-          y /= magnitude
-        }
-      }
-      this.value = this.vectorToPolar([x,y])
-      this.$root.prefs[this.name] = `${x},${y},0`
-    },
-    vectorToPolar(v) {
-      return {
-        angle: Math.atan2(v[1], v[0]),
-        magnitude: Math.sqrt(v[0]*v[0] + v[1]*v[1])
-      }
-    },
-  },
-  template: `
-<span>
-  <div class="row" style="margin-bottom:0;">{{title}}:</div>
-  <div class="vector" v-if="!$root.exclude[name]"
-      @mousedown="startMove"
-      @mousemove="onMove"
-      @mouseup="endMove"
-      @mouseleave="endMove"
-      @touchstart="startMove($event.targetTouches[0])"
-      @touchmove="onMove($event.targetTouches[0])"
-      @touchend="endMove">
-    <div class="shaft" :style="style">
-      <div class="tip"></div>
-    </div>
-  </div>
-</span>
-`})
-
 const searchParams = new URLSearchParams(location.search)
 
 var app = new Vue({
@@ -291,7 +53,6 @@ var app = new Vue({
     speedbumpMessage: "",
     speedbumpTimestamp: 0,
 
-    homeStyle: {background: "rgb(200,200,255)"},
     nav: "timing",
   },
 
@@ -332,6 +93,8 @@ var app = new Vue({
     }
     // Do this last just in case localStorage is inaccessible and errors
     // this.localFlags = JSON.parse(localStorage.getItem('flags')) || {}
+
+    this.nav = this.navBarItems[0]
   },
 
   watch: {
@@ -397,6 +160,9 @@ var app = new Vue({
   },
 
   computed: {
+    rem() {
+      return Math.min(0.0135 * innerHeight, 0.02 * innerWidth)
+    },
     BETWEEN_GAMES() { return !this.state.game },
     connectionStatus() {
       if(this.blurred){
@@ -410,7 +176,7 @@ var app = new Vue({
     },
 
     navBarItems() {
-      return ['timing', 'colors', 'pattern', 'save', 'games']
+      return ['colors', 'pattern', 'timing', 'save', 'games']
         .filter(name => !this.exclude[name])
     },
     patternDropdownInfo() {

@@ -1,3 +1,4 @@
+// SKIP
 module.exports = () => {
   let smallEdge = 4
   let bigEdge = 5

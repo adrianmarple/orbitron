@@ -5,7 +5,9 @@ module.exports = () => {
   MAX_NOTCH_DISTANCE = 140
   cat5PortMidway = true
   startMidwayDownFinalEdge = true
-  EXTRA_SCALE = 1.0025
+  ledAtVertex = false
+  // EXTRA_SCALE = 1.0015
+  WALL_VERT_KERF = 0.15
 
   addPolygon(4, [0,0,0], [44,56])
 

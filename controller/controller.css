@@ -1,6 +1,13 @@
 
 :root {
-  font-size: min(1.5vh, 2vw);
+  font-size: min(1.35vh, 2vw);
+  --bg-color: #080808;
+}
+
+@font-face {
+  font-family: "Lumatron";
+  font-display: auto;
+  src: url('/controller/barcade.otf');
 }
 
 html, #game-stuff {
@@ -16,8 +23,99 @@ body, #app, .main {
   height: 100%;
   max-height: 100vh;
   margin: 0;
-  background-color: var(--self-color);
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  color: white;
 }
+
+html, body, #app {
+  width: 100%;
+  min-height: 100vh;
+}
+#app {
+  overflow:hidden;
+}
+
+a {
+  text-decoration: none;
+}
+a, a:visited {
+  color: inherit;
+}
+
+
+@keyframes animatedBackground {
+  from { background-position: 0 0; }
+  to { background-position: max(100vw, 100vh) max(100vw, 100vh); }
+}
+#background {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: -10;
+  font-size: max(100vw, 100vh);
+  width: 1em;
+  height: 1em;
+  background-image: repeating-linear-gradient(
+      -45deg,
+      #00f 0,
+      #a0a 12.5%,
+      #f00 25%,
+      #a0a 37.5%,
+      #00f 50%,
+      #a0a 62.5%,
+      #f00 75%,
+      #a0a 87.5%,
+      #00f 100%
+    );
+  animation: animatedBackground 20s linear infinite;
+}
+
+.black-box {
+  background-color: var(--bg-color);
+  width: 100%;
+  height: 100%;
+}
+.horiz-box {
+  background-color: var(--bg-color);
+  width: 100%;
+  min-height: 2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.xtall {
+  min-height: 16rem;
+}
+.tall {
+  min-height: 8rem;
+}
+.medium {
+  min-height: 4rem;
+}
+
+.fancy-box {
+  margin: 2px;
+  width: calc(100% - 4px);
+  background-color: var(--bg-color);
+  transition: color .5s cubic-bezier(.08,.59,.29,.99),
+    background-color .5s cubic-bezier(.08,.59,.29,.99);
+}
+a > .fancy-box:hover, a.fancy-box:hover {
+  background-color: rgba(0,0,0,0.7);
+  color: white;
+}
+.fancy-box img {
+  width: 90%;
+  padding: 0 5%;
+}
+
+.fancy-divider {
+  width: 100%;
+  height: 2px;
+  border: 10px solid var(--bg-color); 
+  box-sizing: border-box;
+}
+
 .main {
   overscroll-behavior-y: contain;
   overflow-y: hidden;
@@ -43,14 +141,11 @@ body, #app, .main {
 }
 
 #loading, #login, #home, #about, #speedbump {
-  width: 100vw;
+  width: 100%;
   height: 100%;
   max-height: 100vh;
-  position: absolute;
   top: 0;
   z-index: 3;
-  box-shadow: inset 0 0 5vw 5vw rgba(255,255,255,0.8);
-  padding: 3rem;
   padding-bottom: 0;
   box-sizing: border-box;
 }
@@ -102,14 +197,34 @@ body, #app, .main {
 }
 
 .nav-bar {
-  width: 100vw;
-  background-color: white;
+  width: 100%;
+  /* background-color: var(--bg-color); */
   height: 10rem;
-  margin-top: 5rem;
   display: flex;
   justify-content: space-evenly;
-  align-items: center;
+  align-items: flex-start;
+  padding-top: 0.3rem;
 }
+
+.icon {
+  border: 0.5rem solid var(--bg-color);
+  border-top-width: 0;
+  border-bottom-width: 0;
+  margin: 0 -0.5rem;
+}
+.icon svg > image {
+  opacity: 0;
+  filter: invert();
+  transition: opacity .5s cubic-bezier(.08,.59,.29,.99);
+}
+.icon:hover svg > image  {
+  opacity: 0.5;
+}
+.icon.selected svg > image {
+  opacity: 0.8;
+  filter: invert() drop-shadow(0 0 0.8rem white);
+}
+
 .nav-bar img {
   width: 6rem;
   height: 6rem;
@@ -126,15 +241,36 @@ body, #app, .main {
   height: 100%;
   max-width: 100%;
   width: 40rem;
+  margin: 0 -0.5rem;
+  border: 0.5rem solid var(--bg-color);
+  border-bottom-width: 4rem; 
+  border-top-width: 100vh;
 }
 .nav-page .row {
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.8em;
+  padding: 1rem 0;
+}
+
+.side-box {
+  width: calc(50vw - 20rem);
+  height: calc(100% - 10.3rem);
+  z-index: -1;
+  position: absolute;
+  bottom: 10.3rem;
+}
+.left.side-box {
+  left: 0;
+  background-image: linear-gradient(to right, rgba(8,8,8,0.9) 0, var(--bg-color) 100%);
+}
+.right.side-box {
+  right: 0;
+  background-image: linear-gradient(to left, rgba(8,8,8,0.9) 0, var(--bg-color) 100%);
 }
 
 .slider-container {
   display: flex;
+  position: relative;
   flex-direction: column;
   align-items: flex-start;
   font-size: 3rem;
@@ -146,8 +282,77 @@ body, #app, .main {
   justify-content: space-between;
 }
 .slider {
-  width: 100%;
+  width: calc(100% - 0.1rem);
+  accent-color: rgba(255,255,255, 0.95);
+  z-index: 1;
 }
+.slider-container .left, .slider-container .right {
+  position: absolute;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  bottom: 0.625rem;
+  pointer-events: none;
+}
+.slider-container .left {
+  left: 0;
+  background-color: rgba(255,255,255, 0.3);
+}
+.slider-container .left.white {
+  z-index: 1;
+  box-shadow: 0 0 0.8rem rgba(255,255,255, 0.8);
+}
+.slider-container .right {
+  right: 0;
+  background-color: rgba(8,8,8, 0.5);
+  height: 0.75rem;
+  bottom: 0.6rem;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  height: 1.5rem;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 0.5rem;
+  margin: -1rem;
+  border: 1rem solid var(--bg-color);
+  box-sizing: content-box;
+  border-radius: 1.25rem;
+}
+input[type="range"]::-moz-range-track {
+  height: 0.5rem;
+  margin: -1rem;
+  border: 1rem solid var(--bg-color);
+  box-sizing: content-box;
+  border-radius: 1.25rem;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -0.5rem;
+  border: none;
+  border-radius: 0.75rem;
+  background-color: white;
+  height: 1.5rem;
+  width: 1.5rem;
+  filter: drop-shadow(0 0 0.5rem rgba(255,255,255, 0.7));
+}
+input[type="range"]::-moz-range-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -0.5rem;
+  border: none;
+  border-radius: 0.75rem;
+  background-color: white;
+  height: 1.5rem;
+  width: 1.5rem;
+  filter: drop-shadow(0 0 0.5rem rgba(255,255,255, 0.7));
+}
+
 
 .color-component {
   display: flex;
@@ -156,11 +361,50 @@ body, #app, .main {
   align-items: center;
   font-size: 2.5rem;
   width: 100%;
-  margin-bottom: 1.25rem;
+  border-bottom: 1.25rem solid var(--bg-color);
+  height: 3rem;
 }
-.color-component .slider{
-  width: 77%;
+.color-component .label {
+  width: 23%;
+  background-color: var(--bg-color);
+  display: flex;
+  justify-content: flex-start;
+}
+.color-component .slider-container {
+  border: 1rem solid var(--bg-color);
+  border-left-width: 0;
+  border-right-width: 0;
+}
+.color-component .slider {
   margin: 0 !important;
+}
+.color-component .left, .color-component .right {
+  bottom: 0.5rem;
+}
+
+.red input[type="range"]::-moz-range-thumb {
+  background-color: #f88;
+}
+.red input[type="range"]::-webkit-slider-thumb {
+  background-color: #f88;
+}
+.green input[type="range"]::-moz-range-thumb {
+  background-color: #8f8;
+}
+.green input[type="range"]::-webkit-slider-thumb {
+  background-color: #8f8;
+}
+.blue input[type="range"]::-moz-range-thumb {
+  background-color: #88f;
+}
+.blue input[type="range"]::-webkit-slider-thumb {
+  background-color: #88f;
+}
+
+.dropdown-container {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 0.5rem;
 }
 
 .vector {
@@ -254,18 +498,21 @@ body, #app, .main {
   -ms-user-select: none; /* Internet Explorer/Edge */
 }
 
-#about-button, #settings-button {
+#settings-button {
   position: fixed;
   top: 1rem;
   cursor: pointer;
   z-index: 2;
   height: 5rem;
   width: 5rem;
-}
-#settings-button {
   right: 1rem;
 }
 #about-button {
+  font-family: Lumatron;
+  position: fixed;
+  top: 1rem;
+  cursor: pointer;
+  z-index: 2;
   left: 1rem;
   z-index: 5;
   font-size: 4rem;
@@ -273,10 +520,10 @@ body, #app, .main {
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: 50%;
-  border: 0.2rem solid black;
-  box-sizing: border-box;
-  background-color: rgba(255,255,255, 0.7);
+  color: white !important;
+  opacity: 0.6;
+  text-decoration: underline;
+  filter: drop-shadow(0 0 1rem white);
 }
 
 #label {
@@ -614,7 +861,7 @@ a:active {
   opacity: 0.5;
 }
 
-.selected {
+.carousel .selected {
   box-shadow: 0 0.4rem 1rem 0.25rem rgba(0, 0, 0, 0.5);
   border-color: #666;
 }
@@ -672,11 +919,13 @@ a:active {
   z-index: 0;
   position: relative;
   display: inline-block;
-  color: rgba(var(--pure-material-onsurface-rgb, 0, 0, 0), 0.87);
+  color: rgba(255,255,255, 0.87);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 1.5rem;
+  border: 1.5rem solid var(--bg-color);
+  box-sizing: border-box;
+  width: 100%;
   font-size: 3rem;
 }
 
@@ -705,36 +954,47 @@ a:active {
 
 /* Span */
 .pure-material-checkbox > span {
-  width: 100%;
+  width: calc(100% - 2.25rem);
+  background-color: var(--bg-color);
+  padding-left: 1.5rem;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
 }
 
 /* Box */
-.pure-material-checkbox > span::before {
+.pure-material-checkbox .checkbox {
   content: "";
   display: inline-block;
-  box-sizing: border-box;
-  margin: 0.375rem 1.375rem 0.375rem 0.125rem;
-  border: solid 0.25rem; /* Safari */
-  border-color: rgba(var(--pure-material-onsurface-rgb, 0, 0, 0), 0.6);
-  border-radius: 0.25rem;
+  /* margin: 0.375rem 1.375rem 0.375rem 0.125rem; */
+  border: 1rem solid var(--bg-color);
+  margin: -1rem;
+  border-radius: 1.25rem;
   width: 2.25rem;
   height: 2.25rem;
   vertical-align: top;
   transition: border-color 0.2s, background-color 0.2s;
+  z-index: 1;
+  /* background-color: rgba(8,8,8, 0.6); */
+}
+.pure-material-checkbox .checkbox > .inner {
+  width: calc(100% - 0.5rem);
+  height: calc(100% - 0.5rem);
+  margin: 0.25rem;
+  background-color: var(--bg-color);
+  border-radius: 0.15rem;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 
 /* Checkmark */
-.pure-material-checkbox > span::after {
-  content: "";
+.pure-material-checkbox .checkmark {
   display: block;
   position: absolute;
-  top: 0.375rem;
-  left: 0.125rem;
-  width: 1.25rem;
-  height: 0.625rem;
+  top: 0.9rem;
+  left: 0.15rem;
+  width: 1rem;
+  height: 0.5rem;
   border: solid 0.25rem transparent;
   border-right: none;
   border-top: none;
@@ -747,33 +1007,25 @@ a:active {
   background-color: rgb(var(--pure-material-primary-rgb, 33, 150, 243));
 }
 
-.pure-material-checkbox > input:checked + span::before,
-.pure-material-checkbox > input:indeterminate + span::before {
-  border-color: rgb(var(--pure-material-primary-rgb, 33, 150, 243));
-  background-color: rgb(var(--pure-material-primary-rgb, 33, 150, 243));
+.pure-material-checkbox > input:checked + .checkbox,
+.pure-material-checkbox > input:indeterminate + .checkbox {
+  background-color: rgba(255,255,255, 0.3);
 }
 
-.pure-material-checkbox > input:checked + span::after,
-.pure-material-checkbox > input:indeterminate + span::after {
+.pure-material-checkbox > input:checked + .checkbox > .inner,
+.pure-material-checkbox > input:indeterminate + .checkbox > .inner {
+  background-color: transparent;
+  box-shadow: 0 0 1.2rem white;
+}
+
+.pure-material-checkbox > input:checked + .checkbox .checkmark,
+.pure-material-checkbox > input:indeterminate + .checkbox .checkmark {
   border-color: rgb(var(--pure-material-onprimary-rgb, 255, 255, 255));
 }
 
-.pure-material-checkbox > input:indeterminate + span::after {
+.pure-material-checkbox > input:indeterminate + .checkbox .checkmark {
   border-left: none;
   transform: translate(0.5rem, 0.375rem);
-}
-
-/* Hover, Focus */
-.pure-material-checkbox:hover > input {
-  opacity: 0.04;
-}
-
-.pure-material-checkbox > input:focus {
-  opacity: 0.12;
-}
-
-.pure-material-checkbox:hover > input:focus {
-  opacity: 0.16;
 }
 
 /* Active */
@@ -783,13 +1035,13 @@ a:active {
   transition: transform 0s, opacity 0s;
 }
 
-.pure-material-checkbox > input:active + span::before {
+.pure-material-checkbox > input:active + .checkbox {
   border-color: rgb(var(--pure-material-primary-rgb, 33, 150, 243));
 }
 
-.pure-material-checkbox > input:checked:active + span::before {
+.pure-material-checkbox > input:checked:active + .checkbox {
   border-color: transparent;
-  background-color: rgba(var(--pure-material-onsurface-rgb, 0, 0, 0), 0.6);
+  background-color: rgba(255,255,255, 0.6);
 }
 
 /* Disabled */
@@ -798,16 +1050,16 @@ a:active {
 }
 
 .pure-material-checkbox > input:disabled + span {
-  color: rgba(var(--pure-material-onsurface-rgb, 0, 0, 0), 0.38);
+  color: rgba(255,255,255, 0.38);
   cursor: initial;
 }
 
-.pure-material-checkbox > input:disabled + span::before {
+.pure-material-checkbox > input:disabled + .checkbox {
   border-color: currentColor;
 }
 
-.pure-material-checkbox > input:checked:disabled + span::before,
-.pure-material-checkbox > input:indeterminate:disabled + span::before {
+.pure-material-checkbox > input:checked:disabled + .checkbox,
+.pure-material-checkbox > input:indeterminate:disabled + .checkbox {
   border-color: transparent;
   background-color: currentColor;
 }
@@ -823,7 +1075,7 @@ a:active {
 }
 
 .custom-select .selection {
-  background-color: white;
+  background-color: #333;
   border-radius: 0.5rem;
   border: 0.1rem solid #666;
   padding: 0.8rem 0.5rem 0.8rem 3rem;
@@ -840,12 +1092,12 @@ a:active {
   width: 0;
   height: 0;
   border: 0.7rem solid transparent;
-  border-color: black transparent transparent transparent;
+  border-color: white transparent transparent transparent;
 }
 .custom-select .selection.open:after {
   top: 1.1rem;
   right: 1.2rem;
-  border-color: transparent black transparent transparent;
+  border-color: transparent white transparent transparent;
 }
 
 .custom-select .items .checked {
@@ -861,17 +1113,17 @@ a:active {
   border: 0.3rem solid transparent;
   border-radius: 0.2rem;
   border-bottom-left-radius: 0;
-  border-color: transparent transparent black black;
+  border-color: transparent transparent white white;
   transform: rotate(-45deg);
 }
 
 .custom-select .items {
-  color: #121212;
+  color: white;
   border-radius: 0.5rem;
   overflow: hidden;
   border: 0.1rem solid #666;
   position: absolute;
-  background-color: white;
+  background-color: #333;
   left: 0;
   right: 0;
   bottom: 0;
@@ -879,7 +1131,7 @@ a:active {
 }
 
 .custom-select .items div {
-  color: #121212;
+  color: white;
   padding: 0.8rem 0.5rem 0.8rem 3rem;
   padding-left: 3rem;
   cursor: pointer;
@@ -890,7 +1142,7 @@ a:active {
 }
 
 .custom-select .items div:hover {
-  background-color: #eee;
+  background-color: #444;
 }
 
 .selectHide {

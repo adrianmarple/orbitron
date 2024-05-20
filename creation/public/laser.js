@@ -482,6 +482,7 @@ function createPrintInfo(displayOnly) {
           path = wallPath(path, offset, tempWallLength, angle1, 0, nextNotches, cat5Offset, false, printInfo)
           angle1 = 0
           nextNotches = bottomOnlyNotches
+          bottomOnlyNotches = []
           nextNotches.forEach(notch => notch.center -= tempWallLength)
           notches.forEach(notch => notch.center -= tempWallLength)
           remainingWallLength -= tempWallLength
