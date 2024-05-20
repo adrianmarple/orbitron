@@ -13,6 +13,9 @@
 html, #game-stuff {
   height: 100%;
 }
+#game-stuff {
+  background-color: var(--self-color)
+}
 
 body, #app, .main {
   touch-action: none;
@@ -94,8 +97,8 @@ a, a:visited {
 }
 
 .fancy-box {
-  margin: 2px;
-  width: calc(100% - 4px);
+  margin: 0.2rem;
+  width: calc(100% - 0.4rem);
   background-color: var(--bg-color);
   transition: color .5s cubic-bezier(.08,.59,.29,.99),
     background-color .5s cubic-bezier(.08,.59,.29,.99);
@@ -167,7 +170,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   flex-direction: column;
   padding: 20rem 10%;
   font-size: 4rem;
-  background: #eee;
+  background: black;
 }
 #speedbump p {
   text-align: center;
@@ -431,35 +434,41 @@ input[type="range"]::-moz-range-thumb {
 
 /* SAVE MENU */
 #restore-defaults {
-  padding: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 .scroll-containter {
   width: 100%;
   overflow-y: auto;
 }
 .pref-list-item {
+  font-size: 3rem;
+  border-right: 1rem solid var(--bg-color);
+  padding-top: 0.2rem;
+}
+.pref-list-item .fancy-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* width: 100%; */
-  margin: 0.5rem;
   padding: 1rem;
-  background-color: rgba(255,255,255, 0.5);
-  border-radius: 2rem;
-  font-size: 4rem;
+  box-sizing: border-box;
+  margin-top: 0;
 }
-.pref-list-item.selected {
-  background-color: white;
+.pref-list-item .buttons-container {
+  display: flex;
+  align-items: center;
+}
+.pref-list-item.selected .fancy-box {
+  background-color: rgba(8,8,8, 0.8);
 }
 .pref-list-item .button {
   margin-top: 0;
-  border-radius: 0.5rem;
   font-size: 3rem;
 }
 .pref-list-item .delete {
   width: 4rem;
   height: 4rem;
+  filter: invert();
+  cursor: pointer;
 }
 
 #save-bottom-stuff {
@@ -467,7 +476,7 @@ input[type="range"]::-moz-range-thumb {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-top: 1rem;
+  padding-top: 1rem;
 }
 #save-bottom-stuff textarea {
   font-size: 4rem;
@@ -477,7 +486,6 @@ input[type="range"]::-moz-range-thumb {
   font-family: Arial, Helvetica, sans-serif;
 }
 #save-bottom-stuff .button {
-  padding: 1rem;
   margin-left: 1rem;
   margin-top: 0;
 }
@@ -771,8 +779,7 @@ input[type="range"]::-moz-range-thumb {
   z-index: 2;
 }
 .button {
-  border: 0.25rem solid black;
-  border-radius: 2.5rem;
+  border-radius: 0.5rem;
   padding: 0.25rem 1rem;
   margin-top: 2.5rem;
   text-align: center;
@@ -783,20 +790,19 @@ input[type="range"]::-moz-range-thumb {
   position: relative;
 }
 .button.disabled {
-  background-color: #ddd;
+  background-color: #ccc;
   color: #666;
-  border-color: #666;
   pointer-events: none;
 }
 
 .button:hover {
-  box-shadow: 0 0.25rem 0.625rem 0.25rem rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0.25rem 0.625rem 0.25rem rgba(255, 255, 255, 0.2);
   color: #555;
 }
 .button:active {
-  box-shadow: 0 0 0.625rem 0.25rem rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0.625rem 0.25rem rgba(255, 255, 255, 0.2);
   color: #666;
-  transform: translateY(0.25rem);
+  transform: translateY(0.2rem);
 }
 a:link, a:visited, a:hover, a:active {
   text-decoration: none;

@@ -57,14 +57,18 @@
   <div v-else-if="!gameStarted" id="home">
     <!-- GAMES MENU -->
     <div v-if="nav=='games'" class="nav-page">
-      <div class="button" @click="startGames" >
-        Play Games
+      <div class="horiz-box">
+        <div class="button" @click="startGames" >
+          Play Games
+        </div>
       </div>
     </div>
     <!-- SAVE MENU -->
     <div v-if="nav=='save'" class="nav-page">
-      <div class="button" id="restore-defaults" @click="clearPrefs()" >
-        Restore Defaults
+      <div class=" horiz-box">
+        <div class="button" id="restore-defaults" @click="clearPrefs()" >
+          Restore Defaults
+        </div>
       </div>
       <div class="scroll-containter" :style="{height: saveScrollContainerHeight}">
         <div v-for="name in state.prefNames"
@@ -72,16 +76,19 @@
             :class="{selected: prefName == name}"
             @click="rawPrefName=name"
         >
-          <div>{{name}}</div>
-          <div style="display: flex">
-            <div class="button" @click="loadPrefs(name)" >
-              Load
+          <div class="fancy-box">
+            <div>{{name}}</div>
+            <div class="buttons-container">
+              <div class="button" @click="loadPrefs(name)" >
+                Load
+              </div>
+              <img class="delete" src="/controller/delete.svg" @click="deletePrefs(name)"/>
             </div>
-            <img class="delete" src="/controller/delete.svg" @click="deletePrefs(name)"/>
           </div>
+          <div class="horiz-box"></div>
         </div>
       </div>
-      <div id="save-bottom-stuff">
+      <div id="save-bottom-stuff" class="horiz-box">
         <textarea :value="prefName" @input="rawPrefName=$event.target.value"></textarea>
         <div class="button"
             :class="{ disabled: !prefName }"
