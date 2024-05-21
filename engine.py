@@ -445,7 +445,7 @@ def update():
       start(idle)
     elif len(game.claimed_players()) == 0 and game != idle:
       start(idle)
-    elif config.get("AUTO_GAME")and len(game.claimed_players()) > 0 and game == idle:
+    elif config.get("AUTO_GAME") and len(game.claimed_players()) > 0 and game == idle:
       start_random_game()
 
     game.update()

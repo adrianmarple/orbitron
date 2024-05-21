@@ -13,8 +13,13 @@
 html, #game-stuff {
   height: 100%;
 }
-#game-stuff {
-  background-color: var(--self-color)
+#player-background {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background-color: var(--self-color);
+  filter: brightness(60%);
+  z-index: -1;
 }
 
 body, #app, .main {
@@ -439,19 +444,32 @@ input[type="range"]::-moz-range-thumb {
 .scroll-containter {
   width: 100%;
   overflow-y: auto;
+  box-sizing: border-box;
+  position: relative;
+}
+.scroll-containter .bottom-plug {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background-color: var(--bg-color);
+  height: 1rem;
 }
 .pref-list-item {
   font-size: 3rem;
   border-right: 1rem solid var(--bg-color);
   padding-top: 0.2rem;
 }
-.pref-list-item .fancy-box {
+.pref-list-item > .fancy-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
   box-sizing: border-box;
   margin-top: 0;
+  height: 6.6;
+}
+.pref-list-item > .horiz-box {
+  min-height: 1rem;
 }
 .pref-list-item .buttons-container {
   display: flex;
@@ -663,6 +681,7 @@ input[type="range"]::-moz-range-thumb {
 
 .card {
   background: rgba(255,255,255, 0.8);
+  color: black;
   border-radius: 1rem;
 }
 #playerMarker {

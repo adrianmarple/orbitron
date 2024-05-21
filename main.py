@@ -54,6 +54,7 @@ def consume_input():
         continue
 
       # Global commands
+        # Game stuff
       if message["type"] == "advance":
         if not message.get("from", None) or message["from"] == engine.game.state:
           engine.game.ontimeout()
@@ -63,7 +64,10 @@ def consume_input():
         engine.start(engine.game)
       elif message["type"] == "settings":
         engine.game.update_settings(message["update"])
-      elif message["type"] == "prefs":
+      elif message["type"] == "leave":
+        engine.game = None
+        # Prefs stuff
+      if message["type"] == "prefs":
         engine.update_prefs(message["update"], client_timestamp=message["timestamp"])
         idlepatterns.set_idle()
       elif message["type"] == "clearPrefs":

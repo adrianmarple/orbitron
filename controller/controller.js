@@ -53,6 +53,8 @@ var app = new Vue({
     speedbumpMessage: "",
     speedbumpTimestamp: 0,
 
+    vw: innerWidth / 100.0,
+    vh: innerHeight / 100.0,
     nav: "timing",
   },
 
@@ -69,13 +71,13 @@ var app = new Vue({
         let self=this
         setTimeout(function(){self.startWebsocket();},10)
       }
-    };
+    }
     onblur = () => {
       if (!this.state.notimeout) {
         this.destroyWebsocket()
         this.blurred = true
       }
-    };
+    }
 
     onmousedown = this.handleStart
     ontouchstart = event => {
@@ -91,6 +93,14 @@ var app = new Vue({
     ontouchmove = event => {
       this.handleChange(event.changedTouches[0])
     }
+
+    let self = this
+    onresize = _ => {
+      self.vw = innerWidth / 100.0
+      self.vh = innerHeight / 100.0
+      self.$forceUpdate()
+    }
+
     // Do this last just in case localStorage is inaccessible and errors
     // this.localFlags = JSON.parse(localStorage.getItem('flags')) || {}
 
@@ -161,7 +171,7 @@ var app = new Vue({
 
   computed: {
     rem() {
-      return Math.min(0.0135 * innerHeight, 0.02 * innerWidth)
+      return Math.min(1.35 * this.vh, 2 * this.vw)
     },
     BETWEEN_GAMES() { return !this.state.game },
     connectionStatus() {
@@ -330,9 +340,13 @@ var app = new Vue({
       return this.rawPrefName.replace(/[^0-9a-zA-Z ]/gi, '')
     },
 
-    saveScrollContainerHeight() {
-      let rem = Math.min(1.5*window.innerHeight, 2*window.innerWidth) / 100;
-      return `${document.body.getBoundingClientRect().height - 32*rem}px`
+    saveScrollContainerStyle() {
+      console.log(8*this.rem)
+      let height = document.body.getBoundingClientRect().height - 32*this.rem
+      return {
+        height: height + "px",
+        borderBottom: `${height - 8*this.rem * this.state.prefNames.length}px solid var(--bg-color)`,
+      }
     },
   },
 
@@ -386,6 +400,13 @@ var app = new Vue({
       this.speedbumpMessage = `This will skip ${this.gameInfo.label} for everyone.`
       this.speedbumpCallback = () => {
         self.send({type: "skip"})
+      }
+    },
+    leave() {
+      let self = this
+      this.speedbumpMessage = `This will stop games for everyone.`
+      this.speedbumpCallback = () => {
+        self.send({type: "leave"})
       }
     },
     skipvictory() {

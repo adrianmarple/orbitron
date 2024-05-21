@@ -70,7 +70,7 @@
           Restore Defaults
         </div>
       </div>
-      <div class="scroll-containter" :style="{height: saveScrollContainerHeight}">
+      <div class="scroll-containter" :style="saveScrollContainerStyle">
         <div v-for="name in state.prefNames"
             class="pref-list-item"
             :class="{selected: prefName == name}"
@@ -87,6 +87,7 @@
           </div>
           <div class="horiz-box"></div>
         </div>
+        <div class="bottom-plug"></div>
       </div>
       <div id="save-bottom-stuff" class="horiz-box">
         <textarea :value="prefName" @input="rawPrefName=$event.target.value"></textarea>
@@ -256,6 +257,7 @@
   </div>
 
   <div id="game-stuff" v-else>
+  <div id="player-background"></div>
 
 <!--   <div id="playerMarker"
     :style="{ backgroundColor: self.color }"
@@ -270,6 +272,7 @@
     <div id="header-buttons">
       <div class="button" style="width: 8rem" @click="showRules()">RULES</div>
       <div class="button" @click.stop="skip">SKIP GAME</div>
+      <div class="button" @click.stop="leave">LEAVE</div>
     </div>
   </div>
 
