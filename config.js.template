@@ -31,5 +31,8 @@ module.exports={
   },
   // SWITCH_MODE: "toggle",
   // SWITCH_MODE: "push",
-  //TEXT_DISPLAY: "Seg14x4",
+  // TEXT_DISPLAY: "Seg14x4",
+  // LAT: 0,
+  // LON: 0,
+  // WEATHER_API_KEY: "go to https://home.openweathermap.org/api_keys",
 }

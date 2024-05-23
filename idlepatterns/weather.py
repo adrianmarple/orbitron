@@ -81,7 +81,7 @@ class Weather(Sin):
     return sqrt(self.wind_speed * 3)
 
   def speed(self):
-    return self.wind_speed / 15
+    return self.wind_speed / 30
 
 
   def apply_color(self):

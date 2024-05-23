@@ -195,7 +195,7 @@ var app = new Vue({
         ['fireflies', 'Fireflies'],
         ['pulses', 'Ripples'],
         ['sin', 'Sine'],
-        ['lightfield', 'Light Field'],
+        ['lightfield', 'Sparkles'],
         ['default', 'Default'],
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
       
