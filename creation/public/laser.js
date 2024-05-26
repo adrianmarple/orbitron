@@ -418,16 +418,11 @@ function generateNotches(wallLength, isFinalEdge) {
 // WALL CREATION
 // =======================================================================
 function createPrintInfo(displayOnly) {
-  WALL_PANEL_WIDTH =  useMINI ? 180 : 250
-  WALL_PANEL_HEIGHT = useMINI ? 180 : 200
-
   let printInfo = null
   if (!displayOnly) {
     printInfo = {
       type: "gcode",
-      fullProjectName,
       thickness: WALL_THICKNESS + WALL_VERT_KERF,
-      printer: useMINI ? "prusamini" : "prusamk4",
       noInputShaper,
       EXTRA_SCALE,
       PROCESS_STOP,

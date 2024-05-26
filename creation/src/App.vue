@@ -12,6 +12,7 @@
   <div class="button" @click="downloadCover(true)">Download Bottom SVG</div>
   <div class="button" @click="genWalls">Generate Walls</div>
   <div class="button" @click="genBoxTop">Generate Box Top</div>
+  <div class="button" @click="cleanup">Cleanup Printer Files</div>
 </div>
 
 <div id="settings">
@@ -35,8 +36,9 @@
       </select>
     </div>
   </div>
-  <span>
-</span>
+  <div>ORB ID
+    <textarea v-model="orbID"></textarea>
+  </div>
 </div>
 
 <div id="background"></div>
@@ -80,7 +82,6 @@ export default {
         {name: "showLaserSVG", type: "bool"},
         {name: "showWallSVG", type: "bool"},
         {name: "generateWallNumbers", type: "bool"},
-        {name: "useMINI", type: "bool"},
         {name: "noInputShaper", type: "bool"},
         {name: "onlyOneWall", type: "bool"},
         {name: "STARTING_WALL_INDEX", type: "int", value: 0},
@@ -88,14 +89,16 @@ export default {
           options: [
             ["scad", "Make OpenScade file"],
             ["stl", "Generate .stl"], 
-            ["bgcode", "Generate .bgcode"],
-            ["upload", "Upload .bgcode"],
+            ["bgcode", "Generate gcode"],
+            ["upload", "Upload gcode"],
           ],
           value: "upload",
         },
       ],
       buttons: [],
       qrCode: null,
+      orbIDs: {},
+      orbID: "",
     }
   },
   created() {
@@ -117,12 +120,18 @@ export default {
       height: 25 * 20,
       margin: 0,
       type: "svg",
-      data: "https://a.lumatron.art/",
+      data: "https://orbitron.games/",
       dotsOptions: { type: "rounded" },
       cornersSquareOptions: { type: "extra-rounded" },
       qrOptions: { errorCorrectionLevel: "L" },
     })
     this.fetchButtons()
+  },
+  watch: {
+    orbID(val) {
+        this.orbIDs[this.fullProjectName] = val
+        localStorage.setItem("ID:" + this.fullProjectName, val)
+    },
   },
   computed: {
     width() {
@@ -133,17 +142,18 @@ export default {
     updateSetting(setting) {
       localStorage.setItem(setting.name, setting.value)
       window[setting.name] = setting.value
-      this.openProject(fullProjectName)
+      this.openProject(this.fullProjectName)
     },
     async openProject(name) {
       window.fullProjectName = name
+      this.fullProjectName = name
+      this.orbID = this.orbIDs[this.fullProjectName] || ""
       localStorage.setItem("button", name)
       reset()
       await require("../projects/" + name + ".js")()
       generatePixelInfo()
       await generateManufacturingInfo()
-      window.orbID = window.orbID || name.split("/")[1]
-      let qrUrl = 'https://a.lumatron.art/' + orbID
+      let qrUrl = 'https://orbitron.games/' + this.orbID
       this.qrSize = (qrUrl.length <= 32 ? 25 : 29) * 20
       this.qrCode.update({
         width: this.qrSize,
@@ -153,10 +163,9 @@ export default {
     },
     async fetchButtons() {
       this.buttons = await (await fetch("/buttonlist.json")).json()
-      // for (let url of this.buttons) {
-      //   require("../projects/" + url + ".js")
-      // }
-      
+      for (let button of this.buttons) {
+        this.orbIDs[button] = localStorage.getItem("ID:" + button) || ""
+      }
       this.openProject(localStorage.getItem("button"))
     },
 
@@ -170,6 +179,12 @@ export default {
         }
       })
     },
+    cleanup() {
+      this.push({
+        fullProjectName: this.fullProjectName,
+        type: "cleanup",
+      })
+    },
     download(fileName, data) {
       this.push({
         type: "download",
@@ -181,21 +196,25 @@ export default {
     genWalls() {
       let wall = document.getElementById("wall")
       wall.style.display = "block"
-      this.push(createPrintInfo())
+      let body = createPrintInfo()
+      body.fullProjectName = fullProjectName
+      this.push(body)
       console.log("Generating gcode")
     },
     async genBoxTop() {
       let data = await blobToBase64(await this.qrCode.getRawData())
       this.push({
-        fullProjectName,
+        fullProjectName: this.fullProjectName,
         type: "qr",
         scale: 48.0 / this.qrSize,
-        data
+        PROCESS_STOP,
+        PETG: true,
+        data,
       })
     },
     downloadJSON() {
       let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
-      let fileName = fullProjectName + '.json'
+      let fileName = this.fullProjectName + '.json'
       this.download(fileName, fileContent)
       console.log("Downloaded " + fileName)
     },
@@ -205,7 +224,7 @@ export default {
       await createCoverSVG()
       let elem = document.getElementById("cover")
       elem.style.display = "block"
-      this.download(`${fullProjectName} ${isBottom ? "bottom":"top"}.svg`, elem.outerHTML)
+      this.download(`${this.fullProjectName} ${isBottom ? "bottom":"top"}.svg`, elem.outerHTML)
     },
   },
 }
@@ -350,7 +369,13 @@ canvas {
   width: 3em;
   margin: 0 12px;
 }
-
+#settings textarea {
+  margin-left: 12px;
+  font-size: 1em;
+  width: 200px;
+  resize: none;
+  overflow: hidden;
+}
 
 
 #nav {

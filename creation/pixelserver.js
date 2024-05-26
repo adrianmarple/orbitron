@@ -169,105 +169,121 @@ async function fleshOutBody(body) {
 }
 
 addPOSTListener(async (response, body) => {
-  if (body && body.type == "qr") {
-    await fleshOutBody(body)
-    console.log("Downloading png")
-    await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.png", body.data, 'base64')
-    console.log("Converting to bmp")
-    await execute(`sips -s format bmp ${MANUFACTURING_FOLDER}qr.png --out ${MANUFACTURING_FOLDER}qr.bmp`)
-    console.log("Tracing to create svg")
-    await execute(`${process.env.POTRACE} ${MANUFACTURING_FOLDER}qr.bmp -s`)
-    console.log("Generating stl")
-    let scadFileContents = `
-    $fn=32;
-    w = 72;
-    h = 108.2;
-    thickness1 = 2;
-    thickness2 = 3;
-    
-    window_w = 51.8;
-    window_h = 22;
-    window_h_offset = 14.6;
-    magnet_r = 3.5;
-    magnet_offset = 1.5;
-    
-    qr_base_w = 51.6;
-    qr_w = 48;
-    SCALE = ${body.scale} * 2.83464566929;
-    
-    union() {
-      difference() {
-        cube([w, h, thickness1]);
-          
-        translate([(w - window_w)/2, h - window_h - window_h_offset, -1])
-        cube([window_w, window_h, thickness1 + 2]);
-          
-        translate([0, 0, -1])
-        union() {
-          translate([magnet_r + magnet_offset, magnet_r + magnet_offset, 0])
-          cylinder(h=thickness1, r=magnet_r);
-            
-          translate([w - magnet_r - magnet_offset, magnet_r + magnet_offset, 0])
-          cylinder(h=thickness1, r=magnet_r);
-            
-          translate([w - magnet_r - magnet_offset, h - magnet_r - magnet_offset, 0])
-          cylinder(h=thickness1, r=magnet_r);
-            
-          translate([magnet_r + magnet_offset, h - magnet_r - magnet_offset, 0])
-          cylinder(h=thickness1, r=magnet_r);
-        }
-      }
-      
-      translate([(w - qr_base_w)/2, (w - qr_base_w)/2, thickness1])
-      cube([qr_base_w, qr_base_w, thickness2]);
-    
-    
-      translate([(w - qr_w)/2, (w - qr_w)/2, thickness1 + thickness2])
-      scale([SCALE, SCALE, 1])
-      linear_extrude(height = 0.2)
-      import("${MANUFACTURING_FOLDER}qr.svg");
-    }`
-    await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.scad", scadFileContents)
-    let stlFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.stl"
-    await execute(`openscad -o "${stlFilePath}" "${MANUFACTURING_FOLDER}qr.scad"`)
+  if (!body || body.type != "qr") return false
 
-    console.log("Generating gcode")
-    let gcodeFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.gcode"
-    await execute(`${process.env.SLICER} -g --load box_top_config.ini "${stlFilePath}" --output ${gcodeFilePath}`)
-    let gcodeContents = (await fs.promises.readFile(gcodeFilePath)).toString()
-    let chunkToReplace = gcodeContents.match(/;Z:5\.1.*?G1 E\.7 F2100/s)[0]
-    if (chunkToReplace.length < 300) {
-      let chunkLines = chunkToReplace.split("\n")
-      chunkLines.pop()
-      chunkLines = chunkLines.concat(["M600", "G1 E0.3 F1500"]) // Color change
-      gcodeContents = gcodeContents.replace(chunkToReplace, chunkLines.join("\n"))
-      await fs.promises.writeFile(gcodeFilePath, gcodeContents)
+  response.writeHead(200)
+  response.end('post received')
+
+  await fleshOutBody(body)
+  console.log("Downloading png")
+  await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.png", body.data, 'base64')
+  console.log("Converting to bmp")
+  await execute(`sips -s format bmp ${MANUFACTURING_FOLDER}qr.png --out ${MANUFACTURING_FOLDER}qr.bmp`)
+  console.log("Tracing to create svg")
+  await execute(`${process.env.POTRACE} ${MANUFACTURING_FOLDER}qr.bmp -s`)
+  console.log("Generating stl")
+  let thickness1 = 2.5
+  let thickness2 = 3.1
+  let scadFileContents = `
+  $fn=32;
+  w = 72;
+  h = 108.2;
+  thickness1 = ${thickness1};
+  thickness2 = ${thickness2};
+  
+  window_w = 51.8;
+  window_h = 22;
+  window_h_offset = 14.6;
+  magnet_r = 3.5;
+  magnet_offset = 1.5;
+
+  power_nut_w = 15;
+  power_nut_h = 3;
+  
+  qr_base_w = 51.6;
+  qr_w = 48;
+  SCALE = ${body.scale} * 2.83464566929;
+  
+  union() {
+    difference() {
+      cube([w, h, thickness1]);
+        
+      translate([(w - window_w)/2, h - window_h - window_h_offset, -1])
+      cube([window_w, window_h, thickness1 + 2]);
+
+      translate([(w - power_nut_w)/2, -1, -1])
+      cube([power_nut_w, power_nut_h+1, thickness1]);
+        
+      translate([0, 0, -1.5])
+      union() {
+        translate([magnet_r + magnet_offset, magnet_r + magnet_offset, 0])
+        cylinder(h=thickness1, r=magnet_r);
+          
+        translate([w - magnet_r - magnet_offset, magnet_r + magnet_offset, 0])
+        cylinder(h=thickness1, r=magnet_r);
+          
+        translate([w - magnet_r - magnet_offset, h - magnet_r - magnet_offset, 0])
+        cylinder(h=thickness1, r=magnet_r);
+          
+        translate([magnet_r + magnet_offset, h - magnet_r - magnet_offset, 0])
+        cylinder(h=thickness1, r=magnet_r);
+      }
     }
     
-    console.log("Uploading bgcode")
-    let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_box_top.gcode"
-    await execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
-    await execute(`curl -X PUT 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${gcodeFilePath}`)
+    translate([(w - qr_base_w)/2, (w - qr_base_w)/2, thickness1])
+    cube([qr_base_w, qr_base_w, thickness2]);
+  
+  
+    translate([(w - qr_w)/2, (w - qr_w)/2, thickness1 + thickness2])
+    scale([SCALE, SCALE, 1])
+    linear_extrude(height = 0.2)
+    import("${MANUFACTURING_FOLDER}qr.svg");
+  }`
+  await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.scad", scadFileContents)
+  if (body.PROCESS_STOP == "scad") return true
 
-    response.writeHead(200)
-    response.end('post received')
-    console.log("All Done!")
-    return true
+  let stlFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.stl"
+  await execute(`openscad -o "${stlFilePath}" "${MANUFACTURING_FOLDER}qr.scad"`)
+  if (body.PROCESS_STOP == "stl") return true
+
+  console.log("Generating gcode")
+  let gcodeFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.gcode"
+  await execute(`${process.env.SLICER} -g --load box_top_config${body.PETG ? "_petg" : ""}.ini "${stlFilePath}" --output ${gcodeFilePath}`)
+  let gcodeContents = (await fs.promises.readFile(gcodeFilePath)).toString()
+  let filamentSwitchZ = thickness1 + thickness2 + 0.1
+  let [x,y] = filamentSwitchZ.toFixed(1).split(".")
+  let regex = new RegExp(`;Z:${x}\\.${y}.*?G1 E\\.${body.PETG ? 8 : 7} F2100`, "s")
+
+  let chunkToReplace = gcodeContents.match(regex)[0]
+  if (chunkToReplace.length < 1000) {
+    let chunkLines = chunkToReplace.split("\n")
+    chunkLines.pop()
+    chunkLines = chunkLines.concat(["M600", "G1 E0.3 F1500"]) // Color change
+    gcodeContents = gcodeContents.replace(chunkToReplace, chunkLines.join("\n"))
+    await fs.promises.writeFile(gcodeFilePath, gcodeContents)
   }
+  if (body.PROCESS_STOP == "bgcode") return true
+  
+  console.log("Uploading gcode")
+  let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_box_top.gcode"
+  await execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+  let resp = await execute(`curl -X PUT 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${gcodeFilePath}`)
+  console.log(resp)
+  console.log("All Done!")
+  return true
 })
 
 addPOSTListener(async (response, body) => {
-  if (body && body.type == "gcode") {
-    await fleshOutBody(body)
-    for (let i = 0; i < body.prints.length; i++) {
-      await generateGCode(body, i) // Slic3r doesn't seem to work when running in parallel
-      console.log("Done " + i)
-    }
-    response.writeHead(200)
-    response.end('post received')
-    console.log("All Done!")
-    return true
+  if (!body || body.type != "gcode") return false
+  await fleshOutBody(body)
+  for (let i = 0; i < body.prints.length; i++) {
+    await generateGCode(body, i) // Slic3r doesn't seem to work when running in parallel
+    console.log("Done " + i)
   }
+  response.writeHead(200)
+  response.end('post received')
+  console.log("All Done!")
+  return true
 })
 
 async function generateGCode(info, index) {
@@ -335,6 +351,23 @@ async function generateGCode(info, index) {
   if (info.PROCESS_STOP == "upload") return
 }
 
+addPOSTListener(async (response, body) => {
+  if (!body || body.type != "cleanup") return false
+
+  let name = body.fullProjectName.split("/")[1].toLowerCase()
+
+  let fileData = await (await fetch(`http://${process.env.PRINTER_IP}/api/v1/files/usb`, {
+    headers: { "X-Api-Key": process.env.PRINTER_LINK_API_KEY},
+  })).json()
+
+  for (let {display_name} of fileData.children) {
+    if (display_name.toLowerCase().startsWith(name)) {
+      execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${display_name}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+    }
+  }
+  console.log("cleaned up " + name)
+  return true
+})
 
 let buttonUrls = []
 async function findAllButtons() {
