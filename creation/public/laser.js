@@ -181,19 +181,21 @@ async function createCoverSVG() {
       let wallLength = edgeLength + lengthOffset2 - lengthOffset1
       let angle1 = a1/2
       let angle2 = -a2/2
-      if (angle1 < 0 && angle2 < 0 ||
-          -angle1 > angle2 ||
-          -angle2 > angle1) {
-        let t = angle1
-        angle1 = -angle2
-        angle2 = -t
-      }
-      if (epsilonEquals(TOP_THICKNESS, BOTTOM_THICKNESS) && !isFinalEdge &&
-          angle1 > angle2) {
-        let t = angle1
-        angle1 = angle2
-        angle2 = t
-      }
+      // if (!EDGES_DOUBLED) {
+      //   if (angle1 < 0 && angle2 < 0 ||
+      //       -angle1 > angle2 ||
+      //       -angle2 > angle1) {
+      //     let t = angle1
+      //     angle1 = -angle2
+      //     angle2 = -t
+      //   }
+      //   if (epsilonEquals(TOP_THICKNESS, BOTTOM_THICKNESS) && !isFinalEdge &&
+      //       angle1 > angle2) {
+      //     let t = angle1
+      //     angle1 = angle2
+      //     angle2 = t
+      //   }
+      // }
       let edgeCenter = add(add(offset, scale(e1, edgeLength/2)), scale(n, w1*1.5))
       let addedToCount = false
       for (let wallType of wallInfo) {
@@ -417,6 +419,14 @@ function generateNotches(wallLength, isFinalEdge) {
 // =======================================================================
 // WALL CREATION
 // =======================================================================
+
+function blankPrint() {
+  return {
+    wedges: [],
+    ledSupports: [],
+  }
+}
+
 function createPrintInfo(displayOnly) {
   let printInfo = null
   if (!displayOnly) {
@@ -426,9 +436,7 @@ function createPrintInfo(displayOnly) {
       noInputShaper,
       EXTRA_SCALE,
       PROCESS_STOP,
-      prints: [{
-        wedges: [] 
-      }],
+      prints: [blankPrint()],
     }
   }
   wall.querySelectorAll("text").forEach(elem => wall.removeChild(elem))
@@ -529,7 +537,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
     if (printInfo) {
       wall.querySelector("path").setAttribute("d", path)
       printInfo.prints[printInfo.prints.length - 1].svg = wall.outerHTML
-      printInfo.prints.push({ wedges: []})
+      printInfo.prints.push(blankPrint())
       path = ""
       offset[0] = WALL_SVG_PADDING + wallLength
     } else {
@@ -562,6 +570,22 @@ function wallPath(path, offset, wallLength, angle1, angle2,
         thickness: printInfo.thickness,
       })
     }
+
+    let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
+    supportX += Math.tan(angle1) * CHANNEL_WIDTH
+    if (angle1 < 0) {
+      supportX += Math.tan(angle1) * WALL_THICKNESS
+    }
+    while (supportX < 0) {
+      supportX += PIXEL_DISTANCE
+    }
+    print.ledSupports.push({
+      position: [offset[0] - supportX, y, 0],
+      width: LED_SUPPORT_WIDTH,
+      height: LED_SUPPORT_HEIGHT,
+      thickness: LED_SUPPORT_THICKNESS,
+      gap: LED_SUPPORT_GAP,
+    })
   }
 
   let endNotchDepth = trueNotchDepth(wallLength) - WALL_KERF

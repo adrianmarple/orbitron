@@ -3,6 +3,16 @@ startMidwayDownFinalEdge = false
 
 noncovergenceGuard = 1e4
 async function EulerianPath(currentVertex, pathOverride) {
+  for (let vertex of verticies) {
+    if (vertex.edges.length % 2 == 1) {
+      doubleEdges()
+      break
+    }
+  }
+  EulerianHelper(currentVertex, pathOverride)
+}
+
+async function EulerianHelper(currentVertex, pathOverride) {
   if (verticies.length <= 1) return
   if (typeof currentVertex == 'number') {
     path = [currentVertex]
@@ -68,7 +78,7 @@ async function EulerianPath(currentVertex, pathOverride) {
 
     let nextVertex = otherVertex(edge, currentVertex)
     // await delay(10)
-    let finished = await EulerianPath(nextVertex);
+    let finished = await EulerianHelper(nextVertex);
     if (finished) {
       return true
     } else {

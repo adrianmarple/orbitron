@@ -251,6 +251,8 @@ function doubleEdges() {
     edgeCopy.isDupe = true
     edges.push(edgeCopy)
   }
+
+  EDGES_DOUBLED = true
 }
 
 async function addFromSVG(src) {

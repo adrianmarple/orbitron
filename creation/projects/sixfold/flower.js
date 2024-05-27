@@ -40,6 +40,8 @@ module.exports = () => {
   cat5PortMidway = true
   startMidwayDownFinalEdge = true
   ledAtVertex = false
+  CHANNEL_WIDTH = 12
+  PIXEL_DISTANCE = 16.6
 
   let dodecEdges = addDodecagon([0,0,0], 3)
   for (let i = 0; i < dodecEdges.length; i++) {
@@ -58,7 +60,6 @@ module.exports = () => {
     }
   }
 
-  doubleEdges()
   let startingEdge = 47
   EulerianPath(90)
 }

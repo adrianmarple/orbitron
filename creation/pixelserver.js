@@ -321,11 +321,26 @@ async function generateGCode(info, index) {
       }
   }
 
+  module led_support(position, width, thickness, height, gap) {
+    translate(position)
+    union() {
+      translate([0, (gap + thickness) / 2, height / 2])
+      cube([width, thickness, height], center=true);
+
+      translate([0, -(gap + thickness) / 2, height / 2])
+      cube([width, thickness, height], center=true);
+    }
+  }
+
   scale([${info.EXTRA_SCALE}, 1, 1])
   union() {`
   for (let wedge of print.wedges) {
     scadFileContents += `
     wedge(${wedge.angle}, [${wedge.position}], ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
+  }
+  for (let support of print.ledSupports) {
+    scadFileContents += `
+    led_support([${support.position}], ${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
   }
   scadFileContents += `
 
