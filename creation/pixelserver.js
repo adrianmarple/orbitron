@@ -301,11 +301,10 @@ async function generateGCode(info, index) {
 
   let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
   let scadFileContents = `
-  module wedge(angle, position, direction_angle, width, thickness) {
+  module wedge(angle, direction_angle, width, thickness) {
       pivot_z = angle < 0 ? 0 : thickness;
       actual_angle = angle < 0 ? -90 - angle : 90 - angle;
       
-      translate(position)
       rotate(a=direction_angle, v=[0,0,1])
       difference() {
           translate([0, -width/2, pivot_z])
@@ -321,8 +320,16 @@ async function generateGCode(info, index) {
       }
   }
 
-  module led_support(position, width, thickness, height, gap) {
-    translate(position)
+  module neg_wedge_half(angle, direction_angle, width, thickness) {
+    z = angle < 0 ? thickness / 2 : thickness * 1.25;
+    x = angle < 0 ? 0 : tan(angle) * thickness * 0.25;
+
+    translate([x, 0, z])
+    rotate(a=180, v=[0,1,0])
+    wedge(angle, direction_angle, width+1, thickness);
+  }
+
+  module led_support(width, thickness, height, gap) {
     union() {
       translate([0, (gap + thickness) / 2, height / 2])
       cube([width, thickness, height], center=true);
@@ -334,19 +341,39 @@ async function generateGCode(info, index) {
 
   scale([${info.EXTRA_SCALE}, 1, 1])
   union() {`
-  for (let wedge of print.wedges) {
+    for (let wedge of print.wedges) {
+      let thickness = wedge.thickness
+      if (wedge.centered) {
+        thickness /= 2
+        if (wedge.angle < 0) {
+          scadFileContents += `
+          translate([0,0,${thickness}])`
+        }
+      }
+      scadFileContents += `
+      translate([${wedge.position}])
+      wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${thickness});`
+    }
+    for (let support of print.ledSupports) {
+      scadFileContents += `
+      translate([${support.position}])
+      led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
+    }
     scadFileContents += `
-    wedge(${wedge.angle}, [${wedge.position}], ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
-  }
-  for (let support of print.ledSupports) {
-    scadFileContents += `
-    led_support([${support.position}], ${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
-  }
-  scadFileContents += `
 
-    linear_extrude(height = ${info.thickness})
-    scale([${scale},${scale},${scale}])
-    import("${svgFilePath}");
+    difference() {
+      linear_extrude(height = ${info.thickness})
+      scale([${scale},${scale},${scale}])
+      import("${svgFilePath}");`
+  
+      for (let wedge of print.wedges) {
+        if (!wedge.centered) continue
+        scadFileContents += `
+        translate([${wedge.position}])
+        neg_wedge_half(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
+      }
+      scadFileContents += `
+    }
   }`
   console.log("Making .scad " + index)
   await fs.promises.writeFile(scadFilePath, scadFileContents)

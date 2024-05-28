@@ -86,7 +86,7 @@
     <h1>Play with it!</h1>
   </div>
   <div class="horiz-box" id="demo-wrapper">
-    <iframe id="demo" src="https://orbitron.games/demo/view?bgopacity=0.03&disablewheel&cameraz=10&controller=none" frameBorder="0"></iframe>
+    <iframe id="demo" src="https://my.lumatron.art/demo/view?bgopacity=0.03&disablewheel&cameraz=10&controller=none" frameBorder="0"></iframe>
     <img src="@/assets/sierpinski-overlay-top.svg" class="emulator-overlay top">
     <img src="@/assets/sierpinski-overlay-walls.svg" class="emulator-overlay walls">
     
@@ -100,7 +100,7 @@
     </div>
     <div class="horiz-box positioner">
       <div id="controller">
-        <iframe  src="https://orbitron.games/demo" frameBorder="0"></iframe>
+        <iframe  src="https://my.lumatron.art/demo" frameBorder="0"></iframe>
         <div class="outline"></div>
       </div>
     </div>

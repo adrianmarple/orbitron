@@ -527,6 +527,12 @@ function createPrintInfo(displayOnly) {
 
 function wallPath(path, offset, wallLength, angle1, angle2,
     notches, cat5Offset, isPowerCordPort, printInfo) {
+  
+  let hasWallPort = cat5Offset !== undefined &&
+      cat5Offset !== NaN &&
+      cat5Offset < wallLength + CAT5_WIDTH/2 &&
+      cat5Offset > -CAT5_WIDTH/2
+
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   offset[0] += wallLength
   if (offset[0] > offset[2]*WALL_PANEL_WIDTH - WALL_SVG_PADDING) {
@@ -552,40 +558,49 @@ function wallPath(path, offset, wallLength, angle1, angle2,
   if (printInfo) {
     let y = WALL_PANEL_HEIGHT - offset[1] - BOTTOM_THICKNESS - CHANNEL_DEPTH/2
     let print = printInfo.prints[printInfo.prints.length - 1]
-    if (!epsilonEquals(angle1, 0)) {
-      print.wedges.push({
-        angle: angle1 * 180/Math.PI,
-        directionAngle: 0,
-        position: [offset[0], y, 0],
-        width: CHANNEL_DEPTH,
-        thickness: printInfo.thickness,
-      })
+    let wedge1 = {
+      angle: angle1 * 180/Math.PI,
+      directionAngle: 0,
+      position: [offset[0], y, 0],
+      width: CHANNEL_DEPTH,
+      thickness: printInfo.thickness,
     }
-    if (!epsilonEquals(angle2, 0)) {
-      print.wedges.push({
-        angle: angle2 * 180/Math.PI,
-        directionAngle: 180,
-        position: [offset[0] - wallLength, y, 0],
-        width: CHANNEL_DEPTH,
-        thickness: printInfo.thickness,
-      })
+    if (epsilonEquals(angle1, 0)) {
+      wedge1.angle = 45
+      wedge1.centered = true
     }
+    print.wedges.push(wedge1)
+    
+    let wedge2 = {
+      angle: angle2 * 180/Math.PI,
+      directionAngle: 180,
+      position: [offset[0] - wallLength, y, 0],
+      width: CHANNEL_DEPTH,
+      thickness: printInfo.thickness,
+    }
+    if (epsilonEquals(angle2, 0)) {
+      wedge2.angle = -45
+      wedge2.centered = true
+    }
+    print.wedges.push(wedge2)
 
-    let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
-    supportX += Math.tan(angle1) * CHANNEL_WIDTH
-    if (angle1 < 0) {
-      supportX += Math.tan(angle1) * WALL_THICKNESS
+    if (EDGES_DOUBLED && !hasWallPort) {
+      let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
+      supportX += Math.tan(angle1) * CHANNEL_WIDTH
+      if (angle1 < 0) {
+        supportX += Math.tan(angle1) * WALL_THICKNESS
+      }
+      while (supportX < 0) {
+        supportX += PIXEL_DISTANCE
+      }
+      print.ledSupports.push({
+        position: [offset[0] - supportX, y, 0],
+        width: LED_SUPPORT_WIDTH,
+        height: LED_SUPPORT_HEIGHT,
+        thickness: LED_SUPPORT_THICKNESS,
+        gap: LED_SUPPORT_GAP,
+      })
     }
-    while (supportX < 0) {
-      supportX += PIXEL_DISTANCE
-    }
-    print.ledSupports.push({
-      position: [offset[0] - supportX, y, 0],
-      width: LED_SUPPORT_WIDTH,
-      height: LED_SUPPORT_HEIGHT,
-      thickness: LED_SUPPORT_THICKNESS,
-      gap: LED_SUPPORT_GAP,
-    })
   }
 
   let endNotchDepth = trueNotchDepth(wallLength) - WALL_KERF
@@ -625,10 +640,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
   path += `Z`
 
   // Is the entry wall for CAT5 port
-  if (cat5Offset !== undefined &&
-      cat5Offset !== NaN &&
-      cat5Offset < wallLength + CAT5_WIDTH/2 &&
-      cat5Offset > -CAT5_WIDTH/2) {
+  if (hasWallPort) {
     let x0 = offset[0] - cat5Offset
     let x1 = x0 - CAT5_WIRES_WIDTH/2 - CAT5_ADDITONAL_OFFSET
     let y1 = offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH

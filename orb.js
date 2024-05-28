@@ -44,7 +44,7 @@ function connectOrbToRelay(){
     if (config.DEV_MODE) {
       relayURL = "ws://0.0.0.0"
     } else {
-      relayURL = "wss://orbitron.games"
+      relayURL = "wss://my.lumatron.art"
     }
     relayURL += `:7777/relay/${config.ORB_ID}`
     orbToRelaySocket = new WebSocket.WebSocket(relayURL)

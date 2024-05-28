@@ -120,7 +120,7 @@ export default {
       height: 25 * 20,
       margin: 0,
       type: "svg",
-      data: "https://orbitron.games/",
+      data: "https://my.lumatron.art/",
       dotsOptions: { type: "rounded" },
       cornersSquareOptions: { type: "extra-rounded" },
       qrOptions: { errorCorrectionLevel: "L" },
@@ -153,7 +153,7 @@ export default {
       await require("../projects/" + name + ".js")()
       generatePixelInfo()
       await generateManufacturingInfo()
-      let qrUrl = 'https://orbitron.games/' + this.orbID
+      let qrUrl = 'https://my.lumatron.art/' + this.orbID
       this.qrSize = (qrUrl.length <= 32 ? 25 : 29) * 20
       this.qrCode.update({
         width: this.qrSize,
