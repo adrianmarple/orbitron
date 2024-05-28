@@ -251,7 +251,8 @@ Vue.component('vector', {
 Vue.component('Icon', {
   props: ['image', 'w', 'h', 'selected'],
   computed: {
-    imageUrl() { return `/controller/${this.image}.svg` },
+    imageUrlW() { return `/controller/${this.image}_white.svg` },
+    imageUrlB() { return `/controller/${this.image}_black.svg` },
     imageWidth() { return 0.6 * Math.min(this.w, this.h) }
   },
   template: `
@@ -261,7 +262,7 @@ Vue.component('Icon', {
       <mask :id="image" x="0" y="0" :width="w" :height="h" color="black">
         <rect x=0 y=0 :width="w" :height="h" fill="white"></rect>
         <image :x="(w-imageWidth)/2" :y="(h-imageWidth)/2" :width="imageWidth" :height="imageWidth"
-            :href="imageUrl"></image>
+            :href="imageUrlB"></image>
       </mask>
       <rect class="main-rect"
             :width="w"
@@ -271,7 +272,7 @@ Vue.component('Icon', {
       </rect>
 
       <image :x="(w-imageWidth)/2" :y="(h-imageWidth)/2" :width="imageWidth" :height="imageWidth"
-          :href="imageUrl" fill="white"></image>
+          :href="imageUrlW" fill="white"></image>
     </svg>
   </div>
 </template>`})

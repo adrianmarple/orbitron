@@ -206,7 +206,6 @@ a > .fancy-box:hover, a.fancy-box:hover {
 
 .nav-bar {
   width: 100%;
-  /* background-color: var(--bg-color); */
   height: 10rem;
   display: flex;
   justify-content: space-evenly;
@@ -219,10 +218,18 @@ a > .fancy-box:hover, a.fancy-box:hover {
   border-top-width: 0;
   border-bottom-width: 0;
   margin: 0 -0.5rem;
+  position: relative;
+}
+.icon::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: calc(100% - 0.2rem);
+  box-sizing: border-box;
+  border: 0.4rem solid var(--bg-color);
 }
 .icon svg > image {
   opacity: 0;
-  filter: invert();
   transition: opacity .5s cubic-bezier(.08,.59,.29,.99);
 }
 .icon:hover svg > image  {
@@ -230,7 +237,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
 }
 .icon.selected svg > image {
   opacity: 0.8;
-  filter: invert() drop-shadow(0 0 0.8rem white);
+  filter: drop-shadow(0 0 0.8rem white);
 }
 
 .nav-bar img {

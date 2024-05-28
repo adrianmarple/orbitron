@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
 <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
 
-<title>Super Orbitron</title>
+<title>Lumatron</title>
 <link rel="shortcut icon" href="/images/favicon.png" />
 <link rel="stylesheet" href="/controller/controller.css">
 
@@ -16,25 +16,7 @@
 <div id=app :style="{ '--self-color': self.color }">
   <div id="background"></div>
 
-  <div v-if="showAboutPage" id="about">
-    <div>
-      <p>
-        Super Orbitron and its variants were created by
-        <i><a href="https://marplebot.com" target="_blank">Adrian Marple</a></i>,
-        along with <i><a href="https://manadream.games" target="_blank">manadream</a></i>.
-      </p>
-      <p>
-        If you'd like to hear updates about this and
-        other games and art projects sign up for the newsletter:
-      </p>
-      <div class="button">
-        <a href="https://marplebot.com/links" target="_blank">
-          Newsletter Signup
-        </a>
-      </div>
-    </div>
-  </div>
-  <div v-else-if="connectionStatus == 'CONNECTING'" id="loading">
+  <div v-if="connectionStatus == 'CONNECTING'" id="loading">
     <canvas id="loading-ball" width="256" height="256"></canvas>
   </div>
   <div v-else-if="mustLogin" id="login">
@@ -192,11 +174,6 @@
         :selected="nav == image"
         @click="nav=image" >
       </Icon>
-      <!-- <img v-for="name in navBarItems"
-        :src="`/controller/${name}.svg`"
-        @click="nav=name"
-        :style="{filter: nav == name ? 'invert(12%) sepia(98%) saturate(4397%) hue-rotate(265deg) brightness(98%) contrast(130%)' : ''}"
-      > -->
     </div>
   </div>
 
