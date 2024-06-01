@@ -340,12 +340,11 @@ var app = new Vue({
       return this.rawPrefName.replace(/[^0-9a-zA-Z ]/gi, '')
     },
 
-    saveScrollContainerStyle() {
-      console.log(8*this.rem)
-      let height = document.body.getBoundingClientRect().height - 32*this.rem
+    saveScrollStyle() {
+      let height = innerHeight - 32*this.rem
       return {
-        height: height + "px",
-        borderBottom: `${height - 8*this.rem * this.state.prefNames.length}px solid var(--bg-color)`,
+        "--save-scroll-height": height + "px",
+        "--save-scroll-bottom-height": (height - 8*this.rem * this.state.prefNames.length) + "px",
       }
     },
   },
@@ -552,8 +551,8 @@ var app = new Vue({
         return // Already trying to establish a connection
       }
       let protocolAndHost
-      if (location.hostname == "localhost") {
-        protocolAndHost = "ws://localhost" 
+      if (location.hostname == "localhost" || location.hostname.startsWith("192.168")) {
+        protocolAndHost = "ws://" + location.hostname
       } else {
         protocolAndHost = "wss://" + location.hostname
       }

@@ -46,13 +46,13 @@
       </div>
     </div>
     <!-- SAVE MENU -->
-    <div v-if="nav=='save'" class="nav-page">
+    <div v-if="nav=='save'" class="nav-page" :style="saveScrollStyle">
       <div class=" horiz-box">
         <div class="button" id="restore-defaults" @click="clearPrefs()" >
           Restore Defaults
         </div>
       </div>
-      <div class="scroll-containter" :style="saveScrollContainerStyle">
+      <div class="scroll-containter">
         <div v-for="name in state.prefNames"
             class="pref-list-item"
             :class="{selected: prefName == name}"
@@ -69,8 +69,8 @@
           </div>
           <div class="horiz-box"></div>
         </div>
-        <div class="bottom-plug"></div>
       </div>
+      <div class="bottom-plug"></div>
       <div id="save-bottom-stuff" class="horiz-box">
         <textarea :value="prefName" @input="rawPrefName=$event.target.value"></textarea>
         <div class="button"
