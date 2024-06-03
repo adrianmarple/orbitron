@@ -446,7 +446,7 @@ function createPrintInfo(displayOnly) {
   wall.setAttribute("viewBox", `0 0 ${WALL_PANEL_WIDTH} ${WALL_PANEL_HEIGHT}`)
 
   let path = ""
-  let offset = [WALL_SVG_PADDING, WALL_SVG_PADDING, 1] // offset[2] is panelCount
+  let offset = [WALL_SVG_PADDING.left, WALL_SVG_PADDING.top, 1] // offset[2] is panelCount
   for (let wallIndex = STARTING_WALL_INDEX; wallIndex < wallInfo.length; wallIndex++) {
     let wallType = wallInfo[wallIndex]
     let wallLength = wallType.length
@@ -535,22 +535,22 @@ function wallPath(path, offset, wallLength, angle1, angle2,
 
   let wallHeight = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   offset[0] += wallLength
-  if (offset[0] > offset[2]*WALL_PANEL_WIDTH - WALL_SVG_PADDING) {
-    offset[0] = (offset[2] - 1)*WALL_PANEL_WIDTH + WALL_SVG_PADDING + wallLength
+  if (offset[0] > offset[2]*WALL_PANEL_WIDTH - WALL_SVG_PADDING.right) {
+    offset[0] = (offset[2] - 1)*WALL_PANEL_WIDTH + WALL_SVG_PADDING.left + wallLength
     offset[1] += wallHeight + WALL_SVG_GAP
   }
-  if (offset[1] + wallHeight > WALL_PANEL_HEIGHT - WALL_SVG_PADDING) {
+  if (offset[1] + wallHeight > WALL_PANEL_HEIGHT - WALL_SVG_PADDING.bottom) {
     if (printInfo) {
       wall.querySelector("path").setAttribute("d", path)
       printInfo.prints[printInfo.prints.length - 1].svg = wall.outerHTML
       printInfo.prints.push(blankPrint())
       path = ""
-      offset[0] = WALL_SVG_PADDING + wallLength
+      offset[0] = WALL_SVG_PADDING.left + wallLength
     } else {
-      offset[0] = offset[2]*WALL_PANEL_WIDTH + WALL_SVG_PADDING + wallLength
+      offset[0] = offset[2]*WALL_PANEL_WIDTH + WALL_SVG_PADDING.left + wallLength
       offset[2] += 1
     }
-    offset[1] = WALL_SVG_PADDING
+    offset[1] = WALL_SVG_PADDING.top
   }
 
   offset[0] += Math.tan(Math.abs(angle2)) * WALL_THICKNESS
@@ -586,7 +586,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
 
     if (EDGES_DOUBLED && !hasWallPort) {
       let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
-      supportX += Math.tan(angle1) * CHANNEL_WIDTH
+      supportX += Math.tan(angle1) * CHANNEL_WIDTH/2
       if (angle1 < 0) {
         supportX += Math.tan(angle1) * WALL_THICKNESS
       }

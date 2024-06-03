@@ -194,8 +194,8 @@ addPOSTListener(async (response, body) => {
   window_w = 51.8;
   window_h = 22;
   window_h_offset = 14.6;
-  magnet_r = 3.5;
-  magnet_offset = 1.5;
+  magnet_r = 3.2;
+  magnet_offset = 1;
 
   power_nut_w = 15;
   power_nut_h = 3;
@@ -357,6 +357,7 @@ async function generateGCode(info, index) {
     for (let support of print.ledSupports) {
       scadFileContents += `
       translate([${support.position}])
+      translate([0,0,${info.thickness}])
       led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
     }
     scadFileContents += `
@@ -383,11 +384,11 @@ async function generateGCode(info, index) {
   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
   if (info.PROCESS_STOP == "stl") return
 
-  console.log("Generating .gcode " + index)
+  console.log("Generating .bgcode " + index)
   await execute(`${process.env.SLICER} -g --load wall_config.ini "${stlFilePath}" --output ${bgcodeFilePath}`)
   if (info.PROCESS_STOP == "bgcode") return
   
-  console.log("Uploading .gcode " + index)
+  console.log("Uploading .bgcode " + index)
   await execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
   await execute(`curl -X PUT 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
   if (info.PROCESS_STOP == "upload") return
