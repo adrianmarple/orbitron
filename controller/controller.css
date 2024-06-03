@@ -4,12 +4,6 @@
   --bg-color: #080808;
 }
 
-@font-face {
-  font-family: "Lumatron";
-  font-display: auto;
-  src: url('/controller/barcade.otf');
-}
-
 html, #game-stuff {
   height: 100%;
 }
@@ -546,23 +540,28 @@ input[type="range"]::-moz-range-thumb {
   right: 1rem;
 }
 #about-button {
-  font-family: Lumatron;
   position: fixed;
   top: 1rem;
   cursor: pointer;
   left: 1rem;
   z-index: 5;
-  font-weight: bold;
   display: flex;
   justify-content: center;
   align-items: center;
   color: white !important;
   opacity: 0.6;
-  text-decoration: underline;
+  text-decoration: none;
   filter: drop-shadow(0 0 1rem white);
+  width: 6rem;
+  height: 6rem;
 }
 #about-button img {
-  width: 6rem;
+  width: 100%;
+  position: absolute;
+}
+#about-button .qmark {
+  font-size: 2.5rem;
+  padding-bottom: 0.2rem;
 }
 
 #label {
