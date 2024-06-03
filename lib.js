@@ -1,5 +1,6 @@
-let { exec, execSync } = require('child_process')
+const crypto = require("crypto")
 const fs = require('fs')
+let { exec, execSync } = require('child_process')
 
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
@@ -68,6 +69,8 @@ function delay(ms) {
 }
 
 async function restartOrbitron(){
+  if (config.DEV_MODE) return
+  
   let pm2Running = (await execute("ps -ea")).trim().indexOf("pm2") >= 0
   if(pm2Running){
     execute("pm2 restart all")
@@ -76,6 +79,26 @@ async function restartOrbitron(){
   }
 }
 
+
+async function processAdminCommand(jsonData) {
+  if (config.ORB_KEY) {
+    let expectedHash = await sha256(jsonData.message + config.ORB_KEY.toLowerCase())
+    if (jsonData.hash != expectedHash) return null
+  }
+  try {
+    jsonData = JSON.parse(jsonData.message)
+  } catch { return null }
+  if (jsonData.timestamp < Date.now() - 10*1000) return null
+  return jsonData
+}
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);                    
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
 module.exports = {
-  execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron
+  execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand
 }

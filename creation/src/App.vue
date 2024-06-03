@@ -69,8 +69,6 @@
 </template>
 
 <script>
-import QRCodeStyling from 'qr-code-styling'
-
 export default {
   name: 'App',
   data() {

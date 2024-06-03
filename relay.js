@@ -1,16 +1,19 @@
 #!/usr/bin/env node
-const { config } = require('./lib')
+const { config, processAdminCommand } = require('./lib')
 const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const homedir = require('os').homedir()
-const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
+const { addGETListener, respondWithFile, addPOSTListener, noCorsHeader } = require('./server')
+const { timeStamp } = require('console')
 
 const connectedOrbs = {}
 const logsRequested = {}
 const connectedClients = {}
+
+const awaitingMessages = {}
 
 let server
 if (config.DEV_MODE) {
@@ -66,6 +69,18 @@ function bindOrb(socket, orbID) {
   connectedOrbs[orbID] = socket
   socket.on('message', (data, isBinary) => {
     if (data == "PING") return
+
+    try {
+      jsonData = JSON.parse(data)
+      let messageID = jsonData.messageID
+      if (messageID) {
+        if (awaitingMessages[messageID]) {
+          awaitingMessages[messageID].resolve(jsonData.data)
+        }
+        return
+      }
+    } catch {}
+
     if(logsRequested[orbID] && isBinary){
       try {
         fs.writeFileSync(`${homedir}/${orbID}_logs.zip`, data)
@@ -124,7 +139,7 @@ function bindClient(socket, orbID, clientID) {
   connectedClients[orbID][clientID] = socket
   socket.clientID = clientID
   socket.messageCache = []
-  socket.on('message', (data, isBinary) => {
+  socket.on('message', async (data, isBinary) => {
     if(!isBinary){
       data = data.toString().trim()
     }
@@ -176,6 +191,37 @@ function bindClient(socket, orbID, clientID) {
     socket.close()
   }
 }
+
+addGETListener(async (response, orbID, _, queryParams) => {
+  if (orbID != "admin") return false
+  let command = await processAdminCommand(queryParams)
+  if (!command) return false
+
+  if (command.type == "orblist") {
+    noCorsHeader(response, 'text/json')
+    response.end(JSON.stringify(Object.keys(connectedOrbs)))
+    return true
+  }
+  return false
+})
+
+addGETListener(async (response, orbID, filePath, queryParams) => {
+  let pathParts = filePath.split("/")
+  if (pathParts.length < 3 || pathParts[2] != "admin") return false
+  
+  queryParams.type = "admin"
+  let orb = connectedOrbs[orbID]
+  let reply = await new Promise(resolve => {
+    orb.send(JSON.stringify(queryParams))
+    awaitingMessages[queryParams.hash] = {
+      timestamp: Date.now(),
+      resolve,
+    }
+  })
+  noCorsHeader(response, 'text/json')
+  response.end(reply)
+  return true
+})
 
 addGETListener(async (response, orbID, filePath)=>{
   if(!orbID || !connectedOrbs[orbID] || !filePath.includes("/logs")) return

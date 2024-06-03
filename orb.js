@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-let { checkConnection, execute, config, PYTHON_EXECUTABLE} = require('./lib')
+let { checkConnection, execute, config, processAdminCommand, PYTHON_EXECUTABLE, restartOrbitron} = require('./lib')
 const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
 const fs = require('fs')
@@ -76,8 +76,32 @@ function connectOrbToRelay(){
         }
         return
       }
-      // Actual Client message
       data = JSON.parse(data)
+
+      // Admin command
+      if (data.type == "admin") {
+        let messageID = data.hash
+        command = await processAdminCommand(data)
+        if (!command) return
+
+        let returnData = "OK"
+        if (command.type == "getconfig") {
+          returnData = (await fs.promises.readFile("config.js")).toString()
+        }
+        if (command.type == "setconfig") {
+          console.log(command.data)
+          if (!command.data.startsWith("module.exports")) return
+          await fs.promises.writeFile("config.js", command.data)
+          restartOrbitron()
+        }
+        orbToRelaySocket.send(JSON.stringify({
+          messageID,
+          data: returnData,
+        }))
+        return
+      }
+
+      // Actual Client message
       let clientID = data.clientID
       let clientConnection = getClientConnection(clientID)
       if(!clientConnection && !data.closed){
