@@ -251,8 +251,8 @@ Vue.component('vector', {
 Vue.component('Icon', {
   props: ['image', 'w', 'h', 'selected'],
   computed: {
-    imageUrlW() { return `/controller/${this.image}_white.svg` },
-    imageUrlB() { return `/controller/${this.image}_black.svg` },
+    imageUrlW() { return `/controller/images/${this.image}_white.svg` },
+    imageUrlB() { return `/controller/images/${this.image}_black.svg` },
     imageWidth() { return 0.6 * Math.min(this.w, this.h) }
   },
   template: `

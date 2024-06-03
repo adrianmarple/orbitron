@@ -10,11 +10,11 @@ GAMES_INFO = [
       },
       {
         words: ["Eat to grow."],
-        image: "/images/snektronEatTutorial.gif",
+        image: "/controller/images/snektronEatTutorial.gif",
       },
       {
         words: ["Shrink on contact."],
-        image: "/images/snektronShrinkTutorial.gif",
+        image: "/controller/images/snektronShrinkTutorial.gif",
       },
     ],
     victoryCondition: "Record longest snake wins",
@@ -173,7 +173,7 @@ GLOBAL_RULES = [
     words: [
       "Once a game has started you can drag on your phone to move.",
     ],
-    image: "/images/snektronMovementTutorial.gif",
+    image: "/controller/images/snektronMovementTutorial.gif",
   },
   {
     words: ["Your color is <span style='color:{{self.color}}'>{{self.colorName}}</span>, so look for the <span style='color:{{self.color}}'>{{self.colorName}}</span> pixel once the game starts."],

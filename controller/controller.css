@@ -550,10 +550,8 @@ input[type="range"]::-moz-range-thumb {
   position: fixed;
   top: 1rem;
   cursor: pointer;
-  z-index: 2;
   left: 1rem;
   z-index: 5;
-  font-size: 4rem;
   font-weight: bold;
   display: flex;
   justify-content: center;
@@ -562,6 +560,9 @@ input[type="range"]::-moz-range-thumb {
   opacity: 0.6;
   text-decoration: underline;
   filter: drop-shadow(0 0 1rem white);
+}
+#about-button img {
+  width: 6rem;
 }
 
 #label {
