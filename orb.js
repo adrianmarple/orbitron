@@ -89,8 +89,10 @@ function connectOrbToRelay(){
           returnData = (await fs.promises.readFile("config.js")).toString()
         }
         if (command.type == "setconfig") {
-          console.log(command.data)
-          if (!command.data.startsWith("module.exports")) return
+          let match = command.data.match(/\s*module\.exports\s*=(.*)/s)
+          if (!match) return
+          let configObject = eval("(" + match[1] + ")")
+          if (!configObject.ORB_ID) return
           await fs.promises.writeFile("config.js", command.data)
           restartOrbitron()
         }

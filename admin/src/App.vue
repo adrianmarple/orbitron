@@ -7,6 +7,7 @@
   </div>
 </div>
 <div id="actions">
+  <div class="button" @click="setOrbKey">Set ORB_KEY</div>
   <div class="button" @click="saveConfig">Save config.js
     <span v-if="config != idToConfig[orbID]">*</span>
   </div>
@@ -45,11 +46,11 @@ export default {
   data() {
     return {
       masterKey: "",
-      orbID: "Dragonite",
-      serverOrbID: "Dragonite",
-      serverUrl: "http://localhost:1337",
-      // serverOrbID: "demo",
-      // serverUrl: "https://my.lumatron.art",
+      orbID: localStorage.getItem("orbID") || "demo",
+      // serverOrbID: "Dragonite",
+      // serverUrl: "http://localhost:1337",
+      serverOrbID: "demo",
+      serverUrl: "https://my.lumatron.art",
       idToConfig: {},
       innerWidth,
       orbIDs: [],
@@ -69,6 +70,11 @@ export default {
 
     this.updateConfig()
   },
+  watch: {
+    orbID() {
+      localStorage.setItem("orbID", this.orbID)
+    }
+  },
   computed: {
     async orbKey() {
       return this.getOrbKey(this.orbID)
@@ -87,11 +93,24 @@ export default {
       this.config = this.idToConfig[this.orbID]
       this.updateConfig()
     },
-    saveConfig() {
-      this.sendCommand({
+    async setOrbKey() {
+      let IDmatch = this.config.match(/\'?\"?ORB_ID\'?\"?\s*:\s*[\'\"](.*)[\'\"],/)
+      let orbID = IDmatch[1]
+      let orbKey = await this.getOrbKey(orbID)
+      let keyLine = `  ORB_KEY: "${orbKey}",`
+      let keyMatch = this.config.match(/.*ORB_KEY.*/)
+      if (keyMatch) {
+        this.config = this.config.replace(keyMatch[0], keyLine)
+      } else {
+        this.config = this.config.replace(IDmatch[0], IDmatch[0] + "\n" + keyLine)
+      }
+    },
+    async saveConfig() {
+      await this.sendCommand({
         type: "setconfig",
         data: this.config,
       }, this.orbID)
+      this.idToConfig[this.orbID] = this.config
     },
     async getOrbIDs() {
       this.orbIDs = JSON.parse(await this.sendServerCommand({type: "orblist"}))
