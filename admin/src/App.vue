@@ -7,11 +7,13 @@
   </div>
 </div>
 <div id="actions">
+  <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
   <div class="button" @click="setOrbKey">Set ORB_KEY</div>
   <div class="button" @click="saveConfig">Save config.js
     <span v-if="config != idToConfig[orbID]">*</span>
   </div>
-</div>
+  <div class="button" @click="restartOrb">Restart</div>
+  </div>
 
 <div id="meta-container">
   <div class="left side-box"></div>
@@ -112,8 +114,13 @@ export default {
       }, this.orbID)
       this.idToConfig[this.orbID] = this.config
     },
+    async restartOrb() {
+      await this.sendCommand({ type: "restart" }, this.orbID)
+    },
     async getOrbIDs() {
-      this.orbIDs = JSON.parse(await this.sendServerCommand({type: "orblist"}))
+      try {
+        this.orbIDs = JSON.parse(await this.sendServerCommand({type: "orblist"}))
+      } catch {}
     },
     async updateConfig() {
       this.idToConfig[this.orbID] = await this.sendCommand({type: "getconfig"}, this.orbID)
@@ -130,6 +137,7 @@ export default {
       let pathPrefix = isServerCommand ? "" : orbID + "/"
       let url = `${this.serverUrl}/${pathPrefix}admin?message=${message}&hash=${hash}`
       let response =  await (await fetch(url)).text()
+      setTimeout(this.getOrbIDs, 500)
       return response
     },
   },

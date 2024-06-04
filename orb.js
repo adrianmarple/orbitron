@@ -85,6 +85,9 @@ function connectOrbToRelay(){
         if (!command) return
 
         let returnData = "OK"
+        if (command.type == "restart") {
+          restartOrbitron()
+        }
         if (command.type == "getconfig") {
           returnData = (await fs.promises.readFile("config.js")).toString()
         }
