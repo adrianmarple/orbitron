@@ -132,6 +132,7 @@ if south_pole is None:
 raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
 print("Running %s pixels" % RAW_SIZE, file=sys.stderr)
 
+idle = None
 game = None
 next_game = None
 games = {}
