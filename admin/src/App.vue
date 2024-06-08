@@ -137,7 +137,7 @@ export default {
       let pathPrefix = isServerCommand ? "" : orbID + "/"
       let url = `${this.serverUrl}/${pathPrefix}admin?message=${message}&hash=${hash}`
       let response =  await (await fetch(url)).text()
-      setTimeout(this.getOrbIDs, 500)
+      setTimeout(this.getOrbIDs, 1000)
       return response
     },
   },

@@ -77,7 +77,7 @@ async function EulerianHelper(currentVertex, pathOverride) {
     }
 
     let nextVertex = otherVertex(edge, currentVertex)
-    // await delay(10)
+    // await delay(20)
     let finished = await EulerianHelper(nextVertex);
     if (finished) {
       return true

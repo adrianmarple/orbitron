@@ -195,7 +195,8 @@ addPOSTListener(async (response, body) => {
   window_h = 22;
   window_h_offset = 14.6;
   magnet_r = 3.2;
-  magnet_offset = 1;
+  magnet_offset = 1.5;
+  magnet_depth = 2;
 
   power_nut_w = 15;
   power_nut_h = 3;
@@ -214,7 +215,7 @@ addPOSTListener(async (response, body) => {
       translate([(w - power_nut_w)/2, -1, -1])
       cube([power_nut_w, power_nut_h+1, thickness1]);
         
-      translate([0, 0, -1.5])
+      translate([0, 0, -magnet_depth])
       union() {
         translate([magnet_r + magnet_offset, magnet_r + magnet_offset, 0])
         cylinder(h=thickness1, r=magnet_r);
