@@ -2,12 +2,13 @@
 <div id="background"></div>
   
 <div id="type-buttons">
-  <div v-for="id in orbIDs" class="button" @click="setOrb(id)">
-    {{ id }}
+  <div v-for="orb in orbInfo" class="button" @click="setOrb(orb.id)">
+    {{ orb.aliases[0] ?? orb.id }}
   </div>
 </div>
 <div id="actions">
   <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
+  <div class="button" @click="genOrbID">Generate ORB_ID</div>
   <div class="button" @click="setOrbKey">Set ORB_KEY</div>
   <div class="button" @click="saveConfig">Save config.js
     <span v-if="config != idToConfig[orbID]">*</span>
@@ -49,13 +50,13 @@ export default {
     return {
       masterKey: "",
       orbID: localStorage.getItem("orbID") || "demo",
-      // serverOrbID: "Dragonite",
-      // serverUrl: "http://localhost:1337",
-      serverOrbID: "demo",
-      serverUrl: "https://my.lumatron.art",
+      serverOrbID: "Dragonite",
+      serverUrl: "http://localhost:1337",
+      // serverOrbID: "demo",
+      // serverUrl: "https://my.lumatron.art",
       idToConfig: {},
       innerWidth,
-      orbIDs: [],
+      orbInfo: [],
       config: "",
     }
   },
@@ -67,8 +68,8 @@ export default {
     })
 
     this.masterKey = await (await fetch("http://localhost:1337/masterkey")).text()
-    this.getOrbIDs()
-    setInterval(this.getOrbIDs, 10000)
+    this.getOrbInfo()
+    setInterval(this.getOrbInfo, 10000)
 
     this.updateConfig()
   },
@@ -87,6 +88,21 @@ export default {
   },
 
   methods: {
+    genOrbID() {
+      let orbID = Math.floor(Math.random() * 0xffffffffffff)
+      orbID = base64(orbID).slice(-7)
+      let IDmatch = this.config.match(/.*ORB_ID.*/)
+      let IDline = `  ORB_ID: "${orbID}",`
+      if (IDmatch) {
+        this.config = this.config.replace(IDmatch[0], IDline)
+      } else {
+        let lines = this.config.split("\n")
+        let firstLine = lines.shift()
+        lines.unshift(IDline)
+        lines.unshift(firstLine)
+        this.config = lines.join("\n")
+      }
+    },
     async getOrbKey(orbID) {
       return await sha256(orbID.toLowerCase() + this.masterKey)
     },
@@ -117,9 +133,9 @@ export default {
     async restartOrb() {
       await this.sendCommand({ type: "restart" }, this.orbID)
     },
-    async getOrbIDs() {
+    async getOrbInfo() {
       try {
-        this.orbIDs = JSON.parse(await this.sendServerCommand({type: "orblist"}))
+        this.orbInfo = JSON.parse(await this.sendServerCommand({type: "orblist"}))
       } catch {}
     },
     async updateConfig() {
@@ -149,6 +165,14 @@ async function sha256(message) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
+}
+function base64(n) {
+  let result = ''
+  do {
+    result = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'.charAt(n % 64) + result
+    n = Math.floor(n / 64) - 1
+  } while(n > -1)
+  return result
 }
 </script>
 

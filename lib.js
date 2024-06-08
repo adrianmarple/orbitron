@@ -5,6 +5,7 @@ let { exec, execSync } = require('child_process')
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
 console.log(config)
+config.ALIASES = config.ALIASES ?? {}
 if(config.KEY_LOCATION){
   config.httpsOptions = {
     key: fs.readFileSync(config.KEY_LOCATION),
@@ -70,7 +71,7 @@ function delay(ms) {
 
 async function restartOrbitron(){
   if (config.DEV_MODE) return
-  
+
   let pm2Running = (await execute("ps -ea")).trim().indexOf("pm2") >= 0
   if(pm2Running){
     execute("pm2 restart all")

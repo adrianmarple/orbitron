@@ -199,7 +199,22 @@ addGETListener(async (response, orbID, _, queryParams) => {
 
   if (command.type == "orblist") {
     noCorsHeader(response, 'text/json')
-    response.end(JSON.stringify(Object.keys(connectedOrbs)))
+    let orbInfo = []
+    for (let id in connectedOrbs) {
+      let aliases = []
+      for (let alias in config.ALIASES) {
+        let aliasID = config.ALIASES[alias]
+        if (id == aliasID) {
+          aliases.push(alias)
+        }
+      }
+      orbInfo.push({
+        id,
+        aliases,
+        // TODO add local IP address
+      })
+    }
+    response.end(JSON.stringify(orbInfo))
     return true
   }
   return false
