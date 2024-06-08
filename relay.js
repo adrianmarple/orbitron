@@ -42,6 +42,7 @@ wsServer.on('connection', (socket, request) => {
     bindOrb(socket, orbID)
   } else { // client socket connecting to server
     let orbID = meta[1]
+    orbID = config.ALIASES[orbID] ?? orbID
     let clientID = meta[2]
     socket.clientID = clientID
     socket.classification = "WS client to server"
@@ -287,7 +288,7 @@ addGETListener(async (response, orbID, filePath)=>{
 })
 
 addGETListener(async (response, orbID, filePath)=>{
-  if(!orbID || !connectedOrbs[orbID] || !filePath.toLowerCase().endsWith(orbID)) return
+  if(!orbID || !connectedOrbs[orbID]) return
   respondWithFile(response, "/controller/controller.html")
   return true
 })
