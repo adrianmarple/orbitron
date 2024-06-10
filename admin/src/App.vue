@@ -65,14 +65,23 @@ export default {
     }
   },
   async created() {
-    if (location.href.includes("local")) {
+    if (location.href.includes("?local")) {
       this.serverOrbID = "Dragonite"
       this.serverUrl = "http://localhost:1337"
     }
     let self = this
-    addEventListener('resize', (event) => {
+    addEventListener('resize', event => {
       self.innerWidth = innerWidth
       self.$forceUpdate()
+    })
+
+    addEventListener('keydown', event => {
+      if (event.key == 's' && (event.metaKey || event.ctrlKey)) {
+        if (self.viewing == 'config') {
+          self.saveConfig()
+        }
+        event.preventDefault()
+      }
     })
 
     this.masterKey = await (await fetch("http://localhost:1337/masterkey")).text()
