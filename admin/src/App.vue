@@ -4,6 +4,7 @@
 <div id="type-buttons">
   <div v-for="orb in orbInfo" class="button" @click="setOrb(orb.id)">
     {{ orb.aliases[0] ?? orb.id }}
+    <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
   </div>
 </div>
 <div id="actions">
@@ -59,6 +60,7 @@ export default {
       orbInfo: [],
       idToConfig: {},
       idToLog: {},
+      idToIP: {},
       config: "",
       log: "",
       viewing: "config",
@@ -172,7 +174,16 @@ export default {
           let bName = b.aliases[0] ?? b.id
           return aName < bName ? -1 : 1
         })
+
+        for (let orb of this.orbInfo) {
+          if (!this.idToIP[orb.id]) {
+            this.getIPAddress(orb.id)
+          }
+        }
       } catch {}
+    },
+    async getIPAddress(orbID) {
+      this.idToIP[orbID] = await this.sendCommand({type: "ip"}, orbID)
     },
     async updateConfig() {
       this.idToConfig[this.orbID] = await this.sendCommand({type: "getconfig"}, this.orbID)

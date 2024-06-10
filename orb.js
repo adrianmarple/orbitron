@@ -6,7 +6,8 @@ const fs = require('fs')
 const process = require('process')
 const { spawn } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
-const homedir = require('os').homedir()
+const os = require('os')
+const homedir = os.homedir()
 let orbEmulatorBroadcast = () => {}
 if(config.HAS_EMULATION){
   orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
@@ -99,6 +100,18 @@ function connectOrbToRelay(){
             returnData = "no pm2 running"
           } else {
             returnData = (await fs.promises.readFile("/root/.pm2/logs/startscript-out.log")).toString()
+          }
+        }
+        if (command.type == "ip") {
+          let interfaces = require('os').networkInterfaces();
+          for (var devName in interfaces) {
+            var iface = interfaces[devName];
+
+            for (var i = 0; i < iface.length; i++) {
+              var alias = iface[i];
+              if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal)
+                returnData = alias.address;
+            }
           }
         }
         if (command.type == "setconfig") {
