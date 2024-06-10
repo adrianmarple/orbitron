@@ -167,6 +167,11 @@ export default {
     async getOrbInfo() {
       try {
         this.orbInfo = JSON.parse(await this.sendServerCommand({type: "orblist"}))
+        this.orbInfo = this.orbInfo.sort((a,b) => {
+          let aName = a.aliases[0] ?? a.id
+          let bName = b.aliases[0] ?? b.id
+          return aName < bName ? -1 : 1
+        })
       } catch {}
     },
     async updateConfig() {
