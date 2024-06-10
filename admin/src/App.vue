@@ -7,21 +7,24 @@
   </div>
 </div>
 <div id="actions">
-  <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
-  <div class="button" @click="genOrbID">Generate ORB_ID</div>
-  <div class="button" @click="setOrbKey">Set ORB_KEY</div>
-  <div class="button" @click="saveConfig">Save config.js
+  <div v-if="viewing=='config'" class="button" @click="genOrbID">Generate ORB_ID</div>
+  <div v-if="viewing=='config'" class="button" @click="setOrbKey">Set ORB_KEY</div>
+  <div v-if="viewing=='config'" class="button" @click="saveConfig">Save config.js
     <span v-if="config != idToConfig[orbID]">*</span>
   </div>
+  <div v-if="viewing=='config'" class="button" @click="setViewing('log')">View Log</div>
+  <div v-if="viewing=='log'" class="button" @click="setViewing('config')">View Config</div>
   <div class="button" @click="restartOrb">Restart</div>
-  </div>
+  <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
+</div>
 
 <div id="meta-container">
   <div class="left side-box"></div>
   <div id="container-wrapper">
     <div id="container">
       <div class="black-box">
-        <textarea class="config" v-model="config"></textarea>
+        <textarea v-if="viewing=='config'" class="main-text" v-model="config"></textarea>
+        <textarea v-if="viewing=='log'" class="main-text" v-model="log" readonly></textarea>
       </div>
       <svg id="nav">
         <mask id="nav-mask" x="0" y="0" :width="width" height=100>
@@ -50,17 +53,22 @@ export default {
     return {
       masterKey: "",
       orbID: localStorage.getItem("orbID") || "demo",
-      // serverOrbID: "Dragonite",
-      // serverUrl: "http://localhost:1337",
       serverOrbID: "demo",
       serverUrl: "https://my.lumatron.art",
-      idToConfig: {},
       innerWidth,
       orbInfo: [],
+      idToConfig: {},
+      idToLog: {},
       config: "",
+      log: "",
+      viewing: "config",
     }
   },
   async created() {
+    if (location.href.includes("local")) {
+      this.serverOrbID = "Dragonite"
+      this.serverUrl = "http://localhost:1337"
+    }
     let self = this
     addEventListener('resize', (event) => {
       self.innerWidth = innerWidth
@@ -69,7 +77,12 @@ export default {
 
     this.masterKey = await (await fetch("http://localhost:1337/masterkey")).text()
     this.getOrbInfo()
-    setInterval(this.getOrbInfo, 10000)
+    setInterval(function() {
+      self.getOrbInfo()
+      if (self.viewing == "log") {
+        self.updateLog()
+      }
+    }, 5000)
 
     this.updateConfig()
   },
@@ -106,10 +119,19 @@ export default {
     async getOrbKey(orbID) {
       return await sha256(orbID.toLowerCase() + this.masterKey)
     },
+    setViewing(type) {
+      this.viewing = type
+      if (type == "log") {
+        this.updateLog()
+      }
+      if (type == "config") {
+        this.updateConfig()
+      }
+    },
     setOrb(orbID) {
       this.orbID = orbID
       this.config = this.idToConfig[this.orbID]
-      this.updateConfig()
+      this.setViewing("config")
     },
     async setOrbKey() {
       let IDmatch = this.config.match(/\'?\"?ORB_ID\'?\"?\s*:\s*[\'\"](.*)[\'\"],/)
@@ -141,6 +163,10 @@ export default {
     async updateConfig() {
       this.idToConfig[this.orbID] = await this.sendCommand({type: "getconfig"}, this.orbID)
       this.config = this.idToConfig[this.orbID]
+    },
+    async updateLog() {
+      this.idToLog[this.orbID] = await this.sendCommand({type: "getlog"}, this.orbID)
+      this.log = this.idToLog[this.orbID]
     },
     sendServerCommand(command) {
       return this.sendCommand(command, this.serverOrbID, true)
@@ -362,7 +388,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   bottom: 24px;
 }
 
-.config {
+.main-text {
   color: white;
   background-color: var(--bg-color);
   width: 100%;

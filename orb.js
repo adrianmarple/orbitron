@@ -91,6 +91,16 @@ function connectOrbToRelay(){
         if (command.type == "getconfig") {
           returnData = (await fs.promises.readFile("config.js")).toString()
         }
+        if (command.type == "geterror") {
+          returnData = (await fs.promises.readFile("/root/.pm2/logs/startscript-error.log")).toString()
+        }
+        if (command.type == "getlog") {
+          if (config.DEV_MODE) {
+            returnData = "no pm2 running"
+          } else {
+            returnData = (await fs.promises.readFile("/root/.pm2/logs/startscript-out.log")).toString()
+          }
+        }
         if (command.type == "setconfig") {
           let match = command.data.match(/\s*module\.exports\s*=(.*)/s)
           if (!match) return
