@@ -168,6 +168,11 @@ async function fleshOutBody(body) {
   body.fullPath = filePath + body.fullProjectName
 }
 
+function replaceScadVariable(content, variable, value) {
+  let regex = new RegExp(variable + " = .+;")
+  return content.replace(regex, `${variable} = ${value};`)
+}
+
 addPOSTListener(async (response, body) => {
   if (!body || body.type != "qr") return false
 
@@ -181,66 +186,17 @@ addPOSTListener(async (response, body) => {
   await execute(`sips -s format bmp ${MANUFACTURING_FOLDER}qr.png --out ${MANUFACTURING_FOLDER}qr.bmp`)
   console.log("Tracing to create svg")
   await execute(`${process.env.POTRACE} ${MANUFACTURING_FOLDER}qr.bmp -s`)
+  
   console.log("Generating stl")
   let thickness1 = 2.5
   let thickness2 = 3.1
-  let scadFileContents = `
-  $fn=32;
-  w = 72;
-  h = 108.2;
-  thickness1 = ${thickness1};
-  thickness2 = ${thickness2};
-  
-  window_w = 51.8;
-  window_h = 22;
-  window_h_offset = 14.6;
-  magnet_r = 3.2;
-  magnet_offset = 1.5;
-  magnet_depth = 2;
-
-  power_nut_w = 15;
-  power_nut_h = 3;
-  
-  qr_base_w = 51.6;
-  qr_w = 48;
-  SCALE = ${body.scale} * 2.83464566929;
-  
-  union() {
-    difference() {
-      cube([w, h, thickness1]);
-        
-      translate([(w - window_w)/2, h - window_h - window_h_offset, -1])
-      cube([window_w, window_h, thickness1 + 2]);
-
-      translate([(w - power_nut_w)/2, -1, -1])
-      cube([power_nut_w, power_nut_h+1, thickness1]);
-        
-      translate([0, 0, -magnet_depth])
-      union() {
-        translate([magnet_r + magnet_offset, magnet_r + magnet_offset, 0])
-        cylinder(h=thickness1, r=magnet_r);
-          
-        translate([w - magnet_r - magnet_offset, magnet_r + magnet_offset, 0])
-        cylinder(h=thickness1, r=magnet_r);
-          
-        translate([w - magnet_r - magnet_offset, h - magnet_r - magnet_offset, 0])
-        cylinder(h=thickness1, r=magnet_r);
-          
-        translate([magnet_r + magnet_offset, h - magnet_r - magnet_offset, 0])
-        cylinder(h=thickness1, r=magnet_r);
-      }
-    }
-    
-    translate([(w - qr_base_w)/2, (w - qr_base_w)/2, thickness1])
-    cube([qr_base_w, qr_base_w, thickness2]);
-  
-  
-    translate([(w - qr_w)/2, (w - qr_w)/2, thickness1 + thickness2])
-    scale([SCALE, SCALE, 1])
-    linear_extrude(height = 0.2)
-    import("${MANUFACTURING_FOLDER}qr.svg");
-  }`
-  await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.scad", scadFileContents)
+  let scadContents = (await fs.promises.readFile("scad/boxtop.scad")).toString()
+  console.log(scadContents)
+  scadContents = replaceScadVariable(scadContents, "thickness1", thickness1)
+  scadContents = replaceScadVariable(scadContents, "thickness2", thickness2)
+  scadContents = replaceScadVariable(scadContents, "SCALE", body.scale * 2.83464566929)
+  scadContents = replaceScadVariable(scadContents, "svg_file", `"${MANUFACTURING_FOLDER}qr.svg"`)
+  await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.scad", scadContents)
   if (body.PROCESS_STOP == "scad") return true
 
   let stlFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.stl"
