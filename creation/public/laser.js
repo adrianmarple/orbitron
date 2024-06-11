@@ -424,6 +424,7 @@ function blankPrint() {
   return {
     wedges: [],
     ledSupports: [],
+    embossings: [],
   }
 }
 
@@ -478,11 +479,14 @@ function createPrintInfo(displayOnly) {
       let angle1 = wallType.angle1
       let angle2 = wallType.angle2
       let bottomOnlyNotches = []
-      for (let k = 0; k < 100; k++) {
+      let k = 0
+      for (; k < 100; k++) {
         if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH) ||
             (notches.length > 0 && notches[0].center > MAX_WALL_LENGTH)) {
           let tempWallLength = nextNotches.pop().center
-          path = wallPath(path, offset, tempWallLength, angle1, 0, nextNotches, cat5Offset, false, printInfo)
+          let embossingText = `${wallIndex}.${k}`
+          path = wallPath(path, offset, tempWallLength, angle1, 0, nextNotches,
+            cat5Offset, false, embossingText, printInfo)
           angle1 = 0
           nextNotches = bottomOnlyNotches
           bottomOnlyNotches = []
@@ -505,8 +509,12 @@ function createPrintInfo(displayOnly) {
       }
       // TODO check angles of split walls
       nextNotches = nextNotches.concat(bottomOnlyNotches)
+      let embossingText = wallIndex.toString()
+      if (k > 0) {
+        embossingText += "." + k
+      }
       path = wallPath(path, offset, remainingWallLength, angle1, angle2,
-          nextNotches, cat5Offset, isPowerCordPort, printInfo)
+          nextNotches, cat5Offset, isPowerCordPort, embossingText, printInfo)
 
       if (onlyOneWall) break
     }
@@ -526,7 +534,7 @@ function createPrintInfo(displayOnly) {
 }
 
 function wallPath(path, offset, wallLength, angle1, angle2,
-    notches, cat5Offset, isPowerCordPort, printInfo) {
+    notches, cat5Offset, isPowerCordPort, embossingText, printInfo) {
   
   let hasWallPort = cat5Offset !== undefined &&
       cat5Offset !== NaN &&
@@ -583,6 +591,13 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       wedge2.centered = true
     }
     print.wedges.push(wedge2)
+
+    if (!hasWallPort && !isPowerCordPort) {
+      print.embossings.push({
+        text: embossingText,
+        position: [offset[0] - wallLength/2, y, 0],
+      })
+    }
 
     if (EDGES_DOUBLED && !hasWallPort) {
       let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)

@@ -17,6 +17,14 @@ function execute(command){
 }
 
 execute("npm run serve") // Run vue server
+let printerIP = process.env.PRINTER_IP
+execute(`arp -a | grep "${process.env.PRINTER_MAC}"`).then(line => {
+  if (!line) return
+  let match = line.match(/\(([\d\.]*)\)/)
+  if (!match) return
+  printerIP = match[1]
+  console.log(printerIP)
+})
 
 const postListeners = []
 
@@ -186,7 +194,7 @@ addPOSTListener(async (response, body) => {
   await execute(`sips -s format bmp ${MANUFACTURING_FOLDER}qr.png --out ${MANUFACTURING_FOLDER}qr.bmp`)
   console.log("Tracing to create svg")
   await execute(`${process.env.POTRACE} ${MANUFACTURING_FOLDER}qr.bmp -s`)
-  
+
   console.log("Generating stl")
   let thickness1 = 2.5
   let thickness2 = 3.1
@@ -223,8 +231,8 @@ addPOSTListener(async (response, body) => {
   
   console.log("Uploading gcode")
   let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_box_top.gcode"
-  await execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
-  let resp = await execute(`curl -X PUT 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${gcodeFilePath}`)
+  await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+  let resp = await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${gcodeFilePath}`)
   console.log(resp)
   console.log("All Done!")
   return true
@@ -317,6 +325,13 @@ async function generateGCode(info, index) {
       translate([0,0,${info.thickness}])
       led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
     }
+    for (let embossing of print.embossings) {
+      scadFileContents += `
+      translate([${embossing.position}])
+      translate([-5,-2.5,${info.thickness}])
+      linear_extrude(0.2)
+      text("${embossing.text}", size= 5);`
+    }
     scadFileContents += `
 
     difference() {
@@ -346,8 +361,8 @@ async function generateGCode(info, index) {
   if (info.PROCESS_STOP == "bgcode") return
   
   console.log("Uploading .bgcode " + index)
-  await execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
-  await execute(`curl -X PUT 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
+  await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+  await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
   if (info.PROCESS_STOP == "upload") return
 }
 
@@ -356,16 +371,16 @@ addPOSTListener(async (response, body) => {
 
   let name = body.fullProjectName.split("/")[1].toLowerCase()
 
-  let fileData = await (await fetch(`http://${process.env.PRINTER_IP}/api/v1/files/usb`, {
+  let fileData = await (await fetch(`http://${printerIP}/api/v1/files/usb`, {
     headers: { "X-Api-Key": process.env.PRINTER_LINK_API_KEY},
   })).json()
 
   for (let {display_name} of fileData.children) {
     if (display_name.toLowerCase().startsWith(name)) {
-      execute(`curl -X DELETE 'http://${process.env.PRINTER_IP}/api/v1/files/usb/${display_name}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+      execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${display_name}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
     }
   }
-  console.log("cleaned up " + name)
+  console.log(`Cleaned up "${name}" files`)
   return true
 })
 
