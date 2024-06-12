@@ -3,6 +3,7 @@ const http = require('http')
 const fs = require('fs')
 const path = require('path')
 const { exec } = require('child_process')
+const { noCorsHeader } = require('../lib')
 
 
 function execute(command){
@@ -27,9 +28,13 @@ execute(`arp -a | grep "${process.env.PRINTER_MAC}"`).then(line => {
 })
 
 const postListeners = []
+const getListeners = []
 
 function addPOSTListener(callback){
   postListeners.push(callback)
+}
+function addGETListener(callback){
+  getListeners.push(callback)
 }
 
 function getContentType(filePath){
@@ -114,6 +119,10 @@ async function serverHandler(request, response) {
   }
 
   if (request.method === 'GET') {
+    for (let listener of getListeners) {
+      let result = listener(response, request)
+      if (result) return
+    }
     respondWithFile(response, request.url)
   }
 }
@@ -144,6 +153,16 @@ async function closeRootServer() {
 
 MANUFACTURING_FOLDER = "Dropbox/LumatronManufacturing/" // Move to .env?
 MANUFACTURING_FOLDER = path.join(process.env.HOME, MANUFACTURING_FOLDER)
+
+addGETListener((response, request) => {
+  if (request.url.endsWith("masterkey")) {
+    noCorsHeader(response, 'text/plain')
+    response.end(process.env.MASTER_KEY, 'utf-8')
+    return true
+  } else {
+    return false
+  }
+})
 
 addPOSTListener(async (response, body) => {
   if (body && body.type == "download") {

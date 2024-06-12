@@ -1,13 +1,12 @@
 #!/usr/bin/env node
-const { config, processAdminCommand } = require('./lib')
+const { config, processAdminCommand, noCorsHeader } = require('./lib')
 const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const homedir = require('os').homedir()
-const { addGETListener, respondWithFile, addPOSTListener, noCorsHeader } = require('./server')
-const { timeStamp } = require('console')
+const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 
 const connectedOrbs = {}
 const logsRequested = {}

@@ -24,8 +24,3 @@ if(config.IS_RELAY){
   console.log("Starting Relay")
   require('./relay')
 }
-
-if(config.DEV_MODE) {
-  console.log("Starting Admin Server")
-  require('./admin/adminserver')
-}

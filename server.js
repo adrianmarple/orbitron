@@ -76,17 +76,6 @@ function respondWithFile(response, filePath){
   });
 }
 
-function noCorsHeader(response, contentType) {
-  response.writeHead(200, {
-    'Content-Type': contentType,
-    'Access-Control-Allow-Origin': "*",
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    "Access-Control-Allow-Headers": "x-requested-with, Content-Type, origin, authorization, accept, client-security-token",
-    'Access-Control-Allow-Credentials': 'true',
-  })
-}
-
-
 async function serverHandler(request, response) {
   // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
@@ -226,5 +215,5 @@ async function closeRedirectServer(){
 
 
 module.exports = {
-  addGETListener, addPOSTListener, respondWithFile, noCorsHeader
+  addGETListener, addPOSTListener, respondWithFile
 }

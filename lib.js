@@ -4,7 +4,6 @@ let { exec, execSync } = require('child_process')
 
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
-console.log(config)
 config.ALIASES = config.ALIASES ?? {}
 if(config.KEY_LOCATION){
   config.httpsOptions = {
@@ -100,6 +99,17 @@ async function sha256(message) {
   return hashHex;
 }
 
+
+function noCorsHeader(response, contentType) {
+  response.writeHead(200, {
+    'Content-Type': contentType,
+    'Access-Control-Allow-Origin': "*",
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    "Access-Control-Allow-Headers": "x-requested-with, Content-Type, origin, authorization, accept, client-security-token",
+    'Access-Control-Allow-Credentials': 'true',
+  })
+}
+
 module.exports = {
-  execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand
+  execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand, noCorsHeader
 }
