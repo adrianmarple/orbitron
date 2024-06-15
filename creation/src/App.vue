@@ -4,13 +4,12 @@
 <div id="background"></div>
 
 <div id="meta-container">
+  <Admin v-if="mode=='admin'"></Admin>
+  <Creation v-if="mode=='creation'"></Creation>
   <div class="left side-box"></div>
   <div id="container-wrapper">
     <div id="container">
-      <div class="black-box">
-        <Admin v-if="mode=='admin'"></Admin>
-        <Creation v-if="mode=='creation'"></Creation>
-      </div>
+      <div class="black-box"></div>
       <svg id="nav" @click="toggleMode">
         <mask id="nav-mask" x="0" y="0" :width="width" height=100>
           <rect x=0 y=0 :width="width" height=100 fill="white"></rect>
@@ -25,7 +24,6 @@
     </div>
   </div>
   <div class="right side-box"></div>
-  <div id="bottom"></div>
 </div>
 </template>
 
@@ -57,7 +55,7 @@ export default {
       return Math.min(700, this.innerWidth)
     },
     navTextX() {
-      return 172 - this.mode.length * 8
+      return 196 - this.mode.length * 14
     }
   },
   methods: {
@@ -88,9 +86,6 @@ export default {
 html, body, #app {
   width: 100%;
   min-height: 100vh;
-}
-#app {
-  overflow:hidden;
 }
 body {
   margin: 0;
@@ -189,7 +184,6 @@ h1 {
   justify-content: center;
   width: 100%;
   min-height: 100vh;
-  position: fixed;
 }
 
 .side-box {
@@ -214,6 +208,8 @@ h1 {
   display: grid;
   grid-template-rows: 1fr auto;
   min-height: 100vh;
+  position: fixed;
+  z-index: -1;
 }
 
 #container {

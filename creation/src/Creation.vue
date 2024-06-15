@@ -39,7 +39,7 @@
   </div>
 </div>
 
-<canvas width="1000" height="1000"></canvas>
+<canvas id="path" width="1000" height="1000"></canvas>
 <svg id="wall" class="laser" width=1000 height=100 viewBox="0 0 1000 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path stroke="#808080"/>
 </svg>
@@ -213,12 +213,13 @@ function blobToBase64(blob) {
 
 <style>
 
-canvas {
+#path {
+  padding: 0 calc(50vw - 50vh);
+  left: 0;
   width: 100vh;
   max-width:  100vw;
   height: 100vh;
   max-height: 100vw;
-  margin: 0;
   position: absolute;
   pointer-events: none;
 }

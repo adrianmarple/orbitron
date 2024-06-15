@@ -70,7 +70,8 @@ function reset() {
 
   POWER_HOLE_RADIUS = 5.8
 
-  CHANNEL_DEPTH = CAT5_HEIGHT - BOTTOM_THICKNESS
+  // CHANNEL_DEPTH = CAT5_HEIGHT - BOTTOM_THICKNESS
+  CHANNEL_DEPTH = CAT5_HEIGHT
   HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   
   EXTRA_SCALE = 1 //1.0005
@@ -140,12 +141,12 @@ document.onkeydown = e => {
   }
 }
 
-let c = document.querySelector("canvas")
-let ctx = c.getContext("2d")
 
 setInterval(render, 30)
 function render() {
-  // ctx.fillStyle = "black"
+  let c = document.querySelector("canvas")
+  if (!c) return
+  let ctx = c.getContext("2d")
   ctx.clearRect(0, 0, 1000, 1000)
 
   let subPath = null
