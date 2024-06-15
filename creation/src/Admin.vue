@@ -87,49 +87,40 @@ export default {
   },
 
   methods: {
+    async configureDefault(fullProjectName) {
+      await this.setOrb("default")
+      this.genOrbID()
+      await this.setOrbKey()
+      this.config = upsertInConfig(this.config, 'PIXELS', fullProjectName, "ORB_KEY")
+      await this.saveConfig()
+    },
+
     genOrbID() {
-      let orbID = Math.floor(Math.random() * 0xffffffffffff)
-      orbID = base64(orbID).slice(-7)
-      let IDmatch = this.config.match(/.*ORB_ID.*/)
-      let IDline = `  ORB_ID: "${orbID}",`
-      if (IDmatch) {
-        this.config = this.config.replace(IDmatch[0], IDline)
-      } else {
-        let lines = this.config.split("\n")
-        let firstLine = lines.shift()
-        lines.unshift(IDline)
-        lines.unshift(firstLine)
-        this.config = lines.join("\n")
-      }
+      let orbID = createRandomID()
+      this.config = upsertInConfig(this.config, 'ORB_ID', orbID, "exports")
     },
     async getOrbKey(orbID) {
       return await sha256(orbID.toLowerCase() + this.masterKey)
     },
-    setViewing(type) {
+    async setViewing(type) {
       this.viewing = type
       if (type == "log") {
-        this.updateLog()
+        await this.updateLog()
       }
       if (type == "config") {
-        this.updateConfig()
+        await this.updateConfig()
       }
     },
-    setOrb(orbID) {
+    async setOrb(orbID) {
       this.orbID = orbID
       this.config = this.idToConfig[this.orbID]
-      this.setViewing("config")
+      await this.setViewing("config")
     },
     async setOrbKey() {
       let IDmatch = this.config.match(/\'?\"?ORB_ID\'?\"?\s*:\s*[\'\"](.*)[\'\"],/)
       let orbID = IDmatch[1]
       let orbKey = await this.getOrbKey(orbID)
-      let keyLine = `  ORB_KEY: "${orbKey}",`
-      let keyMatch = this.config.match(/.*ORB_KEY.*/)
-      if (keyMatch) {
-        this.config = this.config.replace(keyMatch[0], keyLine)
-      } else {
-        this.config = this.config.replace(IDmatch[0], IDmatch[0] + "\n" + keyLine)
-      }
+      this.config = upsertInConfig(this.config, 'ORB_KEY', orbKey, 'ORB_ID')
     },
     async saveConfig() {
       await this.sendCommand({
@@ -186,11 +177,11 @@ export default {
 }
 
 async function sha256(message) {
-    const msgBuffer = new TextEncoder().encode(message);                    
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+  const msgBuffer = new TextEncoder().encode(message);                    
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
 }
 function base64(n) {
   let result = ''
@@ -199,6 +190,26 @@ function base64(n) {
     n = Math.floor(n / 64) - 1
   } while(n > -1)
   return result
+}
+
+function createRandomID() {
+  return base64(Math.floor(Math.random() * 0xffffffffffff)).slice(-7)
+}
+
+function upsertInConfig(config, key, value, after) {
+  let newLine = `  ${key}: "${value}",`
+  let match = config.match(new RegExp(`.*${key}.*`))
+  if (match) {
+    config = config.replace(match[0], newLine)
+    return config
+  }
+
+  if (after) {
+    config = config.replace(new RegExp(`.*${after}.*`), "$&\n" + newLine)
+  } else {
+    config = config.replace(/^\}/m, newLine + "\n$&")
+  }
+  return config
 }
 </script>
 

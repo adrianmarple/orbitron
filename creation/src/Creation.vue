@@ -11,6 +11,7 @@
   <div class="button" @click="genWalls">Generate Walls</div>
   <div class="button" @click="genBoxTop">Generate Box Top</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
+  <div class="button" @click="configure">Configure Default Orb</div>
 </div>
 
 <div id="settings">
@@ -34,9 +35,9 @@
       </select>
     </div>
   </div>
-  <div>ORB ID
+  <!-- <div>ORB ID
     <textarea v-model="orbID"></textarea>
-  </div>
+  </div> -->
 </div>
 
 <canvas id="path" width="1000" height="1000"></canvas>
@@ -199,6 +200,11 @@ export default {
       elem.style.display = "block"
       this.download(`${this.fullProjectName} ${isBottom ? "bottom":"top"}.svg`, elem.outerHTML)
     },
+
+    configure() {
+      this.$root.$refs.admin.configureDefault(this.fullProjectName)
+      this.$root.toggleMode()
+    },
   },
 }
 
@@ -222,6 +228,7 @@ function blobToBase64(blob) {
   max-height: 100vw;
   position: absolute;
   pointer-events: none;
+  z-index: 1;
 }
 
 #settings {
@@ -261,6 +268,7 @@ function blobToBase64(blob) {
   pointer-events: none;
   top: 0;
   left: 0;
+  z-index: 1;
 }
 #cover text {
   font-size: 20px;

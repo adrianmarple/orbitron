@@ -4,12 +4,17 @@
 <div id="background"></div>
 
 <div id="meta-container">
-  <Admin v-if="mode=='admin'"></Admin>
-  <Creation v-if="mode=='creation'"></Creation>
+  <div :class="{ hidden: mode=='creation' }">
+    <Creation></Creation>
+  </div>
   <div class="left side-box"></div>
   <div id="container-wrapper">
     <div id="container">
-      <div class="black-box"></div>
+      <div class="black-box">
+        <div class="filler" :class="{ hidden: mode=='admin' }">
+          <Admin ref="admin"></Admin>
+        </div>
+      </div>
       <svg id="nav" @click="toggleMode">
         <mask id="nav-mask" x="0" y="0" :width="width" height=100>
           <rect x=0 y=0 :width="width" height=100 fill="white"></rect>
@@ -72,6 +77,10 @@ export default {
 </script>
 
 <style>
+.hidden {
+  display: none;
+}
+
 @font-face {
   font-family: "Lumatron";
   font-display: auto;
@@ -141,6 +150,10 @@ h1 {
   animation: animatedBackground 20s linear infinite;
 }
 
+.filler {
+  width: 100%;
+  height: 100%;
+}
 
 .button {
   z-index: 1;
@@ -173,6 +186,7 @@ h1 {
   display: flex;
   height: 100px;
   cursor: pointer;
+  font-weight: 700;
 }
 #nav text {
   font-size: 6em;
@@ -209,7 +223,6 @@ h1 {
   grid-template-rows: 1fr auto;
   min-height: 100vh;
   position: fixed;
-  z-index: -1;
 }
 
 #container {
@@ -219,7 +232,6 @@ h1 {
   flex-direction: column;
   align-items: center;
   color: #f5f5f5;
-  font-weight: 700;
   font-size: .5em;
   letter-spacing: 0.1em;
 }
