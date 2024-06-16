@@ -13,8 +13,20 @@
   </div>
   <div v-if="viewing=='config'" class="button" @click="setViewing('log')">View Log</div>
   <div v-if="viewing=='log'" class="button" @click="setViewing('config')">View Config</div>
+  <div class="button" @click="genBoxTop">Generate Box Top</div>
   <div class="button" @click="restartOrb">Restart</div>
   <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
+</div>
+
+<div class="names">
+  {{ orbID }}
+  <div>Alias:
+    <span v-if="aliases.length > 0">{{aliases[0]}}</span>
+    <span v-else>
+      <textarea v-model="newAlias"></textarea>
+      <div class="button" @click="saveAlias">Save</div>
+    </span>
+  </div>
 </div>
 
 
@@ -29,6 +41,7 @@ export default {
     return {
       masterKey: "",
       orbID: localStorage.getItem("orbID") || "demo",
+      aliases: [],
       serverOrbID: "demo",
       serverUrl: "https://my.lumatron.art",
       innerWidth,
@@ -39,6 +52,8 @@ export default {
       config: "",
       log: "",
       viewing: "config",
+      qrCode: null,
+      newAlias: "",
     }
   },
   async created() {
@@ -62,15 +77,28 @@ export default {
     })
 
     this.masterKey = await (await fetch("http://localhost:8000/masterkey")).text()
-    this.getOrbInfo()
+    this.updateConfig()
+
+    await this.getOrbInfo()
     setInterval(function() {
       self.getOrbInfo()
       if (self.viewing == "log") {
         self.updateLog()
       }
     }, 5000)
+    this.setOrb(this.orbID)
 
-    this.updateConfig()
+
+    this.qrCode = new QRCodeStyling({
+      width: 25 * 20,
+      height: 25 * 20,
+      margin: 0,
+      type: "svg",
+      data: "https://my.lumatron.art/",
+      dotsOptions: { type: "rounded" },
+      cornersSquareOptions: { type: "extra-rounded" },
+      qrOptions: { errorCorrectionLevel: "L" },
+    })
   },
   watch: {
     orbID() {
@@ -91,13 +119,13 @@ export default {
       await this.setOrb("default")
       this.genOrbID()
       await this.setOrbKey()
-      this.config = upsertInConfig(this.config, 'PIXELS', fullProjectName, "ORB_KEY")
+      this.config = upsertKeyValueInConfig(this.config, 'PIXELS', fullProjectName, "ORB_KEY")
       await this.saveConfig()
     },
 
     genOrbID() {
       let orbID = createRandomID()
-      this.config = upsertInConfig(this.config, 'ORB_ID', orbID, "exports")
+      this.config = upsertKeyValueInConfig(this.config, 'ORB_ID', orbID, "exports")
     },
     async getOrbKey(orbID) {
       return await sha256(orbID.toLowerCase() + this.masterKey)
@@ -113,14 +141,21 @@ export default {
     },
     async setOrb(orbID) {
       this.orbID = orbID
+      this.aliases = []
+      for (let orb of this.orbInfo) {
+        if (orb.id == orbID) {
+          this.aliases = orb.aliases
+          break
+        }
+      }
+      this.newAlias = ""
       this.config = this.idToConfig[this.orbID]
       await this.setViewing("config")
     },
     async setOrbKey() {
-      let IDmatch = this.config.match(/\'?\"?ORB_ID\'?\"?\s*:\s*[\'\"](.*)[\'\"],/)
-      let orbID = IDmatch[1]
+      let orbID = readFromConfig(this.config, 'ORB_ID')
       let orbKey = await this.getOrbKey(orbID)
-      this.config = upsertInConfig(this.config, 'ORB_KEY', orbKey, 'ORB_ID')
+      this.config = upsertKeyValueInConfig(this.config, 'ORB_KEY', orbKey, 'ORB_ID')
     },
     async saveConfig() {
       await this.sendCommand({
@@ -128,6 +163,18 @@ export default {
         data: this.config,
       }, this.orbID)
       this.idToConfig[this.orbID] = this.config
+    },
+    async saveAlias() {
+      let serverConfig = this.idToConfig[this.serverOrbID]
+      if (!serverConfig) {
+        serverConfig = await this.sendCommand({type: "getconfig"}, this.serverOrbID)
+      }
+      serverConfig = upsertLineInConfig(serverConfig, `    ${this.newAlias}: "${this.orbID}",`, "ALIASES")
+      this.idToConfig[this.serverOrbID] = serverConfig
+      await this.sendCommand({
+        type: "setconfig",
+        data: serverConfig,
+      }, this.serverOrbID)
     },
     async restartOrb() {
       await this.sendCommand({ type: "restart" }, this.orbID)
@@ -173,6 +220,24 @@ export default {
       setTimeout(this.getOrbIDs, 1000)
       return response
     },
+    async genBoxTop() {
+      let qrUrl = 'https://my.lumatron.art/' + this.orbID
+      this.qrSize = (qrUrl.length <= 32 ? 25 : 29) * 20
+      this.qrCode.update({
+        width: this.qrSize,
+        height: this.qrSize,
+        data: qrUrl
+      })
+      let data = await blobToBase64(await this.qrCode.getRawData())
+      this.$root.push({
+        fullProjectName: readFromConfig(this.config, 'PIXELS'),
+        type: "qr",
+        scale: 48.0 / this.qrSize,
+        PROCESS_STOP: "upload", //PROCESS_STOP,
+        PETG: true,
+        data,
+      })
+    },
   },
 }
 
@@ -191,19 +256,33 @@ function base64(n) {
   } while(n > -1)
   return result
 }
+function blobToBase64(blob) {
+  return new Promise((resolve, _) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result.split(",")[1])
+    reader.readAsDataURL(blob)
+  })
+}
 
 function createRandomID() {
   return base64(Math.floor(Math.random() * 0xffffffffffff)).slice(-7)
 }
 
-function upsertInConfig(config, key, value, after) {
+function readFromConfig(config, key) {
+  let regex = new RegExp(`\\'?\\"?${key}\\'?\\"?\\s*:\\s*[\\'\\"](.*)[\\'\\"],`)
+  let match = config.match(regex)
+  return match[1]
+}
+function upsertKeyValueInConfig(config, key, value, after) {
   let newLine = `  ${key}: "${value}",`
   let match = config.match(new RegExp(`.*${key}.*`))
   if (match) {
     config = config.replace(match[0], newLine)
     return config
   }
-
+  return upsertLineInConfig(config, newLine, after)
+}
+function upsertLineInConfig(config, newLine, after) {
   if (after) {
     config = config.replace(new RegExp(`.*${after}.*`), "$&\n" + newLine)
   } else {
@@ -226,6 +305,23 @@ function upsertInConfig(config, key, value, after) {
 .orb.button {
   display: flex;
   justify-content: space-between;
+}
+
+.names {
+  z-index: 10;
+  position: fixed;
+  left:  24px;
+  top: 24px;
+  font-size: 2rem;
+}
+.names textarea {
+  color: white;
+  background-color: var(--bg-color);
+  font-size: 1.5rem;
+  height: 32px;
+}
+.names .button {
+  width: 56px;
 }
 
 </style>

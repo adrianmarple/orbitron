@@ -9,7 +9,7 @@ window_h = 22;
 window_h_offset = 14.6;
 magnet_r = 3.2;
 magnet_offset = 1.5;
-magnet_depth = 2;
+magnet_depth = 0.8;
 
 power_nut_w = 15;
 power_nut_h = 3;

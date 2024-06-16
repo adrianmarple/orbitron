@@ -4,14 +4,14 @@
 <div id="background"></div>
 
 <div id="meta-container">
-  <div :class="{ hidden: mode=='creation' }">
+  <div :class="{ hidden: mode != 'creation' }">
     <Creation></Creation>
   </div>
   <div class="left side-box"></div>
   <div id="container-wrapper">
     <div id="container">
       <div class="black-box">
-        <div class="filler" :class="{ hidden: mode=='admin' }">
+        <div class="filler" :class="{ hidden: mode != 'admin' }">
           <Admin ref="admin"></Admin>
         </div>
       </div>
@@ -71,7 +71,17 @@ export default {
         this.mode = 'creation'
       }
       localStorage.setItem("mode", this.mode)
-    }
+    },
+    push(bodyJSON) {
+      fetch("http://localhost:8000/", {
+        method: "POST",
+        mode: 'no-cors',
+        body: JSON.stringify(bodyJSON),
+        headers: {
+          "Content-type": "application/json; charset=UTF-8"
+        }
+      })
+    },
   },
 }
 </script>

@@ -9,7 +9,6 @@
   <div class="button" @click="downloadCover(false)">Download Top SVG</div>
   <div class="button" @click="downloadCover(true)">Download Bottom SVG</div>
   <div class="button" @click="genWalls">Generate Walls</div>
-  <div class="button" @click="genBoxTop">Generate Box Top</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
   <div class="button" @click="configure">Configure Default Orb</div>
 </div>
@@ -35,9 +34,6 @@
       </select>
     </div>
   </div>
-  <!-- <div>ORB ID
-    <textarea v-model="orbID"></textarea>
-  </div> -->
 </div>
 
 <canvas id="path" width="1000" height="1000"></canvas>
@@ -76,9 +72,6 @@ export default {
         },
       ],
       buttons: [],
-      qrCode: null,
-      orbIDs: {},
-      orbID: "",
     }
   },
   created() {
@@ -88,24 +81,7 @@ export default {
         setting.value = setting.value == "true"
       window[setting.name] = setting.value
     }
-
-    this.qrCode = new QRCodeStyling({
-      width: 25 * 20,
-      height: 25 * 20,
-      margin: 0,
-      type: "svg",
-      data: "https://my.lumatron.art/",
-      dotsOptions: { type: "rounded" },
-      cornersSquareOptions: { type: "extra-rounded" },
-      qrOptions: { errorCorrectionLevel: "L" },
-    })
     this.fetchButtons()
-  },
-  watch: {
-    orbID(val) {
-        this.orbIDs[this.fullProjectName] = val
-        localStorage.setItem("ID:" + this.fullProjectName, val)
-    },
   },
   computed: {
     width() {
@@ -121,46 +97,25 @@ export default {
     async openProject(name) {
       window.fullProjectName = name
       this.fullProjectName = name
-      this.orbID = this.orbIDs[this.fullProjectName] || ""
       localStorage.setItem("button", name)
       reset()
       await require("../projects/" + name + ".js")()
       generatePixelInfo()
       await generateManufacturingInfo()
-      let qrUrl = 'https://my.lumatron.art/' + this.orbID
-      this.qrSize = (qrUrl.length <= 32 ? 25 : 29) * 20
-      this.qrCode.update({
-        width: this.qrSize,
-        height: this.qrSize,
-        data: qrUrl
-      })
     },
     async fetchButtons() {
       this.buttons = await (await fetch("/buttonlist.json")).json()
-      for (let button of this.buttons) {
-        this.orbIDs[button] = localStorage.getItem("ID:" + button) || ""
-      }
       this.openProject(localStorage.getItem("button"))
     },
 
-    push(bodyJSON) {
-      fetch("http://localhost:8000/", {
-        method: "POST",
-        mode: 'no-cors',
-        body: JSON.stringify(bodyJSON),
-        headers: {
-          "Content-type": "application/json; charset=UTF-8"
-        }
-      })
-    },
     cleanup() {
-      this.push({
+      this.$root.push({
         fullProjectName: this.fullProjectName,
         type: "cleanup",
       })
     },
     download(fileName, data) {
-      this.push({
+      this.$root.push({
         type: "download",
         fileName,
         data,
@@ -172,19 +127,8 @@ export default {
       wall.style.display = "block"
       let body = createPrintInfo()
       body.fullProjectName = fullProjectName
-      this.push(body)
+      this.$root.push(body)
       console.log("Generating gcode")
-    },
-    async genBoxTop() {
-      let data = await blobToBase64(await this.qrCode.getRawData())
-      this.push({
-        fullProjectName: this.fullProjectName,
-        type: "qr",
-        scale: 48.0 / this.qrSize,
-        PROCESS_STOP,
-        PETG: true,
-        data,
-      })
     },
     downloadJSON() {
       let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
@@ -206,14 +150,6 @@ export default {
       this.$root.toggleMode()
     },
   },
-}
-
-function blobToBase64(blob) {
-  return new Promise((resolve, _) => {
-    const reader = new FileReader()
-    reader.onloadend = () => resolve(reader.result.split(",")[1])
-    reader.readAsDataURL(blob)
-  })
 }
 </script>
 
