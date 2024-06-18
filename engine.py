@@ -154,8 +154,8 @@ default_prefs = {
   # PATTERN
   "idlePattern": "default",
   "idleFrameRate": 15.0,
-  "idleBlend": 30.0,
-  "idleDensity": 50.0,
+  "idleBlend": 60.0,
+  "idleDensity": 70.0,
   "staticRotation": False,
   "staticRotationTime": 8.0, 
   "staticDirection": "1,1,0",
