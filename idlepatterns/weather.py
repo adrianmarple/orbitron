@@ -18,6 +18,7 @@ class Weather(Sin):
   previous_update_time = 0
   time_factor = 0
   previous_time = 0
+  weather_data = None
 
   def update_weather_data(self):
     # Reference: https://openweathermap.org/api/one-call-3
@@ -27,32 +28,46 @@ class Weather(Sin):
       "current,minutely,daily,alerts",
       config["WEATHER_API_KEY"]
     )
-    contents = urllib.request.urlopen(url).read()
-    self.weather_data = json.loads(contents)["hourly"]
+    try:
+      contents = urllib.request.urlopen(url).read()
+      self.weather_data = json.loads(contents)["hourly"]
+    except:
+      pass
     self.previous_update_time = time()
 
   def init_values(self):
     if time() - self.previous_update_time > 60*60:
       self.update_weather_data()
 
-    index = len(self.weather_data)
-    for i in range(len(self.weather_data)):
-      if self.weather_data[i]["dt"] > time():
-        index = i
-        break
+    if self.weather_data is not None:
+      index = len(self.weather_data)
+      for i in range(len(self.weather_data)):
+        if self.weather_data[i]["dt"] > time():
+          index = i
+          break
 
-    if index == 0:
-      index = 1
-      a = 0
-    elif index == len(self.weather_data):
-      index -= 1
-      a = 1
+      if index == 0:
+        index = 1
+        a = 0
+      elif index == len(self.weather_data):
+        index -= 1
+        a = 1
+      else:
+        delta_t = self.weather_data[index]["dt"] - self.weather_data[index - 1]["dt"]
+        a = (time() - self.weather_data[index - 1]["dt"]) / delta_t
+      
+      snapshot0 = self.weather_data[index - 1]
+      snapshot1 = self.weather_data[index]
     else:
-      delta_t = self.weather_data[index]["dt"] - self.weather_data[index - 1]["dt"]
-      a = (time() - self.weather_data[index - 1]["dt"]) / delta_t
-    
-    snapshot0 = self.weather_data[index - 1]
-    snapshot1 = self.weather_data[index]
+      a = 0
+      snapshot0 = {
+        "wind_speed": 5,
+        "wind_deg": 0,
+        "uvi": 2,
+        "temp": 300,
+      }
+      snapshot1 = snapshot0
+
 
     self.wind_speed = a * snapshot0["wind_speed"] + (1-a) * snapshot1["wind_speed"] 
     self.wind_direction = a * wind_vector(snapshot0) + (1-a) * wind_vector(snapshot1) # m/s

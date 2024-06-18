@@ -387,9 +387,9 @@ def update_text_display():
       return
 
     if current_text != previous_text:
-      for i in range(4):
+      text_index = min(4, len(current_text))
+      for i in range(text_index):
         set_digit(i, current_text[i])
-      text_index = 4
       previous_text = current_text
       previous_scroll_time = time()
 
