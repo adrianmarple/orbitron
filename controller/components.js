@@ -228,21 +228,26 @@ Vue.component('vector', {
     },
   },
   template: `
-<span>
-  <div class="row" style="margin-bottom:0;">{{title}}:</div>
-  <div class="vector" v-if="!$root.exclude[name]"
-      @mousedown="startMove"
-      @mousemove="onMove"
-      @mouseup="endMove"
-      @mouseleave="endMove"
-      @touchstart="startMove($event.targetTouches[0])"
-      @touchmove="onMove($event.targetTouches[0])"
-      @touchend="endMove">
-    <div class="shaft" :style="style">
-      <div class="tip"></div>
+<div class="vector-wrapper">
+  <div class="side"></div>
+  <span>
+    <div class="horiz-box row" style="margin-bottom:0;">{{title}}:</div>
+    <div class="vector" v-if="!$root.exclude[name]"
+        @mousedown="startMove"
+        @mousemove="onMove"
+        @mouseup="endMove"
+        @mouseleave="endMove"
+        @touchstart="startMove($event.targetTouches[0])"
+        @touchmove="onMove($event.targetTouches[0])"
+        @touchend="endMove">
+      <div class="scrim"></div>
+      <div class="shaft" :style="style">
+        <div class="tip"></div>
+      </div>
     </div>
-  </div>
-</span>
+  </span>
+  <div class="side"></div>
+</div>
 `})
 
 
