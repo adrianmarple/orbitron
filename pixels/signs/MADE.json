@@ -1,0 +1,16 @@
+{
+  "name": "MADE",
+  "SIZE": 0,
+  "RAW_SIZE": 0,
+  "isWall": true,
+  "coords": [],
+  "uniqueToDupe": [],
+  "dupeToUniques": [],
+  "neighbors": [],
+  "nextPixel": {},
+  "defaultPulseDirection": [
+    0,
+    1,
+    0
+  ]
+}

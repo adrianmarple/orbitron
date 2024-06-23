@@ -10,8 +10,8 @@ module.exports = async () => {
   // minimalInnerBorder = true
   isWall = true
 
-  // imageUrl = "MADE/made2D (old).png"
-  imageUrl = "MADE/made2D.png"
+  // imageUrl = "signs/made2D (old).png"
+  imageUrl = "signs/made2D.png"
 
   // edgeCentersBlacklist = [
   //   [12.5, -4, 0],
@@ -21,7 +21,7 @@ module.exports = async () => {
   // ]
 
   // await addSquaresFromPixels(true, {x:[10], y:[10]})
-  await addSquaresFromPixels()
+  await addSquaresFromPixels() // TODO fixe me!
   doubleEdges()
   EulerianPath(63, 1)
 }
