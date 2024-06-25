@@ -1,9 +1,9 @@
 module.exports = async () => {
 
-  // await addFromSVG("organic/tree.svg")
-  // integerize()
+  await addFromSVG("organic/tree.svg")
+  integerize()
 
-  // doubleEdges()
-  // center()
-  // EulerianPath(0)
+  doubleEdges()
+  center()
+  EulerianPath(0)
 }

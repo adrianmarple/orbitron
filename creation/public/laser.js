@@ -95,7 +95,9 @@ async function createCoverSVG() {
 
   // Draw border and channels
 
-  let start = startVertex().ogCoords
+  let start = startVertex()
+  if (!start) return
+  start = start.ogCoords
   let penultimate = penultimateVertex().ogCoords
   let finalEdgeDirection = normalize(delta(penultimate, start))
 

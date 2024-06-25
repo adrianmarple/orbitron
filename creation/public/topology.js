@@ -1,3 +1,5 @@
+ZERO = [0,0,0]
+RIGHT = [1,0,0]
 
 function addSquare(center, edgeLengths) {
   return addPolygon(4, center, edgeLengths)
@@ -326,6 +328,53 @@ async function addFromSVG(src) {
         remove(vertex.edges, edge2)
         remove(edge2.verticies, vertex)
       }
+    }
+  }
+}
+
+function vertexOrder(a,b) {
+  return (a.coordinates[1] - b.coordinates[1]) * 1000000 + (a.coordinates[0] - b.coordinates[0])
+}
+function integerize() {
+  let sortedVerticies = [...verticies].sort(vertexOrder)
+
+  for (let v of sortedVerticies) {
+    let lowerNeighbors = []
+    for (let e of v.edges) {
+      let v1 = otherVertex(e, v)
+      if (sortedVerticies.indexOf(v1) < sortedVerticies.indexOf(v)) {
+        lowerNeighbors.push(v1)
+      }
+    }
+
+    let replacement = null
+    if (lowerNeighbors.length == 0) {
+      continue
+    } else if (lowerNeighbors.length == 1) {
+      let nCoords = lowerNeighbors[0].ogCoords
+      let angle = signedAngle(delta(v.ogCoords, nCoords), RIGHT)
+      let dist = Math.round(d(v.ogCoords, nCoords))
+      let e = addLine(lowerNeighbors[0], dist, angle*180/Math.PI)
+      replacement = otherVertex(e, lowerNeighbors[0])
+    } else if (lowerNeighbors.length == 2) {
+      let n0 = lowerNeighbors[0]
+      let n1 = lowerNeighbors[1]
+      if (n0.ogCoords[0] > n1.ogCoords[0]) {
+        let t = n0
+        n0 = n1
+        n1 = t
+      }
+      let dist0 = Math.round(d(v.ogCoords, n0.ogCoords))
+      let dist1 = Math.round(d(v.ogCoords, n1.ogCoords))
+      replacement = addTriangulation(n0, n1, dist1, dist0)
+    } else {
+      console.error("Topology not suitable for integerization")
+      return
+    }
+    if (replacement != v) {
+      removeVertex(replacement)
+      v.ogCoords = replacement.ogCoords
+      v.coordinates = replacement.coordinates
     }
   }
 }
