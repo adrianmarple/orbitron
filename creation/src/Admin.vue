@@ -11,8 +11,16 @@
   <div v-if="viewing=='config'" class="button" @click="saveConfig">Save config.js
     <span v-if="config != idToConfig[orbID]">*</span>
   </div>
-  <div v-if="viewing=='config'" class="button" @click="setViewing('log')">View Log</div>
-  <div v-if="viewing=='log'" class="button" @click="setViewing('config')">View Config</div>
+  <div v-if="viewing=='prefs'" class="button" @click="savePrefs">Save prefs.json
+    <span v-if="prefs != idToPrefs[orbID]">*</span>
+  </div>
+  <div style="display: flex">
+    <div v-for="viewType in ['config', 'prefs', 'log']"
+        class="button" :class="{ selected: viewing == viewType}"
+        @click="setViewing(viewType)">
+      {{ viewType }} 
+    </div>
+  </div>
   <div class="button" @click="genBoxTop">Generate Box Top</div>
   <div class="button" @click="restartOrb">Restart</div>
   <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
@@ -31,6 +39,7 @@
 
 
 <textarea v-if="viewing=='config'" class="main-text" v-model="config"></textarea>
+<textarea v-if="viewing=='prefs'" class="main-text" v-model="prefs"></textarea>
 <textarea v-if="viewing=='log'" class="main-text" v-model="log" readonly></textarea>
 </template>
 
@@ -47,9 +56,11 @@ export default {
       innerWidth,
       orbInfo: [],
       idToConfig: {},
+      idToPrefs: {},
       idToLog: {},
       idToIP: {},
       config: "",
+      prefs: "test",
       log: "",
       viewing: "config",
       qrCode: null,
@@ -71,6 +82,9 @@ export default {
       if (event.key == 's' && (event.metaKey || event.ctrlKey)) {
         if (self.viewing == 'config') {
           self.saveConfig()
+        }
+        if (self.viewing == 'prefs') {
+          self.savePrefs()
         }
         event.preventDefault()
       }
@@ -138,6 +152,9 @@ export default {
       if (type == "config") {
         await this.updateConfig()
       }
+      if (type == "prefs") {
+        await this.updatePrefs()
+      }
     },
     async setOrb(orbID) {
       this.orbID = orbID
@@ -163,6 +180,13 @@ export default {
         data: this.config,
       }, this.orbID)
       this.idToConfig[this.orbID] = this.config
+    },
+    async savePrefs() {
+      await this.sendCommand({
+        type: "setprefs",
+        data: this.prefs,
+      }, this.orbID)
+      this.idToPrefs[this.orbID] = this.prefs
     },
     async saveAlias() {
       let serverConfig = this.idToConfig[this.serverOrbID]
@@ -201,6 +225,10 @@ export default {
     async updateConfig() {
       this.idToConfig[this.orbID] = await this.sendCommand({type: "getconfig"}, this.orbID)
       this.config = this.idToConfig[this.orbID]
+    },
+    async updatePrefs() {
+      this.idToPrefs[this.orbID] = await this.sendCommand({type: "getprefs"}, this.orbID)
+      this.prefs = this.idToPrefs[this.orbID]
     },
     async updateLog() {
       this.idToLog[this.orbID] = await this.sendCommand({type: "getlog"}, this.orbID)

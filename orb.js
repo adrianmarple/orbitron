@@ -92,8 +92,15 @@ function connectOrbToRelay(){
         if (command.type == "getconfig") {
           returnData = (await fs.promises.readFile("config.js")).toString()
         }
+        if (command.type == "getprefs") {
+          returnData = (await fs.promises.readFile("prefs.json")).toString()
+        }
         if (command.type == "geterror") {
-          returnData = (await fs.promises.readFile("/root/.pm2/logs/startscript-error.log")).toString()
+          if (config.DEV_MODE) {
+            returnData = "no pm2 running"
+          } else {
+            returnData = (await fs.promises.readFile("/root/.pm2/logs/startscript-error.log")).toString()
+          }
         }
         if (command.type == "getlog") {
           if (config.DEV_MODE) {
@@ -121,6 +128,15 @@ function connectOrbToRelay(){
           if (!configObject.ORB_ID) return
           await fs.promises.writeFile("config.js", command.data)
           restartOrbitron()
+        }
+        if (command.type == "setprefs") {
+          try {
+            JSON.parse(command.data)
+            await fs.promises.writeFile("prefs.json", command.data)
+            restartOrbitron()
+          } catch(_) {
+            console.log("Couldn't parse pref to save: ", command.data)
+          }
         }
         orbToRelaySocket.send(JSON.stringify({
           messageID,
