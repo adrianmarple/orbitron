@@ -12,10 +12,10 @@ async function createCoverSVG() {
   if (verticies.length <= 1) return
 
   wallInfo = []
-  minX = 0
-  minY = 0
-  maxX = 0
-  maxY = 0
+  minX = 1e6
+  minY = 1e6
+  maxX = -1e6
+  maxY = -1e6
   const SCALE = PIXEL_DISTANCE / pixelDensity
   
   // Gather paths

@@ -116,7 +116,7 @@ let wifiSetupServer = http.createServer(function (req, res) {
       let formData = qs.parse(body)
       res.writeHead(200, { 'Content-Type': 'application/json' })
       let responseData = {
-        redirect: `https://my.lumatron.art${config.ORB_ID}`
+        redirect: `https://my.lumatron.art/${config.ORB_ID}`
       }
       res.end(JSON.stringify(responseData), 'utf-8')
       submitSSID(formData)
