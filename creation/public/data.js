@@ -277,6 +277,11 @@ function generatePixelInfo() {
       }
     }
   }
+  // There are cases where a pixel can be added as its own neighbor (from doubling back).
+  // Remove these
+  for (let i = 0; i < neighbors.length; i++) {
+    neighbors[i] = neighbors[i].filter(n => n != i)
+  }
 
   for (let i = 0; i < coords.length; i++) {
     let local_neighbors = neighbors[i]
@@ -347,6 +352,8 @@ function generatePixelInfo() {
       break
   }
 
+  dataPostProcessingFunction(info)
+
   // Undo centering and resizing
   for (let vertex of verticies) {
     vertex.ogCoords = scale(vertex.ogCoords, 1/resizeScale)
@@ -355,6 +362,11 @@ function generatePixelInfo() {
   pixelDensity /= resizeScale
 
   return info
+}
+
+function connectPixels(info, i, j) {
+  info.neighbors[i].push(j)
+  info.neighbors[j].push(i)
 }
 
 function random() {

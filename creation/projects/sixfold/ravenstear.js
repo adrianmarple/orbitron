@@ -51,13 +51,32 @@ module.exports = () => {
     0,9,25,50,49,38,24,8,
   ]
   edgesToRemove = edgesToRemove.sort((a,b)=>b-a)
-  console.log(edgesToRemove)
   for (let edgeIndex of edgesToRemove) {
     removeEdge(edgeIndex)
   }
   addTriangulation(7,0, 19)
 
   doubleEdges()
-  let startingEdge = 37
-  EulerianPath(startingEdge)
+  let startingEdge = 14
+  EulerianPath(startingEdge, 1)
+
+  cat5WallOverride = 13
+  dataPostProcessingFunction = info => {
+    let deadends = []
+    for (let i = 0; i < info.neighbors.length; i++) {
+      console.log(i)
+      console.log(info.neighbors[i])
+      if (info.neighbors[i].length == 1) {
+        deadends.push(i)
+      }
+    }
+    console.log(deadends)
+
+    deadends = deadends.sort((i, j) => {
+      return info.coords[i][1] - info.coords[j][1]
+    })
+    connectPixels(info, deadends.pop(), deadends.pop())
+    connectPixels(info, deadends.pop(), deadends.pop())
+    connectPixels(info, deadends.pop(), deadends.pop())
+  }
 }

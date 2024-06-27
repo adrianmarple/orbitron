@@ -60,7 +60,7 @@ export default {
       idToLog: {},
       idToIP: {},
       config: "",
-      prefs: "test",
+      prefs: "",
       log: "",
       viewing: "config",
       qrCode: null,
@@ -244,9 +244,13 @@ export default {
       let message = encodeURIComponent(command)
       let pathPrefix = isServerCommand ? "" : orbID + "/"
       let url = `${this.serverUrl}/${pathPrefix}admin?message=${message}&hash=${hash}`
-      let response =  await (await fetch(url)).text()
-      setTimeout(this.getOrbIDs, 1000)
-      return response
+      try {
+        let response =  await (await fetch(url)).text()
+        setTimeout(this.getOrbIDs, 1000)
+        return response
+      } catch(_) {
+        return ""
+      }
     },
     async genBoxTop() {
       let qrUrl = 'https://my.lumatron.art/' + this.orbID

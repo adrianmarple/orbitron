@@ -463,7 +463,11 @@ function createPrintInfo(displayOnly) {
     if (targetCount > 8) targetCount += 1
     if (targetCount > 30) targetCount += 1
     for (let i = STARTING_I; i < targetCount; i++) {
-      let isFinalEdge = epsilonEquals(wallType.length, entryWallLength, 0.01) && i == 0
+      let isFinalEdge = epsilonEquals(wallType.length, entryWallLength, 0.01)
+      if (cat5WallOverride >= 0) {
+        isFinalEdge = wallIndex == cat5WallOverride
+      }
+      isFinalEdge = isFinalEdge && i == 0
       let cat5Offset = NaN
       if (isFinalEdge) {
         if (cat5PortMidway) {

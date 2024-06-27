@@ -15,7 +15,7 @@
 
 <div id="settings">
   <div v-for="setting in settings">
-    <div v-if="setting.type == 'bool'">
+    <div v-if="setting.type == 'bool'" @click="setting.value = !setting.value; updateSetting(setting)">
       <input type="checkbox" @change="updateSetting(setting)"
           v-model="setting.value">
       {{ setting.name }}
