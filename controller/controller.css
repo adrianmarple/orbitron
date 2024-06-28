@@ -810,7 +810,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .joystick-bg {
-  background-image: url(/images/JoystickBG.png);
+  background-image: url(/controller/images/JoystickBG.png);
   width: 35rem;
   height: 35rem;
   display: flex;
@@ -821,7 +821,7 @@ input[type="range"]::-moz-range-thumb {
   z-index: 1;
 }
 .joystick-nub {
-  background-image: url(/images/JoystickNub.png);
+  background-image: url(/controller/images/JoystickNub.png);
   position: relative;
   width: 100%;
   height: 100%;
