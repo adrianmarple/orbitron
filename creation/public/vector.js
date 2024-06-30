@@ -32,68 +32,8 @@ function project(v, scale) {
   return [500 + v[0] * SCALE / z, 500 - v[1] * SCALE / z]
 }
 
-function translateAll(vector) {
-  for (let vertex of verticies) {
-    vertex.coordinates = add(vertex.coordinates, vector)
-  }
-}
-
-function center(permanently) {
-  let attribute = permanently ? "ogCoords" : "coordinates"
-
-  let mins = [1e6, 1e6, 1e6]
-  let maxes = [-1e6, -1e6, -1e6]
-  
-  for (let vertex of verticies) {
-    let coord = vertex[attribute]
-    for (let i = 0; i < 3; i++) {
-      mins[i] = Math.min(mins[i], coord[i])
-      maxes[i] = Math.max(maxes[i], coord[i])
-    }
-  }
-  let offset = scale(add(mins, maxes), -0.5)
-  for (let vertex of verticies) {
-    vertex[attribute] = add(vertex[attribute], offset)
-  }
-  return offset
-}
-function resize(permanently) {
-  let attribute = permanently ? "ogCoords" : "coordinates"
-
-  let maxMagnitude = 0
-  
-  for (let vertex of verticies) {
-    let mag = magnitude(vertex[attribute])
-    maxMagnitude = Math.max(maxMagnitude, mag)
-  }
-  for (let vertex of verticies) {
-    vertex[attribute] = scale(vertex[attribute], 1/maxMagnitude)
-  }
-  return 1/maxMagnitude
-}
-
 function fromMagAngle(mag, angle) { //angle is in deg
   return rotateZ([mag, 0, 0], angle / 180 * Math.PI)
-}
-
-function rotateXAll(theta, permanently) {
-  rotateAll(rotateX, theta, permanently)
-}
-function rotateYAll(theta, permanently) {
-  rotateAll(rotateY, theta, permanently)
-}
-function rotateZAll(theta, permanently) {
-  rotateAll(rotateZ, theta, permanently)
-}
-
-function rotateAll(func, theta, permanently) {
-  for (let vertex of verticies) {
-    vertex.coordinates = func(vertex.coordinates, theta)
-    if (permanently) {
-      vertex.ogCoords = func(vertex.ogCoords, theta)
-    }
-  }
-
 }
 
 function rotateX(v, theta) {
@@ -150,14 +90,46 @@ function linearCombo(v1, v2, alpha) {
   ]
 }
 
-// TODO vector object?
+function proj(v1, v2) {
+  return scale(v2, dot(v1,v2)/ dot(v2,v2))
+}
+function orthoProj(v1, v2) {
+  return delta(v1, proj(v1,v2))
+}
 
-class Plain {
-  offset = 0
-  normal = [0,0,1]
+function isCoplanar(plain, v) {
+  let v2 = delta(v, plain.offset)
+  return epsilonEquals(dot(v2, plain.normal), 0)
+}
 
-  mirror(v) {
-    // TODO
+function isAbovePlain(plain, v) {
+  let v2 = delta(v, plain.offset)
+  return dot(v2, plain.normal) > 0
+}
+
+function mirror(m, v, ignoreOffset) {
+  let v2 = v
+  if (!ignoreOffset) v2 = delta(v, m.offset)
+  let newV = scale(proj(v2, m.normal), -1)
+  newV = add(orthoProj(v2, m.normal), newV)
+  if (!ignoreOffset) newV = add(newV, m.offset)
+  return newV
+}
+function halfMirror(m, v) {
+  let v2 = delta(v, m.offset)
+  if (isAbovePlain(m, v))
+    return mirror(m, v)
+  else
     return v
+}
+function mirrorPlain(m, plain) {
+  return {
+    offset: mirror(m, plain.offset),
+    normal: mirror(m, plain.normal, true),
   }
+}
+
+function intersection(plain, line) {
+  let a = dot(delta(plain.offset, line.offset), plain.normal) / dot(line.direction, plain.normal)
+  return add(line.offset, scale(line.direction, a))
 }

@@ -180,6 +180,7 @@ function generatePixelInfo() {
   }
   hasSeenLastEdge = false
 
+  let alpha = ledAtVertex ? 0 : pixelDensity/2
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
     let nextVertex = otherVertex(edge, previousVertex)
@@ -188,9 +189,24 @@ function generatePixelInfo() {
     let e1 = delta(v1,v0)
     let e2 = delta(v2,v1)
     let edgeLength = magnitude(e2)
-    for (let alpha = ledAtVertex ? 0 : pixelDensity/2; true; alpha += pixelDensity) {
-      if (ledAtVertex && epsilonEquals(edgeLength, alpha, 0.01)) break
-      if (!ledAtVertex && epsilonEquals(edgeLength, alpha - pixelDensity/2, 0.01)) break
+    for (; true; alpha += pixelDensity) {
+      
+      if (alpha > edgeLength - 0.01) {
+        alpha -= edgeLength
+        if (nextVertex.allowNonIntegerLength) break
+        if (ledAtVertex && epsilonEquals(alpha, 0, 0.01)) {
+          alpha = 0
+          break
+        }
+        if (!ledAtVertex && epsilonEquals(alpha, pixelDensity/2, 0.01)) {
+          alpha = pixelDensity/2
+          break
+        }
+
+        console.log(alpha/resizeScale, edgeLength/resizeScale)
+        console.error("Edge legnth not a integer multiple of pixel density")
+        return
+      }
       
       if (startMidwayDownFinalEdge && edge == lastEdge) {
         if (!hasSeenLastEdge && alpha < edgeLength/2) continue

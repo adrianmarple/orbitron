@@ -64,13 +64,10 @@ module.exports = () => {
   dataPostProcessingFunction = info => {
     let deadends = []
     for (let i = 0; i < info.neighbors.length; i++) {
-      console.log(i)
-      console.log(info.neighbors[i])
       if (info.neighbors[i].length == 1) {
         deadends.push(i)
       }
     }
-    console.log(deadends)
 
     deadends = deadends.sort((i, j) => {
       return info.coords[i][1] - info.coords[j][1]

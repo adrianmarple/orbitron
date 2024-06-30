@@ -1,5 +1,3 @@
-ZERO = [0,0,0]
-RIGHT = [1,0,0]
 
 function addSquare(center, edgeLengths) {
   return addPolygon(4, center, edgeLengths)
@@ -85,11 +83,15 @@ function addVertex(coordinates) {
   }
   let ogCoords = scale(coordinates, 1) // copy
   coordinates = scale(coordinates, 1) // copy
+  if (!isCoplanar(currentPlain, coordinates)) {
+    console.error("Vertex not coplanar with plain", currentPlain, coordinates)
+  }
   let vertex = {
     index: verticies.length,
     edges: [],
     coordinates,
     ogCoords,
+    plains: [currentPlain],
   }
   verticies.push(vertex)
   return vertex
@@ -425,4 +427,102 @@ async function getImageContext(src) {
   }
   urlToContext[src] = ctx
   return ctx
+}
+
+
+function translateAll(vector) {
+  for (let vertex of verticies) {
+    vertex.coordinates = add(vertex.coordinates, vector)
+  }
+}
+function center(permanently) {
+  let attribute = permanently ? "ogCoords" : "coordinates"
+
+  let mins = [1e6, 1e6, 1e6]
+  let maxes = [-1e6, -1e6, -1e6]
+  
+  for (let vertex of verticies) {
+    let coord = vertex[attribute]
+    for (let i = 0; i < 3; i++) {
+      mins[i] = Math.min(mins[i], coord[i])
+      maxes[i] = Math.max(maxes[i], coord[i])
+    }
+  }
+  let offset = scale(add(mins, maxes), -0.5)
+  for (let vertex of verticies) {
+    vertex[attribute] = add(vertex[attribute], offset)
+  }
+  return offset
+}
+function resize(permanently) {
+  let attribute = permanently ? "ogCoords" : "coordinates"
+
+  let maxMagnitude = 0
+  
+  for (let vertex of verticies) {
+    let mag = magnitude(vertex[attribute])
+    maxMagnitude = Math.max(maxMagnitude, mag)
+  }
+  for (let vertex of verticies) {
+    vertex[attribute] = scale(vertex[attribute], 1/maxMagnitude)
+  }
+  return 1/maxMagnitude
+}
+
+function rotateXAll(theta, permanently) {
+  rotateAll(rotateX, theta, permanently)
+}
+function rotateYAll(theta, permanently) {
+  rotateAll(rotateY, theta, permanently)
+}
+function rotateZAll(theta, permanently) {
+  rotateAll(rotateZ, theta, permanently)
+}
+
+function rotateAll(func, theta, permanently) {
+  for (let vertex of verticies) {
+    vertex.coordinates = func(vertex.coordinates, theta)
+    if (permanently) {
+      vertex.ogCoords = func(vertex.ogCoords, theta)
+    }
+  }
+}
+
+function lineFromEdge(edge) {
+  return {
+    offset: edge.verticies[0].ogCoords,
+    direction: delta(edge.verticies[1].ogCoords, edge.verticies[0].ogCoords),
+  }
+}
+
+function origami(foldPlain) {
+  let newPlain = mirrorPlain(foldPlain, currentPlain)
+  plains.push(newPlain)
+  for (let edge of [...edges]) {
+    if (isAbovePlain(foldPlain, edge.verticies[0].ogCoords) !=
+        isAbovePlain(foldPlain, edge.verticies[1].ogCoords)) {
+      removeEdge(edge)
+      let newVertexCoords = intersection(foldPlain, lineFromEdge(edge))
+      let newVertex = addVertex(newVertexCoords)
+      newVertex.allowNonIntegerLength = true
+      addEdge(newVertex, edge.verticies[0])
+      addEdge(newVertex, edge.verticies[1])
+    }
+  }
+  for (let vertex of verticies) {
+    if (!vertex.plains.includes(currentPlain)) continue
+    
+    vertex.ogCoords = halfMirror(foldPlain, vertex.ogCoords)
+    vertex.coordinates = vertex.ogCoords
+
+    vertex.plains.push(newPlain)
+    let newPlains = []
+    for (let plain of vertex.plains) {
+      if (isCoplanar(plain, vertex.ogCoords)) {
+        newPlains.push(plain)
+      }
+    }
+    vertex.plains = newPlains
+  }
+  return newPlain
 }

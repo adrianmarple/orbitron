@@ -8,8 +8,12 @@ minY = 0
 maxX = 0
 maxY = 0
 
-async function createCoverSVG() {
+async function createCoverSVG(plain) {
   if (verticies.length <= 1) return
+
+  if (!plain) {
+    plain = DEFAULT_PLAIN
+  }
 
   wallInfo = []
   minX = 1e6
@@ -17,6 +21,8 @@ async function createCoverSVG() {
   maxX = -1e6
   maxY = -1e6
   const SCALE = PIXEL_DISTANCE / pixelDensity
+
+  
   
   // Gather paths
   let paths = []
@@ -24,6 +30,8 @@ async function createCoverSVG() {
   for (let index of path) {
     let edge = edges[index]
     if (edge.isDupe) continue;
+    if (!edge.verticies[0].plains.includes(plain)) continue;
+    if (!edge.verticies[1].plains.includes(plain)) continue;
     directedEdges.push([edge.verticies[1], edge.verticies[0]])
     directedEdges.push([edge.verticies[0], edge.verticies[1]])
   }
@@ -614,13 +622,15 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       while (supportX < 0) {
         supportX += PIXEL_DISTANCE
       }
-      print.ledSupports.push({
-        position: [offset[0] - supportX, y, 0],
-        width: LED_SUPPORT_WIDTH,
-        height: LED_SUPPORT_HEIGHT,
-        thickness: LED_SUPPORT_THICKNESS,
-        gap: LED_SUPPORT_GAP,
-      })
+      if (supportX + LED_SUPPORT_WIDTH/2 < wallLength) {
+        print.ledSupports.push({
+          position: [offset[0] - supportX, y, 0],
+          width: LED_SUPPORT_WIDTH,
+          height: LED_SUPPORT_HEIGHT,
+          thickness: LED_SUPPORT_THICKNESS,
+          gap: LED_SUPPORT_GAP,
+        })
+      }
     }
   }
 
@@ -785,7 +795,7 @@ async function generateManufacturingInfo() {
   cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
   if (isWall) {
     KERF = TOP_KERF
-    await createCoverSVG()
+    await createCoverSVG(plains[plains.length - 1])
     console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
     createPrintInfo(true)
   }

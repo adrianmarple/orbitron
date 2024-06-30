@@ -16,12 +16,22 @@
 
 const initialSeed = 3
 const PHI = (1 + Math.sqrt(5))/ 2
+ZERO = [0,0,0]
+RIGHT = [1,0,0]
+UP = [0,1,0]
+FORWARD = [0,0,1]
 
-var isWall = false
+DEFAULT_PLAIN = {
+  offset: ZERO,
+  normal: FORWARD,
+}
 
 function reset() {
   verticies = []
   edges = []
+  plains = [DEFAULT_PLAIN]
+  currentPlain = DEFAULT_PLAIN
+
   edgeCentersBlacklist = []
   path = []
   seed = initialSeed
@@ -120,13 +130,13 @@ document.onmousemove = e => {
   let newXY = [e.clientX, e.clientY]
   let deltaX = newXY[0] - previousXY[0]
   let deltaY = newXY[1] - previousXY[1]
-  if (isWall) {
-    let vector = [deltaX, -deltaY, 0]
-    translateAll(scale(vector, 0.1))
-  } else {
+  // if (isWall) {
+  //   let vector = [deltaX, -deltaY, 0]
+  //   translateAll(scale(vector, 0.1))
+  // } else {
     rotateXAll(ROTATION_SCALE * deltaY)
     rotateYAll(-ROTATION_SCALE * deltaX)
-  }
+  // }
   previousXY = newXY
 }
 document.onmouseup = e => {
@@ -178,10 +188,10 @@ function render() {
   for (let edge of edgesCopy) {
     let xy0 = project(edge.verticies[0].coordinates, projScale)
     let xy1 = project(edge.verticies[1].coordinates, projScale)
-    let z = edge.verticies[0].coordinates[2] + 5.5
+    let z = edge.verticies[0].coordinates[2]*projScale + 15
     ctx.beginPath()
 
-    let alpha = 2/z
+    let alpha = 5/z
     if (subPath && subPath.includes(edge.index)) {
       alpha *= 1.5
       ctx.strokeStyle = `rgba(255,255,185,${alpha})`
