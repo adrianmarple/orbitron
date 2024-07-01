@@ -10,7 +10,6 @@ module.exports = async () => {
   pixelDensity = 0.3333333
   imageUrl = "spaceinvaders/invader1B.png"
   await addSquaresFromPixels()
-  doubleEdges()
   // EulerianPath(23)
   EulerianPath(36)
 }

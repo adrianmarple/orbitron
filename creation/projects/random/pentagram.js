@@ -11,22 +11,22 @@ function addPolygram(sideCount, center, edgeLengths) {
   let point = [0,0,0]
   let points = []
   for (let i = 0; i < sideCount; i++) {
-    edgeVector = normalize(edgeVector)
-    edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
-    point = add(point, edgeVector)
+    edgeVector = edgeVector.normalize()
+    edgeVector = edgeVector.scale(edgeLengths[i%edgeLengths.length]) 
+    point = point.add(edgeVector)
     points.push(point)
-    edgeVector = rotateZ(edgeVector, Math.PI*4 / sideCount)
+    edgeVector = edgeVector.applyAxisAngle(BACKWARD, Math.PI*4 / sideCount)
   }
 
   let average = [0,0,0]
   for (let point of points) {
-    average = add(average, point)
+    average = average.add(point)
   }
-  average = scale(average, 1.0/points.length)
-  center = delta(center, average)
-  let previousVertex = addVertex(add(points[points.length - 1], center))
+  average = average.scale(1.0/points.length)
+  center = center.sub(average)
+  let previousVertex = addVertex(points[points.length - 1].add(center))
   for (let point of points) {
-    let vertex = addVertex(add(point, center))
+    let vertex = addVertex(point.add(center))
     newEdges.push(addEdge(previousVertex, vertex))
     previousVertex = vertex
   }

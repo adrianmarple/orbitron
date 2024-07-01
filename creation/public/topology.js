@@ -6,6 +6,9 @@ function addDodecagon(center, edgeLengths) {
   return addPolygon(12, center, edgeLengths)
 }
 function addPolygon(sideCount, center, edgeLengths) {
+  if (!center.isVector) {
+    center = new Vector(center)
+  }
   if (!edgeLengths) {
     edgeLengths = [1]
   }
@@ -14,26 +17,25 @@ function addPolygon(sideCount, center, edgeLengths) {
   }
 
   let newEdges = []
-  let edgeVector = [1,0,0]
-  let point = [0,0,0]
+  let edgeVector = RIGHT
+  let point = ZERO
   let points = []
   for (let i = 0; i < sideCount; i++) {
-    edgeVector = normalize(edgeVector)
-    edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
-    point = add(point, edgeVector)
+    edgeVector = edgeVector.normalize()
+    point = point.addScaledVector(edgeVector, edgeLengths[i%edgeLengths.length])
     points.push(point)
-    edgeVector = rotateZ(edgeVector, Math.PI*2 / sideCount)
+    edgeVector = edgeVector.applyAxisAngle(BACKWARD, Math.PI*2 / sideCount)
   }
 
-  let average = [0,0,0]
+  let average = ZERO
   for (let point of points) {
-    average = add(average, point)
+    average = average.add(point)
   }
-  average = scale(average, 1.0/points.length)
-  center = delta(center, average)
-  let previousVertex = addVertex(add(points[points.length - 1], center))
+  average = average.divideScalar(points.length)
+  center = center.sub(average)
+  let previousVertex = addVertex(points[points.length - 1].add(center))
   for (let point of points) {
-    let vertex = addVertex(add(point, center))
+    let vertex = addVertex(point.add(center))
     newEdges.push(addEdge(previousVertex, vertex))
     previousVertex = vertex
   }
@@ -43,23 +45,23 @@ function addPolygon(sideCount, center, edgeLengths) {
 function extrudePolygon(startingEdge, sideCount, edgeLengths, negate) {
   let newEdges = [startingEdge]
   let vertex = startingEdge.verticies[0]
-  let edgeVector = delta(vertex.coordinates, startingEdge.verticies[1].coordinates)
+  let edgeVector = vertex.ogCoords.sub(startingEdge.verticies[1].ogCoords)
   if (!edgeLengths) {
-    edgeLengths = [magnitude(edgeVector)]
+    edgeLengths = [edgeVector.length()]
   }
-  if (!epsilonEquals(edgeLengths[0], magnitude(edgeVector))) {
+  if (!epsilonEquals(edgeLengths[0], edgeVector.length())) {
     console.error("First edge length must match extrusion edge.")
     return
   }
   if (negate) {
-    edgeVector = scale(edgeVector, -1)
+    edgeVector = edgeVector.negate()
     vertex = startingEdge.verticies[1]
   }
   for (let i = 1; i < sideCount; i++) {
-    edgeVector = rotateZ(edgeVector, Math.PI*2 / sideCount)
-    edgeVector = normalize(edgeVector)
-    edgeVector = scale(edgeVector, edgeLengths[i%edgeLengths.length]) 
-    newVertex = addVertex(add(vertex.coordinates, edgeVector))
+    edgeVector = edgeVector.applyAxisAngle(BACKWARD, Math.PI*2 / sideCount)
+    edgeVector = edgeVector.normalize()
+    edgeVector = edgeVector.scale(edgeLengths[i%edgeLengths.length])
+    newVertex = addVertex(vertex.ogCoords.add(edgeVector))
     newEdges.push(addEdge(vertex, newVertex))
     vertex = newVertex
   }
@@ -70,20 +72,23 @@ function addPlusMinusVertex(vertex) {
   for (let i0 = -1; i0 <= 1; i0 += 2) {
     for (let i1 = -1; i1 <= 1; i1 += 2) {
       for (let i2 = -1; i2 <= 1; i2 += 2) {
-        addVertex([i0 * vertex[0], i1 * vertex[1], i2 * vertex[2]]);
+        addVertex(new Vector(i0 * vertex[0], i1 * vertex[1], i2 * vertex[2]));
       }
     }
   }
 }
 function addVertex(coordinates) {
+  if (!coordinates.isVector) {
+    coordinates = new Vector(coordinates[0], coordinates[1], coordinates[2])
+  }
   for (let existingVertex of verticies) {
-    if (vectorEquals(existingVertex.coordinates, coordinates)) {
+    if (existingVertex.coordinates.equals(coordinates)) {
       return existingVertex
     }
   }
-  let ogCoords = scale(coordinates, 1) // copy
-  coordinates = scale(coordinates, 1) // copy
-  if (!isCoplanar(currentPlain, coordinates)) {
+  let ogCoords = coordinates
+  coordinates = coordinates.clone()
+  if (isWall && !coordinates.isCoplanar(currentPlain)) {
     console.error("Vertex not coplanar with plain", currentPlain, coordinates)
   }
   let vertex = {
@@ -98,7 +103,7 @@ function addVertex(coordinates) {
 }
 
 function addEdge(vertex1, vertex2) {
-  var edgeCenter = scale(add(vertex1.coordinates, vertex2.coordinates), .5)
+  var edgeCenter = vertex1.coordinates.add(vertex2.coordinates).multiplyScalar(.5)
   for (let center of edgeCentersBlacklist) {
     if (vectorEquals(edgeCenter, center)) {
       return
@@ -125,10 +130,9 @@ function addEdge(vertex1, vertex2) {
 
 function findEdgeFromCenter(center) {
   for (let edge of edges) {
-    var edgeCenter = scale(
-      add(edge.verticies[0].coordinates,
-          edge.verticies[1].coordinates),
-      .5)
+    var edgeCenter = edge.verticies[0].coordinates
+        .add(edge.verticies[1].coordinates)
+        .multiplyScalar(0.5)
     if (vectorEquals(edgeCenter, center)) {
       return edge
     }
@@ -141,7 +145,7 @@ function addLine(vertex, length, angle) {
   if (typeof vertex == "number") {
     vertex = verticies[vertex]
   }
-  let coords = add(vertex.ogCoords, fromMagAngle(length, angle))
+  let coords = vertex.ogCoords.add(fromMagAngle(length, angle))
   let newVertex = addVertex(coords)
   return addEdge(vertex, newVertex)
 }
@@ -156,15 +160,20 @@ function addTriangulation(v1, v2, a, b) {
     v2 = verticies[v2]
   }
   if (!b) b = a
-  let A = v1.coordinates
-  let B = v2.coordinates
-  let c = d(A,B)
-  let AtoB = delta(B,A)
-  s = Math.sqrt((a+b+c)*(a+b-c)*(a-b+c)*(-a+b+c)) / 4
-  x = A[0] + (c*c + b*b - a*a)/(2*c*c) * AtoB[0] - 2*s*AtoB[1]/(c*c)
-  y = A[1] + (c*c + b*b - a*a)/(2*c*c) * AtoB[1] + 2*s*AtoB[0]/(c*c)
+  let A = v1.ogCoords
+  let B = v2.ogCoords
+  let c = A.distanceTo(B)
+  let AtoB = B.sub(A)
+  let s = (a+b+c)*(a+b-c)*(a-b+c)*(-a+b+c)
+  if (s < 0) {
+    console.error("Lengths inconsistent for triangulation", a,b,c)
+    return null
+  }
+  s = Math.sqrt(s) / 4
+  x = A.x + (c*c + b*b - a*a)/(2*c*c) * AtoB.x - 2*s*AtoB.y/(c*c)
+  y = A.y + (c*c + b*b - a*a)/(2*c*c) * AtoB.y + 2*s*AtoB.x/(c*c)
 
-  v = addVertex([x,y,0])
+  v = addVertex(new Vector(x,y,0))
   addEdge(v1,v)
   addEdge(v,v2)
 
@@ -172,19 +181,19 @@ function addTriangulation(v1, v2, a, b) {
 }
 // Assumes z coordinate is always 0
 function addSquareulation(v1, v2, a, b) {
-  let A = v1.coordinates
-  let B = v2.coordinates
-  let AtoB = delta(B,A)
-  let c = magnitude(AtoB)
-  let b0 = scale(AtoB, 1/c)
-  let b1 = cross([0,0,1], b0)
+  let A = v1.ogCoords
+  let B = v2.ogCoords
+  let AtoB = B.sub(A)
+  let c = AtoB.length()
+  let b0 = AtoB.divideScalar(c)
+  let b1 = FORWARD.cross(b0)
   let x = (c - b) / 2
   let theta = Math.acos(x/a)
   let y = Math.sin(theta) * a
-  let C = add(A, scale(b0, x))
-  C = add(C, scale(b1, y))
-  let D = add(B, scale(b0, -x))
-  D = add(D, scale(b1, y))
+  let C = A.addScaledVector(b0, x)
+  C = C.addScaledVector(b1, y)
+  let D = B.addScaledVector(b0, -x)
+  D = D.addScaledVector(b1, y)
 
   v3 = addVertex(C)
   v4 = addVertex(D)
@@ -198,11 +207,11 @@ function addSquareulation(v1, v2, a, b) {
 function splitEdge(edge, distance) {
   let delta = edgeDelta(edge)
   if (distance < 0) {
-    distance = magnitude(delta) + distance
+    distance = delta.length() + distance
   }
-  delta = normalize(delta)
-  delta = scale(delta, distance)
-  let coords = add(edge.verticies[0].ogCoords, delta)
+  delta = delta.normalize()
+  delta = delta.multiplyScalar(distance)
+  let coords = edge.verticies[0].ogCoords.add(delta)
   let newVertex = addVertex(coords)
   let v1 = edge.verticies[1]
   v1.edges.splice(v1.edges.indexOf(edge), 1)
@@ -313,13 +322,13 @@ async function addFromSVG(src) {
   for (let vertex of verticies) {
     let v0 = vertex.ogCoords
     for (let edge1 of vertex.edges) {
-      let e1 = delta(v0, otherVertex(edge1, vertex).ogCoords)
+      let e1 = v0.sub(otherVertex(edge1, vertex).ogCoords)
       for (let edge2 of vertex.edges) {
         if (edge1 == edge2) continue
-        let e2 = delta(v0, otherVertex(edge2, vertex).ogCoords)
-        if (!epsilonEquals(signedAngle(e1, e2), 0)) continue
+        let e2 = v0.sub(otherVertex(edge2, vertex).ogCoords)
+        if (!epsilonEquals(e1.signedAngle(e2), 0)) continue
 
-        if (magnitude(e2) < magnitude(e1)) {
+        if (e2.length() < e1.length()) {
           let t = edge1
           edge1 = edge2
           edge2 = t
@@ -335,7 +344,7 @@ async function addFromSVG(src) {
 }
 
 function vertexOrder(a,b) {
-  return (a.coordinates[1] - b.coordinates[1]) * 1000000 + (a.coordinates[0] - b.coordinates[0])
+  return (a.coordinates.y - b.coordinates.y) * 1000000 + (a.coordinates.x - b.coordinates.x)
 }
 function integerize() {
   let sortedVerticies = [...verticies].sort(vertexOrder)
@@ -354,20 +363,20 @@ function integerize() {
       continue
     } else if (lowerNeighbors.length == 1) {
       let nCoords = lowerNeighbors[0].ogCoords
-      let angle = signedAngle(delta(v.ogCoords, nCoords), RIGHT)
-      let dist = Math.round(d(v.ogCoords, nCoords))
+      let angle = v.ogCoords.sub(nCoords).signedAngle(RIGHT)
+      let dist = Math.round(v.ogCoords.distanceTo(nCoords))
       let e = addLine(lowerNeighbors[0], dist, angle*180/Math.PI)
       replacement = otherVertex(e, lowerNeighbors[0])
     } else if (lowerNeighbors.length == 2) {
       let n0 = lowerNeighbors[0]
       let n1 = lowerNeighbors[1]
-      if (n0.ogCoords[0] > n1.ogCoords[0]) {
+      if (n0.ogCoords.x > n1.ogCoords.x) {
         let t = n0
         n0 = n1
         n1 = t
       }
-      let dist0 = Math.round(d(v.ogCoords, n0.ogCoords))
-      let dist1 = Math.round(d(v.ogCoords, n1.ogCoords))
+      let dist0 = Math.round(v.ogCoords.distanceTo(n0.ogCoords))
+      let dist1 = Math.round(v.ogCoords.distanceTo(n1.ogCoords))
       replacement = addTriangulation(n0, n1, dist1, dist0)
     } else {
       console.error("Topology not suitable for integerization")
@@ -429,78 +438,14 @@ async function getImageContext(src) {
   return ctx
 }
 
-
-function translateAll(vector) {
-  for (let vertex of verticies) {
-    vertex.coordinates = add(vertex.coordinates, vector)
-  }
-}
-function center(permanently) {
-  let attribute = permanently ? "ogCoords" : "coordinates"
-
-  let mins = [1e6, 1e6, 1e6]
-  let maxes = [-1e6, -1e6, -1e6]
-  
-  for (let vertex of verticies) {
-    let coord = vertex[attribute]
-    for (let i = 0; i < 3; i++) {
-      mins[i] = Math.min(mins[i], coord[i])
-      maxes[i] = Math.max(maxes[i], coord[i])
-    }
-  }
-  let offset = scale(add(mins, maxes), -0.5)
-  for (let vertex of verticies) {
-    vertex[attribute] = add(vertex[attribute], offset)
-  }
-  return offset
-}
-function resize(permanently) {
-  let attribute = permanently ? "ogCoords" : "coordinates"
-
-  let maxMagnitude = 0
-  
-  for (let vertex of verticies) {
-    let mag = magnitude(vertex[attribute])
-    maxMagnitude = Math.max(maxMagnitude, mag)
-  }
-  for (let vertex of verticies) {
-    vertex[attribute] = scale(vertex[attribute], 1/maxMagnitude)
-  }
-  return 1/maxMagnitude
-}
-
-function rotateXAll(theta, permanently) {
-  rotateAll(rotateX, theta, permanently)
-}
-function rotateYAll(theta, permanently) {
-  rotateAll(rotateY, theta, permanently)
-}
-function rotateZAll(theta, permanently) {
-  rotateAll(rotateZ, theta, permanently)
-}
-
-function rotateAll(func, theta, permanently) {
-  for (let vertex of verticies) {
-    vertex.coordinates = func(vertex.coordinates, theta)
-    if (permanently) {
-      vertex.ogCoords = func(vertex.ogCoords, theta)
-    }
-  }
-}
-
-function lineFromEdge(edge) {
-  return {
-    offset: edge.verticies[0].ogCoords,
-    direction: delta(edge.verticies[1].ogCoords, edge.verticies[0].ogCoords),
-  }
-}
-
 function origami(foldPlain) {
   let newPlain = mirrorPlain(foldPlain, currentPlain)
   plains.push(newPlain)
+
+  // Add new verticies at edges that have been folded
   for (let edge of [...edges]) {
-    if (isAbovePlain(foldPlain, edge.verticies[0].ogCoords) !=
-        isAbovePlain(foldPlain, edge.verticies[1].ogCoords)) {
+    if (edge.verticies[0].ogCoords.isAbovePlain(foldPlain) !=
+        edge.verticies[1].ogCoords.isAbovePlain(foldPlain)) {
       removeEdge(edge)
       let newVertexCoords = intersection(foldPlain, lineFromEdge(edge))
       let newVertex = addVertex(newVertexCoords)
@@ -512,13 +457,13 @@ function origami(foldPlain) {
   for (let vertex of verticies) {
     if (!vertex.plains.includes(currentPlain)) continue
     
-    vertex.ogCoords = halfMirror(foldPlain, vertex.ogCoords)
+    vertex.ogCoords = vertex.ogCoords.halfMirror(foldPlain)
     vertex.coordinates = vertex.ogCoords
 
     vertex.plains.push(newPlain)
     let newPlains = []
     for (let plain of vertex.plains) {
-      if (isCoplanar(plain, vertex.ogCoords)) {
+      if (vertex.ogCoords.isCoplanar(plain)) {
         newPlains.push(plain)
       }
     }

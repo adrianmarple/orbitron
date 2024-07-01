@@ -13,7 +13,5 @@ addButton("test/letters", async () => {
 
   await addFromSVG("test/neodymium.svg")
 
-  doubleEdges()
-  center()
   EulerianPath(12, 1)
 })

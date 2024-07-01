@@ -12,19 +12,13 @@
       <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
     </noscript>
     <div id="app"></div>
+
+  <script type="text/javascript" src="three.js"></script>
+  <script type="text/javascript" src="vector.js"></script>
   <script>
 
 const initialSeed = 3
 const PHI = (1 + Math.sqrt(5))/ 2
-ZERO = [0,0,0]
-RIGHT = [1,0,0]
-UP = [0,1,0]
-FORWARD = [0,0,1]
-
-DEFAULT_PLAIN = {
-  offset: ZERO,
-  normal: FORWARD,
-}
 
 function reset() {
   verticies = []
@@ -37,6 +31,7 @@ function reset() {
   seed = initialSeed
   pixelDensity = 1
   imageUrl = null
+  centerOnRender = true
   centerOnExport = true
   resizeOnExport = true
   isWall = true
@@ -134,7 +129,7 @@ document.onmousemove = e => {
   //   let vector = [deltaX, -deltaY, 0]
   //   translateAll(scale(vector, 0.1))
   // } else {
-    rotateXAll(ROTATION_SCALE * deltaY)
+    rotateXAll(-ROTATION_SCALE * deltaY)
     rotateYAll(-ROTATION_SCALE * deltaX)
   // }
   previousXY = newXY
@@ -170,7 +165,7 @@ function render() {
   let maxMagnitude = 0
   for (let vertex of verticies) {
     let point = vertex.coordinates
-    maxMagnitude = Math.max(maxMagnitude, magnitude(point))
+    maxMagnitude = Math.max(maxMagnitude, point.length())
   }
   let projScale = 8 / (0.6 + maxMagnitude)
 
@@ -186,12 +181,12 @@ function render() {
     return pathFactor + b.verticies[0].coordinates[2] - a.verticies[0].coordinates[2]
   })
   for (let edge of edgesCopy) {
-    let xy0 = project(edge.verticies[0].coordinates, projScale)
-    let xy1 = project(edge.verticies[1].coordinates, projScale)
-    let z = edge.verticies[0].coordinates[2]*projScale + 15
+    let xy0 = edge.verticies[0].coordinates.project(projScale)
+    let xy1 = edge.verticies[1].coordinates.project(projScale)
+    let z = edge.verticies[0].coordinates.z*projScale + 15
     ctx.beginPath()
 
-    let alpha = 5/z
+    let alpha = 6/z
     if (subPath && subPath.includes(edge.index)) {
       alpha *= 1.5
       ctx.strokeStyle = `rgba(255,255,185,${alpha})`
@@ -211,28 +206,28 @@ function render() {
   ctx.fillStyle = "white"
   ctx.fontSize = 30
   for (let vertex of verticies) {
-    let xy0 = project(vertex.coordinates, projScale)
+    let xy0 = vertex.coordinates.project(projScale)
     if (showVertexNumbers) {
       ctx.fillText(vertex.index, xy0[0] + 4, xy0[1] - 5)
     }
   }
   for (let edge of edges) {
-    let center = add(edge.verticies[0].coordinates, edge.verticies[1].coordinates)
-    center = scale(center, 0.5)
-    let xy0 = project(center, projScale)
+    let center = edge.verticies[0].coordinates.add(edge.verticies[1].coordinates)
+    center = center.scale(0.5)
+    let xy0 = center.project(projScale)
     if (showEdgeNumbers && !edge.isDupe) {
       ctx.fillText(edge.index, xy0[0] + 4, xy0[1] - 5)
     }
   }
 
-  document.getElementById("cover").style.display = window.showLaserSVG ? "block" : "none"
-  document.getElementById("wall").style.display = window.showWallSVG ? "block" : "none"
+  document.getElementById("cover").style.display = window.showLaserSVG && isWall ? "block" : "none"
+  document.getElementById("wall").style.display = window.showWallSVG && isWall ? "block" : "none"
 }
     </script>
     
+
     <script type="text/javascript" src="topology.js"></script>
     <script type="text/javascript" src="data.js"></script>
-    <script type="text/javascript" src="vector.js"></script>
     <script type="text/javascript" src="laser.js"></script>
   </body>
 </html>

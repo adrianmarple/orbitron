@@ -56,7 +56,6 @@ module.exports = () => {
   }
   addTriangulation(7,0, 19)
 
-  doubleEdges()
   let startingEdge = 14
   EulerianPath(startingEdge, 1)
 
@@ -70,7 +69,7 @@ module.exports = () => {
     }
 
     deadends = deadends.sort((i, j) => {
-      return info.coords[i][1] - info.coords[j][1]
+      return info.coords[i].y - info.coords[j].y
     })
     connectPixels(info, deadends.pop(), deadends.pop())
     connectPixels(info, deadends.pop(), deadends.pop())

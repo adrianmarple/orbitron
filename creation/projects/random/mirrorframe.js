@@ -21,7 +21,6 @@ module.exports = () => {
   diamonds(verticies[verticies.length - 5],
     verticies[verticies.length - 1], [...longSequence], false)
 
-  center()
   EulerianPath(59)
 }
 
@@ -35,8 +34,8 @@ function diamonds(base0, base1, lengths, handedness) {
   } else {
     newBase0 = addTriangulation(base1, base0, length)
   }
-  let crossDelta = delta(base0.ogCoords, base1.ogCoords)
-  let newBase1 = addVertex(add(newBase0.ogCoords, crossDelta))
+  let crossDelta = base0.ogCoords.sub(base1.ogCoords)
+  let newBase1 = addVertex(newBase0.ogCoords.add(crossDelta))
   addEdge(base0, newBase1)
 
   diamonds(newBase0, newBase1, lengths, !handedness)

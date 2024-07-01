@@ -13,7 +13,5 @@ addButton("test/endcap", async () => {
 
   await addFromSVG("test/endcap.svg")
 
-  doubleEdges()
-  center()
   EulerianPath(0)
 })

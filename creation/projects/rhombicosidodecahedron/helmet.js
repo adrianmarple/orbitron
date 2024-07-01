@@ -2,6 +2,7 @@ module.exports = () => {
   pixelDensity = 0.4
   isWall = false
   centerOffset = false
+  centerOnRender = false
 
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
@@ -17,7 +18,7 @@ module.exports = () => {
 
   for (let i = 0; i < verticies.length; i++) {
     for (let j = i + 1; j < verticies.length; j++) {
-      if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2)) {
+      if (epsilonEquals(verticies[i].ogCoords.distanceTo(verticies[j].ogCoords), 2)) {
         addEdge(verticies[i], verticies[j])
       }
     }
@@ -30,7 +31,7 @@ module.exports = () => {
   for (let i = 0; i < 3; i++) {
     for (let edge of currentVertex.edges) {
       let vertex = otherVertex(edge, currentVertex)
-      let dist = d(vertex.coordinates, previousVertex.coordinates)
+      let dist = vertex.ogCoords.distanceTo(previousVertex.ogCoords)
       if (dist > 3 && dist < 3.5) {
         previousVertex = currentVertex
         currentVertex = vertex
@@ -41,10 +42,10 @@ module.exports = () => {
   }
 
   // Remove pentagon and adjoining edges and compute surrounding dodecagon
-  let pentagonCenter = [0,0,0]
+  let pentagonCenter = ZERO
   let dodecagonVerticies = []
   for (let vertex of pentagonVertices) {
-    pentagonCenter = add(pentagonCenter, vertex.coordinates)
+    pentagonCenter = pentagonCenter.add(vertex.ogCoords)
     while (vertex.edges.length > 0) {
       let edge = vertex.edges.pop()
       removeEdge(edge)
@@ -52,7 +53,7 @@ module.exports = () => {
       dodecagonVerticies.push(edge.verticies[1])
     }
   }
-  pentagonCenter = normalize(pentagonCenter)
+  pentagonCenter = pentagonCenter.normalize()
   dodecagonVerticies = dodecagonVerticies.filter(vert => !pentagonVertices.includes(vert))
 
   // Remove ever other edge from remaining dodecagon
@@ -78,15 +79,10 @@ module.exports = () => {
   }
 
   // Rotate helmet to orient dodec/pentagons down
-  rotateYAll(-Math.atan2(pentagonCenter[0], pentagonCenter[2]))
+  rotateYAll(-Math.atan2(pentagonCenter.x, pentagonCenter.z))
   rotateXAll(Math.PI)
   for (let vertex of verticies) {
-    // vertex.ogCoords = scale(vertex.coordinates, 1)
-    vertex.ogCoords = [
-      vertex.coordinates[1],
-      vertex.coordinates[0], 
-      vertex.coordinates[2]
-    ]
+    vertex.ogCoords = vertex.coordinates.clone()
   }
 
   EulerianPath(start, [start.edges[1].index])

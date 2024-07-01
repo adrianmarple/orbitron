@@ -100,6 +100,9 @@ export default {
       localStorage.setItem("button", name)
       reset()
       await require("../projects/" + name + ".js")()
+      if (centerOnRender) {
+        center()
+      }
       generatePixelInfo()
       await generateManufacturingInfo()
     },

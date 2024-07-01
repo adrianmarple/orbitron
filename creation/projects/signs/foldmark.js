@@ -38,8 +38,5 @@ module.exports = () => {
   // let v9 = splitEdge(e2, -7)
   // addTriangulation(v9, v1, 11, 6)
 
-  doubleEdges()
-  center()
-
   EulerianPath(15)
 }

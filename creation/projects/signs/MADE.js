@@ -19,6 +19,5 @@ module.exports = async () => {
 
   // await addSquaresFromPixels(true, {x:[10], y:[10]})
   await addSquaresFromPixels() // TODO fixe me!
-  doubleEdges()
   EulerianPath(63, 1)
 }

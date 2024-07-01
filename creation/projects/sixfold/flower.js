@@ -1,17 +1,17 @@
 
 function processDodec(dodecEdges, parity) {
   parity = parity || 0
-  let center = [0,0,0]
+  let center = ZERO
   for (let edge of dodecEdges) {
     for (let vertex of edge.verticies) {
-      center = add(center, vertex.ogCoords)
+      center = center.add(vertex.ogCoords)
     }
   }
-  center = scale(center, 0.5 / dodecEdges.length)
+  center = center.scale(0.5 / dodecEdges.length)
   for (let i = 0; i < dodecEdges.length; i++) {
     let edge = dodecEdges[i]
-    let toCenter = delta(center, edge.verticies[0].ogCoords)
-    let negate = cross(toCenter, edgeDelta(edge))[2] > 0
+    let toCenter = center.sub(edge.verticies[0].ogCoords)
+    let negate = toCenter.cross(edgeDelta(edge)).z > 0
 
     if (i%4 == parity) {
       let squedges = extrudePolygon(edge,4,null,negate)
@@ -48,7 +48,6 @@ module.exports = () => {
   for (let i = 0; i < dodecEdges.length; i++) {
     let edge = dodecEdges[i]
     if (i%2 == 1) {
-      // extrudePolygon(edge, 4, null, true)
       let squedges = extrudePolygon(edge, 4)
       let outerDodecEdges = extrudePolygon(squedges[2], 12)
       processDodec(outerDodecEdges)
@@ -56,8 +55,6 @@ module.exports = () => {
       let hedges = extrudePolygon(edge, 6)
       let squedges = extrudePolygon(hedges[3], 4)
       hedges = extrudePolygon(squedges[2], 6)
-      // extrudePolygon(hedges[2], 4)
-      // extrudePolygon(hedges[4], 4)
     }
   }
 

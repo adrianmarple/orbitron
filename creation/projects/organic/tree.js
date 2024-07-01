@@ -5,11 +5,9 @@ module.exports = async () => {
   console.log(verticies[0].ogCoords)
 
   origami({
-    offset: [0, -35, 0],
-    normal: [0, 1, 1],
+    offset: new Vector(0, -35, 0),
+    normal: new Vector(0, 1, 1),
   })
 
-  doubleEdges()
-  center()
   EulerianPath(0)
 }

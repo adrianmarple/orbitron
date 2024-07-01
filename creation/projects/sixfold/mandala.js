@@ -2,17 +2,17 @@
 module.exports = () => {
   function tieFighter(dodecEdges, parity) {
     parity = parity || 0
-    let center = [0,0,0]
+    let center = new Vector(0,0,0)
     for (let edge of dodecEdges) {
       for (let vertex of edge.verticies) {
-        center = add(center, vertex.ogCoords)
+        center = center.add(vertex.ogCoords)
       }
     }
-    center = scale(center, 0.5 / dodecEdges.length)
+    center = center.scale(0.5 / dodecEdges.length)
     for (let i = 0; i < dodecEdges.length; i++) {
       let edge = dodecEdges[i]
-      let toCenter = delta(center, edge.verticies[0].ogCoords)
-      let negate = cross(toCenter, edgeDelta(edge))[2] > 0
+      let toCenter = center.sub(edge.verticies[0].ogCoords)
+      let negate = toCenter.cross(edgeDelta(edge)).z > 0
 
       if (i%4 == parity + 2) {
         let squedges = extrudePolygon(edge,4,null,negate)
@@ -51,7 +51,5 @@ module.exports = () => {
     }
   }
   rotateZAll(-Math.PI/6, true)
-  doubleEdges()
-  let startingEdge = 47
   EulerianPath(139)
 }

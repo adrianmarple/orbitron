@@ -16,7 +16,7 @@ module.exports = () => {
 
   for (let i = 0; i < verticies.length; i++) {
     for (let j = i + 1; j < verticies.length; j++) {
-      if (epsilonEquals(d(verticies[i].coordinates, verticies[j].coordinates), 2)) {
+      if (epsilonEquals(verticies[i].ogCoords.distanceTo(verticies[j].ogCoords), 2)) {
         addEdge(verticies[i], verticies[j])
       }
     }

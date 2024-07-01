@@ -13,6 +13,6 @@ module.exports = async () => {
   HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
 
   await addFromSVG("THEBOX/small boxshape.svg")
-  center()
+
   EulerianPath(1)
 }

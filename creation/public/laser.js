@@ -22,7 +22,9 @@ async function createCoverSVG(plain) {
   maxY = -1e6
   const SCALE = PIXEL_DISTANCE / pixelDensity
 
-  
+  // TODO find rotation vector that transforms plain.normal to FORWARD
+  // then apply this to all verticies' ogCoords
+  // remember to invert this operation at the end
   
   // Gather paths
   let paths = []
@@ -30,8 +32,8 @@ async function createCoverSVG(plain) {
   for (let index of path) {
     let edge = edges[index]
     if (edge.isDupe) continue;
-    if (!edge.verticies[0].plains.includes(plain)) continue;
-    if (!edge.verticies[1].plains.includes(plain)) continue;
+    if (!edge.verticies[0].plains.includes(plain)) continue
+    if (!edge.verticies[1].plains.includes(plain)) continue
     directedEdges.push([edge.verticies[1], edge.verticies[0]])
     directedEdges.push([edge.verticies[0], edge.verticies[1]])
   }
@@ -45,23 +47,24 @@ async function createCoverSVG(plain) {
     let cumulativeAngle = 0
 
     for (let j = 0; j < 1000; j++) {
-      let e0 = delta(dPath[dPath.length-1].ogCoords, dPath[dPath.length-2].ogCoords)
+      let e0 = dPath[dPath.length-1].ogCoords.sub(dPath[dPath.length-2].ogCoords)
       let leftmostTurn = null
       let minAngle = 7
 
       if (dPath[0] == dPath[dPath.length - 1]) {
-        let e1 = delta(dPath[1].ogCoords, dPath[0].ogCoords)
-        minAngle = signedAngle(e1, e0)
+        let e1 = dPath[1].ogCoords.sub(dPath[0].ogCoords)
+        minAngle = e1.signedAngle(e0)
       }
 
       for (let dEdge of directedEdges) {
         let [v0, v1] = dEdge
         if (dPath[dPath.length - 1] != v0) continue
 
-        let e1 = delta(v1.ogCoords, v0.ogCoords)
-        let a = signedAngle(e1, e0)
+        let e1 = v1.ogCoords.sub(v0.ogCoords)
+        
+        let a = e1.signedAngle(e0)
         if (epsilonEquals(Math.abs(a), Math.PI)) {
-          a = Math.abs(a)
+          a = Math.PI
         }
         if (a < minAngle) {
           minAngle = a
@@ -69,12 +72,12 @@ async function createCoverSVG(plain) {
         }
       }
       if (!leftmostTurn) break
-      if (epsilonEquals(minAngle, Math.PI)) {
+      if (epsilonEquals(minAngle, Math.PI)) { // TODO detect end of plain
         // End cap for double back
         dPath.push(leftmostTurn[0])
       }
       directedEdges.splice(directedEdges.indexOf(leftmostTurn), 1)
-      if (epsilonEquals(minAngle, 0) && !epsilonEquals(magnitude(e0), 0)) {
+      if (epsilonEquals(minAngle, 0) && !epsilonEquals(e0.length(), 0)) {
         dPath.pop() // Join edges if the path is straight
       }
       cumulativeAngle += minAngle
@@ -83,9 +86,9 @@ async function createCoverSVG(plain) {
   	dPath.pop() // Remove duplicated first/last vertex
 
     // Start and end might be straight still
-    e0 = delta(dPath[0].ogCoords, dPath[dPath.length-1].ogCoords)
-    e1 = delta(dPath[1].ogCoords, dPath[0].ogCoords)
-    let lastAngle = signedAngle(e1, e0)
+    e0 = dPath[0].ogCoords.sub(dPath[dPath.length-1].ogCoords)
+    e1 = dPath[1].ogCoords.sub(dPath[0].ogCoords)
+    let lastAngle = e1.signedAngle(e0)
     if (epsilonEquals(lastAngle, 0)) {
       dPath.shift() // Remove middle (start) vertex if start and end is straight
     }
@@ -100,14 +103,13 @@ async function createCoverSVG(plain) {
   }
   paths.sort((a,b) => b.length - a.length)
 
-
   // Draw border and channels
 
   let start = startVertex()
   if (!start) return
   start = start.ogCoords
   let penultimate = penultimateVertex().ogCoords
-  let finalEdgeDirection = normalize(delta(penultimate, start))
+  let finalEdgeDirection = penultimate.sub(start).normalize()
 
   let totalPathString = ""
   for (let dPath of paths) {
@@ -122,49 +124,49 @@ async function createCoverSVG(plain) {
   	  let v1 = dPath[(i+1) % dPath.length].ogCoords
   	  let v2 = dPath[(i+2) % dPath.length].ogCoords
   	  let v3 = dPath[(i+3) % dPath.length].ogCoords
-  	  let e0 = delta(v1, v0)
-  	  let e1 = delta(v2, v1)
-  	  let e2 = delta(v3, v2)
+  	  let e0 = v1.sub(v0)
+  	  let e1 = v2.sub(v1)
+  	  let e2 = v3.sub(v2)
 
-      let a1 = signedAngle(e1, e0)
-      let a2 = signedAngle(e1, e2)
+      let a1 = e1.signedAngle(e0)
+      let a2 = e1.signedAngle(e2)
 
       let endCapOffset = CHANNEL_WIDTH * END_CAP_FACTOR * -0.5 / SCALE
-      if (epsilonEquals(magnitude(e0), 0)) {
+      if (epsilonEquals(e0.length(), 0)) {
         a1 = Math.PI/2
-        towardsEnd = scale(normalize(e1), -1)
-        v0 = add(v0, scale(towardsEnd, endCapOffset))
+        towardsEnd = e1.normalize().multiplyScalar(-1)
+        v0 = v0.addScaledVector(towardsEnd, endCapOffset)
         v1 = v0
-        e1 = delta(v2, v1)
+        e1 = v2.sub(v1)
       }
-      if (epsilonEquals(magnitude(e1), 0)) {
+      if (epsilonEquals(e1.length(), 0)) {
         a1 = Math.PI/2
         a2 = -Math.PI/2
-        towardsEnd = normalize(e0)
-        v1 = add(v1, scale(towardsEnd, endCapOffset))
+        towardsEnd = e0.normalize()
+        v1 = v1.addScaledVector(towardsEnd, endCapOffset)
         v2 = v1
-        e0 = delta(v1, v0)
-        e2 = delta(v3, v2)
+        e0 = v1.sub(v0)
+        e2 = v3.sub(v2)
       }
-      if (epsilonEquals(magnitude(e2), 0)) {
+      if (epsilonEquals(e2.length(), 0)) {
         a2 = -Math.PI/2
-        towardsEnd = normalize(e1)
-        v2 = add(v2, scale(towardsEnd, endCapOffset))
+        towardsEnd = e1.normalize()
+        v2 = v2.addScaledVector(towardsEnd, endCapOffset)
         v3 = v3
-        e1 = delta(v2, v1)
+        e1 = v2.sub(v1)
       }
 
-      let edgeLength = magnitude(e1)
+      let edgeLength = e1.length()
       if (epsilonEquals(edgeLength, 0)) {
-        e1 = scale(cross(e0, [0,0,1]), 1/magnitude(e0))
+        e1 = e0.cross(FORWARD).scale(1/e0.length())
       } else {
-        e1 = scale(e1, 1/edgeLength)
+        e1 = e1.scale(1/edgeLength)
       }
       edgeLength *= SCALE
-      let n = cross(e1, [0,0,-1])
-      let offset = scale(v1, SCALE)
+      let n = FORWARD.cross(e1)
+      let offset = v1.scale(SCALE)
 
-      let isFinalEdge = dPath == outerPath && vectorEquals(normalize(e1), normalize(delta(v2, start)))
+      let isFinalEdge = dPath == outerPath && e1.normalize().equals(v2.sub(start).normalize())
       
       // Channels
       let w1 = CHANNEL_WIDTH/2
@@ -206,7 +208,8 @@ async function createCoverSVG(plain) {
       //     angle2 = t
       //   }
       // }
-      let edgeCenter = add(add(offset, scale(e1, edgeLength/2)), scale(n, w1*1.5))
+      let edgeCenter = offset.addScaledVector(e1, edgeLength/2)
+          .addScaledVector(n, w1*1.5)
       let addedToCount = false
       for (let wallType of wallInfo) {
         if (epsilonEquals(wallType.length, wallLength, 0.01) &&
@@ -275,9 +278,9 @@ async function createCoverSVG(plain) {
       for (let i = 0; i < 4; i++) {
         center = add(center, dPath[i].ogCoords)
       }
-      center = scale(center, 0.25)
-      let x = Math.round(center[0])
-      let y = -Math.round(center[1])
+      center = center.scale(0.25)
+      let x = Math.round(center.x)
+      let y = -Math.round(center.y)
       
       let imageContext = await getImageContext()
       let pixel = imageContext.getImageData(x, y, 1, 1).data
@@ -291,8 +294,8 @@ async function createCoverSVG(plain) {
       for (let i = 0; i < 4; i++) {
         let v0 = dPath[i].ogCoords
         let v1 = dPath[(i+1) % dPath.length].ogCoords
-        let e0 = delta(v1, v0)
-        if (magnitude(e0) > 1.1) {
+        let e0 = v1.sub(v0)
+        if (e0.length() > 1.1) {
           useMinimalBorder = false
         }
       }
@@ -329,7 +332,9 @@ async function createCoverSVG(plain) {
 function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) {
   let path = ""
   if (localOffset) {
-    offset = add(offset, add(scale(basis[0], localOffset[0]), scale(basis[1], localOffset[1])))
+    offset = offset
+        .addScaledVector(basis[0], localOffset[0])
+        .addScaledVector(basis[1], localOffset[1])
   }
   let w1 = KERF
   let w2 = WALL_THICKNESS - KERF
@@ -369,24 +374,24 @@ function trueNotchDepth(wallLength) {
 function pointsToSVGString(points, basis, offset, flip) {
   let s = ""
   for (let point of points) {
-  	let truePoint = add(scale(basis[0], point[0]), scale(basis[1], point[1]))
-  	truePoint = add(truePoint, offset)
-    truePoint = scale(truePoint, MM_TO_96DPI)
-    if (truePoint[0] > 1e6 || truePoint[1] > 1e6) {
+  	let truePoint = basis[0].scale(point[0]).addScaledVector(basis[1], point[1])
+  	truePoint = truePoint.add(offset)
+    truePoint = truePoint.scale(MM_TO_96DPI)
+    if (truePoint.x > 1e6 || truePoint.y > 1e6) {
       console.error(truePoint)
       return ""
     }
-    if (truePoint[0] > maxX || truePoint[1] > maxY ||
-        truePoint[0] < minX || truePoint[1] < minY) {
-      maxX = Math.ceil(Math.max(maxX, truePoint[0]))
-      maxY = Math.ceil(Math.max(maxY, truePoint[1]))
-      minX = Math.floor(Math.min(minX, truePoint[0]))
-      minY = Math.floor(Math.min(minY, truePoint[1]))
+    if (truePoint.x > maxX || truePoint.y > maxY ||
+        truePoint.x < minX || truePoint.y < minY) {
+      maxX = Math.ceil(Math.max(maxX, truePoint.x))
+      maxY = Math.ceil(Math.max(maxY, truePoint.y))
+      minX = Math.floor(Math.min(minX, truePoint.x))
+      minY = Math.floor(Math.min(minY, truePoint.y))
       cover.setAttribute("width", maxX - minX)
       cover.setAttribute("height", maxY - minY)
       cover.setAttribute("viewBox", `${minX} ${minY} ${maxX - minX} ${maxY - minY}`)
     }
-  	s += `L${truePoint[0]} ${truePoint[1]} `
+  	s += `L${truePoint.x} ${truePoint.y} `
   }
   if (flip) {
     s += pointsToSVGString(points.reverse(), basis.reverse(), offset)
@@ -475,6 +480,8 @@ function createPrintInfo(displayOnly) {
       if (cat5WallOverride >= 0) {
         isFinalEdge = wallIndex == cat5WallOverride
       }
+      let powerHoleInstanceIndex = isFinalEdge ? 1:0
+
       isFinalEdge = isFinalEdge && i == 0
       let cat5Offset = NaN
       if (isFinalEdge) {
@@ -484,7 +491,6 @@ function createPrintInfo(displayOnly) {
           cat5Offset = NOTCH_DEPTH + CAT5_WIDTH / 2
         }
       }
-      let powerHoleInstanceIndex = epsilonEquals(wallType.length, entryWallLength, 0.01) ? 1:0
       let isPowerCordPort = wallIndex == powerHoleWallIndex && i == powerHoleInstanceIndex
       
       let notches = generateNotches(wallLength, isFinalEdge)
@@ -795,7 +801,8 @@ async function generateManufacturingInfo() {
   cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
   if (isWall) {
     KERF = TOP_KERF
-    await createCoverSVG(plains[plains.length - 1])
+    await createCoverSVG()
+    // await createCoverSVG(plains[plains.length - 1])
     console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
     createPrintInfo(true)
   }

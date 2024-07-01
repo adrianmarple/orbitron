@@ -9,7 +9,6 @@ module.exports = () => {
     v0 = v1
   }
 
-  center()
 
   EulerianPath(17)
 }

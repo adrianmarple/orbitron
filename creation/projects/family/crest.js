@@ -44,7 +44,7 @@ module.exports = () => {
   // })
 
   for (let i = 0; i < 4; i++) {
-    addVertex(rotateZ([0,a,0], i * Math.PI/2))
+    addVertex(new Vector(0,a,0).applyAxisAngle(BACKWARD, i * Math.PI/2))
   }
   for (let i = 0; i < 4; i++) {
     let v1 = verticies[i]

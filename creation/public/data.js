@@ -1,7 +1,7 @@
 
 startMidwayDownFinalEdge = false
 
-noncovergenceGuard = 1e4
+noncovergenceGuard = 1e3
 async function EulerianPath(currentVertex, pathOverride) {
   for (let vertex of verticies) {
     if (vertex.edges.length % 2 == 1) {
@@ -24,7 +24,7 @@ async function EulerianHelper(currentVertex, pathOverride) {
   noncovergenceGuard -= 1
   if (noncovergenceGuard < 0) {
     path.length = 0
-    noncovergenceGuard = 1e4
+    noncovergenceGuard = 1e3
     console.error("Eulerian path did not converge.")
     return true
   }
@@ -41,9 +41,9 @@ async function EulerianHelper(currentVertex, pathOverride) {
     let v1 = currentVertex.coordinates
     let v2 = otherVertex(edge, currentVertex).coordinates
   
-    let e0 = delta(v1, v0)
-    let e1 = delta(v2, v1)
-    let angle = angle3D(e1, e0)
+    let e0 = v1.sub(v0)
+    let e1 = v2.sub(v1)
+    let angle = e1.angleTo(e0)
 
     return p(edge, previousEdge, angle)
   }
@@ -67,9 +67,10 @@ async function EulerianHelper(currentVertex, pathOverride) {
       let v0 = otherVertex(remainingEdges[0], currentVertex).coordinates
       let v1 = currentVertex.coordinates
       let v2 = otherVertex(remainingEdges[1], currentVertex).coordinates
-      let e0 = delta(v1, v0)
-      let e1 = delta(v2, v1)
-      let edgeAngle = Math.abs(signedAngle(e0, e1))
+      let e0 = v1.sub(v0)
+      let e1 = v2.sub(v1)
+      // let edgeAngle = Math.abs(e0.signedAngle(e1))
+      let edgeAngle = Math.abs(e0.angleTo(e1))
       if (edgeAngle < Math.PI/4) {
         path.pop()
         continue
@@ -155,7 +156,7 @@ function generatePixelInfo() {
   let uniqueToDupe = []
   let dupeToUniques = []
   let previousVertex = startVertex(path)
-  let v0 = [NaN,NaN,NaN]
+  let v0 = new Vector(NaN,NaN,NaN)
 
   let centerOffset = [0,0,0]
   if (centerOnExport) {
@@ -186,9 +187,9 @@ function generatePixelInfo() {
     let nextVertex = otherVertex(edge, previousVertex)
     let v1 = previousVertex.ogCoords
     let v2 = nextVertex.ogCoords
-    let e1 = delta(v1,v0)
-    let e2 = delta(v2,v1)
-    let edgeLength = magnitude(e2)
+    let e1 = v1.sub(v0)
+    let e2 = v2.sub(v1)
+    let edgeLength = e2.length()
     for (; true; alpha += pixelDensity) {
       
       if (alpha > edgeLength - 0.01) {
@@ -219,16 +220,16 @@ function generatePixelInfo() {
         return
       }
 
-      let newCoord = linearCombo(v2, v1, alpha/edgeLength)
+      let newCoord = v2.lerp(v1, alpha/edgeLength)
       let dupeIndex = -1
       for (let i = 0; i < coords.length; i++) {
         let coord = coords[i]
-        if (vectorEquals(coord, newCoord)) {
+        if (coord.equals(newCoord)) {
           dupeIndex = i
           break
         }
       }
-      if (alpha == 0 && epsilonEquals(dot(e1, e2), -magnitude(e1) * edgeLength)) {
+      if (alpha == 0 && epsilonEquals(e1.dot(e2), -e1.length() * edgeLength)) {
         // Skip LED when doubling back and dupe exists
         if (dupeIndex > -1) {
           // Previous pixel should necessarily be unique
@@ -305,7 +306,7 @@ function generatePixelInfo() {
       furthest_neighbor = null
       max_dist = 0
       for (let n2 of neighbors[n]) {
-        let dist = d(coords[n2], coords[i])
+        let dist = coords[n2].distanceTo(coords[i])
         if (dist > max_dist) {
           max_dist = dist
           furthest_neighbor = n2
@@ -372,8 +373,8 @@ function generatePixelInfo() {
 
   // Undo centering and resizing
   for (let vertex of verticies) {
-    vertex.ogCoords = scale(vertex.ogCoords, 1/resizeScale)
-    vertex.ogCoords = delta(vertex.ogCoords, centerOffset)
+    vertex.ogCoords = vertex.ogCoords.scale(1/resizeScale)
+    vertex.ogCoords = vertex.ogCoords.sub(centerOffset)
   }
   pixelDensity /= resizeScale
 
