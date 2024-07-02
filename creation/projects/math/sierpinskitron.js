@@ -23,7 +23,7 @@ function subdivide(triangle, iterations) {
   if (iterations == 0) return
   let newVerticies = []
   for (let edge of triangle) {
-    newVerticies.push(splitEdge(edge, edgeLength(edge)/2))
+    newVerticies.push(splitEdge(edge, edge.length()/2))
   }
   for (let i = 0; i < 3; i++) {
     let newTriangle = []

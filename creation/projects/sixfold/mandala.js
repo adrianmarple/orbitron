@@ -12,7 +12,7 @@ module.exports = () => {
     for (let i = 0; i < dodecEdges.length; i++) {
       let edge = dodecEdges[i]
       let toCenter = center.sub(edge.verticies[0].ogCoords)
-      let negate = toCenter.cross(edgeDelta(edge)).z > 0
+      let negate = toCenter.cross(edge.delta()).z > 0
 
       if (i%4 == parity + 2) {
         let squedges = extrudePolygon(edge,4,null,negate)

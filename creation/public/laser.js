@@ -25,6 +25,21 @@ async function createCoverSVG(plain) {
   // TODO find rotation vector that transforms plain.normal to FORWARD
   // then apply this to all verticies' ogCoords
   // remember to invert this operation at the end
+  let v = plain.normal.cross(FORWARD).normalize()
+  let c = plain.normal.normalize().dot(FORWARD)
+  let R = new Matrix().identity()
+  let vCross = new Matrix().set(
+    0, -v.z, v.y,
+    v.z, 0, -v.x,
+    -v.y, v.x, 0
+  )
+  R.add(vCross)
+  R.add(vCross.clone().multiply(vCross).divideScalar(1+c))
+  for (let vertex of verticies) {
+    vertex.oogCoords = vertex.ogCoords
+    vertex.ogCoords = vertex.ogCoords.applyMatrix(R)
+  }
+
   
   // Gather paths
   let paths = []
@@ -326,6 +341,11 @@ async function createCoverSVG(plain) {
         cover.appendChild(txt)
       }
     }
+  }
+
+  for (let vertex of verticies) {
+    vertex.ogCoords = vertex.oogCoords
+    delete vertex.oogCoords
   }
 }
 
@@ -801,8 +821,8 @@ async function generateManufacturingInfo() {
   cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
   if (isWall) {
     KERF = TOP_KERF
-    await createCoverSVG()
-    // await createCoverSVG(plains[plains.length - 1])
+    // await createCoverSVG()
+    await createCoverSVG(plains[plains.length - 1])
     console.log(`SVG is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
     createPrintInfo(true)
   }

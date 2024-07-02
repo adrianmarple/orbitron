@@ -1,103 +1,27 @@
 
-class Vector {
+class Vector extends THREE.Vector3 {
   isVector = true
-  constructor(coords, y, z) {
-    if (typeof(coords) == "number") {
-      this.coords = new THREE.Vector3(coords, y, z)
-    }
-    else if (!coords.isVector3) {
-      this.coords = new THREE.Vector3(coords[0], coords[1], coords[2])
-    }
-    else {
-      this.coords = coords
-    }
-    this.x = this.coords.x
-    this.y = this.coords.y
-    this.z = this.coords.z
-  }
 
-  // Wrapper functions to make it imitate a value type struct
-  // Reference for THREE.js Vector3:
-  //   https://threejs.org/docs/#api/en/math/Vector3.projectOnVector
-  add(v) {
-    return new Vector(this.coords.clone().add(v.coords))
-  }
-  addScaledVector(v,s) {
-    return new Vector(this.coords.clone().addScaledVector(v.coords,s))
-  }
-  applyAxisAngle(axis, angle) {
-    return new Vector(this.coords.clone().applyAxisAngle(axis, angle))
-  }
-  applyMatrix3(m) {
-    return new Vector(this.coords.clone().applyMatrix3(m))
-  }
-  angleTo(v) {
-    return this.coords.angleTo(v.coords)
-  }
-  clone() {
-    return new Vector(this.coords)
-  }
-  cross(v) {
-    return new Vector(this.coords.clone().cross(v.coords))
-  }
-  distanceTo(v) {
-    return this.coords.distanceTo(v.coords)
-  }
-  distanceToSquared(v) {
-    return this.coords.distanceToSquared(v.coords)
-  }
-  divideScalar(s) {
-    return new Vector(this.coords.clone().divideScalar(s))
-  }
-  dot(v) {
-    return this.coords.dot(v.coords)
-  }
-  length() {
-    return this.coords.length()
-  }
-  lengthSq() {
-    return this.coords.lengthSq()
-  }
-  lerp(v, alpha) {
-    return new Vector(this.coords.clone().lerp(v.coords, alpha))
-  }
-  max(v) {
-    return new Vector(this.coords.clone().max(v))
-  }
-  min(v) {
-    return new Vector(this.coords.clone().min(v))
-  }
-  multiplyScalar(s) {
-    return new Vector(this.coords.clone().multiplyScalar(s))
-  }
-  negate() {
-    return new Vector(this.coords.clone().negate())
-  }
-  normalize() {
-    return new Vector(this.coords.clone().normalize())
-  }
-  sub(v) {
-    return new Vector(this.coords.clone().sub(v.coords))
-  }
-
-
-  equals(v, epsilon=0.001) {
-    return epsilonEquals(this.coords.distanceTo(v), 0, epsilon)
+  applyMatrix(m) {
+    return this.applyMatrix3(m)
   }
   scale(s) {
     return this.multiplyScalar(s)
   }
   proj(v) {
-    return new Vector(this.coords.clone().projectOnVector(v.coords))
+    return this.projectOnVector(v)
   }
   orthoProj(v) {
     return this.sub(this.proj(v))
   }
+  equals(v, epsilon=0.001) {
+    return epsilonEquals(this.distanceTo(v), 0, epsilon)
+  }
 
   project(scale) {
     const SCALE = 800 * scale
-    let z = this.coords.z * scale + 15
-    return [500 + this.coords.x * SCALE / z, 500 - this.coords.y * SCALE / z]
+    let z = this.z * scale + 15
+    return [500 + this.x * SCALE / z, 500 - this.y * SCALE / z]
   }
   // Assume z coordinate is 0 or otherwise ignorable
   signedAngle(v) {
@@ -128,9 +52,77 @@ class Vector {
       return this
   }
 }
+// Reference for THREE.js Vector3: https://threejs.org/docs/#api/en/math/Vector3.projectOnVector
+let methodsToValuize = [
+  "add", "addScaledVector", "applyAxisAngle", "applyMatrix3", "cross", "divideScalar", "lerp",
+  "min", "max", "multiplyScalar", "negate", "normalize", "projectOnVector", "sub",
+]
+for (let method of methodsToValuize) {
+  Vector.prototype[method] = function(...args) {
+    return THREE.Vector3.prototype[method].apply(this.clone(), args)
+  }
+}
+
+// https://threejs.org/docs/?q=matri#api/en/math/Matrix4
+class Matrix extends THREE.Matrix3 {
+  add(m) {
+    for (let i = 0; i < 9; i++) {
+      this.elements[i] += m.elements[i]
+    }
+    return this
+  }
+  divideScalar(s) {
+    return this.multiplyScalar(1/s)
+  }
+}
 
 class Plain {
+  constructor(offset, normal) {
+    this.offset = offset
+    this.normal = normal.normalize()
+  }
 
+  mirror(mirror) {
+    return new Plain(
+      this.offset.mirror(mirror),
+      this.normal.mirror(mirror, true),
+    )
+  }
+  translate(v) {
+    return new Plain(this.offset.add(v), this.normal)
+  }
+  rotate(rotationMatrix) {
+    return new Plain(
+      this.offset.applyMatrix(rotationMatrix),
+      this.normal.applyMatrix(rotationMatrix),
+    )
+  }
+
+  intersection(line) {
+    let a = this.offset.sub(line.offset).dot(this.normal) / line.direction.dot(this.normal)
+    return line.offset.addScaledVector(line.direction, a)
+  }
+}
+
+class Line {
+  constructor(offset, direction) {
+    this.offset = offset
+    this.direction = this.direction.normalize()
+  }
+
+  translate(v) {
+    return new Line(this.offset.add(v), this.direction)
+  }
+  rotate(rotationMatrix) {
+    return new Line(
+      this.offset.applyMatrix(rotationMatrix),
+      this.direction.applyMatrix(rotationMatrix),
+    )
+  }
+
+  intersection(plain) {
+    return plain.intersection(this)
+  }
 }
 
 
@@ -139,32 +131,6 @@ function epsilonEquals(a, b, epsilon=0.001) {
 }
 function fromMagAngle(mag, angle) { //angle is in deg
   return new Vector(mag, 0, 0).applyAxisAngle(BACKWARD, angle / 180 * Math.PI)
-}
-
-
-function edgeDelta(edge) {
-  return edge.verticies[1].ogCoords.sub(edge.verticies[0].ogCoords)
-}
-function edgeLength(edge) {
-  return edgeDelta(edge).length()
-}
-function lineFromEdge(edge) {
-  return {
-    offset: edge.verticies[0].ogCoords,
-    direction: edgeDelta(edge),
-  }
-}
-
-function mirrorPlain(mirror, plain) {
-  return {
-    offset: plain.offset.mirror(mirror),
-    normal: plain.normal.mirror(mirror, true),
-  }
-}
-
-function intersection(plain, line) {
-  let a = plain.offset.sub(line.offset).dot(plain.normal) / line.direction.dot(plain.normal)
-  return line.offset.addScaledVector(line.direction, a)
 }
 
 

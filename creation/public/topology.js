@@ -1,4 +1,45 @@
 
+class Vertex {
+  constructor(coordinates) {
+    if (isWall && !coordinates.isCoplanar(currentPlain)) {
+      console.error("Vertex not coplanar with plain", currentPlain, coordinates)
+    }
+    this.coordinates = coordinates
+    this.ogCoords = coordinates.clone()
+    this.plains = [currentPlain]
+    this.edges = []
+    this.index = verticies.length
+  }
+
+  remove() {
+    removeVertex(this)
+  }
+}
+
+class Edge {
+  constructor(vertex1, vertex2) {
+    this.index = edges.length
+    this.verticies = [vertex1, vertex2]
+  }
+
+  delta() {
+    return this.verticies[1].ogCoords.sub(this.verticies[0].ogCoords)
+  }
+  length() {
+    return this.delta().length()
+  }
+  toLine() {
+    return new Line(
+      this.verticies[0].ogCoords,
+      this.delta(),
+    )
+  }
+  
+  remove() {
+    removeEdge(this)
+  }
+}
+
 function addSquare(center, edgeLengths) {
   return addPolygon(4, center, edgeLengths)
 }
@@ -7,7 +48,7 @@ function addDodecagon(center, edgeLengths) {
 }
 function addPolygon(sideCount, center, edgeLengths) {
   if (!center.isVector) {
-    center = new Vector(center)
+    center = new Vector(...center)
   }
   if (!edgeLengths) {
     edgeLengths = [1]
@@ -79,25 +120,14 @@ function addPlusMinusVertex(vertex) {
 }
 function addVertex(coordinates) {
   if (!coordinates.isVector) {
-    coordinates = new Vector(coordinates[0], coordinates[1], coordinates[2])
+    coordinates = new Vector(...coordinates)
   }
   for (let existingVertex of verticies) {
     if (existingVertex.coordinates.equals(coordinates)) {
       return existingVertex
     }
   }
-  let ogCoords = coordinates
-  coordinates = coordinates.clone()
-  if (isWall && !coordinates.isCoplanar(currentPlain)) {
-    console.error("Vertex not coplanar with plain", currentPlain, coordinates)
-  }
-  let vertex = {
-    index: verticies.length,
-    edges: [],
-    coordinates,
-    ogCoords,
-    plains: [currentPlain],
-  }
+  let vertex = new Vertex(coordinates)
   verticies.push(vertex)
   return vertex
 }
@@ -118,10 +148,7 @@ function addEdge(vertex1, vertex2) {
       return existingEdge
     }
   }
-  let edge = {
-    index: edges.length,
-    verticies: [vertex1, vertex2],
-  }
+  let edge = new Edge(vertex1, vertex2)
   edges.push(edge)
   vertex1.edges.push(edge)
   vertex2.edges.push(edge)
@@ -205,7 +232,7 @@ function addSquareulation(v1, v2, a, b) {
 }
 
 function splitEdge(edge, distance) {
-  let delta = edgeDelta(edge)
+  let delta = edge.delta()
   if (distance < 0) {
     distance = delta.length() + distance
   }
@@ -406,7 +433,6 @@ async function addSquaresFromPixels(src) {
   }
   center()
 }
-
 function isFilledPixel(pixel) {
   // very dark red component & not transparent
   return pixel[0] < 10 && pixel[3] > 0
