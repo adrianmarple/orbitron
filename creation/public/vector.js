@@ -107,7 +107,7 @@ class Plain {
 class Line {
   constructor(offset, direction) {
     this.offset = offset
-    this.direction = this.direction.normalize()
+    this.direction = direction.normalize()
   }
 
   translate(v) {
@@ -201,7 +201,4 @@ DOWN = new Vector(0,-1,0)
 FORWARD = new Vector(0,0,1)
 BACKWARD = new Vector(0,0,-1)
 
-DEFAULT_PLAIN = {
-  offset: ZERO,
-  normal: FORWARD,
-}
+DEFAULT_PLAIN = new Plain(ZERO, FORWARD)

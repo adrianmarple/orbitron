@@ -465,7 +465,7 @@ async function getImageContext(src) {
 }
 
 function origami(foldPlain) {
-  let newPlain = mirrorPlain(foldPlain, currentPlain)
+  let newPlain = currentPlain.mirror(foldPlain)
   plains.push(newPlain)
 
   // Add new verticies at edges that have been folded
@@ -473,7 +473,7 @@ function origami(foldPlain) {
     if (edge.verticies[0].ogCoords.isAbovePlain(foldPlain) !=
         edge.verticies[1].ogCoords.isAbovePlain(foldPlain)) {
       removeEdge(edge)
-      let newVertexCoords = intersection(foldPlain, lineFromEdge(edge))
+      let newVertexCoords = foldPlain.intersection(edge.toLine())
       let newVertex = addVertex(newVertexCoords)
       newVertex.allowNonIntegerLength = true
       addEdge(newVertex, edge.verticies[0])
