@@ -2,11 +2,20 @@
 class Vector extends THREE.Vector3 {
   isVector = true
 
+  isValid() {
+    return this.x < 1e6 && this.x > -1e6 &&
+      this.y < 1e6 && this.y > -1e6 &&
+      this.z < 1e6 && this.z > -1e6
+  }
+
   applyMatrix(m) {
     return this.applyMatrix3(m)
   }
   scale(s) {
     return this.multiplyScalar(s)
+  }
+  rotate(v, a) {
+    return this.applyAxisAngle(v,a)
   }
   proj(v) {
     return this.projectOnVector(v)
@@ -77,15 +86,16 @@ class Matrix extends THREE.Matrix3 {
 }
 
 class Plain {
+  isPlain = true
   constructor(offset, normal) {
-    this.offset = offset
+    this.offset = offset.proj(normal)
     this.normal = normal.normalize()
   }
 
   mirror(mirror) {
     return new Plain(
       this.offset.mirror(mirror),
-      this.normal.mirror(mirror, true),
+      this.normal.mirror(mirror, true).negate(),
     )
   }
   translate(v) {
@@ -98,15 +108,27 @@ class Plain {
     )
   }
 
-  intersection(line) {
-    let a = this.offset.sub(line.offset).dot(this.normal) / line.direction.dot(this.normal)
-    return line.offset.addScaledVector(line.direction, a)
+  angle(plain) {
+    return Math.PI - this.normal.angle(plain.normal)
+  }
+  intersection(thing) {
+    if (thing.isLine) {
+      let line = thing
+      let a = this.offset.sub(line.offset).dot(this.normal) / line.direction.dot(this.normal)
+      return line.offset.addScaledVector(line.direction, a)
+    }
+    if (thing.isPlain) {
+      let plain = thing
+      let thisLine = new Line(this.offset, plain.normal.orthoProj(this.normal))
+      return new Line(plain.intersection(thisLine), this.normal.cross(plain.normal))
+    }
   }
 }
 
 class Line {
+  isLine = true
   constructor(offset, direction) {
-    this.offset = offset
+    this.offset = offset.orthoProj(direction)
     this.direction = direction.normalize()
   }
 

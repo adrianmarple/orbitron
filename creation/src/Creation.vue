@@ -5,9 +5,10 @@
   </div>
 </div>
 <div class="actions">
+  <div class="button" @click="toggleCoverMode">Toggle Cover Mode ({{ coverMode[0] }})</div>
+  <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
   <div class="button" @click="downloadJSON">Download JSON</div>
-  <div class="button" @click="downloadCover(false)">Download Top SVG</div>
-  <div class="button" @click="downloadCover(true)">Download Bottom SVG</div>
+  <div class="button" @click="downloadCovers">Download Cover SVGs</div>
   <div class="button" @click="genWalls">Generate Walls</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
   <div class="button" @click="configure">Configure Default Orb</div>
@@ -52,6 +53,8 @@ export default {
     return {
       innerWidth,
       mode: "creation",
+      coverMode: "bottom",
+      coverIndex: 0,
       settings: [
         {name: "showVertexNumbers", type: "bool"},
         {name: "showEdgeNumbers", type: "bool"},
@@ -110,6 +113,18 @@ export default {
       this.buttons = await (await fetch("/buttonlist.json")).json()
       this.openProject(localStorage.getItem("button"))
     },
+    toggleCoverMode() {
+      this.coverMode = this.coverMode == "top" ? "bottom" : "top"
+      this.setCoverSVG()
+    },
+    advanceCoverIndex() {
+      this.coverIndex = (this.coverIndex + 1) % covers[this.coverMode].length
+      this.setCoverSVG()
+    },
+    setCoverSVG() {
+      let wall = document.getElementById("cover")
+      wall.outerHTML = covers[this.coverMode][this.coverIndex]
+    },
 
     cleanup() {
       this.$root.push({
@@ -139,13 +154,13 @@ export default {
       this.download(fileName, fileContent)
       console.log("Downloaded " + fileName)
     },
-    async downloadCover(isBottom) {
-      window.IS_BOTTOM = isBottom
-      window.KERF = isBottom ? BOTTOM_KERF : TOP_KERF
-      await createCoverSVG()
-      let elem = document.getElementById("cover")
-      elem.style.display = "block"
-      this.download(`${this.fullProjectName} ${isBottom ? "bottom":"top"}.svg`, elem.outerHTML)
+    async downloadCovers() {
+      for (let i=0; i < covers.top.length; i++) {
+        this.download(`${this.fullProjectName} top${i}.svg`, covers.top[i])
+      }
+      for (let i=0; i < covers.bottom.length; i++) {
+        this.download(`${this.fullProjectName} bottom${i}.svg`, covers.bottom[i])
+      }
     },
 
     configure() {

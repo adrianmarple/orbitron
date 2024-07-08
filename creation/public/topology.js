@@ -40,6 +40,79 @@ class Edge {
   }
 }
 
+function addVertex(coordinates) {
+  if (!coordinates.isVector) {
+    coordinates = new Vector(...coordinates)
+  }
+  if (!coordinates.isValid()) return null
+
+  for (let existingVertex of verticies) {
+    if (existingVertex.coordinates.equals(coordinates)) {
+      return existingVertex
+    }
+  }
+  let vertex = new Vertex(coordinates)
+  verticies.push(vertex)
+  return vertex
+}
+
+function addEdge(vertex1, vertex2) {
+  if (!vertex1 || !vertex2) return null
+
+  var edgeCenter = vertex1.coordinates.add(vertex2.coordinates).multiplyScalar(.5)
+  for (let center of edgeCentersBlacklist) {
+    if (vectorEquals(edgeCenter, center)) {
+      return null
+    }
+  }
+
+  for (let existingEdge of edges) {
+    if (existingEdge.verticies[0] == vertex1 && existingEdge.verticies[1] == vertex2) {
+      return existingEdge
+    }
+    if (existingEdge.verticies[1] == vertex1 && existingEdge.verticies[0] == vertex2) {
+      return existingEdge
+    }
+  }
+  let edge = new Edge(vertex1, vertex2)
+  edges.push(edge)
+  vertex1.edges.push(edge)
+  vertex2.edges.push(edge)
+  return edge
+}
+
+function removeVertex(vertex) {
+  if (!verticies || !vertex) return
+  if (typeof vertex == "number") {
+    vertex = verticies[vertex]
+  }
+  remove(verticies, vertex)
+  for (let edge of [...vertex.edges]) {
+    removeEdge(edge)
+  }
+  resetInidices()
+}
+function removeEdge(edge) {
+  if (!edges || !edge) return
+  if (typeof edge == "number") {
+    edge = edges[edge]
+  }
+  remove(edges, edge)
+  for (let vertex of edge.verticies) {
+    remove(vertex.edges, edge)
+    if (vertex.edges.length == 0) {
+      remove(verticies, vertex)
+    }
+  }
+  resetInidices()
+}
+function remove(array, element)  {
+  let index = array.indexOf(element)
+  if (index >= 0) {
+    array.splice(index, 1)
+  }
+}
+
 function addSquare(center, edgeLengths) {
   return addPolygon(4, center, edgeLengths)
 }
@@ -117,42 +190,6 @@ function addPlusMinusVertex(vertex) {
       }
     }
   }
-}
-function addVertex(coordinates) {
-  if (!coordinates.isVector) {
-    coordinates = new Vector(...coordinates)
-  }
-  for (let existingVertex of verticies) {
-    if (existingVertex.coordinates.equals(coordinates)) {
-      return existingVertex
-    }
-  }
-  let vertex = new Vertex(coordinates)
-  verticies.push(vertex)
-  return vertex
-}
-
-function addEdge(vertex1, vertex2) {
-  var edgeCenter = vertex1.coordinates.add(vertex2.coordinates).multiplyScalar(.5)
-  for (let center of edgeCentersBlacklist) {
-    if (vectorEquals(edgeCenter, center)) {
-      return
-    }
-  }
-
-  for (let existingEdge of edges) {
-    if (existingEdge.verticies[0] == vertex1 && existingEdge.verticies[1] == vertex2) {
-      return existingEdge
-    }
-    if (existingEdge.verticies[1] == vertex1 && existingEdge.verticies[0] == vertex2) {
-      return existingEdge
-    }
-  }
-  let edge = new Edge(vertex1, vertex2)
-  edges.push(edge)
-  vertex1.edges.push(edge)
-  vertex2.edges.push(edge)
-  return edge
 }
 
 function findEdgeFromCenter(center) {
@@ -246,39 +283,6 @@ function splitEdge(edge, distance) {
   newVertex.edges.push(edge)
   addEdge(newVertex, v1)
   return newVertex
-}
-
-
-function removeVertex(vertex) {
-  if (!verticies) return
-  if (typeof vertex == "number") {
-    vertex = verticies[vertex]
-  }
-  remove(verticies, vertex)
-  for (let edge of [...vertex.edges]) {
-    removeEdge(edge)
-  }
-  resetInidices()
-}
-function removeEdge(edge) {
-  if (!edges) return
-  if (typeof edge == "number") {
-    edge = edges[edge]
-  }
-  remove(edges, edge)
-  for (let vertex of edge.verticies) {
-    remove(vertex.edges, edge)
-    if (vertex.edges.length == 0) {
-      remove(verticies, vertex)
-    }
-  }
-  resetInidices()
-}
-function remove(array, element)  {
-  let index = array.indexOf(element)
-  if (index >= 0) {
-    array.splice(index, 1)
-  }
 }
 
 function resetInidices() {
@@ -409,7 +413,7 @@ function integerize() {
       console.error("Topology not suitable for integerization")
       return
     }
-    if (replacement != v) {
+    if (!!replacement && replacement != v) {
       removeVertex(replacement)
       v.ogCoords = replacement.ogCoords
       v.coordinates = replacement.coordinates
@@ -482,7 +486,6 @@ function origami(foldPlain) {
   }
   for (let vertex of verticies) {
     if (!vertex.plains.includes(currentPlain)) continue
-    
     vertex.ogCoords = vertex.ogCoords.halfMirror(foldPlain)
     vertex.coordinates = vertex.ogCoords
 

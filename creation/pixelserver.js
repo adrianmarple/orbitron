@@ -342,6 +342,7 @@ async function generateGCode(info, index) {
       scadFileContents += `
       translate([${support.position}])
       translate([0,0,${info.thickness}])
+      rotate(a=${support.rotationAngle}, v=[0,0,1])
       led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
     }
     for (let embossing of print.embossings) {

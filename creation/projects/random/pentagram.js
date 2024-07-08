@@ -7,8 +7,8 @@ function addPolygram(sideCount, center, edgeLengths) {
   }
 
   let newEdges = []
-  let edgeVector = [1,0,0]
-  let point = [0,0,0]
+  let edgeVector = RIGHT
+  let point = ZERO
   let points = []
   for (let i = 0; i < sideCount; i++) {
     edgeVector = edgeVector.normalize()
@@ -18,7 +18,7 @@ function addPolygram(sideCount, center, edgeLengths) {
     edgeVector = edgeVector.applyAxisAngle(BACKWARD, Math.PI*4 / sideCount)
   }
 
-  let average = [0,0,0]
+  let average = ZERO
   for (let point of points) {
     average = average.add(point)
   }
@@ -43,7 +43,7 @@ module.exports = () => {
   }
 
 
-  let pentagramEdges = addPolygram(5,[0,0,0],180)
+  let pentagramEdges = addPolygram(5,ZERO,180)
   for (let i = 0; i < 5; i++) {
     let v0 = verticies[i]
     let v1 = verticies[(i+3)%5]
