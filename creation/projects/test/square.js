@@ -9,7 +9,7 @@ module.exports = () => {
 
   origami(new Plain(
     new Vector(0, 0.1234, 0),
-    new Vector(0, 1, -2)
+    new Vector(0, 1, 2)
   ))
 
   EulerianPath(0)

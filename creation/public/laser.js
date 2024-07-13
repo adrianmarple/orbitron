@@ -209,6 +209,7 @@ async function createCoverSVG(plain) {
       let plains1 = dPath[(i+1) % dPath.length].plains
       let plains2 = dPath[(i+2) % dPath.length].plains
       let plainTranslationValue = 0
+      let deadendPlain = null
       function addFoldWallInfo(type) {
         let isOne = type == 1
         deadendPlain = (isOne ? plains1 : plains2).filter(p => p != plain)[0]

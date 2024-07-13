@@ -18,6 +18,7 @@ var app = new Vue({
     loginCode: "",
     localFlags: {},
     hasSeenGlobalRules: false,
+    showConsignment: true,
     showSettings: false,
     showAboutPage: false,
     blurred: false,

@@ -25,6 +25,22 @@
     <div class="button" @click="login">LOGIN</div>
   </div>
 
+  <div v-else-if="state.price && showConsignment" id="consignment">
+    <div class="nav-page">
+      <p>This piece is on offer for ${{state.price}}.</p>
+      <p>If you're interested please email me at <a href="mailto:adrian@marplebot.com">adrian@marplebot.com</a>.
+        I can also make a custom piece just for you, so if you're interested in that, also email me.</p>
+      <p>To learn more about Lumatron and me, Adrian Marple, visit <a href="https://lumatron.art">https://lumatron.art</a>.</p>
+      <p>To interact with this lumatron as you would normal do, simply hit the dismiss button below
+        (you can alway return here by refreshing the page).</p>
+      <div class="button" @click="showConsignment=false">Dismiss</div>
+    </div>
+
+    <div class="side-box left"></div>
+    <div class="middle"></div>
+    <div class="side-box right"></div>
+  </div>
+
   <div v-else-if="speedbumpCallback" id="speedbump" @click="clearSpeedbump">
     <p>{{speedbumpMessage}}</p>
     <p>Are you sure?</p>

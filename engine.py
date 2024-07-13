@@ -1159,6 +1159,9 @@ def broadcast_state():
     "exclude": config.get("EXCLUDE", {}),
     "prefNames": pref_names,
   }
+  price = config.get("PRICE")
+  if price is not None:
+    message["price"] = price
   pref_to_client_timestamp.clear()
   print(json.dumps(message))
 
