@@ -169,7 +169,8 @@ a > .fancy-box:hover, a.fancy-box:hover {
   border-top-width: 0;
   border-width: 0;
   height: initial;
-  margin: 5rem calc(50vw - 20rem);
+  margin: 0 calc(50vw - 20rem);
+  padding: 5rem 0;
   font-size: 2.5rem;
 }
 #consignment .side-box {
