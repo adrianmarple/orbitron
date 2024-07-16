@@ -57,6 +57,12 @@ function addVertex(coordinates) {
 }
 
 function addEdge(vertex1, vertex2) {
+  if (typeof(vertex1) == "number") {
+    vertex1 = verticies[vertex1]
+  }
+  if (typeof(vertex2) == "number") {
+    vertex2 = verticies[vertex2]
+  }
   if (!vertex1 || !vertex2) return null
 
   var edgeCenter = vertex1.coordinates.add(vertex2.coordinates).multiplyScalar(.5)

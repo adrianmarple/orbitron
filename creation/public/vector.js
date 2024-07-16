@@ -2,6 +2,10 @@
 class Vector extends THREE.Vector3 {
   isVector = true
 
+  toArray() {
+    return [this.x, this.y, this.z]
+  }
+
   isValid() {
     return this.x < 1e6 && this.x > -1e6 &&
       this.y < 1e6 && this.y > -1e6 &&

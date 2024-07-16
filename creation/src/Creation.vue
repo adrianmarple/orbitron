@@ -110,7 +110,7 @@ export default {
       await generateManufacturingInfo()
     },
     async fetchButtons() {
-      this.buttons = await (await fetch("/buttonlist.json")).json()
+      this.buttons = await (await fetch("http://localhost:8000/buttonlist.json")).json()
       this.openProject(localStorage.getItem("button"))
     },
     toggleCoverMode() {

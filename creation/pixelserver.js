@@ -119,6 +119,7 @@ async function serverHandler(request, response) {
   }
 
   if (request.method === 'GET') {
+    console.log(request.url)
     for (let listener of getListeners) {
       let result = listener(response, request)
       if (result) return
@@ -411,6 +412,18 @@ addPOSTListener(async (response, body) => {
   return true
 })
 
+
+addGETListener((response, request) => {
+  console.log(request.url)
+  if (request.url.endsWith("buttonlist.json")) {
+    noCorsHeader(response, 'text/plain')
+    response.end(JSON.stringify(buttonUrls), 'utf-8')
+    return true
+  } else {
+    return false
+  }
+})
+
 let buttonUrls = []
 async function findAllButtons() {
   // TODO: Log diff when there's a change
@@ -430,10 +443,8 @@ async function findAllButtons() {
     }
   }
   buttonUrls = buttonUrls.sort()
-  fs.promises.writeFile("./public/buttonlist.json", JSON.stringify(buttonUrls))
 }
-
 findAllButtons()
-// setInterval(findAllButtons, 10 * 1000)
+setInterval(findAllButtons, 10 * 1000)
 
 openRootServer()

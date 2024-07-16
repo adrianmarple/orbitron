@@ -329,7 +329,7 @@ function generatePixelInfo() {
     SIZE,
     RAW_SIZE,
     isWall,
-    coords,
+    coords: coords.map(c => c.toArray()),
     uniqueToDupe,
     dupeToUniques,
     neighbors,

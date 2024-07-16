@@ -1,3 +1,4 @@
+// SKIP
 module.exports = () => {
   let octEdges = addPolygon(7, [0,0,0], 8)
   let addedVerticies = []

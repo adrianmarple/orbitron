@@ -87,6 +87,7 @@ for dupe in range(SIZE):
   dupe_to_uniques.append([])
 unique_coord_matrix = np.zeros((RAW_SIZE, 3))
 for (i, dupe) in enumerate(unique_to_dupe):
+  print(coords[dupe], file=sys.stderr)
   dupe_to_uniques[dupe].append(i)
   unique_coord_matrix[i] = coords[dupe]
 unique_coord_matrix = unique_coord_matrix.transpose()
