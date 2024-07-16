@@ -131,6 +131,7 @@ export default {
         fullProjectName: this.fullProjectName,
         type: "cleanup",
       })
+      console.log(`Cleaning up "${this.fullProjectName.split("/")[1]}" files`)
     },
     download(fileName, data) {
       this.$root.push({

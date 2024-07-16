@@ -12,5 +12,6 @@ module.exports = () => {
     new Vector(0, 1, 2)
   ))
 
+  doubleEdges()
   EulerianPath(0)
 }

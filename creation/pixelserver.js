@@ -285,6 +285,7 @@ async function generateGCode(info, index) {
 
   let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
   let scadFileContents = `
+  $fn=32;
   module wedge(angle, direction_angle, width, thickness) {
       pivot_z = angle < 0 ? 0 : thickness;
       actual_angle = angle < 0 ? -90 - angle : 90 - angle;
@@ -351,6 +352,12 @@ async function generateGCode(info, index) {
       translate([-5,-2.5,${info.thickness}])
       linear_extrude(0.2)
       text("${embossing.text}", size= 5);`
+    }
+    for (let nub of print.nubs) {
+      scadFileContents += `
+      translate([${nub.position}])
+      translate([0,0,${info.thickness}])
+      cylinder(r=${nub.width/2}, h=${nub.height});`
     }
     scadFileContents += `
 

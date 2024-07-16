@@ -35,4 +35,5 @@ module.exports={
   // LAT: 0,
   // LON: 0,
   // WEATHER_API_KEY: "go to https://home.openweathermap.org/api_keys",
+  // PRICE: 1000,
 }

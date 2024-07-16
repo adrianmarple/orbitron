@@ -170,7 +170,7 @@ function generatePixelInfo() {
   if (resizeOnExport) {
     resizeScale = resize(true)
   }
-  pixelDensity *= resizeScale
+  let rectifiedPixelDensity = pixelDensity * resizeScale
 
   let additionalNeighbors = []
   let vertexAdjacencies = []
@@ -185,7 +185,7 @@ function generatePixelInfo() {
   }
   hasSeenLastEdge = false
 
-  let alpha = ledAtVertex ? 0 : pixelDensity/2
+  let alpha = ledAtVertex ? 0 : rectifiedPixelDensity/2
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
     let nextVertex = otherVertex(edge, previousVertex)
@@ -194,7 +194,7 @@ function generatePixelInfo() {
     let e1 = v1.sub(v0)
     let e2 = v2.sub(v1)
     let edgeLength = e2.length()
-    for (; true; alpha += pixelDensity) {
+    for (; true; alpha += rectifiedPixelDensity) {
       
       if (alpha > edgeLength - 0.01) {
         alpha -= edgeLength
@@ -203,8 +203,8 @@ function generatePixelInfo() {
           alpha = 0
           break
         }
-        if (!ledAtVertex && epsilonEquals(alpha, pixelDensity/2, 0.01)) {
-          alpha = pixelDensity/2
+        if (!ledAtVertex && epsilonEquals(alpha, rectifiedPixelDensity/2, 0.01)) {
+          alpha = rectifiedPixelDensity/2
           break
         }
 
@@ -248,10 +248,10 @@ function generatePixelInfo() {
         coords.push(newCoord)
       }
 
-      if (!ledAtVertex && epsilonEquals(pixelDensity/2, alpha, 0.01)) {
+      if (!ledAtVertex && epsilonEquals(rectifiedPixelDensity/2, alpha, 0.01)) {
         vertexAdjacencies[previousVertex.index].push(dupeIndex)
       }
-      if (!ledAtVertex && epsilonEquals(edgeLength - pixelDensity/2, alpha, 0.01)) {
+      if (!ledAtVertex && epsilonEquals(edgeLength - rectifiedPixelDensity/2, alpha, 0.01)) {
         vertexAdjacencies[nextVertex.index].push(dupeIndex)
       }
     }
@@ -377,10 +377,10 @@ function generatePixelInfo() {
 
   // Undo centering and resizing
   for (let vertex of verticies) {
-    vertex.ogCoords = vertex.ogCoords.scale(1/resizeScale)
-    vertex.ogCoords = vertex.ogCoords.sub(centerOffset)
+    vertex.ogCoords = vertex.ogCoords
+        .scale(1/resizeScale)
+        .sub(centerOffset)
   }
-  pixelDensity /= resizeScale
 
   return info
 }

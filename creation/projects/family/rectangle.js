@@ -1,4 +1,4 @@
-
+// SKIP
 module.exports = () => {
   CHANNEL_WIDTH = 10
   PIXEL_DISTANCE = 8.3 //https://www.superlightingled.com/4mm-ws2812c-individually-addressable-rgb-led-strip-light-120ledsm-328ft1m-p-4003.html

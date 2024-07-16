@@ -93,7 +93,7 @@ function removeVertex(vertex) {
   resetInidices()
 }
 function removeEdge(edge) {
-  if (!edges || !edge) return
+  if (!edges || edge == undefined || edge == null) return
   if (typeof edge == "number") {
     edge = edges[edge]
   }
@@ -377,8 +377,8 @@ async function addFromSVG(src) {
 function vertexOrder(a,b) {
   return (a.coordinates.y - b.coordinates.y) * 1000000 + (a.coordinates.x - b.coordinates.x)
 }
-function integerize() {
-  let sortedVerticies = [...verticies].sort(vertexOrder)
+function integerize(startingThreshold) {
+  let sortedVerticies = verticies.filter(v => v.ogCoords[1] > startingThreshold).sort(vertexOrder)
 
   for (let v of sortedVerticies) {
     let lowerNeighbors = []

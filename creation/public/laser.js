@@ -22,7 +22,6 @@ async function createCoverSVG(plain) {
   maxX = -1e6
   maxY = -1e6
   const SCALE = PIXEL_DISTANCE / pixelDensity
-  // TODO increase by bottom/top thickness depending on angles
 
   // Rotate all verticies to make this plain lie "flat"
   // Also scale verticies and plains to be in mm space
@@ -522,6 +521,18 @@ function blankPrint() {
     wedges: [],
     ledSupports: [],
     embossings: [],
+    nubs: [],
+  }
+}
+
+function makeNub(position) {
+  if (position.isVector) {
+    position = [position.x, WALL_PANEL_HEIGHT - position.y, 0]
+  }
+  return {
+    width: NUB_WIDTH,
+    height: NUB_HEIGHT,
+    position,
   }
 }
 
@@ -582,11 +593,12 @@ function createPrintInfo(displayOnly) {
       let angle2 = wallType.angle2
       let bottomOnlyNotches = []
       let k = 0
-      for (; k < 100; k++) {
+      while (k < 100) {
         if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH) ||
             (notches.length > 0 && notches[0].center > MAX_WALL_LENGTH)) {
           let tempWallLength = nextNotches.pop().center
           let embossingText = `${wallIndex}.${k}`
+          k++
           path = wallPath(path, offset, tempWallLength, angle1, 0, nextNotches,
             cat5Offset, false, embossingText, printInfo)
           angle1 = 0
@@ -609,7 +621,6 @@ function createPrintInfo(displayOnly) {
           }
         }
       }
-      // TODO check angles of split walls
       nextNotches = nextNotches.concat(bottomOnlyNotches)
       let embossingText = wallIndex.toString()
       if (k > 0) {
@@ -620,7 +631,6 @@ function createPrintInfo(displayOnly) {
 
       if (onlyOneWall) break
     }
-    // offset[0] += 5
     if (onlyOneWall) break
   }
 
@@ -697,6 +707,30 @@ function wallPath(path, offset, wallLength, angle1, angle2,
     }
     print.wedges.push(wedge2)
 
+    if (wallLength >= NUB_MIN_WALL_LENGTH) {
+      let nubY1 = WALL_PANEL_HEIGHT - offset[1] - NUB_WIDTH/2 - NUB_INSET
+      let nubY2 = WALL_PANEL_HEIGHT - offset[1] + NUB_WIDTH/2 + NUB_INSET - wallHeight
+
+      let x = 0
+      let nubX = offset[0] - (x + NOTCH_DEPTH + NUB_INSET_X)
+      print.nubs.push(makeNub([nubX, nubY1, 0]))
+      print.nubs.push(makeNub([nubX, nubY2, 0]))
+      for (let notch of notches) {
+        x = notch.center
+        nubX = offset[0] - (x - NOTCH_DEPTH - NUB_INSET_X)
+        print.nubs.push(makeNub([nubX, nubY1, 0]))
+        print.nubs.push(makeNub([nubX, nubY2, 0]))
+        nubX = offset[0] - (x + NOTCH_DEPTH + NUB_INSET_X)
+        print.nubs.push(makeNub([nubX, nubY1, 0]))
+        print.nubs.push(makeNub([nubX, nubY2, 0]))
+        x = notch.center
+      }
+      x = wallLength
+      nubX = offset[0] - (x - NOTCH_DEPTH - NUB_INSET_X)
+      print.nubs.push(makeNub([nubX, nubY1, 0]))
+      print.nubs.push(makeNub([nubX, nubY2, 0]))
+    }
+
     if (!hasWallPort && !isPowerCordPort) {
       print.embossings.push({
         text: embossingText,
@@ -732,32 +766,32 @@ function wallPath(path, offset, wallLength, angle1, angle2,
 
   path += `
     M${offset[0] - wallLength + endNotchDepth} ${offset[1]}
-    v${BOTTOM_THICKNESS}
-    h${-endNotchDepth - extra_start_bit}
+    l${ANTI_CORNER} ${BOTTOM_THICKNESS}
+    h${-ANTI_CORNER - endNotchDepth - extra_start_bit}
     v${CHANNEL_DEPTH}
-    h${endNotchDepth + extra_start_bit}
-    v${TOP_THICKNESS}`
+    h${ANTI_CORNER + endNotchDepth + extra_start_bit}
+    l${-ANTI_CORNER} ${TOP_THICKNESS}`
   for (let {center, bottomOnly} of [...notches].reverse()) { // Top notches
     if (bottomOnly) continue
     path += `
     H${offset[0] - center - midNotchDepth}
-    v${-TOP_THICKNESS}
-    h${2*midNotchDepth}
-    v${TOP_THICKNESS}`
+    l${-ANTI_CORNER} ${-TOP_THICKNESS}
+    h${2*ANTI_CORNER + 2*midNotchDepth}
+    l${-ANTI_CORNER} ${TOP_THICKNESS}`
   }
   path += `
     H${offset[0] - endNotchDepth}
-    v${-TOP_THICKNESS}
-    h${endNotchDepth + extra_end_bit}
+    l${-ANTI_CORNER} ${-TOP_THICKNESS}
+    h${ANTI_CORNER + endNotchDepth + extra_end_bit}
     v${-CHANNEL_DEPTH}
-    h${-endNotchDepth - extra_end_bit}
-    v${-BOTTOM_THICKNESS}`
+    h${-ANTI_CORNER - endNotchDepth - extra_end_bit}
+    l${ANTI_CORNER} ${-BOTTOM_THICKNESS}`
   for (let {center} of notches) { // Bottom notches
     path += `
     H${offset[0] - center + midNotchDepth}
-    v${BOTTOM_THICKNESS}
-    h${-2*midNotchDepth}
-    v${-BOTTOM_THICKNESS}`
+    l${ANTI_CORNER} ${BOTTOM_THICKNESS}
+    h${-2*ANTI_CORNER - 2*midNotchDepth}
+    l${ANTI_CORNER} ${-BOTTOM_THICKNESS}`
   }
   path += `Z`
 
@@ -824,34 +858,34 @@ function foldWallPath(path, offset, foldWall, printInfo) {
   let N = E.cross(FORWARD).negate()
 
   wallSegments = [
-    LEFT.scale(endNotchDepth),
-    DOWN.scale(BOTTOM_THICKNESS),
+    LEFT.scale(endNotchDepth + ANTI_CORNER),
+    DOWN.scale(BOTTOM_THICKNESS).addScaledVector(RIGHT, ANTI_CORNER),
     LEFT.scale(foldWall.bottomLength1 - 2*endNotchDepth),
-    UP.scale(BOTTOM_THICKNESS),
-    LEFT.scale(endNotchDepth),
+    UP.scale(BOTTOM_THICKNESS).addScaledVector(RIGHT, ANTI_CORNER),
+    LEFT.scale(endNotchDepth + ANTI_CORNER),
     UP.scale(CHANNEL_DEPTH),
-    RIGHT.scale(endNotchDepth),
-    UP.scale(TOP_THICKNESS),
+    RIGHT.scale(endNotchDepth + ANTI_CORNER),
+    UP.scale(TOP_THICKNESS).addScaledVector(LEFT, ANTI_CORNER),
     RIGHT.scale(foldWall.topLength1 - 2*endNotchDepth),
-    DOWN.scale(TOP_THICKNESS),
-    RIGHT.scale(endNotchDepth),
+    DOWN.scale(TOP_THICKNESS).addScaledVector(LEFT, ANTI_CORNER),
+    RIGHT.scale(endNotchDepth + ANTI_CORNER),
   ]
   if (foldWall.angle < 0) {
     wallSegments.push(UP.scale(TOP_THICKNESS))
     wallSegments.push(N.scale(-TOP_THICKNESS))
   }
   wallSegments = wallSegments.concat([
-    E.scale(endNotchDepth),
-    N.scale(TOP_THICKNESS),
+    E.scale(endNotchDepth + ANTI_CORNER),
+    N.scale(TOP_THICKNESS).addScaledVector(E, -ANTI_CORNER),
     E.scale(foldWall.topLength2 - 2*endNotchDepth),
-    N.scale(-TOP_THICKNESS),
-    E.scale(endNotchDepth),
+    N.scale(-TOP_THICKNESS).addScaledVector(E, -ANTI_CORNER),
+    E.scale(endNotchDepth + ANTI_CORNER),
     N.scale(-CHANNEL_DEPTH),
-    E.scale(-endNotchDepth),
-    N.scale(-BOTTOM_THICKNESS),
+    E.scale(-endNotchDepth - ANTI_CORNER),
+    N.scale(-BOTTOM_THICKNESS).addScaledVector(E, ANTI_CORNER),
     E.scale(-foldWall.bottomLength2 + 2*endNotchDepth),
-    N.scale(BOTTOM_THICKNESS),
-    E.scale(-endNotchDepth),
+    N.scale(BOTTOM_THICKNESS).addScaledVector(E, ANTI_CORNER),
+    E.scale(-endNotchDepth - ANTI_CORNER),
   ])
   if (foldWall.angle > 0) {
     wallSegments.push(N.scale(-BOTTOM_THICKNESS))
@@ -923,6 +957,29 @@ function foldWallPath(path, offset, foldWall, printInfo) {
       gap: LED_SUPPORT_GAP,
       rotationAngle: foldWall.angle * 180/Math.PI,
     })
+
+    let nub1 = new Vector(offset[0], offset[1], 0)
+        .addScaledVector(LEFT, NUB_INSET_X + NOTCH_DEPTH)
+        .addScaledVector(UP, NUB_INSET + NUB_WIDTH/2 - BOTTOM_THICKNESS)
+    print.nubs.push(makeNub(nub1))
+    nub1 = nub1.addScaledVector(LEFT, foldWall.bottomLength1 - 2*(NUB_INSET_X + NOTCH_DEPTH))
+    print.nubs.push(makeNub(nub1))
+    nub1 = nub1.addScaledVector(UP, HEIGHT - NUB_WIDTH - 2*NUB_INSET)
+    print.nubs.push(makeNub(nub1))
+    nub1 = nub1.addScaledVector(RIGHT, foldWall.topLength1 - 2*(NUB_INSET_X + NOTCH_DEPTH))
+    print.nubs.push(makeNub(nub1))
+
+
+    let nub2 = new Vector(offset[0], offset[1], 0)
+        .addScaledVector(E, NUB_INSET_X + NOTCH_DEPTH)
+        .addScaledVector(N, NUB_INSET + NUB_WIDTH/2 - BOTTOM_THICKNESS)
+    print.nubs.push(makeNub(nub2))
+    nub2 = nub2.addScaledVector(E, foldWall.bottomLength2 - 2*(NUB_INSET_X + NOTCH_DEPTH))
+    print.nubs.push(makeNub(nub2))
+    nub2 = nub2.addScaledVector(N, HEIGHT - NUB_WIDTH - 2*NUB_INSET)
+    print.nubs.push(makeNub(nub2))
+    nub2 = nub2.addScaledVector(E, -foldWall.topLength2 + 2*(NUB_INSET_X + NOTCH_DEPTH))
+    print.nubs.push(makeNub(nub2))
   }
 
   return path
