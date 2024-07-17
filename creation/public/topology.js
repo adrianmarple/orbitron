@@ -384,7 +384,10 @@ function vertexOrder(a,b) {
   return (a.coordinates.y - b.coordinates.y) * 1000000 + (a.coordinates.x - b.coordinates.x)
 }
 function integerize(startingThreshold) {
-  let sortedVerticies = verticies.filter(v => v.ogCoords[1] > startingThreshold).sort(vertexOrder)
+  if (startingThreshold == undefined) {
+    startingThreshold = -1e6
+  }
+  let sortedVerticies = verticies.filter(v => v.ogCoords.y > startingThreshold).sort(vertexOrder)
 
   for (let v of sortedVerticies) {
     let lowerNeighbors = []
@@ -414,9 +417,14 @@ function integerize(startingThreshold) {
       }
       let dist0 = Math.round(v.ogCoords.distanceTo(n0.ogCoords))
       let dist1 = Math.round(v.ogCoords.distanceTo(n1.ogCoords))
+      let nDist = n0.ogCoords.distanceTo(n1.ogCoords)
+      if (dist0 + dist1 < nDist) {
+        dist0 += 1
+        dist1 += 1
+      }
       replacement = addTriangulation(n0, n1, dist1, dist0)
     } else {
-      console.error("Topology not suitable for integerization")
+      console.error("Topology not suitable for integerization: " + v.index)
       return
     }
     if (!!replacement && replacement != v) {
