@@ -1,5 +1,6 @@
 
 module.exports = () => {
+  PIXEL_DISTANCE = 16.5
 
   let dodecEdges = addDodecagon([0,0,0], 5)
   let nextVerticies = []
@@ -60,6 +61,8 @@ module.exports = () => {
   EulerianPath(startingEdge, 1)
 
   cat5WallOverride = 13
+  cat5PortAtEnd = true
+
   dataPostProcessingFunction = info => {
     let deadends = []
     for (let i = 0; i < info.neighbors.length; i++) {

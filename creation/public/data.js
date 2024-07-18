@@ -224,7 +224,7 @@ function generatePixelInfo() {
         return
       }
 
-      let newCoord = v2.lerp(v1, alpha/edgeLength)
+      let newCoord = v1.lerp(v2, alpha/edgeLength)
       let dupeIndex = -1
       for (let i = 0; i < coords.length; i++) {
         let coord = coords[i]

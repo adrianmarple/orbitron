@@ -218,6 +218,30 @@ function rotateAll(direction, theta, permanently) {
   }
 }
 
+function triangularArea(points) {
+  if (points.length != 3) return -1
+  let a = points[0].sub(points[1]).length()
+  let b = points[1].sub(points[2]).length()
+  let c = points[2].sub(points[0]).length()
+  let s = (a+b+c)/2
+  return Math.sqrt(s * (s-a) * (s-b) * (s-c))
+}
+
+function windingNumber(points) {
+  if (points.length < 3) return 0
+  let returnVal = 0
+  let prevPoint1 = points[points.length - 1]
+  let prevPoint2 = points[points.length - 2]
+  for (let point of points) {
+    let e1 = point.sub(prevPoint1)
+    let e2 = prevPoint1.sub(prevPoint2)
+    returnVal += e1.signedAngle(e2) / 2/Math.PI
+    prevPoint2 = prevPoint1
+    prevPoint1 = point
+  }
+  return Math.round(returnVal)
+}
+
 
 ZERO = new Vector(0,0,0)
 RIGHT = new Vector(1,0,0)

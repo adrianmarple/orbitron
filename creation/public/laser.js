@@ -136,6 +136,7 @@ async function createCoverSVG(plain) {
     let channelString = ""
   	let borderString = ""
   	let minimalBorderString = ""
+    let borderPoints = []
     
    	for (let i = 0; i < dPath.length; i++) {
       let vertex0 = dPath[i]
@@ -308,6 +309,8 @@ async function createCoverSVG(plain) {
         line2 = line.translate(n.scale(-width))
         p2 = deadendPlain.intersection(line2)
         borderString += pointsToSVGString([p2, p1])
+        borderPoints.push(p2)
+        borderPoints.push(p1)
       } else {
         if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
           if (cat5PortMidway) {
@@ -325,6 +328,9 @@ async function createCoverSVG(plain) {
           points = [[borderLengthOffset, width]]
         }
         borderString += pointsToSVGString(points, [e1, n], v1)
+        borderPoints.push(v1
+            .addScaledVector(e1, borderLengthOffset)
+            .addScaledVector(n, width))
       }
 
       points = [
@@ -370,7 +376,9 @@ async function createCoverSVG(plain) {
     if (useMinimalBorder) {
       totalPathString += "M" + minimalBorderString.substring(1) + "Z "
     } else {
-      if (!skipBorder) {
+      // TODO actually detect "negative" area
+      let isTooSmall = borderPoints.length == 3 && triangularArea(borderPoints) < 105
+      if (!skipBorder && !isTooSmall) {
     	  totalPathString += "M" + borderString.substring(1) + "Z "
       }
   	  totalPathString += channelString
@@ -386,8 +394,8 @@ async function createCoverSVG(plain) {
       wallType.id = index
       for (let edgeCenter of wallType.edgeCenters) {
         let txt = document.createElementNS("http://www.w3.org/2000/svg", "text")
-        txt.setAttribute("x", edgeCenter[0] * MM_TO_96DPI)
-        txt.setAttribute("y", edgeCenter[1] * MM_TO_96DPI)
+        txt.setAttribute("x", edgeCenter.x * MM_TO_96DPI)
+        txt.setAttribute("y", edgeCenter.y * MM_TO_96DPI)
         txt.innerHTML = "" + index
         cover.appendChild(txt)
       }
@@ -542,7 +550,6 @@ function createPrintInfo(displayOnly) {
     printInfo = {
       type: "gcode",
       thickness: WALL_THICKNESS + WALL_VERT_KERF,
-      noInputShaper,
       EXTRA_SCALE,
       PROCESS_STOP,
       prints: [blankPrint()],
@@ -580,6 +587,8 @@ function createPrintInfo(displayOnly) {
       if (isFinalEdge) {
         if (cat5PortMidway) {
           cat5Offset = wallLength/2
+        } else if (cat5PortAtEnd) {
+          cat5Offset = wallLength - (NOTCH_DEPTH + CAT5_WIDTH / 2)
         } else {
           cat5Offset = NOTCH_DEPTH + CAT5_WIDTH / 2
         }
@@ -738,7 +747,10 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       })
     }
 
-    if (EDGES_DOUBLED && !hasWallPort) {
+    if (EDGES_DOUBLED &&
+        !noSupports &&
+        !hasWallPort &&
+        (!embossingText || !embossingText.endsWith(".1"))) {
       let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
       supportX += Math.tan(angle1) * CHANNEL_WIDTH/2
       if (angle1 < 0) {

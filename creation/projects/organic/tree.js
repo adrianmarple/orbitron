@@ -3,7 +3,7 @@ module.exports = async () => {
 
   integerize()
 
-  let edgesToVerticalize = [1, 29, 22, 42]
+  let edgesToVerticalize = [1, 12, 30]
   for (let edgeIndex of edgesToVerticalize) {
     let edge = edges[edgeIndex]
     let lowerVertex = edge.verticies[0]

@@ -60,7 +60,8 @@ export default {
         {name: "showLaserSVG", type: "bool"},
         {name: "showWallSVG", type: "bool"},
         {name: "generateWallNumbers", type: "bool"},
-        {name: "noInputShaper", type: "bool"},
+        {name: "noSupports", type: "bool"},
+        // {name: "noInputShaper", type: "bool"},
         {name: "onlyOneWall", type: "bool"},
         {name: "STARTING_WALL_INDEX", type: "int", value: 0},
         {name: "PROCESS_STOP", type: "select",
@@ -101,7 +102,6 @@ export default {
       this.fullProjectName = name
       localStorage.setItem("button", name)
       reset()
-      console.trace()
       await require("../projects/" + name + ".js")()
       if (centerOnRender) {
         center()
