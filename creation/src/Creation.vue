@@ -110,6 +110,7 @@ export default {
       }
       generatePixelInfo()
       await generateManufacturingInfo()
+      this.setCoverSVG()
       this.$forceUpdate()
     },
     async fetchButtons() {
@@ -127,6 +128,22 @@ export default {
     setCoverSVG() {
       let wall = document.getElementById("cover")
       wall.outerHTML = covers[this.coverMode][this.coverIndex]
+
+      if (generateWallNumbers) {
+        let plain = plains[this.coverIndex]
+        cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
+        for (let wallType of wallInfo) {
+          let index = wallInfo.indexOf(wallType)
+          wallType.id = index
+          for (let edgeCenter of wallType.edgeCenters[plain]) {
+            let txt = document.createElementNS("http://www.w3.org/2000/svg", "text")
+            txt.setAttribute("x", edgeCenter.x * MM_TO_96DPI)
+            txt.setAttribute("y", edgeCenter.y * MM_TO_96DPI)
+            txt.innerHTML = "" + index
+            cover.appendChild(txt)
+          }
+        }
+      }
     },
 
     cleanup() {

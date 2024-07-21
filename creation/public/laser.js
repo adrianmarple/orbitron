@@ -272,7 +272,10 @@ async function createCoverSVG(plain) {
           if (epsilonEquals(wallType.length, wallLength, 0.01) &&
               epsilonEquals(wallType.angle1, angle1, 0.01) &&
               epsilonEquals(wallType.angle2, angle2, 0.01)) {
-            wallType.edgeCenters.push(edgeCenter)
+            if (!wallType.edgeCenters[plain]) {
+              wallType.edgeCenters[plain] = []
+            }
+            wallType.edgeCenters[plain].push(edgeCenter)
             addedToCount = true
             break
           }
@@ -282,7 +285,7 @@ async function createCoverSVG(plain) {
             length: wallLength,
             angle1,
             angle2,
-            edgeCenters: [edgeCenter],
+            edgeCenters: {[plain]: [edgeCenter]},
           })
         }
         if (isFinalEdge) {
@@ -385,22 +388,6 @@ async function createCoverSVG(plain) {
     }
   } // END for (let dPath of paths)
   cover.querySelector("path").setAttribute("d", totalPathString)
-
-  wallInfo.sort((a,b) => a.length - b.length)
-
-  if (generateWallNumbers) {
-    for (let wallType of wallInfo) {
-      let index = wallInfo.indexOf(wallType)
-      wallType.id = index
-      for (let edgeCenter of wallType.edgeCenters) {
-        let txt = document.createElementNS("http://www.w3.org/2000/svg", "text")
-        txt.setAttribute("x", edgeCenter.x * MM_TO_96DPI)
-        txt.setAttribute("y", edgeCenter.y * MM_TO_96DPI)
-        txt.innerHTML = "" + index
-        cover.appendChild(txt)
-      }
-    }
-  }
 
   for (let vertex of verticies) {
     vertex.ogCoords = vertex.oogCoords
@@ -566,7 +553,10 @@ function createPrintInfo(displayOnly) {
   for (let wallIndex = STARTING_WALL_INDEX; wallIndex < wallInfo.length; wallIndex++) {
     let wallType = wallInfo[wallIndex]
     let wallLength = wallType.length
-    let targetCount = wallType.edgeCenters.length
+    let targetCount = 0
+    for (let plain in wallType.edgeCenters) {
+      targetCount += wallType.edgeCenters[plain].length
+    }
     if (displayOnly) {
       path += decimalPath(wallIndex, offset)
     } else {
@@ -1076,7 +1066,6 @@ function downloadSVGAsText(id, name) {
 
 async function generateManufacturingInfo() {
   document.querySelectorAll("path.laser").forEach(path => path.setAttribute('d', ""))
-  cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
   if (isWall) {
     let coverElem = document.getElementById("cover")
     KERF = TOP_KERF
@@ -1100,6 +1089,7 @@ async function generateManufacturingInfo() {
     }
     coverElem.outerHTML = covers.bottom[0]
 
+    wallInfo.sort((a,b) => a.length - b.length)
     createPrintInfo(true)
   }
 }
