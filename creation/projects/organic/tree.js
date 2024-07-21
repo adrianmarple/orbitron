@@ -1,4 +1,6 @@
 module.exports = async () => {
+  CHANNEL_WIDTH = 11
+
   await addFromSVG("organic/tree.svg")
 
   integerize()

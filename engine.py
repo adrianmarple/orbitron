@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-import base64
 import collections
-import gzip
 import json
 import numpy as np
 import os
@@ -379,6 +377,10 @@ def update_text_display():
     global text_index
     global previous_text
     global previous_scroll_time
+
+    if get_pref("hasStartAndEnd") and datetime.now() < idle.start:
+      display.print("")
+      return
 
     if current_text == "$LOADING":
       text = CHASE_SEQUENCE[int(time() / 0.1) % 12]
