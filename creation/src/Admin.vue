@@ -1,8 +1,16 @@
 <template>
 <div class="type-buttons">
   <div v-for="orb in orbInfo" class="button orb" @click="setOrb(orb.id)">
-    {{ orb.aliases[0] ?? orb.id }}
-    <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
+    <div>{{ orb.aliases[0] ?? orb.id }}</div>
+    <div class="right">
+      <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
+      <div class="commit-status">
+        <div v-if="idToCommit[orb.id] == -1" class="unknown">?</div>
+        <div v-else-if="idToCommit[orb.id] == 0" class="ok">✓</div>
+        <div v-else-if="idToCommit[orb.id] < 0" class="warning">{{ idToCommit[orb.id] }}</div>
+        <div v-else class="error">{{ idToCommit[orb.id] }}</div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="actions">
@@ -49,6 +57,7 @@ export default {
   data() {
     return {
       masterKey: "",
+      commits: [],
       orbID: localStorage.getItem("orbID") || "demo",
       aliases: [],
       serverOrbID: "demo",
@@ -59,6 +68,7 @@ export default {
       idToPrefs: {},
       idToLog: {},
       idToIP: {},
+      idToCommit: {},
       config: "",
       prefs: "",
       log: "",
@@ -91,6 +101,7 @@ export default {
     })
 
     this.masterKey = await (await fetch("http://localhost:8000/masterkey")).text()
+    this.commits = await (await fetch("http://localhost:8000/commits")).json()
     this.updateConfig()
 
     await this.getOrbInfo()
@@ -213,14 +224,15 @@ export default {
         })
 
         for (let orb of this.orbInfo) {
-          if (!this.idToIP[orb.id]) {
-            this.getIPAddress(orb.id)
-          }
+          this.sendCommand({type: "ip"}, orb.id).then(ip => {
+            this.idToIP[orb.id] = ip
+          })
+          this.sendCommand({type: "commit"}, orb.id).then(commit => {
+            this.idToCommit[orb.id] = this.commits.indexOf(commit)
+            console.log(commit, this.idToCommit[orb.id])
+          })
         }
       } catch {}
-    },
-    async getIPAddress(orbID) {
-      this.idToIP[orbID] = await this.sendCommand({type: "ip"}, orbID)
     },
     async updateConfig() {
       this.idToConfig[this.orbID] = await this.sendCommand({type: "getconfig"}, this.orbID)
@@ -338,6 +350,10 @@ function upsertLineInConfig(config, newLine, after) {
   display: flex;
   justify-content: space-between;
 }
+.orb.button .right {
+  display: flex;
+  align-items: center
+}
 
 .names {
   z-index: 10;
@@ -354,6 +370,28 @@ function upsertLineInConfig(config, newLine, after) {
 }
 .names .button {
   width: 56px;
+}
+
+.commit-status > div {
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.9em;
+}
+.commit-status .unknown {
+  background-color: #00f;
+}
+.commit-status .ok {
+  background-color: #4afa41;
+}
+.commit-status .warning {
+  background-color: #c9d91c;
+}
+.commit-status .error {
+  background-color: #ff2600;
 }
 
 </style>

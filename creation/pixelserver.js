@@ -164,6 +164,17 @@ addGETListener((response, request) => {
     return false
   }
 })
+addGETListener(async (response, request) => {
+  if (request.url.endsWith("commits")) {
+    noCorsHeader(response, 'text/plain')
+    let log = await execute("git log --pretty=format:'%H'")
+    let commits = log.split("\n")
+    response.end(JSON.stringify(commits))
+    return true
+  } else {
+    return false
+  }
+})
 
 addPOSTListener(async (response, body) => {
   if (body && body.type == "download") {
