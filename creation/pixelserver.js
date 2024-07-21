@@ -121,7 +121,7 @@ async function serverHandler(request, response) {
   if (request.method === 'GET') {
     console.log(request.url)
     for (let listener of getListeners) {
-      let result = listener(response, request)
+      let result = await listener(response, request)
       if (result) return
     }
     respondWithFile(response, request.url)

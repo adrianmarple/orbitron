@@ -36,6 +36,8 @@
   </div>
 </div>
 
+<div id="full-name">{{ fullProjectName }}</div>
+
 <canvas id="path" width="1000" height="1000"></canvas>
 <svg id="wall" class="laser" width=1000 height=100 viewBox="0 0 1000 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path stroke="#808080"/>
@@ -108,6 +110,7 @@ export default {
       }
       generatePixelInfo()
       await generateManufacturingInfo()
+      this.$forceUpdate()
     },
     async fetchButtons() {
       this.buttons = await (await fetch("http://localhost:8000/buttonlist.json")).json()
@@ -233,5 +236,14 @@ export default {
 }
 #wall {
   top: 160px;
+}
+
+#full-name {
+  position: fixed;
+  bottom: 100px;
+  left: calc(50vw - 256px);
+  font-size: 2rem;
+  color: white;
+  z-index: 1;
 }
 </style>

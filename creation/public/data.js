@@ -1,7 +1,7 @@
 
 startMidwayDownFinalEdge = false
 
-noncovergenceGuard = 1e3
+noncovergenceGuard = 1e4
 async function EulerianPath(currentVertex, pathOverride) {
   for (let vertex of verticies) {
     if (!vertex.ogCoords.isValid()) {
@@ -13,6 +13,7 @@ async function EulerianPath(currentVertex, pathOverride) {
       break
     }
   }
+  noncovergenceGuard = 1e4
   EulerianHelper(currentVertex, pathOverride)
 }
 
@@ -28,8 +29,8 @@ async function EulerianHelper(currentVertex, pathOverride) {
   noncovergenceGuard -= 1
   if (noncovergenceGuard < 0) {
     path.length = 0
-    noncovergenceGuard = 1e3
-    console.error("Eulerian path did not converge.")
+    console.log("Eulerian path did not converge.")
+    console.log("Edge count: " + edges.length)
     return true
   }
   if (path.length >= edges.length) {
@@ -154,6 +155,10 @@ function otherVertex(edge, vertex) {
 }
 
 function generatePixelInfo() {
+  if (path.length == 0) {
+    console.trace()
+    return {}
+  }
   let neighbors = []
   let coords = []
   let nextPixel = {}

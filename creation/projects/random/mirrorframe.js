@@ -1,4 +1,4 @@
-
+// SKIP
 module.exports = () => {
   BORDER = 9
   NOTCH_DEPTH = 9

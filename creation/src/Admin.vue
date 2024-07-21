@@ -5,7 +5,7 @@
     <div class="right">
       <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
       <div class="commit-status">
-        <div v-if="idToCommit[orb.id] == -1" class="unknown">?</div>
+        <div v-if="idToCommit[orb.id] == undefined || idToCommit[orb.id] == -1" class="unknown">?</div>
         <div v-else-if="idToCommit[orb.id] == 0" class="ok">✓</div>
         <div v-else-if="idToCommit[orb.id] < 0" class="warning">{{ idToCommit[orb.id] }}</div>
         <div v-else class="error">{{ idToCommit[orb.id] }}</div>
@@ -229,7 +229,6 @@ export default {
           })
           this.sendCommand({type: "commit"}, orb.id).then(commit => {
             this.idToCommit[orb.id] = this.commits.indexOf(commit)
-            console.log(commit, this.idToCommit[orb.id])
           })
         }
       } catch {}
