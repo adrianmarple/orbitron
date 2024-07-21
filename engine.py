@@ -379,7 +379,7 @@ def update_text_display():
     global previous_scroll_time
 
     if get_pref("hasStartAndEnd") and datetime.now() < idle.start:
-      display.print("")
+      display.print("    ")
       return
 
     if current_text == "$LOADING":
