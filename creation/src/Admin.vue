@@ -7,8 +7,8 @@
       <div class="commit-status">
         <div v-if="idToCommit[orb.id] == undefined || idToCommit[orb.id] == -1" class="unknown">?</div>
         <div v-else-if="idToCommit[orb.id] == 0" class="ok">✓</div>
-        <div v-else-if="idToCommit[orb.id] < 0" class="warning">{{ idToCommit[orb.id] }}</div>
-        <div v-else class="error">{{ idToCommit[orb.id] }}</div>
+        <div v-else-if="idToCommit[orb.id] < 10" class="warning">{{ -idToCommit[orb.id] }}</div>
+        <div v-else class="error">{{ -idToCommit[orb.id] }}</div>
       </div>
     </div>
   </div>
@@ -387,7 +387,7 @@ function upsertLineInConfig(config, newLine, after) {
   background-color: #4afa41;
 }
 .commit-status .warning {
-  background-color: #c9d91c;
+  background-color: #ffe600;
 }
 .commit-status .error {
   background-color: #ff2600;
