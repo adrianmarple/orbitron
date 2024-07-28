@@ -34,9 +34,11 @@ def set_idle():
     spec.loader.exec_module(module)
     idle = module.idle
     name_to_idle_game[name] = idle
-  idle.clear()
-  engine.idle = idle
-  engine.start(idle)
+
+  if engine.idle != idle:
+    idle.clear()
+    engine.idle = idle
+    engine.start(idle)
 
 class Idle(Game):
   name = "idle"
