@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "core-js": "^3.36.1",
+    "get-pixels": "^3.3.3",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0"
   },

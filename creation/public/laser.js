@@ -348,18 +348,19 @@ async function createCoverSVG(plain) {
     } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false
-    if (imageUrl && imageUrl.endsWith(".png") && dPath.length == 4) {
-      let center = [0,0,0]
+    if (imageUrl && imageUrl.endsWith(".pixels") && dPath.length == 4) {
+      let center = ZERO
       for (let i = 0; i < 4; i++) {
-        center = add(center, dPath[i].ogCoords)
+        center = center.add(dPath[i].ogCoords)
       }
-      center = center.scale(0.25)
+      center = center.scale(0.25 * pixelDensity / PIXEL_DISTANCE)
       let x = Math.round(center.x)
       let y = -Math.round(center.y)
       
-      let imageContext = await getImageContext()
-      let pixel = imageContext.getImageData(x, y, 1, 1).data
-      if (pixel[0] + pixel[1] + pixel[2] == 0) { // skip border for black pixels
+      let pixels = await getPixels()
+      let offset = x * pixels.stride[0] + y * pixels.stride[1]
+      if (pixels.data[offset] + pixels.data[offset+1] + pixels.data[offset+2] == 0) {
+        // skip border for black pixels
         skipBorder = true
       }
     }

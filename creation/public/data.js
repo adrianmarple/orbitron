@@ -214,7 +214,7 @@ function generatePixelInfo() {
         }
 
         console.log(alpha/resizeScale, edgeLength/resizeScale)
-        console.error("Edge legnth not a integer multiple of pixel density")
+        console.error("Edge length not a integer multiple of pixel density")
         return
       }
       
@@ -225,7 +225,7 @@ function generatePixelInfo() {
       
       if (alpha > edgeLength) {
         console.log(alpha/resizeScale, edgeLength/resizeScale)
-        console.error("Edge legnth not a integer multiple of pixel density")
+        console.error("Edge length not a integer multiple of pixel density")
         return
       }
 

@@ -72,18 +72,13 @@ function getContentType(filePath){
 }
 
 function respondWithFile(response, filePath) {
+  console.log(filePath)
   filePath = filePath.replace("%20", " ")
   filePath = `${__dirname}${filePath}`
   let contentType = getContentType(filePath)
   let stream = fs.createReadStream(filePath);
   stream.on('open', function () {
-    response.writeHead(200, {
-      'Content-Type': contentType,
-      'Access-Control-Allow-Origin': "*",
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      "Access-Control-Allow-Headers": "x-requested-with, Content-Type, origin, authorization, accept, client-security-token",
-      'Access-Control-Allow-Credentials': 'true',
-    })
+    noCorsHeader(response, contentType)
     stream.pipe(response);
   })
   stream.on('error', function () {
@@ -119,7 +114,6 @@ async function serverHandler(request, response) {
   }
 
   if (request.method === 'GET') {
-    console.log(request.url)
     for (let listener of getListeners) {
       let result = await listener(response, request)
       if (result) return
@@ -170,6 +164,20 @@ addGETListener(async (response, request) => {
     let log = await execute("git log --pretty=format:'%H'")
     let commits = log.split("\n")
     response.end(JSON.stringify(commits))
+    return true
+  } else {
+    return false
+  }
+})
+addGETListener(async (response, request) => {
+  if (request.url.endsWith(".pixels")) {
+    noCorsHeader(response, 'text/plain')
+    filePath = `${__dirname}${request.url}`
+    filePath = filePath.replace(".pixels", ".png")
+    let pixels = await new Promise(resolve => {
+      require("get-pixels")(filePath, (err, pixels) => resolve(pixels))
+    })
+    response.end(JSON.stringify(pixels))
     return true
   } else {
     return false
@@ -425,7 +433,6 @@ addPOSTListener(async (response, body) => {
 
 
 addGETListener((response, request) => {
-  console.log(request.url)
   if (request.url.endsWith("buttonlist.json")) {
     noCorsHeader(response, 'text/plain')
     response.end(JSON.stringify(buttonUrls), 'utf-8')

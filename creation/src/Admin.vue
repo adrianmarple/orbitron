@@ -105,11 +105,12 @@ export default {
     this.updateConfig()
 
     await this.getOrbInfo()
-    setInterval(function() {
+    setInterval(async function() {
       self.getOrbInfo()
       if (self.viewing == "log") {
         self.updateLog()
       }
+      self.commits = await (await fetch("http://localhost:8000/commits")).json()
     }, 5000)
     this.setOrb(this.orbID)
 
@@ -276,7 +277,7 @@ export default {
         fullProjectName: readFromConfig(this.config, 'PIXELS'),
         type: "qr",
         scale: 48.0 / this.qrSize,
-        PROCESS_STOP: "upload", //PROCESS_STOP,
+        PROCESS_STOP,
         PETG: true,
         data,
       })

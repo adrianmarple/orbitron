@@ -40,6 +40,21 @@ class Edge {
   }
 }
 
+function resolveVertex(vertex) {
+  if (typeof(vertex) == "number") {
+    return verticies[vertex]
+  } else {
+    return vertex
+  }
+}
+function resolveEdge(edge) {
+  if (typeof(edge) == "number") {
+    return edges[edge]
+  } else {
+    return edge
+  }
+}
+
 function addVertex(coordinates) {
   if (!coordinates.isVector) {
     coordinates = new Vector(...coordinates)
@@ -57,12 +72,8 @@ function addVertex(coordinates) {
 }
 
 function addEdge(vertex1, vertex2) {
-  if (typeof(vertex1) == "number") {
-    vertex1 = verticies[vertex1]
-  }
-  if (typeof(vertex2) == "number") {
-    vertex2 = verticies[vertex2]
-  }
+  vertex1 = resolveVertex(vertex1)
+  vertex2 = resolveVertex(vertex2)
   if (!vertex1 || !vertex2) return null
 
   var edgeCenter = vertex1.coordinates.add(vertex2.coordinates).multiplyScalar(.5)
@@ -89,9 +100,7 @@ function addEdge(vertex1, vertex2) {
 
 function removeVertex(vertex) {
   if (!verticies || !vertex) return
-  if (typeof vertex == "number") {
-    vertex = verticies[vertex]
-  }
+  vertex = resolveVertex(vertex)
   remove(verticies, vertex)
   for (let edge of [...vertex.edges]) {
     removeEdge(edge)
@@ -100,9 +109,7 @@ function removeVertex(vertex) {
 }
 function removeEdge(edge) {
   if (!edges || edge == undefined || edge == null) return
-  if (typeof edge == "number") {
-    edge = edges[edge]
-  }
+  edge = resolveEdge(edge)
   remove(edges, edge)
   for (let vertex of edge.verticies) {
     remove(vertex.edges, edge)
@@ -163,6 +170,7 @@ function addPolygon(sideCount, center, edgeLengths) {
 }
 
 function extrudePolygon(startingEdge, sideCount, edgeLengths, negate) {
+  startingEdge = resolveEdge(startingEdge)
   let newEdges = [startingEdge]
   let vertex = startingEdge.verticies[0]
   let edgeVector = vertex.ogCoords.sub(startingEdge.verticies[1].ogCoords)
@@ -212,9 +220,7 @@ function findEdgeFromCenter(center) {
 
 
 function addLine(vertex, length, angle) {
-  if (typeof vertex == "number") {
-    vertex = verticies[vertex]
-  }
+  vertex = resolveVertex(vertex)
   let coords = vertex.ogCoords.add(fromMagAngle(length, angle))
   let newVertex = addVertex(coords)
   return addEdge(vertex, newVertex)
@@ -223,12 +229,9 @@ function addLine(vertex, length, angle) {
 // Based on Futurologist's answer from https://math.stackexchange.com/questions/2228018/how-to-calculate-the-third-point-if-two-points-and-all-distances-between-the-poi
 // Assumes z coordinate is always 0
 function addTriangulation(v1, v2, a, b) {
-  if (typeof v1 == "number") {
-    v1 = verticies[v1]
-  }
-  if (typeof v2 == "number") {
-    v2 = verticies[v2]
-  }
+  v1 = resolveVertex(v1)
+  v2 = resolveVertex(v2)
+
   if (!b) b = a
   let A = v1.ogCoords
   let B = v2.ogCoords
@@ -251,6 +254,9 @@ function addTriangulation(v1, v2, a, b) {
 }
 // Assumes z coordinate is always 0
 function addSquareulation(v1, v2, a, b) {
+  v1 = resolveVertex(v1)
+  v2 = resolveVertex(v2)
+
   let A = v1.ogCoords
   let B = v2.ogCoords
   let AtoB = B.sub(A)
@@ -275,6 +281,7 @@ function addSquareulation(v1, v2, a, b) {
 }
 
 function splitEdge(edge, distance) {
+  edge = resolveEdge(edge)
   let delta = edge.delta()
   if (distance < 0) {
     distance = delta.length() + distance
@@ -435,52 +442,32 @@ function integerize(startingThreshold) {
   }
 }
 
+let urlToPixels = {}
+async function getPixels() {
+  if (urlToPixels[imageUrl]) return urlToPixels[imageUrl]
+  fullUrl = "http://localhost:8000/projects/" + imageUrl
+  const pixels = await (await fetch(fullUrl)).json()
+  urlToPixels[imageUrl] = pixels
+  return pixels
+}
 async function addSquaresFromPixels(src) {
-  console.log("No longer supported. Use addFromSVG instead.")
-  return
   imageUrl = src || imageUrl
+  imageUrl = imageUrl.replace(".png", ".pixels")
+  let pixels = await getPixels()
 
-  let ctx = await getImageContext(imageUrl)
-  for (let x = 0; x < ctx.canvas.width; x++) {
-    for (let y = 0; y < ctx.canvas.height; y++) {
-      let pixel = ctx.getImageData(x, y, 1, 1).data
-      if (isFilledPixel(pixel)) {
+  for (let x = 0; x < pixels.shape[0]; x++) {
+    for (let y = 0; y < pixels.shape[1]; y++) {
+      let offset = x * pixels.stride[0] + y * pixels.stride[1]
+      let r = pixels.data[offset]
+      let a = pixels.data[offset + 3]
+      if (r < 10 && a > 0) {
         addSquare([x,-y,0])
       }
     }
   }
   center()
 }
-function isFilledPixel(pixel) {
-  // very dark red component & not transparent
-  return pixel[0] < 10 && pixel[3] > 0
-}
 
-
-urlToContext = {}
-async function getImageContext(src) {
-  if (!src) src = imageUrl
-  if (!src) return null
-  if (urlToContext[src]) return urlToContext[src]
-
-  let img = new Image()
-  img.src = "http://localhost:8000/projects/" + src
-  console.log(img.src)
-  await new Promise(resolve => img.onload = resolve)
-  let canvas = document.createElement('canvas')
-  canvas.width = img.width
-  canvas.height = img.height
-  let ctx = canvas.getContext('2d', { willReadFrequently: true })
-  ctx.drawImage(img, 0, 0)
-  try {
-    ctx.getImageData(0, 0, canvas.width, canvas.height).data
-  } catch (e) {
-    console.error(":(")
-    return null
-  }
-  urlToContext[src] = ctx
-  return ctx
-}
 
 function origami(foldPlain) {
   let newPlain = currentPlain.mirror(foldPlain)

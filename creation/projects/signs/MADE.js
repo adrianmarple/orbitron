@@ -1,4 +1,4 @@
-
+// SKI
 module.exports = async () => {
   // setLaserParams({
   //   PIXEL_DISTANCE: 10,
@@ -18,6 +18,6 @@ module.exports = async () => {
   // ]
 
   // await addSquaresFromPixels(true, {x:[10], y:[10]})
-  await addSquaresFromPixels() // TODO fixe me!
+  await addSquaresFromPixels()
   EulerianPath(63, 1)
 }
