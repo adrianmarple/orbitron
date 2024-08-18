@@ -470,10 +470,25 @@ async function addSquaresFromPixels(src) {
 
 
 function origami(foldPlain) {
-  let newPlain = currentPlain.mirror(foldPlain)
-  plains.push(newPlain)
+  let mirrorPlainOffset = currentPlain.intersection(foldPlain).offset
+  let mirrorPlainNormal = currentPlain.normal.orthoProj(foldPlain.normal)
 
-  // Add new verticies at edges that have been folded
+  let newPlain
+  let mirrorPlain = null
+  let isSplit = mirrorPlainNormal.equals(ZERO)
+
+  if (isSplit) {
+    newPlain = currentPlain.clone()
+  } else {
+    mirrorPlain = new Plain(mirrorPlainOffset, mirrorPlainNormal)
+    newPlain = currentPlain.mirror(mirrorPlain)
+  }
+
+  plains.push(newPlain)
+  currentPlain.folds[newPlain] = foldPlain
+  newPlain.folds[currentPlain] = foldPlain
+
+  // Add new verticies along edges that have been folded
   for (let edge of [...edges]) {
     if (edge.verticies[0].ogCoords.isAbovePlain(foldPlain) !=
         edge.verticies[1].ogCoords.isAbovePlain(foldPlain)) {
@@ -485,19 +500,21 @@ function origami(foldPlain) {
       addEdge(newVertex, edge.verticies[1])
     }
   }
+  
   for (let vertex of verticies) {
     if (!vertex.plains.includes(currentPlain)) continue
-    vertex.ogCoords = vertex.ogCoords.halfMirror(foldPlain)
-    vertex.coordinates = vertex.ogCoords
 
-    vertex.plains.push(newPlain)
-    let newPlains = []
-    for (let plain of vertex.plains) {
-      if (vertex.ogCoords.isCoplanar(plain)) {
-        newPlains.push(plain)
+    if (vertex.ogCoords.isCoplanar(foldPlain)) {
+      vertex.plains.push(newPlain)
+    }
+    else if (vertex.ogCoords.isAbovePlain(foldPlain)) {
+      vertex.plains.remove(currentPlain)
+      vertex.plains.push(newPlain)
+      if (!isSplit) {
+        vertex.ogCoords = vertex.ogCoords.mirror(mirrorPlain)
+        vertex.coordinates = vertex.ogCoords
       }
     }
-    vertex.plains = newPlains
   }
   return newPlain
 }

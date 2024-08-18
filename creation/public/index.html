@@ -230,6 +230,15 @@ function render() {
   document.getElementById("cover").style.display = window.showLaserSVG && isWall ? "block" : "none"
   document.getElementById("wall").style.display = window.showWallSVG && isWall ? "block" : "none"
 }
+
+
+Array.prototype.remove = function(elem) {
+  let index = this.indexOf(elem)
+  if (index >= 0) {
+    this.splice(index, 1)
+  }
+  // Just ignore if not in array
+}
     </script>
     
 

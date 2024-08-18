@@ -51,18 +51,12 @@ class Vector extends THREE.Vector3 {
   }
 
   mirror(m, ignoreOffset) {
-    let v2 = this
-    if (!ignoreOffset) v2 = this.sub(m.offset)
-    let newV = v2.proj(m.normal).multiplyScalar(-1)
-    newV = v2.orthoProj(m.normal).add(newV)
+    let v = this
+    if (!ignoreOffset) v = v.sub(m.offset)
+    let newV = v.proj(m.normal).multiplyScalar(-1)
+    newV = v.orthoProj(m.normal).add(newV)
     if (!ignoreOffset) newV = newV.add(m.offset)
     return newV
-  }
-  halfMirror(m) {
-    if (this.isAbovePlain(m))
-      return this.mirror(m)
-    else
-      return this
   }
 }
 // Reference for THREE.js Vector3: https://threejs.org/docs/#api/en/math/Vector3.projectOnVector
@@ -94,6 +88,11 @@ class Plain {
   constructor(offset, normal) {
     this.offset = offset.proj(normal)
     this.normal = normal.normalize()
+    this.folds = {}
+  }
+
+  clone() {
+    return new Plain(this.offset, this.normal)
   }
 
   mirror(mirror) {

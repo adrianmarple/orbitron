@@ -21,7 +21,7 @@ module.exports = async () => {
 
   origami(new Plain(
     new Vector(0, -41, 0),
-    new Vector(0, 1, 1)
+    new Vector(0, 1, -1)
   ))
 
   EulerianPath(0)

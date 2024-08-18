@@ -212,26 +212,23 @@ async function createCoverSVG(plain) {
       let deadendPlain = null
       function addFoldWallInfo(type) {
         let isOne = type == 1
-        deadendPlain = (isOne ? plains1 : plains2).filter(p => p != plain)[0]
-        deadendPlain = deadendPlain.rotate(R)
+        let plains = (isOne ? plains1 : plains2)
+        deadendPlain = plains[0].folds[plains[1]].rotate(R)
+        deadendPlain.offset = deadendPlain.offset.scale(SCALE)
         let wallStartPoint = (isOne ? v2 : v1)
             .addScaledVector(n, w2)
             .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
-        // channelString += "M" + pointsToSVGString([
-        //   wallStartPoint,
-        //   wallStartPoint.add(new Vector(3,0,0)),
-        //   wallStartPoint.add(new Vector(0,3,0)),
-        // ]).substring(1) + "Z "
-        let angle = deadendPlain.normal.angleTo(FORWARD)
-        if (!wallStartPoint.isAbovePlain(deadendPlain)) {
-          angle *= -1
-        }
+        let angle = plains[0].normal.angleTo(plains[1].normal)
+        let sign = (wallStartPoint.isCoplanar(plains[0]) || wallStartPoint.isAbovePlain(plains[0])) &&
+            (wallStartPoint.isCoplanar(plains[1]) || wallStartPoint.isAbovePlain(plains[1]))
+        if (!sign) angle *= -1
+
         plainTranslationValue = CHANNEL_DEPTH/2 * (IS_BOTTOM ? 1 : -1)
         let thickness = IS_BOTTOM ? BOTTOM_THICKNESS : -TOP_THICKNESS
         plainTranslationValue += IS_BOTTOM == (angle < 0) ? 0 : thickness
-        deadendPlain = deadendPlain.translate(deadendPlain.normal.scale(plainTranslationValue))
         wallStartPoint = wallStartPoint.addScaledVector(FORWARD, plainTranslationValue)
         let wallEndPoint = deadendPlain.intersection(new Line(wallStartPoint, e1))
+
         wallLength = wallEndPoint.sub(wallStartPoint).length()
         if (isOne) {
           lengthOffset1 = edgeLength + lengthOffset2 - wallLength
@@ -401,6 +398,7 @@ async function createCoverSVG(plain) {
 }
 
 function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) {
+  if (wallLength > 1e6) return ""
   let path = ""
   if (localOffset) {
     offset = offset
@@ -1077,7 +1075,7 @@ async function generateManufacturingInfo() {
     window.KERF = TOP_KERF
     for (let plain of plains) {
       await createCoverSVG(plain)
-      console.log(`Top svg ${covers.top.length} is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
+      console.log(`Top svg ${covers.top.length} is ${((maxX - minX)/96).toFixed(2)}" by ${((maxY-minY)/96).toFixed(2)}"`)
       covers.top.push(coverElem.outerHTML)
     }
     wallInfo = [] // Avoid duplicating wall info
@@ -1085,7 +1083,7 @@ async function generateManufacturingInfo() {
     window.KERF = BOTTOM_KERF
     for (let plain of plains) {
       await createCoverSVG(plain)
-      console.log(`Bottom svg ${covers.bottom.length} is ${((maxX - minX)/96).toFixed(1)}" by ${((maxY-minY)/96).toFixed(1)}"`)
+      console.log(`Bottom svg ${covers.bottom.length} is ${((maxX - minX)/96).toFixed(2)}" by ${((maxY-minY)/96).toFixed(2)}"`)
       covers.bottom.push(coverElem.outerHTML)
     }
     coverElem.outerHTML = covers.bottom[0]
