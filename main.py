@@ -37,13 +37,6 @@ def check_all_ready():
       return
   engine.game.ontimeout()
 
-def clear_prefs():
-  prefs.clear_prefs()
-  engine.idle.update_prefs()
-  for game in engine.games.values():
-    game.update_prefs()
-  idlepatterns.set_idle()
-
 def consume_input():
   for line in fileinput.input():
     try:
@@ -73,12 +66,8 @@ def consume_input():
         # Prefs stuff
       if message["type"] == "prefs":
         prefs.update_prefs(message["update"], client_timestamp=message["timestamp"])
-        engine.idle.update_prefs()
-        for game in engine.games.values():
-          game.update_prefs()
-        idlepatterns.set_idle()
       elif message["type"] == "clearPrefs":
-        clear_prefs()
+        prefs.clear_prefs()
       elif message["type"] == "savePrefs":
         engine.save_prefs(message["name"])
       elif message["type"] == "loadPrefs":

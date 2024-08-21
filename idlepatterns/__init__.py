@@ -11,7 +11,9 @@ from random import randrange, random
 from time import sleep, time
 
 import engine
-from engine import config, get_pref, Game, Player, SIZE, RAW_SIZE, FRAMERATE, neighbors, dupe_to_uniques
+from engine import config, Game, Player, SIZE, RAW_SIZE, FRAMERATE, neighbors, dupe_to_uniques
+import prefs
+from prefs import get_pref
 
 name_to_idle_game = {}
 
@@ -39,6 +41,8 @@ def set_idle():
     idle.clear()
     engine.idle = idle
     engine.start(idle)
+
+prefs.set_idle = set_idle # Use delegate pattern here since I'm not sure how else to do it
 
 class Idle(Game):
   name = "idle"
@@ -69,26 +73,6 @@ class Idle(Game):
   def clear(self):
     self.target_values *= 0
 
-
-  def update_prefs(self):
-    now = datetime.now()
-    now_date = now.date()
-
-    start_string = get_pref("startTime")
-    start_time = datetime.strptime(start_string, '%H:%M').time()
-    self.start = datetime.combine(now_date, start_time)
-
-    end_string = get_pref("endTime")
-    end_time = datetime.strptime(end_string, '%H:%M').time()
-    self.end = datetime.combine(now_date, end_time)
-
-    if self.end < now:
-      self.end += timedelta(days=1)
-    if self.start > self.end:
-      self.start -= timedelta(days=1)
-    if self.end - self.start > timedelta(days=1):
-      self.start += timedelta(days=1)
-
   def update(self):
     pass
 
@@ -109,15 +93,9 @@ class Idle(Game):
     if get_pref("applyIdleMinBefore"):
       self.apply_min()
     if get_pref("hasStartAndEnd"):
-      self.apply_fade()
+      self.render_values *= prefs.fade()
     self.target_values = self.render_values.copy()
-    if not get_pref("fadeToBlack"):
-      self.render_values = 1 + self.render_values*0
-      if get_pref("hasStartAndEnd"):
-        self.apply_fade()
-      
-    else:
-      self.blend_pixels()
+    self.blend_pixels()
     self.apply_color()
     self.apply_brightness()
     if not get_pref("applyIdleMinBefore"):

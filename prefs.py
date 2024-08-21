@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 
+from datetime import datetime, timedelta
 from time import sleep, time
 
 config = json.loads(os.getenv("CONFIG"))
@@ -92,6 +93,8 @@ def update_prefs(update, client_timestamp=0):
     else:
       prefs[key] = value
   current_prefs.update(update)
+  set_idle()
+  update_fade_times()
   f = open(pref_path, "w")
   f.write(json.dumps(prefs, indent=2))
   f.close()
@@ -107,6 +110,7 @@ def clear_prefs():
   current_prefs.clear()
   current_prefs.update(default_prefs)
   current_prefs.update(default_timing_prefs)
+  set_idle()
   if os.path.exists(pref_path):
     os.remove(pref_path)
 
@@ -182,4 +186,37 @@ def get_pref(pref_name):
   converted_prefs[pref_name] = pref
   return pref
 
+start = datetime(1970,1,1,0,0,0,0)
+end = start
+def fade():
+  now = datetime.now()
+  if now > end:
+    update_fade_times()
+  start_fade = (now - start).total_seconds() / get_pref("startFade") / 60
+  end_fade = (end - now).total_seconds() / get_pref("endFade") / 60
+  fade = min(start_fade, end_fade)
+  fade = min(fade, 1)
+  fade = max(fade, 0)
+  return fade
+def update_fade_times():
+  global start, end
+  now = datetime.now()
+  now_date = now.date()
+
+  start_string = get_pref("startTime")
+  start_time = datetime.strptime(start_string, '%H:%M').time()
+  start = datetime.combine(now_date, start_time)
+
+  end_string = get_pref("endTime")
+  end_time = datetime.strptime(end_string, '%H:%M').time()
+  end = datetime.combine(now_date, end_time)
+
+  if end < now:
+    end += timedelta(days=1)
+  if start > end:
+    start -= timedelta(days=1)
+  if end - start > timedelta(days=1):
+    start += timedelta(days=1)
+
 load_prefs()
+set_idle = None
