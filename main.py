@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import prefs
 import engine
 import idlepatterns
 
@@ -37,7 +38,10 @@ def check_all_ready():
   engine.game.ontimeout()
 
 def clear_prefs():
-  engine.clear_prefs()
+  prefs.clear_prefs()
+  engine.idle.update_prefs()
+  for game in engine.games.values():
+    game.update_prefs()
   idlepatterns.set_idle()
 
 def consume_input():
@@ -68,7 +72,10 @@ def consume_input():
         engine.game = None
         # Prefs stuff
       if message["type"] == "prefs":
-        engine.update_prefs(message["update"], client_timestamp=message["timestamp"])
+        prefs.update_prefs(message["update"], client_timestamp=message["timestamp"])
+        engine.idle.update_prefs()
+        for game in engine.games.values():
+          game.update_prefs()
         idlepatterns.set_idle()
       elif message["type"] == "clearPrefs":
         clear_prefs()
