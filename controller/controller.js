@@ -126,24 +126,23 @@ var app = new Vue({
         this.prefs = { ...val }
         for (let key in val) {
           this.$watch('prefs.' + key, (v, vOld) => {
-            this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
-          })
+            if (typeof(v) == 'object' || v != vOld) {
+              this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
+            }
+          }, {deep: true})
         }
         return
       }
-      let hasChange = false
       for (let key in val) {
-        if (val[key] != oldValue[key] &&
+        if (!deepCompare(val[key], oldValue[key]) &&
             (!this.state.prefTimestamps[key] ||
              !this.lastPrefUpdateTime[key] ||
              this.lastPrefUpdateTime[key] < this.state.prefTimestamps[key])) {
-          this.prefs[key] = val[key]
           this.lastPrefUpdateTime[key] = this.state.prefTimestamps[key]
-          hasChange = true
+          if (!deepCompare(val[key], this.prefs[key])) {
+            this.prefs[key] = val[key]
+          }
         }
-      }
-      if (hasChange) {
-        this.prefs = { ...this.prefs }
       }
     },
     "state.gameId": function(val, oldValue) {
@@ -206,6 +205,10 @@ var app = new Vue({
         info.unshift([extra, extraDisplayName])
       }
       return info
+    },
+
+    eventNames() {
+      return this.state.prefNames.concat("OFF")
     },
 
     exclude() {
@@ -340,14 +343,6 @@ var app = new Vue({
     prefName() {
       return this.rawPrefName.replace(/[^0-9a-zA-Z ]/gi, '')
     },
-
-    saveScrollStyle() {
-      let height = innerHeight - 32*this.rem
-      return {
-        "--save-scroll-height": height + "px",
-        "--save-scroll-bottom-height": (height - 8*this.rem * this.state.prefNames.length) + "px",
-      }
-    },
   },
 
   methods: {
@@ -369,6 +364,17 @@ var app = new Vue({
     },
     startGames() {
       this.send({type: "skip"})
+    },
+    addNewEvent(event) {
+      this.prefs.schedule.push({...event})
+      this.sortSchedule()
+    },
+    deleteEvent(event) {
+      this.prefs.schedule.remove(event)
+    },
+    sortSchedule() {
+      console.log("sorting")
+      this.prefs.schedule.sort((a,b) => a.time.localeCompare(b.time))
     },
 
     substitute(string) {
@@ -445,11 +451,17 @@ var app = new Vue({
     },
 
     clearPrefs() {
-      let self = this
-      this.speedbumpMessage = "This will permanently clear any unsaved settings."
-      this.speedbumpCallback = () => {
-        self.prefName = ""
-        self.send({ type: "clearPrefs"})
+      if (this.state.currentPrefName) {
+        // Don't bother with speedbump if settings are already saved somewhere
+        this.prefName = ""
+        this.send({ type: "clearPrefs"})
+      } else {
+        let self = this
+        this.speedbumpMessage = "This will permanently clear any unsaved settings."
+        this.speedbumpCallback = () => {
+          self.prefName = ""
+          self.send({ type: "clearPrefs"})
+        }
       }
     },
     deletePrefs(name) {
@@ -475,15 +487,20 @@ var app = new Vue({
     },
     loadPrefs(name) {
       name = name || this.prefName
-      let self = this
-      this.speedbumpMessage = "This will permanently clobber any unsaved settings."
-      this.speedbumpCallback = () => {
-        self.send({ type: "loadPrefs", name })
+      if (this.state.currentPrefName) {
+        // Don't bother with speedbump if settings are already saved somewhere
+        this.send({ type: "loadPrefs", name })
+      } else {
+        let self = this
+        this.speedbumpMessage = "This will permanently clobber any unsaved settings."
+        this.speedbumpCallback = () => {
+          self.send({ type: "loadPrefs", name })
+        }
       }
     },
 
     send(json) {
-      //console.log(json)
+      // console.log(json)
       json.timestamp = this.preciseTime()
       let message = null
       try {
@@ -722,6 +739,14 @@ var app = new Vue({
 })
 
 
+Array.prototype.remove = function(elem) {
+  let index = this.indexOf(elem)
+  if (index >= 0) {
+    this.splice(index, 1)
+  }
+  // Just ignore if not in array
+}
+
 function delay(millis, v) {
   return new Promise(function(resolve) {
     setTimeout(resolve.bind(null, v), millis)
@@ -734,4 +759,51 @@ function uuid() {
 }
 function isNothing(val) {
   return val === undefined || val === null
+}
+
+// From https://stackoverflow.com/questions/26049303/how-to-compare-two-json-have-the-same-properties-without-order
+function deepCompare(obj1, obj2) {
+  // compare types
+  if (typeof obj1 !== typeof obj2) {
+    return false;
+  }
+
+  // compare properties recursively
+  if (typeof obj1 === 'object') {
+    if (Array.isArray(obj1) !== Array.isArray(obj2)) {
+      return false;
+    }
+    if (Array.isArray(obj1)) {
+      if (obj1.length !== obj2.length) {
+        return false;
+      }
+      for (let i = 0; i < obj1.length; i++) {
+        if (!deepCompare(obj1[i], obj2[i])) {
+          return false;
+        }
+      }
+    } else {
+      const keys1 = Object.keys(obj1);
+      const keys2 = Object.keys(obj2);
+      if (keys1.length !== keys2.length) {
+        return false;
+      }
+      for (const key of keys1) {
+        if (
+          !Object.prototype.hasOwnProperty.call(obj2, key) ||
+          !deepCompare(obj1[key], obj2[key])
+        ) {
+          return false;
+        }
+      }
+    }
+  } else {
+    // compare primitive values
+    if (obj1 !== obj2) {
+      return false;
+    }
+  }
+
+  // objects are equal
+  return true;
 }

@@ -15,7 +15,8 @@ from random import randrange, random
 from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
-from prefs import get_pref, current_prefs, pref_names, pref_to_client_timestamp
+import prefs
+get_pref = prefs.get_pref
 
 config = json.loads(os.getenv("CONFIG"))
 
@@ -221,10 +222,6 @@ def update_text_display():
     global text_index
     global previous_text
     global previous_scroll_time
-
-    if get_pref("hasStartAndEnd") and datetime.now() < idle.start:
-      display.print("    ")
-      return
 
     if current_text == "$LOADING":
       text = CHASE_SEQUENCE[int(time() / 0.1) % 12]
@@ -998,17 +995,18 @@ def broadcast_state():
     "data": game.data,
     "musicActions": remoteMusicActions,
     "soundActions": remoteSoundActions,
-    "prefs": current_prefs,
-    "prefTimestamps": pref_to_client_timestamp,
+    "prefs": prefs.current_prefs,
+    "prefTimestamps": prefs.pref_to_client_timestamp,
     "currentText": current_text,
     "extraIdle": config.get("IDLE"),
     "exclude": config.get("EXCLUDE", {}),
-    "prefNames": pref_names,
+    "prefNames": prefs.pref_names,
+    "currentPrefName": prefs.current_pref_name,
   }
   price = config.get("PRICE")
   if price is not None:
     message["price"] = price
-  pref_to_client_timestamp.clear()
+  prefs.pref_to_client_timestamp.clear()
   print(json.dumps(message))
 
 # ================================ Core loop =========================================

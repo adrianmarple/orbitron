@@ -42,8 +42,6 @@ def set_idle():
     engine.idle = idle
     engine.start(idle)
 
-prefs.set_idle = set_idle # Use delegate pattern here since I'm not sure how else to do it
-
 class Idle(Game):
   name = "idle"
   waiting_music = "idle"
@@ -92,8 +90,7 @@ class Idle(Game):
     self.init_values()
     if get_pref("applyIdleMinBefore"):
       self.apply_min()
-    if get_pref("hasStartAndEnd"):
-      self.render_values *= prefs.fade()
+    self.render_values *= prefs.fade()
     self.target_values = self.render_values.copy()
     self.blend_pixels()
     self.apply_color()

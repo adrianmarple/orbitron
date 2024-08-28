@@ -5,6 +5,9 @@ const path = require('path')
 const { exec } = require('child_process')
 const { noCorsHeader } = require('../lib')
 
+// Imports from .env
+console.log(require('dotenv').config())
+
 
 function execute(command){
   return new Promise(resolve => {

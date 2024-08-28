@@ -41,35 +41,40 @@ default_prefs = {
   "fadeToBlack": True,
   "rainbowDuration": 10.0,
   "rainbowFade": 0.0,
-}
-default_timing_prefs = {
-  "startTime": "00:00",
-  "endTime": "23:59",
+
   "idleMin": 0,
   "applyIdleMinBefore": False,
-  "hasStartAndEnd": False,
-  "fadeDuration": 30,
-  "startFade": 10,
-  "endFade": 30,
+}
+timing_prefs = {
+  "useTimer": False,
+  "schedule": [
+    {
+      "prefName": "OFF",
+      "time": "00:00",
+      "fadeIn": 10,
+      "fadeOut": 30,
+    },
+  ],
 }
 default_prefs["idlePattern"] = config.get("IDLE", default_prefs["idlePattern"])
 
 pref_type = {}
-for (key, value) in list(default_prefs.items()) + list(default_timing_prefs.items()):
+for (key, value) in list(default_prefs.items()) + list(timing_prefs.items()):
   pref_type[key] = type(value)
   if pref_type[key] == str and value[0] == "#":
     pref_type[key] = "color"
   if pref_type[key] == str and "," in value:
     pref_type[key] = "vector"
 
+saved_prefs = {}
 prefs = {}
-timing_prefs = {}
+current_pref_name = None
 
 converted_prefs = {}
 pref_to_client_timestamp = {}
 current_prefs = {}
 current_prefs.update(default_prefs)
-current_prefs.update(default_timing_prefs)
+current_prefs.update(timing_prefs)
 
 
 if not os.path.exists(save_prefs_path):
@@ -82,19 +87,17 @@ pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no fil
 pref_names = [filename.split(".")[0] for filename in pref_names]
 sort_pref_names()
 
-def update_prefs(update, client_timestamp=0):
+def update(update, client_timestamp=0):
   if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
       client_timestamp = 0
   for key, value in update.items():
     converted_prefs[key] = None
     pref_to_client_timestamp[key] = client_timestamp
-    if key in default_timing_prefs:
+    if key in timing_prefs:
       timing_prefs[key] = value
     else:
       prefs[key] = value
   current_prefs.update(update)
-  set_idle()
-  update_fade_times()
   f = open(pref_path, "w")
   f.write(json.dumps(prefs, indent=2))
   f.close()
@@ -102,61 +105,70 @@ def update_prefs(update, client_timestamp=0):
   f.write(json.dumps(timing_prefs, indent=2))
   f.close()
 
-def clear_prefs():
+  identify_name()
+  if get_pref("useTimer") and ("schedule" in update or "useTimer" in update):
+    update_schedule()
+
+def identify_name():
+  global current_pref_name
+  for (name, saved_pref) in saved_prefs.items():
+    if are_prefs_equivalent(prefs, saved_pref):
+      current_pref_name = name
+      return
+  current_pref_name = None
+
+def are_prefs_equivalent(a, b):
+  for key in default_prefs.keys():
+    if a.get(key, default_prefs[key]) != b.get(key, default_prefs[key]):
+      return False
+  return True
+
+def clear():
   global prefs, current_prefs, converted_prefs
   prefs.clear()
   pref_to_client_timestamp.clear()
   converted_prefs.clear()
   current_prefs.clear()
   current_prefs.update(default_prefs)
-  current_prefs.update(default_timing_prefs)
-  set_idle()
+  current_prefs.update(timing_prefs)
   if os.path.exists(pref_path):
     os.remove(pref_path)
 
-def save_prefs(name):
+def save(name):
   new_path = pref_path_from_name(name)
+  saved_prefs[name] = prefs
   shutil.copy(pref_path, new_path)
   if name not in pref_names:
     pref_names.append(name)
     sort_pref_names()
 
-def load_prefs(name=None):
-  global current_prefs, prefs, timing_prefs
-  if name is not None:
-    clear_prefs()
-    old_path = pref_path_from_name(name)
-    if os.path.exists(old_path):
-      shutil.copy(old_path, pref_path)
-    else:
-      print("Tried to load non-existant pref: %s" % name, file=sys.stderr)
 
-  timing_prefs = {}
-  if os.path.exists(pref_path):
-    f = open(pref_path, "r")
-    prefs = json.loads(f.read())
-    f.close()
-    current_prefs.update(prefs)
-    for key in prefs.keys():
-      converted_prefs[key] = None
-    for key in default_timing_prefs.keys():
-      if key in prefs:
-        timing_prefs[key] = prefs[key]
-        del prefs[key]
+def load(name, clobber_prefs=True):
+  global current_pref_name, current_prefs, prefs
+  old_path = pref_path_from_name(name)
+  if not os.path.exists(old_path):
+    print("Tried to load non-existant pref: %s" % name, file=sys.stderr)
+    return
+  
+  if name in saved_prefs:
+    loaded_prefs = saved_prefs[name]
   else:
-    prefs = {}
-
-  if os.path.exists(timing_pref_path):
-    f = open(timing_pref_path, "r")
-    timing_prefs.update(json.loads(f.read()))
+    f = open(old_path, "r")
+    loaded_prefs = json.loads(f.read())
+    saved_prefs[name] = loaded_prefs
     f.close()
+
+  if clobber_prefs:
+    clear()
+    shutil.copy(old_path, pref_path)
+    prefs.update(loaded_prefs) # Effitively a copy
+    current_prefs.update(loaded_prefs)
     current_prefs.update(timing_prefs)
-    for key in timing_prefs.keys():
+    for key in default_prefs.keys():
       converted_prefs[key] = None
-  else:
-    timing_prefs = {}
+    current_pref_name = name
 
-def delete_prefs(name):
+def delete(name):
   path = pref_path_from_name(name)
   if os.path.exists(path):
     os.remove(path)
@@ -182,35 +194,77 @@ def get_pref(pref_name):
     pref = pref.split(",")
     pref = [float(x) for x in pref]
     pref = np.array(pref)
+  elif pref_name == "schedule":
+    pref = json.loads(json.dumps(pref)) # deep copy
+    for event in pref:
+      event["time"] = datetime.strptime(event["time"], '%H:%M').time()
 
   converted_prefs[pref_name] = pref
   return pref
 
+
 start = datetime(1970,1,1,0,0,0,0)
 end = start
+previous = None
+current = None
+next = None
+
 def fade():
+  if not get_pref("useTimer"):
+    return 1
+  if current["prefName"] == "OFF":
+    return 0
   now = datetime.now()
   if now > end:
-    update_fade_times()
-  start_fade = (now - start).total_seconds() / get_pref("startFade") / 60
-  end_fade = (end - now).total_seconds() / get_pref("endFade") / 60
+    update_schedule()
+
+  start_fade_duration = previous.get("fadeIn", 10) if previous["prefName"] == "OFF" else 0.2
+  try:
+    start_fade_duration = float(start_fade_duration)
+  except:
+    start_fade_duration = 0.01
+  if start_fade_duration <= 0:
+    start_fade_duration = 0.01
+  start_fade = (now - start).total_seconds() / start_fade_duration / 60
+
+  end_fade_duration = next.get("fadeOut", 30) if next["prefName"] == "OFF" else 0.2
+  try:
+    end_fade_duration = float(end_fade_duration)
+  except:
+    end_fade_duration = 0.01
+  if end_fade_duration <= 0:
+    end_fade_duration = 0.01
+  end_fade = (end - now).total_seconds() / end_fade_duration / 60
+  
   fade = min(start_fade, end_fade)
   fade = min(fade, 1)
   fade = max(fade, 0)
   return fade
-def update_fade_times():
-  global start, end
+
+def update_schedule():
+  schedule = get_pref("schedule")
+  if len(schedule) == 0:
+    return
+
+  global start, end, previous, current, next
+
   now = datetime.now()
   now_date = now.date()
+  now_time = now.time()
+  previous = schedule[-1]
+  current = schedule[-1]
+  next = schedule[0]
+  for event in schedule:
+    if cyclic_interval_check(current["time"], event["time"], now_time):
+      next = event
+      break
+    previous = current
+    current = event
 
-  start_string = get_pref("startTime")
-  start_time = datetime.strptime(start_string, '%H:%M').time()
-  start = datetime.combine(now_date, start_time)
-
-  end_string = get_pref("endTime")
-  end_time = datetime.strptime(end_string, '%H:%M').time()
-  end = datetime.combine(now_date, end_time)
-
+  if current["prefName"] != "OFF":
+    load(current["prefName"])
+  start = datetime.combine(now_date, current["time"])
+  end = datetime.combine(now_date, next["time"])
   if end < now:
     end += timedelta(days=1)
   if start > end:
@@ -218,5 +272,46 @@ def update_fade_times():
   if end - start > timedelta(days=1):
     start += timedelta(days=1)
 
-load_prefs()
-set_idle = None
+def cyclic_interval_check(start, end, x):
+  return ((start <= end) != (start < x)) != (x < end)
+
+
+# Initial load
+
+# Preload all saved prefs
+for file in os.listdir(save_prefs_path):
+  name = os.path.basename(file)[:-11]
+  load(name, clobber_prefs=False)
+
+if os.path.exists(pref_path):
+  f = open(pref_path, "r")
+  prefs = json.loads(f.read())
+  f.close()
+  current_prefs.update(prefs)
+  identify_name()
+  
+  # Convert old timer info
+  if "hasStartAndEnd" in prefs:
+    timing_prefs["useTimer"] = prefs["hasStartAndEnd"]
+  if current_pref_name is not None:
+    timing_prefs["schedule"] = [
+      {
+        "time": prefs.get("startTime", "00:00"),
+        "prefName": current_pref_name,
+      },
+      {
+        "time": prefs.get("endTime", "23:59"),
+        "prefName": "OFF",
+        "fadeIn": prefs.get("startFade", 10),
+        "fadeOut": prefs.get("endFade", 30),
+      },
+    ]
+
+if os.path.exists(timing_pref_path):
+  f = open(timing_pref_path, "r")
+  timing_prefs.update(json.loads(f.read()))
+  f.close()
+current_prefs.update(timing_prefs)
+
+if get_pref("useTimer"):
+  update_schedule()

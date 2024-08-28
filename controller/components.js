@@ -18,9 +18,9 @@ Vue.component('boolean', {
     name() { return this.$vnode.key },
   },
   template: `
-<div class="pure-material-checkbox" @click="$root.prefs[name] = !$root.prefs[name]">
+<div class="pure-material-checkbox">
   <input type="checkbox" v-model="$root.prefs[name]">
-  <div class="checkbox">
+  <div class="checkbox" @click="$root.prefs[name] = !$root.prefs[name]">
     <div class="inner">
       <div class="checkmark"></div>
     </div>

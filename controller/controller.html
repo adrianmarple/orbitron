@@ -62,7 +62,7 @@
       </div>
     </div>
     <!-- SAVE MENU -->
-    <div v-if="nav=='save'" class="nav-page" :style="saveScrollStyle">
+    <div v-if="nav=='save'" class="nav-page">
       <div class=" horiz-box">
         <div class="button" id="restore-defaults" @click="clearPrefs()" >
           Restore Defaults
@@ -71,7 +71,7 @@
       <div class="scroll-containter">
         <div v-for="name in state.prefNames"
             class="pref-list-item"
-            :class="{selected: prefName == name}"
+            :class="{selected: name == state.currentPrefName}"
             @click="rawPrefName=name"
         >
           <div class="fancy-box">
@@ -99,23 +99,42 @@
 
     <!-- TIMING MENU -->
     <div v-else-if="nav=='timing'" class="nav-page">
-      <div v-if="prefs.hasStartAndEnd" class="column" style="align-items: center; width: 100%;">
-        <number title="Fade Start (min)" key="startFade"></number>
-        <number title="Fade End (min)" key="endFade"></number>
-        <div class="row horiz-box">
-          <div>
-            Start Time:
-            <input type="time" v-model="prefs.startTime">
-            </input>
+      <div class="column schedule">
+        <div v-if="!prefs.useTimer" class="scrim"></div>
+        <div class="add-wrapper">
+          <div class="padding"></div>
+          <Icon image="add"
+            :w="4*rem" :h="4*rem"
+            @click="addNewEvent({prefName: 'OFF', time: '00:00'})">
+          </Icon>
+          <!-- <div class="add" @click="addNewEvent({prefName: 'OFF', time: '00:00'})">+</div> -->
+          <div class="padding"></div>
+        </div>
+        <div v-for="event in prefs.schedule" class="event-wrapper">
+          <div class="event">
+            <select v-model="event.prefName">
+              <option v-for="name in eventNames" :value="name">{{name}}</option>
+            </select>
+            <input type="time" v-model="event.time" @change="sortSchedule"></input>
+            <img class="delete" src="/controller/images/delete.svg" @click="deleteEvent(event)"/>
           </div>
-          <div>
-            End Time:
-            <input type="time" v-model="prefs.endTime">
-            </input>
+          <div v-if="event.prefName == 'OFF'" class="fades">
+              <div class="label">Fade In</div>
+              <input type="number" v-model="event.fadeIn"></input>
+              <div class="label">Fade Out</div>
+              <input type="number" v-model="event.fadeOut"></input>
+          </div>
+          <div class="add-wrapper">
+            <div class="padding"></div>
+            <Icon image="add"
+              :w="4*rem" :h="4*rem"
+              @click="addNewEvent(event)">
+            </Icon>
+            <div class="padding"></div>
           </div>
         </div>
       </div>
-      <boolean title="Use Timer" key="hasStartAndEnd"></boolean>
+      <boolean title="Use Timer" key="useTimer"></boolean>
     </div>
 
     <!-- COLORS MENU -->

@@ -37,6 +37,10 @@ def check_all_ready():
       return
   engine.game.ontimeout()
 
+def clear_prefs():
+  prefs.clear()
+  idlepatterns.set_idle()
+
 def consume_input():
   for line in fileinput.input():
     try:
@@ -65,16 +69,17 @@ def consume_input():
         engine.game = None
         # Prefs stuff
       if message["type"] == "prefs":
-        prefs.update_prefs(message["update"], client_timestamp=message["timestamp"])
+        prefs.update(message["update"], client_timestamp=message["timestamp"])
+        idlepatterns.set_idle()
       elif message["type"] == "clearPrefs":
-        prefs.clear_prefs()
+        clear_prefs()
       elif message["type"] == "savePrefs":
-        engine.save_prefs(message["name"])
+        prefs.save(message["name"])
       elif message["type"] == "loadPrefs":
-        engine.load_prefs(message["name"])
+        prefs.load(message["name"])
         idlepatterns.set_idle()
       elif message["type"] == "deletePrefs":
-        engine.delete_prefs(message["name"])
+        prefs.delete(message["name"])
 
       if "self" not in message or message["self"] is None:
         continue

@@ -81,9 +81,12 @@ export default {
     if (location.href.includes("?local")) {
       this.serverOrbID = "Dragonite"
       this.serverUrl = "http://localhost:1337"
+      if (this.orbID == "demo") {
+        this.orbID = "Dragonite"
+      }
     }
     let self = this
-    addEventListener('resize', event => {
+    addEventListener('resize', _ => {
       self.innerWidth = innerWidth
       self.$forceUpdate()
     })
