@@ -2,7 +2,7 @@
 
 import prefs
 import engine
-import idlepatterns
+import idlepatterns # Required to set initial idle pattern
 
 import fileinput
 import json
@@ -10,7 +10,6 @@ import pkgutil
 import os
 import sys
 import numpy as np
-from random import random
 from time import time
 from threading import Thread
 

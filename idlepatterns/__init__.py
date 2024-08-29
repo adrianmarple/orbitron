@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import importlib
+import importlib.util
 import numpy as np
 import os
 import sys
@@ -29,7 +29,6 @@ def set_idle():
   if name in name_to_idle_game:
     idle = name_to_idle_game[name]
   else:
-    # path = "%s/idlepatterns/%s.py" % (os.path.dirname(__file__), name)
     path = "%s/%s.py" % (os.path.dirname(__file__), name)
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
