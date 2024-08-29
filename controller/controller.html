@@ -161,7 +161,9 @@
       <dropdown title="Style" key="idleColor" :selection="prefs['idleColor']"
       :options="[['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']]"
       ></dropdown>
-      <slider title="Brightness" key="brightness" ></slider>
+      <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
+          title="Blend" key="idleBlend"></slider>
+      <slider title="Brightness" key="brightness"  :max="200"></slider>
     </div>
 
     <!-- PATTERN MENU -->
@@ -184,8 +186,6 @@
       <slider v-if="prefs.idlePattern == 'sin'"
           title="Min Value" key="sinMin" :min="-255" :max="255"></slider>
 
-      <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
-          title="Blend" key="idleBlend" :max="150"></slider>
       <slider v-if="!['weather', 'static', 'lightfield'].includes(prefs.idlePattern)" 
           title="Density" key="idleDensity"
           :min="10"></slider>

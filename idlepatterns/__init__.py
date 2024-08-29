@@ -204,12 +204,14 @@ class Idle(Game):
     self.render_values = np.maximum(self.render_values, get_pref("idleMin")/255)
 
   def apply_brightness(self):
-    self.render_values *= get_pref("brightness") / 100 * self.beat_factor()
+    brightness = get_pref("brightness") / 100
+    brightness *= brightness
+    self.render_values *= brightness * self.beat_factor()
 
   def blend_pixels(self):
     frame_delta = (time() - self.previous_render_time)
     frame_delta *= get_pref("idleFrameRate") / 15
-    frame_delta *= exp(2.7 - get_pref("idleBlend")/25)
+    frame_delta *= exp(2.7 - get_pref("idleBlend")/17)
     if time() - self.previous_beat_time < 0.01:
       frame_delta = 2
     if frame_delta < 1:
