@@ -43,6 +43,7 @@ var app = new Vue({
 
     settings: {},
     prefs: {},
+    dontSendUpdates: false,
     lastPrefUpdateTime: {},
     rawPrefName: "",
     GAMES_INFO,
@@ -126,6 +127,7 @@ var app = new Vue({
         this.prefs = { ...val }
         for (let key in val) {
           this.$watch('prefs.' + key, (v, vOld) => {
+            if (this.dontSendUpdates) return
             if (typeof(v) == 'object' || v != vOld) {
               this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
             }
@@ -589,7 +591,7 @@ var app = new Vue({
       }
     },
 
-    handleMessage(data) {
+    async handleMessage(data) {
       let self = this
       message = JSON.parse(data)
       if(message.timestamp <= self.latestMessage){
@@ -600,7 +602,9 @@ var app = new Vue({
         window.parent.postMessage({self: message.self}, '*')
       }
       self.state = message
-      self.$forceUpdate()
+      self.dontSendUpdates = true
+      await self.$forceUpdate()
+      self.dontSendUpdates = false
     },
 
     handleStart(location) {
