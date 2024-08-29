@@ -42,6 +42,7 @@ def set_idle():
     engine.idle = idle
     engine.start(idle)
 
+
 class Idle(Game):
   name = "idle"
   waiting_music = "idle"
@@ -264,3 +265,6 @@ def time_of_day_color():
 
 engine.idle = Idle()
 name_to_idle_game["default"] = engine.idle
+
+prefs.set_idle = set_idle # Effectively delegate pattern
+set_idle() # Have to call this here since set_idle wasn't set during initial load in prefs.py

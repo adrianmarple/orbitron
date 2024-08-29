@@ -9,6 +9,10 @@ import sys
 from datetime import datetime, timedelta
 from time import sleep, time
 
+# To be overwritten by idlepatterns
+def set_idle():
+  pass
+
 config = json.loads(os.getenv("CONFIG"))
 
 pref_path = os.path.dirname(__file__) + "/prefs.json"
@@ -98,6 +102,8 @@ def update(update, client_timestamp=0):
     else:
       prefs[key] = value
   current_prefs.update(update)
+  set_idle()
+
   f = open(pref_path, "w")
   f.write(json.dumps(prefs, indent=2))
   f.close()
@@ -130,6 +136,7 @@ def clear():
   current_prefs.clear()
   current_prefs.update(default_prefs)
   current_prefs.update(timing_prefs)
+  set_idle()
   if os.path.exists(pref_path):
     os.remove(pref_path)
 
@@ -168,6 +175,7 @@ def load(name, clobber_prefs=True):
     for key in default_prefs.keys():
       converted_prefs[key] = None
     current_pref_name = name
+    set_idle()
     shutil.copy(old_path, pref_path)
 
 def delete(name):

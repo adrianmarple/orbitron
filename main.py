@@ -25,7 +25,6 @@ for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
   engine.games[module_name] = module.game
   engine.game_selection_weights[module_name] = 1
 
-idlepatterns.set_idle()
 
 def check_all_ready():
   if engine.game.state != "start":
@@ -36,10 +35,6 @@ def check_all_ready():
     if not player.is_ready:
       return
   engine.game.ontimeout()
-
-def clear_prefs():
-  prefs.clear()
-  idlepatterns.set_idle()
 
 def consume_input():
   for line in fileinput.input():
@@ -70,14 +65,12 @@ def consume_input():
         # Prefs stuff
       if message["type"] == "prefs":
         prefs.update(message["update"], client_timestamp=message["timestamp"])
-        idlepatterns.set_idle()
       elif message["type"] == "clearPrefs":
-        clear_prefs()
+        prefs.clear()
       elif message["type"] == "savePrefs":
         prefs.save(message["name"])
       elif message["type"] == "loadPrefs":
         prefs.load(message["name"])
-        idlepatterns.set_idle()
       elif message["type"] == "deletePrefs":
         prefs.delete(message["name"])
 
@@ -95,7 +88,7 @@ def consume_input():
         player.is_claimed = False
         check_all_ready()
         if config.get("CLEAR_PREFS_ON_DISCONNECT") and len(engine.game.claimed_players()) == 0:
-          clear_prefs()
+          prefs.clear()
       elif message["type"] == "ready":
         player.set_ready()
         check_all_ready()
