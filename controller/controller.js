@@ -600,7 +600,6 @@ var app = new Vue({
         window.parent.postMessage({self: message.self}, '*')
       }
       self.state = message
-      // console.log(message)
       self.$forceUpdate()
     },
 

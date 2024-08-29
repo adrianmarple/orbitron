@@ -105,9 +105,9 @@ def update(update, client_timestamp=0):
   f.write(json.dumps(timing_prefs, indent=2))
   f.close()
 
-  identify_name()
   if get_pref("useTimer") and ("schedule" in update or "useTimer" in update):
     update_schedule()
+  identify_name()
 
 def identify_name():
   global current_pref_name
@@ -124,7 +124,6 @@ def are_prefs_equivalent(a, b):
   return True
 
 def clear():
-  global prefs, current_prefs, converted_prefs
   prefs.clear()
   pref_to_client_timestamp.clear()
   converted_prefs.clear()
@@ -160,13 +159,13 @@ def load(name, clobber_prefs=True):
 
   if clobber_prefs:
     clear()
-    shutil.copy(old_path, pref_path)
     prefs.update(loaded_prefs) # Effitively a copy
     current_prefs.update(loaded_prefs)
     current_prefs.update(timing_prefs)
     for key in default_prefs.keys():
       converted_prefs[key] = None
     current_pref_name = name
+    shutil.copy(old_path, pref_path)
 
 def delete(name):
   path = pref_path_from_name(name)
@@ -210,7 +209,7 @@ current = None
 next = None
 
 def fade():
-  if not get_pref("useTimer"):
+  if not get_pref("useTimer") or current is None:
     return 1
   if current["prefName"] == "OFF":
     return 0
