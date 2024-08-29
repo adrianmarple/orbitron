@@ -200,17 +200,6 @@ class Idle(Game):
     X = np.maximum(X, 0)
     return np.multiply(X, self.render_values)
 
-  def apply_fade(self):
-    now = datetime.now()
-    if now > self.end:
-      self.update_prefs()
-    start_fade = (now - self.start).total_seconds() / get_pref("startFade") / 60
-    end_fade = (self.end - now).total_seconds() / get_pref("endFade") / 60
-    fade = min(start_fade, end_fade)
-    fade = min(fade, 1)
-    fade = max(fade, 0)
-    self.render_values *= fade
-
   def apply_min(self):
     self.render_values = np.maximum(self.render_values, get_pref("idleMin")/255)
 

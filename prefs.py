@@ -214,11 +214,11 @@ next = None
 def fade():
   if not get_pref("useTimer") or current is None:
     return 1
-  if current["prefName"] == "OFF":
-    return 0
   now = datetime.now()
   if now > end:
     update_schedule()
+  if current["prefName"] == "OFF":
+    return 0
 
   start_fade_duration = previous.get("fadeIn", 10) if previous["prefName"] == "OFF" else 0.2
   try:
