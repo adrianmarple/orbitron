@@ -557,6 +557,7 @@ input[type="range"]::-moz-range-thumb {
   font-size: 2.8rem !important;
   padding: 0;
   border: 0;
+  z-index: 1;
 }
 
 .add-wrapper {
