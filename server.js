@@ -113,7 +113,7 @@ async function serverHandler(request, response) {
   let processed = filePath.split("/")
   let orbID = processed.length > 1 ? processed[1] : ''
   orbID = orbID.toLowerCase()
-  orbID = config.ALIASES[orbID] ?? orbID
+  orbID = config.reverseAliases[orbID] ?? orbID
   for (const listener of getListeners) {
     handled = await listener(response, orbID, filePath, queryParams)
     if(handled) break

@@ -1,7 +1,7 @@
 <template>
 <div class="type-buttons">
   <div v-for="orb in orbInfo" class="button orb" @click="setOrb(orb.id)">
-    <div>{{ orb.aliases[0] ?? orb.id }}</div>
+    <div>{{ orb.alias ?? orb.id }}</div>
     <div class="right">
       <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
       <div class="commit-status">
@@ -37,7 +37,7 @@
 <div class="names">
   {{ orbID }}
   <div>Alias:
-    <span v-if="aliases.length > 0">{{aliases[0]}}</span>
+    <span v-if="alias">{{alias}}</span>
     <span v-else>
       <textarea v-model="newAlias"></textarea>
       <div class="button" @click="saveAlias">Save</div>
@@ -59,7 +59,7 @@ export default {
       masterKey: "",
       commits: [],
       orbID: localStorage.getItem("orbID") || "demo",
-      aliases: [],
+      alias: null,
       serverOrbID: "demo",
       serverUrl: "https://my.lumatron.art",
       innerWidth,
@@ -79,10 +79,10 @@ export default {
   },
   async created() {
     if (location.href.includes("?local")) {
-      this.serverOrbID = "Dragonite"
+      this.serverOrbID = "dragonite"
       this.serverUrl = "http://localhost:1337"
       if (this.orbID == "demo") {
-        this.orbID = "Dragonite"
+        this.orbID = "dragonite"
       }
     }
     let self = this
@@ -173,10 +173,9 @@ export default {
     },
     async setOrb(orbID) {
       this.orbID = orbID
-      this.aliases = []
       for (let orb of this.orbInfo) {
         if (orb.id == orbID) {
-          this.aliases = orb.aliases
+          this.alias = orb.alias
           break
         }
       }
@@ -204,16 +203,24 @@ export default {
       this.idToPrefs[this.orbID] = this.prefs
     },
     async saveAlias() {
+      this.sendServerCommand({
+        type: "alias",
+        id: this.orbID,
+        alias: this.newAlias,
+      })
+
       let serverConfig = this.idToConfig[this.serverOrbID]
       if (!serverConfig) {
         serverConfig = await this.sendCommand({type: "getconfig"}, this.serverOrbID)
       }
-      serverConfig = upsertLineInConfig(serverConfig, `    ${this.newAlias}: "${this.orbID}",`, "ALIASES")
+      serverConfig = upsertLineInConfig(serverConfig, `    ${this.orbID}: "${this.newAlias}",`, "ALIASES")
       this.idToConfig[this.serverOrbID] = serverConfig
       await this.sendCommand({
         type: "setconfig",
         data: serverConfig,
+        dontRestart: true,
       }, this.serverOrbID)
+      await this.updateConfig()
     },
     async restartOrb() {
       await this.sendCommand({ type: "restart" }, this.orbID)
@@ -222,8 +229,8 @@ export default {
       try {
         this.orbInfo = JSON.parse(await this.sendServerCommand({type: "orblist"}))
         this.orbInfo = this.orbInfo.sort((a,b) => {
-          let aName = a.aliases[0] ?? a.id
-          let bName = b.aliases[0] ?? b.id
+          let aName = a.alias ?? a.id
+          let bName = b.alias ?? b.id
           return aName < bName ? -1 : 1
         })
 

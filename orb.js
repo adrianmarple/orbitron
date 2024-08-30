@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-let { checkConnection, execute, config, processAdminCommand, PYTHON_EXECUTABLE, restartOrbitron} = require('./lib')
-const { pullAndRestart } = require('./gitupdate')
+let { checkConnection, delay, execute, config, processAdminCommand, PYTHON_EXECUTABLE, restartOrbitron} = require('./lib')
+const { pullAndRestart, timeUntilHour } = require('./gitupdate')
 const WebSocket = require('ws')
 const fs = require('fs')
 const process = require('process')
@@ -34,6 +34,25 @@ if (game_index) {
   starting_game = process.argv[game_index]
   console.log("Starting with game: " + starting_game)
 }
+
+// Cloud save
+async function saveBackup() {
+  while (true) {
+    await delay(timeUntilHour(0))
+
+    let savedPrefFileNames = await fs.promises.readdir("savedprefs")
+    let savedPrefs = await Promise.all(savedPrefFileNames
+      .map(async fileName => (await fs.promises.readFile("savedprefs/" + fileName)).toString()))
+    let backup = {
+      savedPrefs,
+      timingprefs: (await fs.promises.readFile("timingprefs.json")).toString(),
+      config: (await fs.promises.readFile("config.js")).toString(),
+    }
+    orbToRelaySocket.send(JSON.stringify({ backup }))
+  }
+}
+saveBackup()
+
 
 
 let orbToRelaySocket = null
@@ -130,7 +149,9 @@ function connectOrbToRelay(){
           let configObject = eval("(" + match[1] + ")")
           if (!configObject.ORB_ID) return
           await fs.promises.writeFile("config.js", command.data)
-          restartOrbitron()
+          if (!command.dontRestart) {
+            restartOrbitron()
+          }
         }
         if (command.type == "setprefs") {
           try {

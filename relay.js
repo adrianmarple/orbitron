@@ -24,7 +24,7 @@ function serverHandler(request, response) {
   //console.log('Websocket Server received request for ' + request.url)
   response.writeHead(404)
   response.end()
-} 
+}
 
 
 server.listen(7777, "0.0.0.0", function() {
@@ -40,8 +40,8 @@ wsServer.on('connection', (socket, request) => {
     socket.classification = "WS orb to server"
     bindOrb(socket, orbID)
   } else { // client socket connecting to server
-    let orbID = meta[1]
-    orbID = config.ALIASES[orbID] ?? orbID
+    let orbID = meta[1].toLowerCase()
+    orbID = config.reverseAliases[orbID] ?? orbID
     let clientID = meta[2]
     socket.clientID = clientID
     socket.classification = "WS client to server"
@@ -58,7 +58,6 @@ setInterval(serverPingHandler, 3000)
 
 function bindOrb(socket, orbID) {
   orbID = orbID.toLowerCase()
-  //console.log("Binding orb",orbID)
   if(connectedOrbs[orbID]){
     try {
       connectedOrbs[orbID].close()
@@ -67,7 +66,7 @@ function bindOrb(socket, orbID) {
     }
   }
   connectedOrbs[orbID] = socket
-  socket.on('message', (data, isBinary) => {
+  socket.on('message', async (data, isBinary) => {
     if (data == "PING") return
 
     try {
@@ -76,6 +75,37 @@ function bindOrb(socket, orbID) {
       if (messageID) {
         if (awaitingMessages[messageID]) {
           awaitingMessages[messageID].resolve(jsonData.data)
+        }
+        return
+      }
+
+      let backup = jsonData.backup
+      if (backup) {
+        backup = JSON.stringify(backup)
+        let backupsDir = "./backups/"
+        if (!fs.existsSync(backupsDir)) {
+          await fs.promises.mkdir(backupsDir)
+        }
+        let savedPrefFileNames = (await fs.promises.readdir(backupsDir))
+          .filter(name => name.startsWith(orbID))
+        if (savedPrefFileNames.length > 0) {
+          let lastFilePath = backupsDir + savedPrefFileNames[savedPrefFileNames.length - 1]
+          let lastFileContents = await fs.promises.readFile(lastFilePath)
+          if (backup == lastFileContents) {
+            return
+          }
+        }
+        
+        function twoDigit(num) {
+          return String(num).padStart(2, '0')
+        }
+        let d = new Date()
+        let dateString = `${d.getFullYear()}-${twoDigit(d.getMonth()+1)}-${twoDigit(d.getDate())}_${twoDigit(d.getHours())}-${twoDigit(d.getMinutes())}`
+        let path = backupsDir + orbID + "_" + dateString + '.bak'
+        await fs.promises.writeFile(path, backup)
+
+        for (let i = 0; i < savedPrefFileNames.length - 5; i++) {
+          fs.promises.unlink(backupsDir + savedPrefFileNames[i])
         }
         return
       }
@@ -125,7 +155,6 @@ function bindOrb(socket, orbID) {
 
 function bindClient(socket, orbID, clientID) {
   orbID = orbID.toLowerCase()
-  //console.log("Binding client",orbID,clientID)
   if(!connectedClients[orbID]){
     connectedClients[orbID] = {}
   }
@@ -201,21 +230,16 @@ addGETListener(async (response, orbID, _, queryParams) => {
     noCorsHeader(response, 'text/json')
     let orbInfo = []
     for (let id in connectedOrbs) {
-      let aliases = []
-      for (let alias in config.ALIASES) {
-        let aliasID = config.ALIASES[alias]
-        if (id == aliasID) {
-          aliases.push(alias)
-        }
-      }
       orbInfo.push({
         id,
-        aliases,
-        // TODO add local IP address
+        alias: config.ALIASES[id],
       })
     }
     response.end(JSON.stringify(orbInfo))
     return true
+  } else if (command.type == "alias") {
+    config.ALIASES[command.id] = command.alias
+    config.reverseAliases[command.alias] = command.id
   }
   return false
 })
@@ -288,7 +312,17 @@ addGETListener(async (response, orbID, filePath)=>{
 
 addGETListener(async (response, orbID, filePath)=>{
   if(!orbID || !connectedOrbs[orbID]) return
-  respondWithFile(response, "/controller/controller.html")
+
+  let originalOrbID = filePath.split("/")[1].toLowerCase()
+  if (config.ALIASES[originalOrbID]) {
+    // Always redirect to use alias
+    response.writeHead(302 , {
+        'Location' : '/' + config.ALIASES[orbID]
+    })
+    response.end()
+  } else {
+    respondWithFile(response, "/controller/controller.html")
+  }
   return true
 })
 

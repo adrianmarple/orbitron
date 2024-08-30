@@ -81,5 +81,5 @@ if(runDirectly){
 }
 
 module.exports = {
-  checkForUpdates, pullAndRestart
+  checkForUpdates, pullAndRestart, timeUntilHour,
 }

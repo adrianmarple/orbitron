@@ -5,6 +5,11 @@ let { exec, execSync } = require('child_process')
 //load and process config and environment variables
 let config = require(__dirname + "/config.js")
 config.ALIASES = config.ALIASES ?? {}
+config.reverseAliases = {}
+for (let id in config.ALIASES) {
+  config.reverseAliases[config.ALIASES[id]] = id
+}
+
 if(config.KEY_LOCATION){
   config.httpsOptions = {
     key: fs.readFileSync(config.KEY_LOCATION),
