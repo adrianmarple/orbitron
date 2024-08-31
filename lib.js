@@ -30,6 +30,10 @@ if (!filePath.includes("/"))
 filePath = `/pixels/${filePath}.json`
 config.PIXELS = filePath
 
+if (!config.DEV_MODE && config.TIMEZONE) {
+  execute(`timedatectl set-timezone ${config.TIMEZONE}`)
+}
+
 //add timestamps to logs
 const clog = console.log
 const cerr = console.error
