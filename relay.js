@@ -11,8 +11,8 @@ const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 const connectedOrbs = {}
 const logsRequested = {}
 const connectedClients = {}
-
 const awaitingMessages = {}
+let BACKUPS_DIR = "./backups/"
 
 let server
 if (config.DEV_MODE) {
@@ -82,14 +82,15 @@ function bindOrb(socket, orbID) {
       let backup = jsonData.backup
       if (backup) {
         backup = JSON.stringify(backup)
-        let backupsDir = "./backups/"
-        if (!fs.existsSync(backupsDir)) {
-          await fs.promises.mkdir(backupsDir)
+        let id = config.ALIASES[orbID] ?? orbID
+        
+        if (!fs.existsSync(BACKUPS_DIR)) {
+          await fs.promises.mkdir(BACKUPS_DIR)
         }
-        let savedPrefFileNames = (await fs.promises.readdir(backupsDir))
-          .filter(name => name.startsWith(orbID))
+        let savedPrefFileNames = (await fs.promises.readdir(BACKUPS_DIR))
+          .filter(name => name.startsWith(id))
         if (savedPrefFileNames.length > 0) {
-          let lastFilePath = backupsDir + savedPrefFileNames[savedPrefFileNames.length - 1]
+          let lastFilePath = BACKUPS_DIR + savedPrefFileNames[savedPrefFileNames.length - 1]
           let lastFileContents = await fs.promises.readFile(lastFilePath)
           if (backup == lastFileContents) {
             return
@@ -101,11 +102,11 @@ function bindOrb(socket, orbID) {
         }
         let d = new Date()
         let dateString = `${d.getFullYear()}-${twoDigit(d.getMonth()+1)}-${twoDigit(d.getDate())}_${twoDigit(d.getHours())}-${twoDigit(d.getMinutes())}`
-        let path = backupsDir + orbID + "_" + dateString + '.bak'
+        let path = BACKUPS_DIR + id + "_" + dateString + '.bak'
         await fs.promises.writeFile(path, backup)
 
-        for (let i = 0; i < savedPrefFileNames.length - 5; i++) {
-          fs.promises.unlink(backupsDir + savedPrefFileNames[i])
+        for (let i = 0; i < savedPrefFileNames.length - 4; i++) {
+          fs.promises.unlink(BACKUPS_DIR + savedPrefFileNames[i])
         }
         return
       }
@@ -221,29 +222,41 @@ function bindClient(socket, orbID, clientID) {
   }
 }
 
+// Admin commands for this relay
 addGETListener(async (response, orbID, _, queryParams) => {
   if (orbID != "admin") return false
   let command = await processAdminCommand(queryParams)
   if (!command) return false
 
-  if (command.type == "orblist") {
-    noCorsHeader(response, 'text/json')
-    let orbInfo = []
-    for (let id in connectedOrbs) {
-      orbInfo.push({
-        id,
-        alias: config.ALIASES[id],
-      })
-    }
-    response.end(JSON.stringify(orbInfo))
-    return true
-  } else if (command.type == "alias") {
-    config.ALIASES[command.id] = command.alias
-    config.reverseAliases[command.alias] = command.id
+  noCorsHeader(response, 'text/json')
+  switch (command.type) {
+    case "orblist":
+      let orbInfo = []
+      for (let id in connectedOrbs) {
+        orbInfo.push({
+          id,
+          alias: config.ALIASES[id],
+        })
+      }
+      response.end(JSON.stringify(orbInfo))
+      return true
+    case "alias":
+      config.ALIASES[command.id] = command.alias
+      config.reverseAliases[command.alias] = command.id
+      response.end("OK")
+      return true
+    case "backuplist":
+      response.end(JSON.stringify(await fs.promises.readdir(BACKUPS_DIR)))
+      return true
+    case "backup":
+      response.end(await fs.promises.readFile(BACKUPS_DIR + command.fileName))
+      return true
+    default:
+      return false
   }
-  return false
 })
 
+// Admin commands for orbs
 addGETListener(async (response, orbID, filePath, queryParams) => {
   let pathParts = filePath.split("/")
   if (pathParts.length < 3 || pathParts[2] != "admin") return false

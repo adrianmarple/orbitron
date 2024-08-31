@@ -38,11 +38,14 @@ if (game_index) {
 // Cloud save
 async function saveBackup() {
   while (true) {
+    // await delay(10000)
     await delay(timeUntilHour(0))
 
     let savedPrefFileNames = await fs.promises.readdir("savedprefs")
-    let savedPrefs = await Promise.all(savedPrefFileNames
-      .map(async fileName => (await fs.promises.readFile("savedprefs/" + fileName)).toString()))
+    let savedPrefs = {}
+    for (let fileName of savedPrefFileNames) {
+      savedPrefs[fileName] = (await fs.promises.readFile("savedprefs/" + fileName)).toString()
+    }
     let backup = {
       savedPrefs,
       timingprefs: (await fs.promises.readFile("timingprefs.json")).toString(),
@@ -161,6 +164,21 @@ function connectOrbToRelay(){
           } catch(_) {
             console.log("Couldn't parse pref to save: ", command.data)
           }
+        }
+
+        if (command.type == "restoreFromBackup") {
+          let promises = []
+          let backup = command.backup
+          promises.push(fs.promises.writeFile("config.js", backup.config))
+          promises.push(fs.promises.writeFile("timingprefs.json", backup.timingprefs))
+
+          await fs.promises.rm("savedprefs", { recursive: true })
+          await fs.promises.mkdir("savedprefs")
+          for (let name in backup.savedPrefs) {
+            promises.push(fs.promises.writeFile("savedprefs/" + name, backup.savedPrefs[name]))
+          }
+          await Promise.all(promises)
+          restartOrbitron()
         }
         orbToRelaySocket.send(JSON.stringify({
           messageID,

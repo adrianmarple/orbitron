@@ -29,6 +29,7 @@
       {{ viewType }} 
     </div>
   </div>
+  <div class="button" @click="viewBackups">All Backups</div>
   <div class="button" @click="genBoxTop">Generate Box Top</div>
   <div class="button" @click="restartOrb">Restart</div>
   <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
@@ -49,6 +50,19 @@
 <textarea v-if="viewing=='config'" class="main-text" v-model="config"></textarea>
 <textarea v-if="viewing=='prefs'" class="main-text" v-model="prefs"></textarea>
 <textarea v-if="viewing=='log'" class="main-text" v-model="log" readonly></textarea>
+<div v-if="viewing=='backups'" id="backups">
+  <div class="list">
+    <div v-for="fileName in backupList" class="backup"
+      :class="{ selected: selectedBackup == fileName }"
+      @click="selectedBackup = fileName">
+      {{ fileName }}
+    </div>
+  </div>
+  <div class="row">
+    <div class="button" @click="restoreBackup">Restore Backup</div>
+    <div class="button" @click="viewing = 'config'">Cancel</div>
+  </div>
+</div>
 </template>
 
 <script>
@@ -75,6 +89,8 @@ export default {
       viewing: "config",
       qrCode: null,
       newAlias: "",
+      backupList: [],
+      selectedBackup: null,
     }
   },
   async created() {
@@ -213,7 +229,7 @@ export default {
       if (!serverConfig) {
         serverConfig = await this.sendCommand({type: "getconfig"}, this.serverOrbID)
       }
-      serverConfig = upsertLineInConfig(serverConfig, `    ${this.orbID}: "${this.newAlias}",`, "ALIASES")
+      serverConfig = upsertLineInConfig(serverConfig, `    "${this.orbID}": "${this.newAlias}",`, "ALIASES")
       this.idToConfig[this.serverOrbID] = serverConfig
       await this.sendCommand({
         type: "setconfig",
@@ -256,6 +272,19 @@ export default {
       this.idToLog[this.orbID] = await this.sendCommand({type: "getlog"}, this.orbID)
       this.log = this.idToLog[this.orbID]
     },
+
+    async viewBackups() {
+      this.viewing = "backups"
+      this.selectedBackup = null
+      this.backupList = JSON.parse(await this.sendServerCommand({ type: "backuplist" }))
+    },
+    async restoreBackup() {
+      let backup = await this.sendServerCommand({ type: "backup", fileName: this.selectedBackup })
+      backup = JSON.parse(backup)
+      await this.sendCommand({ type: "restoreFromBackup", backup }, this.orbID)
+      this.viewing = 'config'
+    },
+
     sendServerCommand(command) {
       return this.sendCommand(command, this.serverOrbID, true)
     },
@@ -347,6 +376,24 @@ function upsertLineInConfig(config, newLine, after) {
 </script>
 
 <style>
+#backups .list {
+  height: calc(100vh - 180px);
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+#backups .row {
+  display: flex;
+  width: 100%;
+  justify-content: space-around;
+}
+.backup {
+  font-size: 2rem;
+  cursor: pointer;
+}
+.backup.selected {
+  background: white;
+  color: black;
+}
 
 .main-text {
   color: white;
