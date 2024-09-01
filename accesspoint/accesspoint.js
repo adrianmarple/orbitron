@@ -16,7 +16,7 @@ let hasAccessPointConnection = false
 
 async function startAccessPoint() {
   removeWifiProfile("OrbHotspot")
-  await execute('nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Super Orbitron" ipv4.method shared ipv6.method shared')
+  await execute('nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Lumatron" ipv4.method shared ipv6.method shared')
   await execute('nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
 
@@ -31,7 +31,7 @@ async function startAccessPoint() {
     if (hasAccessPointConnection) {
       displayText("VISIT URL 10.42.0.1")
     } else {
-      displayText("JOIN WIFI SUPER ORBITRON")
+      displayText("JOIN WIFI LUMATRON")
     }
   }, 500)
   accessPointConnectionInterval = localIntervalRef
