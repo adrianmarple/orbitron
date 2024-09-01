@@ -186,6 +186,29 @@ def delete(name):
   else:
     print("Tried to delete non-existant pref: %s" % name, file=sys.stderr)
 
+def rename(original_name, new_name):
+  global current_pref_name
+  pref_names.remove(original_name)
+  if new_name not in pref_names:
+    pref_names.append(new_name)
+  sort_pref_names()
+
+  saved_prefs[new_name] = saved_prefs[original_name]
+  del saved_prefs[original_name]
+
+  if current_pref_name == original_name:
+    current_pref_name = new_name
+
+  for event in timing_prefs["schedule"]:
+    if event["prefName"] == original_name:
+      event["prefName"] = new_name
+  
+  os.rename(pref_path_from_name(original_name), pref_path_from_name(new_name))
+  f = open(timing_pref_path, "w")
+  f.write(json.dumps(timing_prefs, indent=2))
+  f.close()
+
+
 def get_pref(pref_name):
   converted_pref = converted_prefs.get(pref_name, None)
   if converted_pref is not None:

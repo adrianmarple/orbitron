@@ -69,13 +69,14 @@
         </div>
       </div>
       <div class="scroll-containter">
-        <div v-for="name in state.prefNames"
+        <div v-for="name, i in saveNames"
             class="pref-list-item"
             :class="{selected: name == state.currentPrefName}"
-            @click="rawPrefName=name"
+            @click="prefName=name"
         >
           <div class="fancy-box">
-            <div>{{name}}</div>
+            <textarea :value="name" @input="saveNames[i]=stripSaveName($event.target.value)"
+                @focus="saveFocused(name)" @blur="saveBlurred(name, i)"></textarea>
             <div class="buttons-container">
               <div class="button" @click="loadPrefs(name)" >
                 Load
@@ -87,7 +88,7 @@
       </div>
       <div class="bottom-plug"></div>
       <div id="save-bottom-stuff" class="horiz-box">
-        <textarea :value="prefName" @input="rawPrefName=$event.target.value"></textarea>
+        <textarea :value="prefName" @input="prefName=$event.target.value"></textarea>
         <div class="button"
             :class="{ disabled: !prefName }"
             @click="savePrefs()"

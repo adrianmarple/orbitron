@@ -22,6 +22,8 @@ var app = new Vue({
     showSettings: false,
     showAboutPage: false,
     blurred: false,
+    renamingSave: "",
+    saveNames: [],
 
     startLocation: null,
     delta: null,
@@ -45,7 +47,7 @@ var app = new Vue({
     prefs: {},
     dontSendUpdates: false,
     lastPrefUpdateTime: {},
-    rawPrefName: "",
+    prefName: "",
     GAMES_INFO,
     uuid: uuid(),
 
@@ -145,6 +147,11 @@ var app = new Vue({
             this.prefs[key] = val[key]
           }
         }
+      }
+    },
+    "state.prefNames": function(v, vOld) {
+      if (!deepCompare(v, vOld)) {
+        this.saveNames = [...this.state.prefNames]
       }
     },
     "state.gameId": function(val, oldValue) {
@@ -342,9 +349,6 @@ var app = new Vue({
         marginLeft: ((this.carouselSize - 1) * innerWidth) + "px",
       }
     },
-    prefName() {
-      return this.rawPrefName.replace(/[^0-9a-zA-Z ]/gi, '')
-    },
   },
 
   methods: {
@@ -379,6 +383,25 @@ var app = new Vue({
       this.prefs.schedule.sort((a,b) => a.time.localeCompare(b.time))
     },
 
+    saveFocused(name) {
+      this.renamingSave = name
+    },
+    saveBlurred(name, i) {
+      if (name != "" && name != this.renamingSave) {
+        let self = this
+        let originalName = this.renamingSave
+        this.speedbumpMessage = `Would you like to rename ${this.renamingSave} to ${name}?`
+        this.speedbumpCallback = () => {
+          self.send({type: "renamePref", originalName, newName: name})
+        }
+      }
+      this.saveNames[i] = this.renamingSave
+      this.renamingSave = ""
+    },
+
+    stripSaveName(name) {
+      return name.replace(/[^0-9a-zA-Z ]/gi, '')
+    },
     substitute(string) {
       let re = /\{\{(.*?)\}\}/
       let match = re.exec(string)

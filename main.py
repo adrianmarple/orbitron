@@ -72,6 +72,8 @@ def consume_input():
         prefs.load(message["name"])
       elif message["type"] == "deletePrefs":
         prefs.delete(message["name"])
+      elif message["type"] == "renamePref":
+        prefs.rename(message["originalName"], message["newName"])
 
       if "self" not in message or message["self"] is None:
         continue

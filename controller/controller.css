@@ -584,6 +584,24 @@ input[type="range"]::-moz-range-thumb {
 .scroll-containter {
   max-height: calc(90vh - 25rem);
 }
+.scroll-containter textarea {
+  font-style: inherit;
+  font-size: 1em;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  text-rendering: auto;
+  color: white;
+  display: block;
+  overflow-wrap: normal;
+  background-color: transparent;
+  border-width: 0;
+  padding: 0;
+  white-space: normal;
+  height: 4rem;
+}
+.scroll-containter textarea:focus-visible {
+  outline-width: 0;
+}
+
 .bottom-plug {
   width: 100%;
   background-color: var(--bg-color);
