@@ -39,7 +39,7 @@ class Pulses(Idle):
     ratio = new_base_duration / self.base_duration
     if ratio != 1:
       for pulse in self.pulses:
-        pulse.update_speed()
+        pulse.update_speed(ratio)
       self.base_duration = new_base_duration
 
   def wait_for_frame_end(self):
