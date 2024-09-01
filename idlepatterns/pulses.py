@@ -11,13 +11,6 @@ class Pulses(Idle):
   pulses = []
   base_duration = 5
 
-  def update_prefs(self):
-    Idle.update_prefs(self)
-    new_base_duration = 70 / get_pref("idleFrameRate")
-    for pulse in self.pulses:
-      pulse.update_speed(new_base_duration / self.base_duration)
-    self.base_duration = new_base_duration
-
   def init_values(self):
     self.render_values = np.zeros(RAW_SIZE)
     for pulse in self.pulses:
@@ -40,6 +33,14 @@ class Pulses(Idle):
     x = get_pref("idleDensity") / 50 / FRAMERATE
     if random() < x or not pulse_is_definitely_visible:
       self.pulses.append(Pulse(self.base_duration*(1 + random()), (2*random()-1, 2*random()-1, 0)))
+
+
+    new_base_duration = 70 / get_pref("idleFrameRate")
+    ratio = new_base_duration / self.base_duration
+    if ratio != 1:
+      for pulse in self.pulses:
+        pulse.update_speed()
+      self.base_duration = new_base_duration
 
   def wait_for_frame_end(self):
     pass

@@ -584,7 +584,6 @@ class Game:
   statuses = ["blank"] * SIZE
 
   def __init__(self, additional_settings=None):
-
     self.settings = {}
     for (key, value) in base_settings.items():
       self.settings[key] = value
@@ -593,11 +592,6 @@ class Game:
       for (key, value) in additional_settings.items():
         self.settings[key] = value
         setattr(self, key, value)
-
-    self.update_prefs()
-
-  def update_prefs(self):
-    pass
 
   # Doing this so players can have global reference to "game" in various game modules
   def generate_players(self, player_class, positions=INITIAL_POSITIONS):
