@@ -22,11 +22,14 @@
   <div v-if="viewing=='prefs'" class="button" @click="savePrefs">Save prefs.json
     <span v-if="prefs != idToPrefs[orbID]">*</span>
   </div>
+  <div v-if="viewing=='timing'" class="button" @click="saveTimingPrefs">Save timingprefs.json
+    <span v-if="timingprefs != idToTimingPrefs[orbID]">*</span>
+  </div>
   <div style="display: flex">
-    <div v-for="viewType in ['config', 'prefs', 'log']"
+    <div v-for="viewType in ['config', 'prefs', 'timing', 'log']"
         class="button" :class="{ selected: viewing == viewType}"
         @click="setViewing(viewType)">
-      {{ viewType }} 
+      {{ viewType }}
     </div>
   </div>
   <div class="button" @click="viewBackups">All Backups</div>
@@ -49,6 +52,7 @@
 
 <textarea v-if="viewing=='config'" class="main-text" v-model="config"></textarea>
 <textarea v-if="viewing=='prefs'" class="main-text" v-model="prefs"></textarea>
+<textarea v-if="viewing=='timing'" class="main-text" v-model="timingprefs"></textarea>
 <textarea v-if="viewing=='log'" class="main-text" v-model="log" readonly></textarea>
 <div v-if="viewing=='backups'" id="backups">
   <div class="list">
@@ -80,11 +84,13 @@ export default {
       orbInfo: [],
       idToConfig: {},
       idToPrefs: {},
+      idToTimingPrefs: {},
       idToLog: {},
       idToIP: {},
       idToCommit: {},
       config: "",
       prefs: "",
+      timingprefs: "",
       log: "",
       viewing: "config",
       qrCode: null,
@@ -114,6 +120,9 @@ export default {
         }
         if (self.viewing == 'prefs') {
           self.savePrefs()
+        }
+        if (self.viewing == 'timing') {
+          self.saveTimingPrefs()
         }
         event.preventDefault()
       }
@@ -186,6 +195,9 @@ export default {
       if (type == "prefs") {
         await this.updatePrefs()
       }
+      if (type == "timing") {
+        await this.updateTimingPrefs()
+      }
     },
     async setOrb(orbID) {
       this.orbID = orbID
@@ -217,6 +229,13 @@ export default {
         data: this.prefs,
       }, this.orbID)
       this.idToPrefs[this.orbID] = this.prefs
+    },
+    async saveTimingPrefs() {
+      await this.sendCommand({
+        type: "settimingprefs",
+        data: this.timingprefs,
+      }, this.orbID)
+      this.idToTimingPrefs[this.orbID] = this.timingprefs
     },
     async saveAlias() {
       this.sendServerCommand({
@@ -267,6 +286,10 @@ export default {
     async updatePrefs() {
       this.idToPrefs[this.orbID] = await this.sendCommand({type: "getprefs"}, this.orbID)
       this.prefs = this.idToPrefs[this.orbID]
+    },
+    async updateTimingPrefs() {
+      this.idToTimingPrefs[this.orbID] = await this.sendCommand({type: "gettimingprefs"}, this.orbID)
+      this.timingprefs = this.idToTimingPrefs[this.orbID]
     },
     async updateLog() {
       this.idToLog[this.orbID] = await this.sendCommand({type: "getlog"}, this.orbID)

@@ -168,7 +168,7 @@ h1 {
 .button {
   z-index: 1;
   padding: 10px 20px;
-  margin: 8px;
+  margin: 6px 2px;
   font-size: 24px;
   border: 1px solid black;
   border-radius: 12px;

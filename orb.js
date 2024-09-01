@@ -117,6 +117,9 @@ function connectOrbToRelay(){
         if (command.type == "getprefs") {
           returnData = (await fs.promises.readFile("prefs.json")).toString()
         }
+        if (command.type == "gettimingprefs") {
+          returnData = (await fs.promises.readFile("timingprefs.json")).toString()
+        }
         if (command.type == "geterror") {
           if (config.DEV_MODE) {
             returnData = "no pm2 running"
@@ -163,6 +166,15 @@ function connectOrbToRelay(){
             restartOrbitron()
           } catch(_) {
             console.log("Couldn't parse pref to save: ", command.data)
+          }
+        }
+        if (command.type == "settimingprefs") {
+          try {
+            JSON.parse(command.data)
+            await fs.promises.writeFile("timingprefs.json", command.data)
+            restartOrbitron()
+          } catch(_) {
+            console.log("Couldn't parse timingpref to save: ", command.data)
           }
         }
 
