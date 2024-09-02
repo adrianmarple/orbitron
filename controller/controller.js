@@ -24,6 +24,7 @@ var app = new Vue({
     blurred: false,
     renamingSave: "",
     saveNames: [],
+    activeDropdown: null,
 
     startLocation: null,
     delta: null,
@@ -216,8 +217,8 @@ var app = new Vue({
       return info
     },
 
-    eventNames() {
-      return this.state.prefNames.concat("OFF")
+    eventOptions() {
+      return this.state.prefNames.concat("OFF").map(name => [name, name])
     },
 
     exclude() {
@@ -379,7 +380,6 @@ var app = new Vue({
       this.prefs.schedule.remove(event)
     },
     sortSchedule() {
-      console.log("sorting")
       this.prefs.schedule.sort((a,b) => a.time.localeCompare(b.time))
     },
 

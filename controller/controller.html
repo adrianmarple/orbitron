@@ -106,24 +106,24 @@
           <div class="padding"></div>
           <Icon image="add"
             :w="4*rem" :h="4*rem"
-            @click="addNewEvent({prefName: 'OFF', time: '00:00'})">
+            @click="addNewEvent({prefName: 'OFF', time: '00:00', fadeIn: 10, fadeOut: 30})">
           </Icon>
           <!-- <div class="add" @click="addNewEvent({prefName: 'OFF', time: '00:00'})">+</div> -->
           <div class="padding"></div>
         </div>
-        <div v-for="event in prefs.schedule" class="event-wrapper">
+        <div v-for="event, i in prefs.schedule" class="event-wrapper">
+          <div v-if="event.prefName == 'OFF'" class="fades">
+              <div class="label">Fade out (min)</div>
+              <input type="number" v-model="event.fadeOut"></input>
+          </div>
           <div class="event">
-            <select v-model="event.prefName">
-              <option v-for="name in eventNames" :value="name">{{name}}</option>
-            </select>
-            <input type="time" v-model="event.time" @change="sortSchedule"></input>
+            <dropdown :key="'schedule'+i+'prefName'" :path="['schedule', i, 'prefName']" :options="eventOptions"></dropdown>
+            <input type="time" v-model="event.time" @blur="sortSchedule"></input>
             <img class="delete" src="/controller/images/delete.svg" @click="deleteEvent(event)"/>
           </div>
           <div v-if="event.prefName == 'OFF'" class="fades">
-              <div class="label">Fade In</div>
+              <div class="label">Fade in (min)</div>
               <input type="number" v-model="event.fadeIn"></input>
-              <div class="label">Fade Out</div>
-              <input type="number" v-model="event.fadeOut"></input>
           </div>
           <div class="add-wrapper">
             <div class="padding"></div>
@@ -159,7 +159,7 @@
 
       <color v-if="prefs.idleColor == 'fixed'" key="fixedColor" ></color>
 
-      <dropdown title="Style" key="idleColor" :selection="prefs['idleColor']"
+      <dropdown title="Style" key="idleColor"
       :options="[['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']]"
       ></dropdown>
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
@@ -194,9 +194,20 @@
           title="Speed" key="idleFrameRate"
           :min="5" :max="30"></slider>
       <dropdown title="Pattern" key="idlePattern"
-          :selection="prefs['idlePattern']"
           :options="patternDropdownInfo"
       ></dropdown>
+    </div>
+
+    <div v-if="activeDropdown" id="select-items" :style="activeDropdown.style">
+      <div
+        v-for="[value, display] of activeDropdown.options"
+        :value="value"
+        :key="value"
+        :class="{ checked: value == activeDropdown.selection }"
+        @click="activeDropdown.clicked(value)"
+      >
+        {{ display }}
+      </div>
     </div>
 
     <div class="side-box left"></div>

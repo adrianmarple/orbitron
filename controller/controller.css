@@ -222,7 +222,37 @@ a > .fancy-box:hover, a.fancy-box:hover {
 
 #home input[type='number'] {
   width: 8rem;
-  text-align: end;
+  color: white;
+  background-color: #333;
+  border-radius: 0.5rem;
+  border: 0.1rem solid #666 !important;
+  padding: 0;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+}
+input[type='time'] {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  color: white;
+  background-color: #333;
+  border-radius: 0.5rem;
+  border: 0.1rem solid #666;
+  height: 4.4rem;
+  padding: 0 0.3rem;
+  cursor: pointer;
+  box-sizing: border-box;
+  font-size: 2.8rem !important;
+}
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+input[type=time]::-webkit-datetime-edit-hour-field:focus,
+input[type=time]::-webkit-datetime-edit-minute-field:focus,
+input[type=time]::-webkit-datetime-edit-ampm-field:focus {
+  background-color: rgba(255,255,255, 0.8);
+  color: black;
+}
+
+:focus-visible {
+  outline-width: 0;
 }
 
 .nav-bar {
@@ -243,11 +273,11 @@ a > .fancy-box:hover, a.fancy-box:hover {
   margin: 0 -0.5rem;
   position: relative;
 }
-.icon::before {
+.icon:before {
   content: "";
   position: absolute;
   width: 100%;
-  height: calc(100% - 0.2rem);
+  height: 100%;
   box-sizing: border-box;
   border: 0.4rem solid var(--bg-color);
 }
@@ -272,7 +302,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
 .nav-page {
   align-items: center;
   text-align: center;
-  font-size: 3em;
+  font-size: 3rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -440,12 +470,6 @@ input[type="range"]::-moz-range-thumb {
   background-color: #88f;
 }
 
-.dropdown-container {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 0.5rem;
-}
-
 .scrim {
   position: absolute;
   left: 0;
@@ -539,24 +563,21 @@ input[type="range"]::-moz-range-thumb {
   margin: 0 1rem;
   z-index: 1;
 }
-.event select, .event input {
-  font-size: 2.8rem !important;
-  height: 3.8rem;
-  border: 0;
-}
 
 .fades {
-  padding-top: 0.5rem;
-  justify-content: space-around;
+  padding: 0.5rem;
 }
 .fades .label {
   font-size: 2rem;
+  width: 13rem;
+  text-align: end;
+  margin-right: 1rem;
+  margin-left: -1rem;
 }
 #home .fades input[type='number'] {
-  width: 7rem;
-  font-size: 2.8rem !important;
-  padding: 0;
-  border: 0;
+  width: 6rem;
+  font-size: 2.5rem !important;
+  padding-left: 0.2rem;
   z-index: 1;
 }
 
@@ -1252,6 +1273,13 @@ a:active {
 }
 
 
+.dropdown-container {
+  display: flex;
+  justify-content: space-between;
+}
+.dropdown-container.top-padded {
+  padding-top: 0.5rem;
+}
 .custom-select {
   position: relative;
   width: 100%;
@@ -1265,10 +1293,11 @@ a:active {
   background-color: #333;
   border-radius: 0.5rem;
   border: 0.1rem solid #666;
-  padding: 0.8rem 0.5rem 0.8rem 3rem;
-  padding-left: 3rem;
+  padding: 0.8rem;
+  height: 4.4rem;
   cursor: pointer;
   user-select: none;
+  box-sizing: border-box;
 }
 
 .custom-select .selection:after {
@@ -1281,20 +1310,28 @@ a:active {
   border: 0.7rem solid transparent;
   border-color: white transparent transparent transparent;
 }
-.custom-select .selection.open:after {
-  top: 1.1rem;
-  right: 1.2rem;
-  border-color: transparent white transparent transparent;
-}
 
-.custom-select .items .checked {
+#select-items {
+  color: white;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 0.1rem solid #666;
+  position: absolute;
+  background-color: #333;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  font-size: 3rem;
+  box-sizing: border-box;
+}
+#select-items .checked {
   position: relative;
 }
-.custom-select .items .checked:before {
+#select-items .checked:after {
   position: absolute;
   content: "";
   top: 1.5rem;
-  left: 1rem;
+  right: 1.2rem;
   width: 0.8rem;
   height: 0.3rem;
   border: 0.3rem solid transparent;
@@ -1303,35 +1340,18 @@ a:active {
   border-color: transparent transparent white white;
   transform: rotate(-45deg);
 }
-
-.custom-select .items {
+#select-items div {
   color: white;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  border: 0.1rem solid #666;
-  position: absolute;
-  background-color: #333;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-}
-
-.custom-select .items div {
-  color: white;
-  padding: 0.8rem 0.5rem 0.8rem 3rem;
-  padding-left: 3rem;
+  padding: 0.2rem 0.8rem;
   cursor: pointer;
   user-select: none;
+  height: 4.3rem;
+  box-sizing: border-box;
 }
-.custom-select .items div:first-child {
+#select-items div:first-child {
   margin: 0;
 }
 
-.custom-select .items div:hover {
+#select-items div:hover {
   background-color: #444;
-}
-
-.selectHide {
-  display: none;
 }

@@ -107,26 +107,85 @@ Vue.component('color', {
 `})
 
 Vue.component('dropdown', {
-  props: ['title', 'options', 'selection'],
+  props: ['title', 'options', 'path'],
   data() {
     return { open: false }
   },
   computed: {
     name() { return this.$vnode.key },
+    selection() {
+      if (this.path) {
+        let end = this.path.pop()
+        let obj = this.$root.prefs
+        for (let key of this.path) {
+          obj = obj[key]
+        }
+        this.path.push(end)
+        return obj[end]
+      } else {
+        return this.$root.prefs[this.name]
+      }
+    },
+    selectionIndex() {
+      for (let i = 0; i < this.options.length; i++) {
+        if (this.selection == this.options[i][0]) {
+          return i
+        }
+      }
+      return 0
+    },
   },
   methods: {
     opened() {
+      if (this.$root.activeDropdown) {
+        this.$root.activeDropdown.close()
+      }
+
+      let box = this.$el.querySelector(".selection").getBoundingClientRect()
+      let optionHeight = 4.3 * this.$root.rem
+      let height = this.options.length * optionHeight + 0.2*this.$root.rem
+      let maxHeight = window.innerHeight
+      height = Math.min(height, maxHeight)
+      let top = box.top - this.selectionIndex * optionHeight
+      top = Math.max(top, 0)
+      if (top + height > maxHeight) {
+        top = maxHeight - height
+      } 
+      this.$root.activeDropdown = {
+        options: this.options,
+        selection: this.selection,
+        clicked: this.clicked,
+        style: {
+          top: top + "px",
+          // height: height + "px",
+          left: box.left + "px",
+          width: box.width + "px",
+        },
+      }
+      console.log(JSON.stringify(this.$root.activeDropdown))
       this.open = true
       setTimeout(() => {
         document.addEventListener('click', this.close)
       }, 100)
     },
     close() {
+      if (!this.open) return // Avoid double calling
+      this.$root.activeDropdown = null
       this.open = false
       document.removeEventListener('click', this.close)
     },
     clicked(value) {
-      this.$root.prefs[this.name] = value
+      if (this.path) {
+        let end = this.path.pop()
+        let obj = this.$root.prefs
+        for (let key of this.path) {
+          obj = obj[key]
+        }
+        obj[end] = value
+        this.path.push(end)
+      } else {
+        this.$root.prefs[this.name] = value
+      }
     },
     toDisplay(value) {
       for (let [v, display] of this.options) {
@@ -135,24 +194,15 @@ Vue.component('dropdown', {
       return value
     },
   },
+  // Not that the actual dropdown html is in controller.html with id select-items
   template: `
 <div class="dropdown-container horiz-box" v-if="!$root.exclude[name]"
+  :class="{ 'top-padded': title }"
   style="align-items: center">
-  <div style="margin-right: 2rem">{{title}}:</div>
+  <div v-if="title" style="margin-right: 2rem">{{title}}:</div>
   <div class="custom-select" @blur="close">
-    <div class="selection" :class="{ open: open }" @click="opened">
+    <div class="selection" @click="opened">
       {{ toDisplay(selection) }}
-    </div>
-    <div class="items" :class="{ selectHide: !open }">
-      <div
-        v-for="[value, display] of options"
-        :value="value"
-        :key="value"
-        :class="{ checked: value == selection }"
-        @click="clicked(value)"
-      >
-        {{ display }}
-      </div>
     </div>
   </div>
 </div>`})

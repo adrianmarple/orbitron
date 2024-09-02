@@ -230,7 +230,10 @@ def get_pref(pref_name):
   elif pref_name == "schedule":
     pref = json.loads(json.dumps(pref)) # deep copy
     for event in pref:
-      event["time"] = datetime.strptime(event["time"], '%H:%M').time()
+      try:
+        event["time"] = datetime.strptime(event["time"], '%H:%M').time()
+      except:
+        event["time"] = datetime.strptime("00:00", '%H:%M').time()
 
   converted_prefs[pref_name] = pref
   return pref
