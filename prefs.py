@@ -321,7 +321,10 @@ for file in os.listdir(save_prefs_path):
 
 if os.path.exists(pref_path):
   f = open(pref_path, "r")
-  prefs = json.loads(f.read())
+  try:
+    prefs = json.loads(f.read())
+  except:
+    prefs = {}
   f.close()
   current_prefs.update(prefs)
   identify_name()

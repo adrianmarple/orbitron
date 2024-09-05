@@ -42,7 +42,7 @@ module.exports = () => {
     return -angle
   }
 
-
+  // 180 pixels per pentagram line and 112 per pentagon edge
   let pentagramEdges = addPolygram(5,ZERO,180)
   for (let i = 0; i < 5; i++) {
     let v0 = verticies[i]
