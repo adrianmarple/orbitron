@@ -196,6 +196,24 @@ function extrudePolygon(startingEdge, sideCount, edgeLengths, negate) {
   return newEdges
 }
 
+function evenPermutations(threeV) {
+  return [
+    threeV,
+    [threeV[1], threeV[2], threeV[0]],
+    [threeV[2], threeV[0], threeV[1]],
+  ]
+}
+function permutations(threeV) {
+  return [
+    threeV,
+    [threeV[1], threeV[2], threeV[0]],
+    [threeV[2], threeV[0], threeV[1]],
+    [threeV[2], threeV[1], threeV[0]],
+    [threeV[1], threeV[0], threeV[2]],
+    [threeV[0], threeV[2], threeV[1]],
+  ]
+}
+
 function addPlusMinusVertex(vertex) {
   for (let i0 = -1; i0 <= 1; i0 += 2) {
     for (let i1 = -1; i1 <= 1; i1 += 2) {

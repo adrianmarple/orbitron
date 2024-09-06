@@ -26,7 +26,14 @@
     <span v-if="timingprefs != idToTimingPrefs[orbID]">*</span>
   </div>
   <div style="display: flex">
-    <div v-for="viewType in ['config', 'prefs', 'timing', 'log']"
+    <div v-for="viewType in ['config', 'log']"
+        class="button" :class="{ selected: viewing == viewType}"
+        @click="setViewing(viewType)">
+      {{ viewType }}
+    </div>
+  </div>
+  <div style="display: flex">
+    <div v-for="viewType in ['prefs', 'timing']"
         class="button" :class="{ selected: viewing == viewType}"
         @click="setViewing(viewType)">
       {{ viewType }}

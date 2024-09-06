@@ -88,13 +88,12 @@
       </div>
       <div class="bottom-plug"></div>
       <div id="save-bottom-stuff" class="horiz-box">
-        <textarea :value="prefName" @input="prefName=$event.target.value"></textarea>
         <div class="button"
             :class="{ disabled: !prefName }"
-            @click="savePrefs()"
-        >
-          Save
+            @click="savePrefs()">
+          Save As
         </div>
+        <textarea :value="prefName" @input="prefName=$event.target.value"></textarea>
       </div>
     </div>
 

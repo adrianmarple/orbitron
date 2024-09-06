@@ -564,7 +564,7 @@ python_process.stdout.on('data', data => {
 python_process.stderr.on('data', data => {
   message = data.toString().trim()
   if(message){
-    // we use stderr for regular log messages from python
+    // stderr is used for regular log messages from python
     console.log(message)
   }
 });
@@ -573,9 +573,13 @@ python_process.on('uncaughtException', function(err, origin) {
   console.error('Caught python exception: ', err, origin);
 });
 
-// ---periodic status logging---
 
+// ---periodic status logging---
 function statusLogging() {
+  if (orbToRelaySocket && Object.keys(connections).length === 0) {
+    return
+  }
+
   console.log("STATUS",{
     id: config.ORB_ID,
     orbToRelaySocket: orbToRelaySocket ? "connected" : null,
@@ -592,7 +596,7 @@ function statusLogging() {
   })
 }
 statusLogging()
-setInterval(statusLogging,60 * 60 * 1000)
+setInterval(statusLogging, 10 * 60 * 1000)
 
 
 module.exports = {
