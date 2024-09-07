@@ -185,17 +185,20 @@ function center(permanently) {
 }
 function resize(permanently) {
   let attribute = permanently ? "ogCoords" : "coordinates"
-
   let maxMagnitude = 0
-  
   for (let vertex of verticies) {
     let mag = vertex[attribute].length()
     maxMagnitude = Math.max(maxMagnitude, mag)
   }
+  let scalar = 1/maxMagnitude
+  scale(scalar, permanently)
+  return scalar
+}
+function scale(scalar, permanently) {
+  let attribute = permanently ? "ogCoords" : "coordinates"
   for (let vertex of verticies) {
-    vertex[attribute] = vertex[attribute].divideScalar(maxMagnitude)
+    vertex[attribute] = vertex[attribute].multiplyScalar(scalar)
   }
-  return 1/maxMagnitude
 }
 
 function rotateXAll(theta, permanently) {

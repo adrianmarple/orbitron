@@ -75,7 +75,6 @@ function getContentType(filePath){
 }
 
 function respondWithFile(response, filePath) {
-  console.log(filePath)
   filePath = filePath.replace("%20", " ")
   filePath = `${__dirname}${filePath}`
   let contentType = getContentType(filePath)

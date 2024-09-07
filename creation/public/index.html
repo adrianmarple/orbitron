@@ -23,6 +23,7 @@ const PHI = (1 + Math.sqrt(5))/ 2
 function reset() {
   verticies = []
   edges = []
+  DEFAULT_PLAIN.index = 0
   plains = [DEFAULT_PLAIN]
   currentPlain = DEFAULT_PLAIN
 
@@ -227,8 +228,14 @@ function render() {
     }
   }
 
-  document.getElementById("cover").style.display = window.showLaserSVG && isWall ? "block" : "none"
-  document.getElementById("wall").style.display = window.showWallSVG && isWall ? "block" : "none"
+  let cover = document.getElementById("cover")
+  if (cover) {
+    cover.style.display = window.showLaserSVG && isWall ? "block" : "none"
+  }
+  let wall = document.getElementById("wall")
+  if (wall) {
+    wall.style.display = window.showWallSVG && isWall ? "block" : "none"
+  }
 }
 
 

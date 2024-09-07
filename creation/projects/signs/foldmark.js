@@ -1,4 +1,4 @@
-
+// SKIP
 module.exports = () => {
   let v0 = addVertex([0,0,0])
   let e0 = addLine(v0, 16, 15)

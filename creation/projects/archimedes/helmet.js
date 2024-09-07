@@ -1,3 +1,4 @@
+// SKIP
 module.exports = () => {
   pixelDensity = 0.4
   isWall = false

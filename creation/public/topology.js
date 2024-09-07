@@ -14,6 +14,13 @@ class Vertex {
   remove() {
     removeVertex(this)
   }
+  addPlain(plain) {
+    if (this.ogCoords.isCoplanar(plain)) {
+      this.plains.push(plain)
+    } else {
+      console.error("Vertex not coplanar with plain", plain, this.ogCoords)
+    }
+  }
 }
 
 class Edge {
@@ -196,29 +203,29 @@ function extrudePolygon(startingEdge, sideCount, edgeLengths, negate) {
   return newEdges
 }
 
-function evenPermutations(threeV) {
+function evenPermutations(coords) {
   return [
-    threeV,
-    [threeV[1], threeV[2], threeV[0]],
-    [threeV[2], threeV[0], threeV[1]],
+    coords,
+    [coords[1], coords[2], coords[0]],
+    [coords[2], coords[0], coords[1]],
   ]
 }
-function permutations(threeV) {
+function permutations(coords) {
   return [
-    threeV,
-    [threeV[1], threeV[2], threeV[0]],
-    [threeV[2], threeV[0], threeV[1]],
-    [threeV[2], threeV[1], threeV[0]],
-    [threeV[1], threeV[0], threeV[2]],
-    [threeV[0], threeV[2], threeV[1]],
+    coords,
+    [coords[1], coords[2], coords[0]],
+    [coords[2], coords[0], coords[1]],
+    [coords[2], coords[1], coords[0]],
+    [coords[1], coords[0], coords[2]],
+    [coords[0], coords[2], coords[1]],
   ]
 }
 
-function addPlusMinusVertex(vertex) {
+function addPlusMinusVertex(coords) {
   for (let i0 = -1; i0 <= 1; i0 += 2) {
     for (let i1 = -1; i1 <= 1; i1 += 2) {
       for (let i2 = -1; i2 <= 1; i2 += 2) {
-        addVertex(new Vector(i0 * vertex[0], i1 * vertex[1], i2 * vertex[2]));
+        addVertex(new Vector(i0 * coords[0], i1 * coords[1], i2 * coords[2]));
       }
     }
   }
@@ -487,6 +494,11 @@ async function addSquaresFromPixels(src) {
 }
 
 
+function addPlain(plain) {
+  plain.index = plains.length
+  plains.push(plain)
+}
+
 function origami(foldPlain) {
   let mirrorPlainOffset = currentPlain.intersection(foldPlain).offset
   let mirrorPlainNormal = currentPlain.normal.orthoProj(foldPlain.normal)
@@ -502,9 +514,9 @@ function origami(foldPlain) {
     newPlain = currentPlain.mirror(mirrorPlain)
   }
 
-  plains.push(newPlain)
-  currentPlain.folds[newPlain] = foldPlain
-  newPlain.folds[currentPlain] = foldPlain
+  addPlain(newPlain)
+  currentPlain.folds[newPlain.index] = foldPlain
+  newPlain.folds[currentPlain.index] = foldPlain
 
   // Add new verticies along edges that have been folded
   for (let edge of [...edges]) {

@@ -1,4 +1,4 @@
-
+// SKIP
 module.exports = async () => {
   pixelDensity = 0.25
   BOTTOM_THICKNESS = TOP_THICKNESS

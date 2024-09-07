@@ -213,7 +213,7 @@ async function createCoverSVG(plain) {
       function addFoldWallInfo(type) {
         let isOne = type == 1
         let plains = (isOne ? plains1 : plains2)
-        deadendPlain = plains[0].folds[plains[1]].rotate(R)
+        deadendPlain = plains[0].folds[plains[1].index].rotate(R)
         deadendPlain.offset = deadendPlain.offset.scale(SCALE)
         let wallStartPoint = (isOne ? v2 : v1)
             .addScaledVector(n, w2)
