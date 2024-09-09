@@ -72,8 +72,8 @@ export default {
       }
       localStorage.setItem("mode", this.mode)
     },
-    push(bodyJSON) {
-      fetch("http://localhost:8000/", {
+    post(bodyJSON) {
+      return fetch("http://localhost:8000/", {
         method: "POST",
         mode: 'no-cors',
         body: JSON.stringify(bodyJSON),

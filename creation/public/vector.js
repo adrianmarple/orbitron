@@ -59,7 +59,7 @@ class Vector extends THREE.Vector3 {
     return newV
   }
 }
-// Reference for THREE.js Vector3: https://threejs.org/docs/#api/en/math/Vector3.projectOnVector
+// Reference for THREE.js Vector3: https://threejs.org/docs/#api/en/math/Vector3
 let methodsToValuize = [
   "add", "addScaledVector", "applyAxisAngle", "applyMatrix3", "cross", "divideScalar", "lerp",
   "min", "max", "multiplyScalar", "negate", "normalize", "projectOnVector", "sub",
@@ -107,6 +107,12 @@ class Plain {
   rotate(rotationMatrix) {
     return new Plain(
       this.offset.applyMatrix(rotationMatrix),
+      this.normal.applyMatrix(rotationMatrix),
+    )
+  }
+  rotateAndScale(rotationMatrix, scale) {
+    return new Plain(
+      this.offset.applyMatrix(rotationMatrix).scale(scale),
       this.normal.applyMatrix(rotationMatrix),
     )
   }

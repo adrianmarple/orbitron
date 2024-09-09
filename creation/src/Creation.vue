@@ -127,9 +127,10 @@ export default {
     },
     setCoverSVG() {
       let wall = document.getElementById("cover")
-      wall.outerHTML = covers[this.coverMode][this.coverIndex]
+      wall.outerHTML = covers[this.coverMode][this.coverIndex].svg
 
       if (generateWallNumbers) {
+        let scale = coverPrint3D ? 1 : MM_TO_96DPI
         let plain = plains[this.coverIndex]
         cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
         for (let wallType of wallInfo) {
@@ -137,8 +138,8 @@ export default {
           wallType.id = index
           for (let edgeCenter of wallType.edgeCenters[plain]) {
             let txt = document.createElementNS("http://www.w3.org/2000/svg", "text")
-            txt.setAttribute("x", edgeCenter.x * MM_TO_96DPI)
-            txt.setAttribute("y", edgeCenter.y * MM_TO_96DPI)
+            txt.setAttribute("x", edgeCenter.x * scale)
+            txt.setAttribute("y", edgeCenter.y * scale)
             txt.innerHTML = "" + index
             cover.appendChild(txt)
           }
@@ -147,27 +148,30 @@ export default {
     },
 
     cleanup() {
-      this.$root.push({
+      this.$root.post({
         fullProjectName: this.fullProjectName,
         type: "cleanup",
       })
       console.log(`Cleaning up "${this.fullProjectName.split("/")[1]}" files`)
     },
     download(fileName, data) {
-      this.$root.push({
+      this.$root.post({
         type: "download",
         fileName,
         data,
       })
       console.log(`Downloading ${fileName}`, data)
     },
+
     genWalls() {
       let wall = document.getElementById("wall")
       wall.style.display = "block"
-      let body = createPrintInfo()
-      body.fullProjectName = fullProjectName
-      this.$root.push(body)
-      console.log("Generating gcode")
+      let printInfo = createPrintInfo()
+      printInfo.fullProjectName = fullProjectName
+      wallPostProcessingFunction(printInfo)
+      console.log(printInfo)
+      this.$root.post(printInfo)
+      console.log("Generating wall gcode")
     },
     downloadJSON() {
       let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
@@ -176,11 +180,27 @@ export default {
       console.log("Downloaded " + fileName)
     },
     async downloadCovers() {
-      for (let i=0; i < covers.top.length; i++) {
-        this.download(`${this.fullProjectName} top${i}.svg`, covers.top[i])
-      }
-      for (let i=0; i < covers.bottom.length; i++) {
-        this.download(`${this.fullProjectName} bottom${i}.svg`, covers.bottom[i])
+      if (coverPrint3D) {
+        for (let type of ["top", "bottom"]) {
+          let printInfo = {
+            type: "gcode",
+            thickness: IS_BOTTOM ? BOTTOM_THICKNESS : TOP_THICKNESS,
+            EXTRA_SCALE,
+            PROCESS_STOP,
+            prints: covers[type],
+            suffix: type + "_cover",
+            fullProjectName: this.fullProjectName,
+          }
+          await this.$root.post(printInfo)
+          console.log(`Generating ${type} cover gcode`)
+        }
+      } else {
+        for (let i=0; i < covers.top.length; i++) {
+          this.download(`${this.fullProjectName} top${i}.svg`, covers.top[i].svg)
+        }
+        for (let i=0; i < covers.bottom.length; i++) {
+          this.download(`${this.fullProjectName} bottom${i}.svg`, covers.bottom[i].svg)
+        }
       }
     },
 

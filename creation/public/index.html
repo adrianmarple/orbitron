@@ -54,11 +54,14 @@ function reset() {
   NOTCH_DEPTH = 5
   ANTI_CORNER = 0.5
   FASTENER_DEPTH = 2.5
+
   BOTTOM_KERF = 0
   TOP_KERF = -0.1
   WALL_KERF = 0.2
   NOTCH_KERF = -0.15
   WALL_STRAIGHT_KERF = 0.11
+  WALL_MITER_KERF = 0.1
+  ORIGAMI_KERF = 0.1 // Might need to be different for laser cutting
 
   LED_SUPPORT_WIDTH = 9
   LED_SUPPORT_GAP = 2
@@ -106,15 +109,20 @@ function reset() {
   // MAX_WALL_LENGTH = 200
   MAX_NOTCH_DISTANCE = 120
 
+  coverPrint3D = false
   minimalInnerBorder = false
   exteriorOnly = false
   cat5PortMidway = false
   cat5PortAtEnd = false
+  addNubs = true
+  addExtraFoldWallWedge = true
   cat5WallOverride = -1
 
   powerHoleWallIndex = -1
 
-  dataPostProcessingFunction = () => {}
+  dataPostProcessingFunction = pixelInfo => {}
+  wallPostProcessingFunction = printInfo => {}
+  coverPostProcessingFunction = covers => {}
 }
 reset()
 

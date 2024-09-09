@@ -294,14 +294,19 @@ addPOSTListener(async (response, body) => {
 
 async function generateGCode(info, index) {
   let print = info.prints[index]
+  print.wedges = print.wedges ?? []
+  print.ledSupports = print.ledSupports ?? []
+  print.nubs = print.nubs ?? []
+  print.embossings = print.embossings ?? []
+
   if (info.prints.length == 1) {
     index = ""
   }
-  let svgFilePath = `${info.fullPath}${index} walls.svg`
-  let scadFilePath = `${info.fullPath}${index} walls.scad`
-  let stlFilePath = `${info.fullPath}${index}_walls.stl`.replace(" ", "_")
-  let bgcodeFilePath = `${info.fullPath}${index}_walls.bgcode`.replace(" ", "_")
-  let bgcodePrinterFile = `${info.fileName}${index}_walls.bgcode`
+  let svgFilePath = `${info.fullPath}${index} ${info.suffix}.svg`
+  let scadFilePath = `${info.fullPath}${index} ${info.suffix}.scad`
+  let stlFilePath = `${info.fullPath}${index}_${info.suffix}.stl`.replace(" ", "_")
+  let bgcodeFilePath = `${info.fullPath}${index}_${info.suffix}.bgcode`.replace(" ", "_")
+  let bgcodePrinterFile = `${info.fileName}${index}_${info.suffix}.bgcode`
 
   await fs.promises.writeFile(svgFilePath, print.svg, {encoding:'utf8',flag:'w'})
 
