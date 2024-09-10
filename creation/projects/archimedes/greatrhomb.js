@@ -1,6 +1,6 @@
 module.exports = () => {
   pixelDensity = 0.5
-  ANTI_CORNER = 0.2
+  ANTI_CORNER = 0.5
   TOP_THICKNESS = WALL_THICKNESS
   BOTTOM_THICKNESS = WALL_THICKNESS
   BORDER = 3
@@ -8,7 +8,7 @@ module.exports = () => {
   TOP_KERF = BOTTOM_KERF
   WALL_KERF = 0
   NOTCH_KERF = 0
-  ORIGAMI_KERF = 0.2
+  ORIGAMI_KERF = 0
   coverPrint3D = true
   addNubs = false
   addExtraFoldWallWedge = false

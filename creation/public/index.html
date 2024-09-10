@@ -53,6 +53,7 @@ function reset() {
   MIN_NON_NOTCH_LENGTH = 5
   NOTCH_DEPTH = 5
   ANTI_CORNER = 0.5
+  CHANNEL_LATCH_ANGLE = -5
   FASTENER_DEPTH = 2.5
 
   BOTTOM_KERF = 0
@@ -88,7 +89,6 @@ function reset() {
 
   // CHANNEL_DEPTH = CAT5_HEIGHT - BOTTOM_THICKNESS
   CHANNEL_DEPTH = CAT5_HEIGHT
-  HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
   
   EXTRA_SCALE = 1 //1.0005
   END_CAP_FACTOR = 0.3872
@@ -125,6 +125,9 @@ function reset() {
   coverPostProcessingFunction = covers => {}
 }
 reset()
+
+HEIGHT = () => CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
+THICKNESS = () => IS_BOTTOM ? BOTTOM_THICKNESS : TOP_THICKNESS
 
 
 // ===================== rendering =====================

@@ -169,7 +169,6 @@ export default {
       let printInfo = createPrintInfo()
       printInfo.fullProjectName = fullProjectName
       wallPostProcessingFunction(printInfo)
-      console.log(printInfo)
       this.$root.post(printInfo)
       console.log("Generating wall gcode")
     },

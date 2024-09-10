@@ -4,7 +4,7 @@ module.exports = () => {
   pixelDensity = 0.125
   NUB_HEIGHT = 2
   BOTTOM_THICKNESS = 10
-  // isWall = false
+  coverPrint3D = true
 
   addPolygon(4, [0,0,0])
   // addPolygon(4, [0,1,0])
