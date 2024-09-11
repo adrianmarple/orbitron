@@ -133,7 +133,6 @@ async function createCoverSVG(plain) {
 
     let channelString = ""
   	let borderString = ""
-  	let minimalBorderString = ""
     let borderPoints = []
     
    	for (let i = 0; i < dPath.length; i++) {
@@ -347,16 +346,6 @@ async function createCoverSVG(plain) {
             .addScaledVector(e1, borderLengthOffset)
             .addScaledVector(n, width))
       }
-
-      points = [
-        [x1 + FASTENER_DEPTH, w2],
-        [x1, w2],
-        [x1, w1],
-        [x2, w1],
-        [x2, w2],
-        [x2 - FASTENER_DEPTH, w2],
-      ]
-      minimalBorderString += pointsToSVGString(points, [e1, n], v1)
     } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false
@@ -377,28 +366,12 @@ async function createCoverSVG(plain) {
       }
     }
 
-    let useMinimalBorder = minimalInnerBorder && dPath.length == 4 && !skipBorder
-    if (useMinimalBorder) {
-      for (let i = 0; i < 4; i++) {
-        let v0 = dPath[i].ogCoords
-        let v1 = dPath[(i+1) % dPath.length].ogCoords
-        let e0 = v1.sub(v0)
-        if (e0.length() > 1.1) {
-          useMinimalBorder = false
-        }
-      }
+    // TODO actually detect "negative" area
+    let isTooSmall = borderPoints.length == 3 && triangularArea(borderPoints) < 105
+    if (!skipBorder && !isTooSmall) {
+      totalPathString += "M" + borderString.substring(1) + "Z "
     }
-
-    if (useMinimalBorder) {
-      totalPathString += "M" + minimalBorderString.substring(1) + "Z "
-    } else {
-      // TODO actually detect "negative" area
-      let isTooSmall = borderPoints.length == 3 && triangularArea(borderPoints) < 105
-      if (!skipBorder && !isTooSmall) {
-    	  totalPathString += "M" + borderString.substring(1) + "Z "
-      }
-  	  totalPathString += channelString
-    }
+    totalPathString += channelString
   } // END for (let dPath of paths)
   cover.querySelector("path").setAttribute("d", totalPathString)
 
