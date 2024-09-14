@@ -4,6 +4,7 @@ const fs = require('fs')
 const path = require('path')
 const { exec } = require('child_process')
 const { noCorsHeader } = require('../lib')
+const fetch = require("node-fetch")
 
 // Imports from .env
 console.log(require('dotenv').config())
@@ -302,13 +303,21 @@ async function generateGCode(info, index) {
   if (info.prints.length == 1) {
     index = ""
   }
-  let svgFilePath = `${info.fullPath}${index} ${info.suffix}.svg`
+  function svgFilePath(svg) {
+    let svgIndex = print.svgs.indexOf(svg)
+    if (print.svgs.length == 1) {
+      svgIndex = ""
+    }
+    return `${info.fullPath}${index} ${info.suffix}${svgIndex}.svg`
+  }
   let scadFilePath = `${info.fullPath}${index} ${info.suffix}.scad`
   let stlFilePath = `${info.fullPath}${index}_${info.suffix}.stl`.replace(" ", "_")
   let bgcodeFilePath = `${info.fullPath}${index}_${info.suffix}.bgcode`.replace(" ", "_")
   let bgcodePrinterFile = `${info.fileName}${index}_${info.suffix}.bgcode`
 
-  await fs.promises.writeFile(svgFilePath, print.svg, {encoding:'utf8',flag:'w'})
+  for (let svg of print.svgs) {
+    await fs.promises.writeFile(svgFilePath(svg), svg.svg, {encoding:'utf8',flag:'w'})
+  }
 
   let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
   let scadFileContents = `
@@ -364,35 +373,43 @@ async function generateGCode(info, index) {
       }
       scadFileContents += `
       translate([${wedge.position}])
-      wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${thickness});`
+      wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
     }
     for (let support of print.ledSupports) {
       scadFileContents += `
       translate([${support.position}])
-      translate([0,0,${info.thickness}])
       rotate(a=${support.rotationAngle}, v=[0,0,1])
       led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
     }
     for (let embossing of print.embossings) {
       scadFileContents += `
       translate([${embossing.position}])
-      translate([-5,-2.5,${info.thickness}])
+      translate([-5,-2.5,0])
       linear_extrude(0.2)
       text("${embossing.text}", size= 5);`
     }
     for (let nub of print.nubs) {
       scadFileContents += `
       translate([${nub.position}])
-      translate([0,0,${info.thickness}])
       cylinder(r=${nub.width/2}, h=${nub.height});`
     }
     scadFileContents += `
 
     difference() {
-      linear_extrude(height = ${info.thickness})
-      scale([${scale},${scale},${scale}])
-      import("${svgFilePath}");`
-  
+      union() {`
+      for (let svg of print.svgs) {
+        if (svg.position) {
+          scadFileContents += `
+        translate([${svg.position}])`
+        }
+        scadFileContents += `
+        linear_extrude(height = ${svg.thickness})
+        scale([${scale},${scale},${scale}])
+        import("${svgFilePath(svg)}");`
+      }
+      scadFileContents += `
+      }
+      `
       for (let wedge of print.wedges) {
         if (!wedge.centered) continue
         scadFileContents += `

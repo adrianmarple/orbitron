@@ -46,15 +46,16 @@ function reset() {
   TOP_THICKNESS = 3.1 // For 3D printing
   BOTTOM_THICKNESS = 3.1, // For 3D printing
   WALL_THICKNESS = 2
-  WALL_VERT_KERF = 0 // 0.2 // For ABS
+  EXTRA_COVER_THICKNESS = 0
+
   BORDER = 6
   PIXEL_DISTANCE = 16.6
   CHANNEL_WIDTH = 13
   MIN_NON_NOTCH_LENGTH = 5
   NOTCH_DEPTH = 5
   ANTI_CORNER = 0.5
-  CHANNEL_LATCH_ANGLE = -5
   FASTENER_DEPTH = 2.5
+  CHANNEL_LATCH_ANGLE = 0 // Only used with 3d printer covers
 
   BOTTOM_KERF = 0
   TOP_KERF = -0.1
@@ -63,6 +64,8 @@ function reset() {
   WALL_STRAIGHT_KERF = 0.11
   WALL_MITER_KERF = 0.1
   ORIGAMI_KERF = 0.1 // Might need to be different for laser cutting
+  TOP_ORIGAMI_KERF = null
+  BOTTOM_ORIGAMI_KERF = null
 
   LED_SUPPORT_WIDTH = 9
   LED_SUPPORT_GAP = 2
@@ -124,6 +127,25 @@ function reset() {
   coverPostProcessingFunction = covers => {}
 }
 reset()
+
+function setFor3DPrintedCovers() {
+  coverPrint3D = true
+  addNubs = false
+  addExtraFoldWallWedge = false
+
+  ANTI_CORNER = 0.5
+  TOP_THICKNESS = 1.8 //1.6
+  BOTTOM_THICKNESS = TOP_THICKNESS
+  EXTRA_COVER_THICKNESS = 0.4
+  BORDER = 2
+  BOTTOM_KERF = -0.08
+  TOP_KERF = BOTTOM_KERF
+  WALL_KERF = 0
+  NOTCH_KERF = 0
+  TOP_ORIGAMI_KERF = -0.3
+  BOTTOM_ORIGAMI_KERF = -0.2
+  CHANNEL_LATCH_ANGLE = -3
+}
 
 HEIGHT = () => CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
 THICKNESS = () => IS_BOTTOM ? BOTTOM_THICKNESS : TOP_THICKNESS

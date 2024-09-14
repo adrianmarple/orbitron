@@ -128,6 +128,7 @@ async function createCoverSVG(plain) {
   start = start.ogCoords
 
   let totalPathString = ""
+  let totalBorderString = ""
   for (let dPath of paths) {
     if (exteriorOnly && dPath != outerPath) continue
 
@@ -204,7 +205,6 @@ async function createCoverSVG(plain) {
       // Logic for origami walls
       let plains1 = dPath[(i+1) % dPath.length].plains
       let plains2 = dPath[(i+2) % dPath.length].plains
-      let plainTranslationValue = 0
       let deadendPlain = null
 
       function addFoldWallInfo(type) {
@@ -220,7 +220,7 @@ async function createCoverSVG(plain) {
             (wallStartPoint.isCoplanar(plains[1]) || wallStartPoint.isAbovePlain(plains[1]))
         if (!sign) angle *= -1
 
-        plainTranslationValue = CHANNEL_DEPTH/2
+        let plainTranslationValue = CHANNEL_DEPTH/2
         plainTranslationValue += IS_BOTTOM == (angle < 0) ? 0 : THICKNESS()
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         wallStartPoint = wallStartPoint.addScaledVector(FORWARD, plainTranslationValue)
@@ -251,20 +251,20 @@ async function createCoverSVG(plain) {
         if (!foldWalls.includes(foldWall)) {
           foldWalls.push(foldWall)
         }
-
-        if (!isOne) {
-          let centerPoint = v1
-          centerPoint = centerPoint.addScaledVector(FORWARD, plainTranslationValue)
-          let wedgePoint = deadendPlain.intersection(new Line(centerPoint, e1))
-          wedgePoint = wedgePoint.add(e1.scale(ORIGAMI_KERF))
-          coverWedges.push({
-            angle: angle/2 * 180/Math.PI * (IS_BOTTOM ? -1 : 1),
-            directionAngle: e1.signedAngle(RIGHT) * 180/Math.PI,
-            position: wedgePoint.toArray(),
-            thickness: THICKNESS(),
-            width: CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER)
-          })
-        }
+        // if (!isOne) {
+        //   let centerPoint = v1
+        //   centerPoint = centerPoint.addScaledVector(FORWARD, plainTranslationValue)
+        //   let wedgePoint = deadendPlain.intersection(new Line(centerPoint, e1))
+        //   wedgePoint = wedgePoint.add(e1.scale(ORIGAMI_KERF))
+        //   wedgePoint.z = 0
+        //   coverWedges.push({
+        //     angle: angle/2 * 180/Math.PI * (IS_BOTTOM ? -1 : 1),
+        //     directionAngle: e1.signedAngle(RIGHT) * 180/Math.PI,
+        //     position: wedgePoint.toArray(),
+        //     thickness: THICKNESS() + EXTRA_COVER_THICKNESS,
+        //     width: CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER)
+        //   })
+        // }
       }
 
       if (plains1.length == 2) {
@@ -316,6 +316,10 @@ async function createCoverSVG(plain) {
       let borderLengthOffset = width / -Math.tan((Math.PI - a1)/2)
       
       if (plains1.length == 2) {
+        let angle = plains1[0].normal.angleTo(plains1[1].normal)
+        let plainTranslationValue = CHANNEL_DEPTH/2
+        plainTranslationValue += IS_BOTTOM == (angle < 0) ? 0 : THICKNESS() + EXTRA_COVER_THICKNESS
+        plainTranslationValue *= IS_BOTTOM ? 1 : -1
         let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
         deadendPlain = deadendPlain.translate(e0.normalize().scale(ORIGAMI_KERF))
         line1 = line.translate(n.scale(width))
@@ -325,6 +329,20 @@ async function createCoverSVG(plain) {
         borderString += pointsToSVGString([p2, p1])
         borderPoints.push(p2)
         borderPoints.push(p1)
+
+        // fold wall miter
+        centerPoint = v2.addScaledVector(FORWARD, plainTranslationValue)
+        console.log(e1)
+        let wedgePoint = deadendPlain.intersection(new Line(centerPoint, e1))
+        // wedgePoint = wedgePoint.add(e1.scale(-ORIGAMI_KERF))
+        wedgePoint.z = 0
+        coverWedges.push({
+          angle: angle/2 * 180/Math.PI * (IS_BOTTOM ? 1 : -1),
+          directionAngle: e1.signedAngle(LEFT) * 180/Math.PI,
+          position: wedgePoint.toArray(),
+          thickness: THICKNESS() + EXTRA_COVER_THICKNESS,
+          width: CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER)
+        })
       } else {
         if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
           if (cat5PortMidway) {
@@ -369,31 +387,39 @@ async function createCoverSVG(plain) {
     // TODO actually detect "negative" area
     let isTooSmall = borderPoints.length == 3 && triangularArea(borderPoints) < 105
     if (!skipBorder && !isTooSmall) {
-      totalPathString += "M" + borderString.substring(1) + "Z "
+      borderString = "M" + borderString.substring(1) + "Z "
+      totalPathString += borderString
+      totalBorderString += borderString
     }
     totalPathString += channelString
   } // END for (let dPath of paths)
-  cover.querySelector("path").setAttribute("d", totalPathString)
 
   for (let vertex of verticies) {
     vertex.ogCoords = vertex.oogCoords
     delete vertex.oogCoords
   }
 
+  cover.querySelector("path").setAttribute("d", totalPathString)
+  let svg = cover.outerHTML
+  cover.querySelector("path").setAttribute("d", totalBorderString)
+  let borderSvg = cover.outerHTML
+
   coverWedges.forEach(wedge => {
     wedge.position = [
       wedge.position[0] - minX,
       maxY - 2*minY - wedge.position[1],
-      0,
+      wedge.position[2],
     ]
   })
   return {
-    svg: document.getElementById("cover").outerHTML,
+    svg,
+    borderSvg,
     wedges: coverWedges,
   }
 }
 
 function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) {
+  offset = offset.sub(new Vector(0,0, offset.z))
   if (wallLength > 1e6) return ""
   let path = ""
   if (localOffset) {
@@ -403,7 +429,9 @@ function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) 
   }
 
   function addLatch(x, directionSign) {
-    let position = offset.addScaledVector(basis[0], x).addScaledVector(basis[1], WALL_THICKNESS/2)
+    let position = offset.addScaledVector(basis[0], x)
+        .addScaledVector(basis[1], WALL_THICKNESS/2)
+        .addScaledVector(FORWARD, EXTRA_COVER_THICKNESS)
     coverWedges.push({
       angle: CHANNEL_LATCH_ANGLE,
       directionAngle: basis[0].scale(directionSign).signedAngle(RIGHT) * 180/Math.PI,
@@ -531,12 +559,21 @@ function blankPrint() {
     ledSupports: [],
     embossings: [],
     nubs: [],
+    svgs: [{
+      thickness: WALL_THICKNESS,
+    }],
   }
+}
+
+function setLatestWallSvg(printInfo) {
+  printInfo.prints[printInfo.prints.length - 1].svgs[0].svg = wall.outerHTML
 }
 
 function makeNub(position) {
   if (position.isVector) {
-    position = [position.x, WALL_PANEL_HEIGHT - position.y, 0]
+    position = [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS]
+  } else {
+    position[2] = WALL_THICKNESS
   }
   return {
     width: NUB_WIDTH,
@@ -550,7 +587,6 @@ function createPrintInfo(displayOnly) {
   if (!displayOnly) {
     printInfo = {
       type: "gcode",
-      thickness: WALL_THICKNESS + WALL_VERT_KERF,
       EXTRA_SCALE,
       PROCESS_STOP,
       prints: [blankPrint()],
@@ -657,7 +693,7 @@ function createPrintInfo(displayOnly) {
   wall.setAttribute("width", width)
   wall.setAttribute("viewBox", `0 0 ${width} ${WALL_PANEL_HEIGHT}`)
   if (printInfo) {
-    printInfo.prints[printInfo.prints.length - 1].svg = wall.outerHTML
+    setLatestWallSvg(printInfo, wall.outerHTML)
   }
 
   return printInfo
@@ -679,7 +715,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
   if (offset[1] + wallHeight > WALL_PANEL_HEIGHT - WALL_SVG_PADDING.bottom) {
     if (printInfo) {
       wall.querySelector("path").setAttribute("d", path)
-      printInfo.prints[printInfo.prints.length - 1].svg = wall.outerHTML
+      setLatestWallSvg(printInfo)
       printInfo.prints.push(blankPrint())
       path = ""
       offset[0] = WALL_SVG_PADDING.left + wallLength
@@ -704,7 +740,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       directionAngle: 0,
       position: [offset[0] + extra_end_bit, y, 0],
       width: CHANNEL_DEPTH,
-      thickness: printInfo.thickness,
+      thickness: WALL_THICKNESS,
     }
     if (epsilonEquals(angle1, 0)) {
       wedge1.angle = 45
@@ -717,7 +753,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       directionAngle: 180,
       position: [offset[0] - wallLength - extra_start_bit, y, 0],
       width: CHANNEL_DEPTH,
-      thickness: printInfo.thickness,
+      thickness: WALL_THICKNESS,
     }
     if (epsilonEquals(angle2, 0)) {
       wedge2.angle = -45
@@ -731,28 +767,28 @@ function wallPath(path, offset, wallLength, angle1, angle2,
 
       let x = 0
       let nubX = offset[0] - (x + NOTCH_DEPTH + NUB_INSET_X)
-      print.nubs.push(makeNub([nubX, nubY1, 0]))
-      print.nubs.push(makeNub([nubX, nubY2, 0]))
+      print.nubs.push(makeNub([nubX, nubY1]))
+      print.nubs.push(makeNub([nubX, nubY2]))
       for (let notch of notches) {
         x = notch.center
         nubX = offset[0] - (x - NOTCH_DEPTH - NUB_INSET_X)
-        print.nubs.push(makeNub([nubX, nubY1, 0]))
-        print.nubs.push(makeNub([nubX, nubY2, 0]))
+        print.nubs.push(makeNub([nubX, nubY1]))
+        print.nubs.push(makeNub([nubX, nubY2]))
         nubX = offset[0] - (x + NOTCH_DEPTH + NUB_INSET_X)
-        print.nubs.push(makeNub([nubX, nubY1, 0]))
-        print.nubs.push(makeNub([nubX, nubY2, 0]))
+        print.nubs.push(makeNub([nubX, nubY1]))
+        print.nubs.push(makeNub([nubX, nubY2]))
         x = notch.center
       }
       x = wallLength
       nubX = offset[0] - (x - NOTCH_DEPTH - NUB_INSET_X)
-      print.nubs.push(makeNub([nubX, nubY1, 0]))
-      print.nubs.push(makeNub([nubX, nubY2, 0]))
+      print.nubs.push(makeNub([nubX, nubY1]))
+      print.nubs.push(makeNub([nubX, nubY2]))
     }
 
     if (!hasWallPort && !isPowerCordPort) {
       print.embossings.push({
         text: embossingText,
-        position: [offset[0] - wallLength/2, y, 0],
+        position: [offset[0] - wallLength/2, y, WALL_THICKNESS],
       })
     }
 
@@ -770,7 +806,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       }
       if (supportX + LED_SUPPORT_WIDTH/2 < wallLength) {
         print.ledSupports.push({
-          position: [offset[0] - supportX, y, 0],
+          position: [offset[0] - supportX, y, WALL_THICKNESS],
           width: LED_SUPPORT_WIDTH,
           height: LED_SUPPORT_HEIGHT,
           thickness: LED_SUPPORT_THICKNESS,
@@ -859,7 +895,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
   if (printInfo) {
     if (path != "") {
       wall.querySelector("path").setAttribute("d", path)
-      printInfo.prints[printInfo.prints.length - 1].svg = wall.outerHTML
+      setLatestWallSvg(printInfo)
       printInfo.prints.push(blankPrint())
     }
     path = ""
@@ -942,7 +978,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
       directionAngle: 180,
       position: [position.x, WALL_PANEL_HEIGHT - position.y, 0],
       width: CHANNEL_DEPTH,
-      thickness: printInfo.thickness,
+      thickness: WALL_THICKNESS,
     }
     print.wedges.push(wedge1)
     position = new Vector(offset[0], offset[1], 0)
@@ -954,7 +990,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
       directionAngle: foldWall.angle * 180/Math.PI,
       position: [position.x, WALL_PANEL_HEIGHT - position.y, 0],
       width: CHANNEL_DEPTH,
-      thickness: printInfo.thickness,
+      thickness: WALL_THICKNESS,
     }
     print.wedges.push(wedge2)
 
@@ -965,11 +1001,12 @@ function foldWallPath(path, offset, foldWall, printInfo) {
         .addScaledVector(RIGHT, foldWall.lengthOffset)
     position = startV.addScaledVector(RIGHT, PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
     print.ledSupports.push({
-      position: [position.x, WALL_PANEL_HEIGHT - position.y, 0],
+      position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
       width: LED_SUPPORT_WIDTH,
       height: LED_SUPPORT_HEIGHT,
       thickness: LED_SUPPORT_THICKNESS,
       gap: LED_SUPPORT_GAP,
+      rotationAngle: 0,
     })
     let secondSupportOffset = foldWall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
     secondSupportOffset = secondSupportOffset % PIXEL_DISTANCE
@@ -980,7 +1017,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
         .addScaledVector(RIGHT, foldWall.edgeLength1)
         .addScaledVector(E, secondSupportOffset)
     print.ledSupports.push({
-      position: [position.x, WALL_PANEL_HEIGHT - position.y, 0],
+      position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
       width: LED_SUPPORT_WIDTH,
       height: LED_SUPPORT_HEIGHT,
       thickness: LED_SUPPORT_THICKNESS,
@@ -1103,6 +1140,7 @@ async function generateManufacturingInfo() {
     
     IS_BOTTOM = false
     window.KERF = TOP_KERF
+    window.ORIGAMI_KERF = TOP_ORIGAMI_KERF == null ? ORIGAMI_KERF : TOP_ORIGAMI_KERF
     for (let plain of plains) {
       covers.top.push(await createCoverSVG(plain))
       console.log(`Top svg ${covers.top.length-1} is ${((maxX - minX)/96).toFixed(2)}" by ${((maxY-minY)/96).toFixed(2)}"`)
@@ -1110,6 +1148,7 @@ async function generateManufacturingInfo() {
     wallInfo = [] // Avoid duplicating wall info
     IS_BOTTOM = true
     window.KERF = BOTTOM_KERF
+    window.ORIGAMI_KERF = BOTTOM_ORIGAMI_KERF == null ? ORIGAMI_KERF : BOTTOM_ORIGAMI_KERF
     for (let plain of plains) {
       covers.bottom.push(await createCoverSVG(plain))
       console.log(`Bottom svg ${covers.bottom.length-1} is ${((maxX - minX)/96).toFixed(2)}" by ${((maxY-minY)/96).toFixed(2)}"`)

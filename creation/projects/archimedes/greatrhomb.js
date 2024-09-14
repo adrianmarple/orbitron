@@ -1,17 +1,6 @@
 module.exports = () => {
+  setFor3DPrintedCovers()
   pixelDensity = 0.5
-  ANTI_CORNER = 0.5
-  TOP_THICKNESS = WALL_THICKNESS
-  BOTTOM_THICKNESS = WALL_THICKNESS
-  BORDER = 3
-  BOTTOM_KERF = -0.08 // -0.1
-  TOP_KERF = BOTTOM_KERF
-  WALL_KERF = 0
-  NOTCH_KERF = 0
-  ORIGAMI_KERF = 0
-  coverPrint3D = true
-  addNubs = false
-  addExtraFoldWallWedge = false
 
   wallPostProcessingFunction = printInfo => {
     printInfo.prints = [printInfo.prints[0], printInfo.prints[2], printInfo.prints[4]]

@@ -7,7 +7,6 @@ module.exports = () => {
   startMidwayDownFinalEdge = true
   ledAtVertex = false
   // EXTRA_SCALE = 1.0015
-  WALL_VERT_KERF = 0.15
 
   addPolygon(4, [0,0,0], [44,56])
 

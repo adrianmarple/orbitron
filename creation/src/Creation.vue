@@ -181,9 +181,21 @@ export default {
     async downloadCovers() {
       if (coverPrint3D) {
         for (let type of ["top", "bottom"]) {
+          covers[type].forEach(print => {
+            print.svgs = [
+              {
+                svg: print.svg,
+                thickness: THICKNESS(),
+                position: [0,0,EXTRA_COVER_THICKNESS],
+              },
+              {
+                svg: print.borderSvg,
+                thickness: EXTRA_COVER_THICKNESS,
+              }
+            ]
+          })
           let printInfo = {
             type: "gcode",
-            thickness: IS_BOTTOM ? BOTTOM_THICKNESS : TOP_THICKNESS,
             EXTRA_SCALE,
             PROCESS_STOP,
             prints: covers[type],

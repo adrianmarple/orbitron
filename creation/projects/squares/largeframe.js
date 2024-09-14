@@ -5,7 +5,6 @@ module.exports = () => {
   // cat5PortMidway = true
   // startMidwayDownFinalEdge = true
   ledAtVertex = true
-  WALL_VERT_KERF = 0.15
 
   xCount = 93
   xWiggle = xCount * PIXEL_DISTANCE - CHANNEL_WIDTH - 2*WALL_THICKNESS - 1524
