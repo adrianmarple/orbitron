@@ -74,7 +74,7 @@ async function EulerianHelper(currentVertex, pathOverride) {
       let v2 = otherVertex(remainingEdges[1], currentVertex).coordinates
       let e0 = v1.sub(v0)
       let e1 = v2.sub(v1)
-      // let edgeAngle = Math.abs(e0.signedAngle(e1))
+
       let edgeAngle = Math.abs(e0.angleTo(e1))
       if (edgeAngle < Math.PI/4) {
         path.pop()

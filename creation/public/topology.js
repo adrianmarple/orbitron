@@ -126,6 +126,13 @@ function removeEdge(edge) {
   }
   resetInidices()
 }
+function removeEdges(...indicies) {
+  indicies = indicies.sort().reverse()
+  for (let index of indicies) {
+    removeEdge(index)
+  }
+}
+
 function remove(array, element)  {
   let index = array.indexOf(element)
   if (index >= 0) {
@@ -174,6 +181,20 @@ function addPolygon(sideCount, center, edgeLengths) {
     previousVertex = vertex
   }
   return newEdges
+}
+
+function addRhombus(edgeLength, center, angle) {
+  angle = angle || Math.PI/2
+  let rhombVerticies = []
+  rhombVerticies.push(addVertex(center.add(new Vector(Math.cos(angle/2)*edgeLength, 0, 0))))
+  rhombVerticies.push(addVertex(center.add(new Vector(0, -Math.sin(angle/2)*edgeLength, 0))))
+  rhombVerticies.push(addVertex(center.add(new Vector(-Math.cos(angle/2)*edgeLength, 0, 0))))
+  rhombVerticies.push(addVertex(center.add(new Vector(0, Math.sin(angle/2)*edgeLength, 0))))
+
+  for (let i = 0; i < 4; i++) {
+    addEdge(rhombVerticies[i], rhombVerticies[(i+1)%4])
+  }
+  return rhombVerticies
 }
 
 function extrudePolygon(startingEdge, sideCount, edgeLengths, negate) {
@@ -491,6 +512,42 @@ async function addSquaresFromPixels(src) {
     }
   }
   center()
+}
+
+
+// Assume z = 0 for now
+// From https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+function edgeIntersection(edge1, edge2) {
+  let epsilon = 1e-3
+  let x1 = edge1.verticies[0].ogCoords.x
+  let y1 = edge1.verticies[0].ogCoords.y
+  let x2 = edge1.verticies[1].ogCoords.x
+  let y2 = edge1.verticies[1].ogCoords.y
+  let x3 = edge2.verticies[0].ogCoords.x
+  let y3 = edge2.verticies[0].ogCoords.y
+  let x4 = edge2.verticies[1].ogCoords.x
+  let y4 = edge2.verticies[1].ogCoords.y
+
+  let t = ((x1-x3)*(y3-y4) - (y1-y3)*(x3-x4)) / ((x1-x2)*(y3-y4) - (y1-y2)*(x3-x4))
+  if (t < epsilon || t > 1-epsilon || isNaN(t)) return null
+  let u = -((x1-x2)*(y1-y3) - (y1-y2)*(x1-x3)) / ((x1-x2)*(y3-y4) - (y1-y2)*(x3-x4))
+  if (u < epsilon || u > 1-epsilon || isNaN(u)) return null
+
+  return new Vector(x1 + t*(x2-x1), y1 + t*(y2-y1), 0)
+}
+function cleanupIntersectingEdges() {
+  for (let i = 0; i < edges.length; i++) {
+    let edge1 = edges[i]
+    for (let j = i+1; j < edges.length; j++) {
+      let edge2 = edges[j]
+      let intersection = edgeIntersection(edge1, edge2)
+      if (intersection) {
+        splitEdge(edge1, edge1.verticies[0].ogCoords.distanceTo(intersection))
+        splitEdge(edge2, edge2.verticies[0].ogCoords.distanceTo(intersection))
+      }
+    }
+  }
+
 }
 
 

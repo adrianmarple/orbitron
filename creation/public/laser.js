@@ -332,9 +332,7 @@ async function createCoverSVG(plain) {
 
         // fold wall miter
         centerPoint = v2.addScaledVector(FORWARD, plainTranslationValue)
-        console.log(e1)
         let wedgePoint = deadendPlain.intersection(new Line(centerPoint, e1))
-        // wedgePoint = wedgePoint.add(e1.scale(-ORIGAMI_KERF))
         wedgePoint.z = 0
         coverWedges.push({
           angle: angle/2 * 180/Math.PI * (IS_BOTTOM ? 1 : -1),
@@ -1154,7 +1152,9 @@ async function generateManufacturingInfo() {
       console.log(`Bottom svg ${covers.bottom.length-1} is ${((maxX - minX)/96).toFixed(2)}" by ${((maxY-minY)/96).toFixed(2)}"`)
     }
     coverPostProcessingFunction(covers)
-    document.getElementById("cover").outerHTML = covers.bottom[0].svg
+    if (covers.bottom.length[0]) {
+      document.getElementById("cover").outerHTML = covers.bottom[0].svg
+    }
 
     wallInfo.sort((a,b) => a.length - b.length)
     createPrintInfo(true)
