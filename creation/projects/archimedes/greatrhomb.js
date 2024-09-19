@@ -1,12 +1,10 @@
 module.exports = () => {
   setFor3DPrintedCovers()
   pixelDensity = 0.5
+  cat5FoldWallIndex = 3
 
   wallPostProcessingFunction = printInfo => {
-    printInfo.prints = [printInfo.prints[0], printInfo.prints[2], printInfo.prints[4]]
-    printInfo.prints.forEach(print => {
-      print.ledSupports = [print.ledSupports[0]]
-    })
+    printInfo.prints = [printInfo.prints[0], printInfo.prints[2], printInfo.prints[4], printInfo.prints[3]]
   }
   coverPostProcessingFunction = covers => {
     covers.top = [covers.top[0]]
@@ -69,5 +67,5 @@ module.exports = () => {
   }
   isWall = true
 
-  EulerianPath(verticies[0],[0])
+  EulerianPath(1, 1)
 }

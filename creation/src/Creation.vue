@@ -126,10 +126,9 @@ export default {
       this.setCoverSVG()
     },
     setCoverSVG() {
-      let wall = document.getElementById("cover")
-      let cover = covers[this.coverMode][this.coverIndex]
+      let coverInfo = covers[this.coverMode][this.coverIndex]
       if (!cover) return
-      wall.outerHTML = cover.svg
+      cover.outerHTML = coverInfo.svg
 
       if (generateWallNumbers) {
         let scale = coverPrint3D ? 1 : MM_TO_96DPI

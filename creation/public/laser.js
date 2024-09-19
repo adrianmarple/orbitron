@@ -683,6 +683,7 @@ function createPrintInfo(displayOnly) {
   }
 
   for (let foldWall of foldWalls) {
+    foldWall.hasWallPort = foldWalls.indexOf(foldWall) == cat5FoldWallIndex
     path = foldWallPath(path, offset, foldWall, printInfo)
   }
   
@@ -847,27 +848,7 @@ function wallPath(path, offset, wallLength, angle1, angle2,
 
   // Is the entry wall for CAT5 port
   if (hasWallPort) {
-    let x0 = offset[0] - cat5Offset
-    let x1 = x0 - CAT5_WIRES_WIDTH/2 - CAT5_ADDITONAL_OFFSET
-    let y1 = offset[1] + BOTTOM_THICKNESS + CHANNEL_DEPTH
-    let x2 = x0 - CAT5_SNAP_DISTANCE/2 - CAT5_ADDITONAL_OFFSET
-    let y2 = offset[1] + HEIGHT() - TOP_THICKNESS - CAT5_HEIGHT + CAT5_SNAP_Y
-    path += `
-      M${x1} ${y1}
-      h${CAT5_WIRES_WIDTH}
-      v${-CAT5_WIRES_HEIGHT}
-      h${-CAT5_WIRES_WIDTH}
-      Z
-      M${x2} ${y2}
-      h${CAT5_SNAP_WIDTH}
-      v${-CAT5_SNAP_HEIGHT}
-      h${-CAT5_SNAP_WIDTH}
-      Z
-      M${x2 + CAT5_SNAP_DISTANCE} ${y2}
-      h${-CAT5_SNAP_WIDTH}
-      v${-CAT5_SNAP_HEIGHT}
-      h${CAT5_SNAP_WIDTH}
-      Z`
+    path += portPath(offset[0] - cat5Offset, offset[1])
   }
 
   // Hole for power cord port
@@ -997,31 +978,37 @@ function foldWallPath(path, offset, foldWall, printInfo) {
         .addScaledVector(LEFT, foldWall.bottomLength1)
         .addScaledVector(UP, CHANNEL_DEPTH/2)
         .addScaledVector(RIGHT, foldWall.lengthOffset)
-    position = startV.addScaledVector(RIGHT, PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
-    print.ledSupports.push({
-      position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
-      width: LED_SUPPORT_WIDTH,
-      height: LED_SUPPORT_HEIGHT,
-      thickness: LED_SUPPORT_THICKNESS,
-      gap: LED_SUPPORT_GAP,
-      rotationAngle: 0,
-    })
-    let secondSupportOffset = foldWall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
-    secondSupportOffset = secondSupportOffset % PIXEL_DISTANCE
-    if (secondSupportOffset < LED_SUPPORT_WIDTH/2) {
-      secondSupportOffset += PIXEL_DISTANCE
+    
+    if (!foldWall.hasWallPort) {
+      position = startV.addScaledVector(RIGHT, PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
+      print.ledSupports.push({
+        position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
+        width: LED_SUPPORT_WIDTH,
+        height: LED_SUPPORT_HEIGHT,
+        thickness: LED_SUPPORT_THICKNESS,
+        gap: LED_SUPPORT_GAP,
+        rotationAngle: 0,
+      })
     }
-    position = startV
-        .addScaledVector(RIGHT, foldWall.edgeLength1)
-        .addScaledVector(E, secondSupportOffset)
-    print.ledSupports.push({
-      position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
-      width: LED_SUPPORT_WIDTH,
-      height: LED_SUPPORT_HEIGHT,
-      thickness: LED_SUPPORT_THICKNESS,
-      gap: LED_SUPPORT_GAP,
-      rotationAngle: foldWall.angle * 180/Math.PI,
-    })
+
+    if (foldWall.bottomLength2 > PIXEL_DISTANCE * 3) {
+      let secondSupportOffset = foldWall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+      secondSupportOffset = secondSupportOffset % PIXEL_DISTANCE
+      if (secondSupportOffset < LED_SUPPORT_WIDTH/2) {
+        secondSupportOffset += PIXEL_DISTANCE
+      }
+      position = startV
+          .addScaledVector(RIGHT, foldWall.edgeLength1)
+          .addScaledVector(E, secondSupportOffset)
+      print.ledSupports.push({
+        position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
+        width: LED_SUPPORT_WIDTH,
+        height: LED_SUPPORT_HEIGHT,
+        thickness: LED_SUPPORT_THICKNESS,
+        gap: LED_SUPPORT_GAP,
+        rotationAngle: foldWall.angle * 180/Math.PI,
+      })
+    }
 
     if (addNubs) { // Nubs
       let nub1 = new Vector(offset[0], offset[1], 0)
@@ -1049,7 +1036,35 @@ function foldWallPath(path, offset, foldWall, printInfo) {
     }
   }
 
+  if (foldWall.hasWallPort) {
+    path += portPath(offset[0] - foldWall.bottomLength1 + CAT5_WIDTH/2 + NOTCH_DEPTH,
+                     offset[1] - BOTTOM_THICKNESS)
+  }
+
   return path
+}
+
+function portPath(x, y) {
+  let x1 = x - CAT5_WIRES_WIDTH/2 - CAT5_ADDITONAL_OFFSET
+  let y1 = y + BOTTOM_THICKNESS + CHANNEL_DEPTH
+  let x2 = x - CAT5_SNAP_DISTANCE/2 - CAT5_ADDITONAL_OFFSET
+  let y2 = y1 - CAT5_HEIGHT + CAT5_SNAP_Y
+  return `
+    M${x1} ${y1}
+    h${CAT5_WIRES_WIDTH}
+    v${-CAT5_WIRES_HEIGHT}
+    h${-CAT5_WIRES_WIDTH}
+    Z
+    M${x2} ${y2}
+    h${CAT5_SNAP_WIDTH}
+    v${-CAT5_SNAP_HEIGHT}
+    h${-CAT5_SNAP_WIDTH}
+    Z
+    M${x2 + CAT5_SNAP_DISTANCE} ${y2}
+    h${-CAT5_SNAP_WIDTH}
+    v${-CAT5_SNAP_HEIGHT}
+    h${CAT5_SNAP_WIDTH}
+    Z`
 }
 
 

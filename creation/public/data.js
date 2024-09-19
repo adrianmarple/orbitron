@@ -56,7 +56,7 @@ async function EulerianHelper(currentVertex, pathOverride) {
   edgesCopy.sort((a,b) => distance(b) - distance(a))
 
   for (let edge of edgesCopy) {
-    if (path.includes(edge.index)) continue;
+    if (path.includes(edge.index)) continue
 
     path.push(edge.index);
     let remainingEdges = currentVertex.edges.filter(edge => !path.includes(edge.index))
