@@ -348,7 +348,10 @@ if os.path.exists(pref_path):
 
 if os.path.exists(timing_pref_path):
   f = open(timing_pref_path, "r")
-  timing_prefs.update(json.loads(f.read()))
+  try:
+    timing_prefs.update(json.loads(f.read()))
+  except:
+    pass
   f.close()
 current_prefs.update(timing_prefs)
 
