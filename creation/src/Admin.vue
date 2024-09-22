@@ -342,7 +342,7 @@ export default {
         data: qrUrl
       })
       let data = await blobToBase64(await this.qrCode.getRawData())
-      this.$root.push({
+      this.$root.post({
         fullProjectName: readFromConfig(this.config, 'PIXELS'),
         type: "qr",
         scale: 48.0 / this.qrSize,

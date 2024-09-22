@@ -1,10 +1,10 @@
 module.exports = () => {
   setFor3DPrintedCovers()
   pixelDensity = 0.5
-  cat5FoldWallIndex = 3
+  cat5FoldWallIndex = 5
 
   wallPostProcessingFunction = printInfo => {
-    printInfo.prints = [printInfo.prints[0], printInfo.prints[2], printInfo.prints[4], printInfo.prints[3]]
+    printInfo.prints = [printInfo.prints[0], printInfo.prints[2], printInfo.prints[4], printInfo.prints[5]]
   }
   coverPostProcessingFunction = covers => {
     covers.top = [covers.top[0]]
