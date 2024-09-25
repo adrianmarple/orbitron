@@ -446,12 +446,13 @@ addPOSTListener(async (response, body) => {
     headers: { "X-Api-Key": process.env.PRINTER_LINK_API_KEY},
   })).json()
 
+  console.log(`Cleaning up "${name}" files`)
   for (let {display_name} of fileData.children) {
     if (display_name.toLowerCase().startsWith(name)) {
-      execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${display_name}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+      execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${encodeURIComponent(display_name)}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+        .then(() => console.log(`Deleted ${display_name}`))
     }
   }
-  console.log(`Cleaned up "${name}" files`)
   return true
 })
 

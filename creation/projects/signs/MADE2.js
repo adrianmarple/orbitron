@@ -2,6 +2,7 @@
 module.exports = async () => {
   await addFromSVG("signs/MADE.svg")
   ledAtVertex = true
+  cat5WallOverride = 30
 
   splitEdge(57,-2)
   splitEdge(59,2)
@@ -15,5 +16,5 @@ module.exports = async () => {
   removeVertex(42)
   removeVertex(42)
 
-  EulerianPath(0)
+  EulerianPath(4)
 }
