@@ -58,6 +58,7 @@ var app = new Vue({
     speedbumpMessage: "",
     speedbumpTimestamp: 0,
 
+    rem: 999,
     vw: innerWidth / 100.0,
     vh: innerHeight / 100.0,
     nav: "timing",
@@ -99,15 +100,12 @@ var app = new Vue({
       this.handleChange(event.changedTouches[0])
     }
 
-    let self = this
-    onresize = _ => {
-      self.vw = innerWidth / 100.0
-      self.vh = innerHeight / 100.0
-      self.$forceUpdate()
+    onresize = this.setRem
+    addEventListener("DOMContentLoaded", this.setRem)
+    // So hacky, but this seems relatively robust and necessary for things like firefox on iOS
+    for (let i = 0; i < 20; i++) {
+      setTimeout(this.setRem, 100*i)
     }
-
-    // Do this last just in case localStorage is inaccessible and errors
-    // this.localFlags = JSON.parse(localStorage.getItem('flags')) || {}
 
     this.nav = this.navBarItems[0]
   },
@@ -180,9 +178,6 @@ var app = new Vue({
   },
 
   computed: {
-    rem() {
-      return Math.min(1.35 * this.vh, 2 * this.vw)
-    },
     BETWEEN_GAMES() { return !this.state.game },
     connectionStatus() {
       if(this.blurred){
@@ -353,6 +348,13 @@ var app = new Vue({
   },
 
   methods: {
+    setRem() {
+      this.vw = innerWidth / 100.0
+      this.vh = innerHeight / 100.0
+      this.rem =  Math.min(1.35 * this.vh, 2 * this.vw)
+      console.log("rem")
+      this.$forceUpdate()
+    },
     login() {
       this.send({type: "login", loginCode: this.loginCode})
     },

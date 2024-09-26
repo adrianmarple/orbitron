@@ -471,7 +471,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .scrim {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
   top: 0;
@@ -520,7 +520,8 @@ input[type="range"]::-moz-range-thumb {
 .schedule, .scroll-containter  {
   align-items: center;
   width: 100%;
-  max-height: calc(90vh - 20rem);
+  max-height: max(55vh, 44rem);
+  /* max-height: 54rem; */
   overflow-y: scroll;
   overflow-x: hidden;
   position: relative;
@@ -533,7 +534,7 @@ input[type="range"]::-moz-range-thumb {
   left: 0;
   right: 0;
   background-color: var(--bg-color);
-  opacity: 0.3;
+  opacity: 0.5;
   z-index: 2;
 }
 .schedule::after {
@@ -562,6 +563,12 @@ input[type="range"]::-moz-range-thumb {
 .event > * {
   margin: 0 1rem;
   z-index: 1;
+}
+.event .custom-select {
+  width: 18rem;
+}
+.event input[type="time"] {
+  width: 15rem;
 }
 
 .fades {
@@ -602,9 +609,6 @@ input[type="range"]::-moz-range-thumb {
 #restore-defaults {
   margin-bottom: 1.5rem;
 }
-.scroll-containter {
-  max-height: calc(90vh - 25rem);
-}
 .scroll-containter textarea {
   font-style: inherit;
   font-size: 1em;
@@ -618,6 +622,7 @@ input[type="range"]::-moz-range-thumb {
   padding: 0;
   white-space: normal;
   height: 4rem;
+  overflow: hidden;
 }
 .scroll-containter textarea:focus-visible {
   outline-width: 0;
@@ -676,8 +681,8 @@ input[type="range"]::-moz-range-thumb {
 #save-bottom-stuff textarea {
   font-size: 4rem;
   height: 5rem;
-  width: 27rem;
-  vertical-align: center;
+  width: 25rem;
+  margin-right: 1rem;
   font-family: Arial, Helvetica, sans-serif;
 }
 #save-bottom-stuff .button {
@@ -687,6 +692,7 @@ input[type="range"]::-moz-range-thumb {
   height: 5rem;
   display: flex;
   align-items: center;
+  padding: 0.25rem;
 }
 
 
