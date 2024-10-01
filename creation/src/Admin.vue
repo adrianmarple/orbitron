@@ -47,8 +47,8 @@
 
 <div class="names">
   {{ orbID }}
-  <div>Alias:
-    <span v-if="alias">{{alias}}</span>
+  <div @blur="editingAlias = false">Alias:
+    <span v-if="alias && !editingAlias" @click="editAlias">{{alias}}</span>
     <span v-else>
       <textarea v-model="newAlias"></textarea>
       <div class="button" @click="saveAlias">Save</div>
@@ -102,6 +102,7 @@ export default {
       viewing: "config",
       qrCode: null,
       newAlias: "",
+      editingAlias: false,
       backupList: [],
       selectedBackup: null,
     }
@@ -244,18 +245,31 @@ export default {
       }, this.orbID)
       this.idToTimingPrefs[this.orbID] = this.timingprefs
     },
+
+    async editAlias() {
+      this.editingAlias = true
+      this.newAlias = this.alias
+      await this.$forceUpdate()
+      document.querySelector(".names textarea").focus()
+    },
     async saveAlias() {
+      this.editingAlias = false
       this.sendServerCommand({
         type: "alias",
         id: this.orbID,
         alias: this.newAlias,
       })
+      this.alias = this.newAlias
 
       let serverConfig = this.idToConfig[this.serverOrbID]
       if (!serverConfig) {
         serverConfig = await this.sendCommand({type: "getconfig"}, this.serverOrbID)
       }
-      serverConfig = upsertLineInConfig(serverConfig, `    "${this.orbID}": "${this.newAlias}",`, "ALIASES")
+      serverConfig = upsertKeyValueInConfig(serverConfig,
+        `"${this.orbID}"`,
+        this.newAlias,
+        "ALIASES",
+        4)
       this.idToConfig[this.serverOrbID] = serverConfig
       await this.sendCommand({
         type: "setconfig",
@@ -264,6 +278,7 @@ export default {
       }, this.serverOrbID)
       await this.updateConfig()
     },
+
     async restartOrb() {
       await this.sendCommand({ type: "restart" }, this.orbID)
     },
@@ -386,16 +401,19 @@ function readFromConfig(config, key) {
   let match = config.match(regex)
   return match[1]
 }
-function upsertKeyValueInConfig(config, key, value, after) {
-  let newLine = `  ${key}: "${value}",`
+function upsertKeyValueInConfig(config, key, value, after, tabs) {
+  if (tabs == undefined) {
+    tabs = 2
+  }
+  let newLine = `${" ".repeat(tabs)}${key}: "${value}",`
   let match = config.match(new RegExp(`.*${key}.*`))
   if (match) {
     config = config.replace(match[0], newLine)
     return config
   }
-  return upsertLineInConfig(config, newLine, after)
+  return insertLineInConfig(config, newLine, after)
 }
-function upsertLineInConfig(config, newLine, after) {
+function insertLineInConfig(config, newLine, after) {
   if (after) {
     config = config.replace(new RegExp(`.*${after}.*`), "$&\n" + newLine)
   } else {

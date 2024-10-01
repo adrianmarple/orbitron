@@ -741,10 +741,6 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       width: CHANNEL_DEPTH,
       thickness: WALL_THICKNESS,
     }
-    if (epsilonEquals(angle1, 0)) {
-      wedge1.angle = 45
-      wedge1.centered = true
-    }
     print.wedges.push(wedge1)
     
     let wedge2 = {
@@ -753,10 +749,6 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       position: [offset[0] - wallLength - extra_start_bit, y, 0],
       width: CHANNEL_DEPTH,
       thickness: WALL_THICKNESS,
-    }
-    if (epsilonEquals(angle2, 0)) {
-      wedge2.angle = -45
-      wedge2.centered = true
     }
     print.wedges.push(wedge2)
 

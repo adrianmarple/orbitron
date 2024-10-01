@@ -341,15 +341,6 @@ async function generateGCode(info, index) {
       }
   }
 
-  module neg_wedge_half(angle, direction_angle, width, thickness) {
-    z = angle < 0 ? thickness / 2 : thickness * 1.25;
-    x = angle < 0 ? 0 : tan(angle) * thickness * 0.25;
-
-    translate([x, 0, z])
-    rotate(a=180, v=[0,1,0])
-    wedge(angle, direction_angle, width+1, thickness);
-  }
-
   module led_support(width, thickness, height, gap) {
     union() {
       translate([0, (gap + thickness) / 2, height / 2])
@@ -363,14 +354,6 @@ async function generateGCode(info, index) {
   scale([${info.EXTRA_SCALE}, 1, 1])
   union() {`
     for (let wedge of print.wedges) {
-      let thickness = wedge.thickness
-      if (wedge.centered) {
-        thickness /= 2
-        if (wedge.angle < 0) {
-          scadFileContents += `
-          translate([0,0,${thickness}])`
-        }
-      }
       scadFileContents += `
       translate([${wedge.position}])
       wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
@@ -393,31 +376,17 @@ async function generateGCode(info, index) {
       translate([${nub.position}])
       cylinder(r=${nub.width/2}, h=${nub.height});`
     }
-    scadFileContents += `
-
-    difference() {
-      union() {`
-      for (let svg of print.svgs) {
-        if (svg.position) {
-          scadFileContents += `
-        translate([${svg.position}])`
-        }
+    for (let svg of print.svgs) {
+      if (svg.position) {
         scadFileContents += `
-        linear_extrude(height = ${svg.thickness})
-        scale([${scale},${scale},${scale}])
-        import("${svgFilePath(svg)}");`
+      translate([${svg.position}])`
       }
       scadFileContents += `
-      }
-      `
-      for (let wedge of print.wedges) {
-        if (!wedge.centered) continue
-        scadFileContents += `
-        translate([${wedge.position}])
-        neg_wedge_half(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
-      }
-      scadFileContents += `
+      linear_extrude(height = ${svg.thickness})
+      scale([${scale},${scale},${scale}])
+      import("${svgFilePath(svg)}");`
     }
+    scadFileContents += `
   }`
   console.log("Making .scad " + index)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
