@@ -622,6 +622,13 @@ function createPrintInfo(displayOnly) {
       let powerHoleInstanceIndex = isFinalEdge ? 1:0
 
       isFinalEdge = isFinalEdge && i == 0
+      let context = {
+        printInfo,
+        offset,
+        angle1: wallType.angle1,
+        angle2: wallType.angle2,
+        isPowerCordPort: wallIndex == powerHoleWallIndex && i == powerHoleInstanceIndex,
+      }
       let cat5Offset = NaN
       if (isFinalEdge) {
         if (cat5PortMidway) {
@@ -632,13 +639,16 @@ function createPrintInfo(displayOnly) {
           cat5Offset = NOTCH_DEPTH + CAT5_WIDTH / 2
         }
       }
-      let isPowerCordPort = wallIndex == powerHoleWallIndex && i == powerHoleInstanceIndex
+
+      let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
+      supportX += Math.tan(wallType.angle1) * CHANNEL_WIDTH/2
+      if (wallType.angle1 < 0) {
+        supportX += Math.tan(wallType.angle1) * WALL_THICKNESS
+      }
       
       let notches = generateNotches(wallLength, isFinalEdge)
       let nextNotches = []
       let remainingWallLength = wallLength
-      let angle1 = wallType.angle1
-      let angle2 = wallType.angle2
       let bottomOnlyNotches = []
       let k = 0
       while (k < 100) {
@@ -647,14 +657,21 @@ function createPrintInfo(displayOnly) {
           let tempWallLength = nextNotches.pop().center
           let embossingText = `${wallIndex}.${k}`
           k++
-          path = wallPath(path, offset, tempWallLength, angle1, 0, nextNotches,
-            cat5Offset, false, embossingText, printInfo)
-          angle1 = 0
+          path = wallPath({...context, path, embossingText, cat5Offset, supportX,
+            wallLength: tempWallLength,
+            angle2: 0,
+            notches: nextNotches,
+            isPowerCordPort: false
+          })
+            // path, offset, tempWallLength, angle1, 0, nextNotches,
+            // cat5Offset, false, embossingText, printInfo)
+          context.angle1 = 0
           nextNotches = bottomOnlyNotches
           bottomOnlyNotches = []
           nextNotches.forEach(notch => notch.center -= tempWallLength)
           notches.forEach(notch => notch.center -= tempWallLength)
           remainingWallLength -= tempWallLength
+          supportX -= tempWallLength
           cat5Offset -= tempWallLength
         } else if (notches.length == 0) {
           break
@@ -674,8 +691,12 @@ function createPrintInfo(displayOnly) {
       if (k > 0) {
         embossingText += "." + k
       }
-      path = wallPath(path, offset, remainingWallLength, angle1, angle2,
-          nextNotches, cat5Offset, isPowerCordPort, embossingText, printInfo)
+      path = wallPath({...context, path, embossingText, cat5Offset, supportX,
+        wallLength: remainingWallLength,
+        notches: nextNotches
+      })
+      // path = wallPath(path, offset, remainingWallLength, angle1, angle2,
+      //     nextNotches, cat5Offset, isPowerCordPort, embossingText, printInfo)
 
       if (onlyOneWall) break
     }
@@ -697,8 +718,11 @@ function createPrintInfo(displayOnly) {
 
   return printInfo
 }
-function wallPath(path, offset, wallLength, angle1, angle2,
-    notches, cat5Offset, isPowerCordPort, embossingText, printInfo) {
+function wallPath(context) {
+  let {
+    path, offset, wallLength, angle1, angle2, notches, cat5Offset,
+    isPowerCordPort, embossingText, printInfo, supportX
+  } = context
   
   let hasWallPort = cat5Offset !== undefined &&
       cat5Offset !== NaN &&
@@ -783,18 +807,12 @@ function wallPath(path, offset, wallLength, angle1, angle2,
       })
     }
 
-    if (EDGES_DOUBLED &&
-        !noSupports &&
-        !hasWallPort &&
-        (!embossingText || !embossingText.endsWith(".1"))) {
-      let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
-      supportX += Math.tan(angle1) * CHANNEL_WIDTH/2
-      if (angle1 < 0) {
-        supportX += Math.tan(angle1) * WALL_THICKNESS
-      }
-      while (supportX < 0) {
+    if (EDGES_DOUBLED && !noSupports && !hasWallPort) {
+      console.log(supportX)
+      while (supportX < LED_SUPPORT_WIDTH/2) {
         supportX += PIXEL_DISTANCE
       }
+      console.log(supportX)
       if (supportX + LED_SUPPORT_WIDTH/2 < wallLength) {
         print.ledSupports.push({
           position: [offset[0] - supportX, y, WALL_THICKNESS],
