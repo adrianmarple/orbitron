@@ -201,7 +201,7 @@ function generatePixelInfo() {
     let edgeLength = e2.length()
     for (; true; alpha += rectifiedPixelDensity) {
       
-      if (alpha > edgeLength - 0.01) {
+      if (alpha > edgeLength - 0.005) {
         alpha -= edgeLength
         if (nextVertex.allowNonIntegerLength) break
         if (ledAtVertex && epsilonEquals(alpha, 0, 0.01)) {
@@ -213,7 +213,7 @@ function generatePixelInfo() {
           break
         }
 
-        console.log(alpha/resizeScale, edgeLength/resizeScale)
+        console.log(alpha/resizeScale, edgeLength/resizeScale, pixelDensity)
         console.error("Edge length not a integer multiple of pixel density")
         return
       }

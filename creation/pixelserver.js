@@ -238,28 +238,26 @@ addPOSTListener(async (response, body) => {
   await execute(`${process.env.POTRACE} ${MANUFACTURING_FOLDER}qr.bmp -s`)
 
   console.log("Generating stl")
-  let thickness1 = 2.5
-  let thickness2 = 3.1
-  let scadContents = (await fs.promises.readFile("scad/boxtop.scad")).toString()
+  let thickness = 0.4
+  let scadContents = (await fs.promises.readFile("scad/boxtop3D.scad")).toString()
   console.log(scadContents)
-  scadContents = replaceScadVariable(scadContents, "thickness1", thickness1)
-  scadContents = replaceScadVariable(scadContents, "thickness2", thickness2)
+  scadContents = replaceScadVariable(scadContents, "thickness", thickness)
   scadContents = replaceScadVariable(scadContents, "SCALE", body.scale * 2.83464566929)
   scadContents = replaceScadVariable(scadContents, "svg_file", `"${MANUFACTURING_FOLDER}qr.svg"`)
+  scadContents = replaceScadVariable(scadContents, "frame_file", `"${MANUFACTURING_FOLDER}scad/qrframe.svg"`)
   await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.scad", scadContents)
   if (body.PROCESS_STOP == "scad") return true
 
-  let stlFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.stl"
+  let stlFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_qr.stl"
   await execute(`openscad -o "${stlFilePath}" "${MANUFACTURING_FOLDER}qr.scad"`)
   if (body.PROCESS_STOP == "stl") return true
 
   console.log("Generating gcode")
-  let gcodeFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_box_top.gcode"
+  let gcodeFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_qr.gcode"
   await execute(`${process.env.SLICER} -g --load box_top_config${body.PETG ? "_petg" : ""}.ini "${stlFilePath}" --output ${gcodeFilePath}`)
   let gcodeContents = (await fs.promises.readFile(gcodeFilePath)).toString()
-  let filamentSwitchZ = thickness1 + thickness2 + 0.1
-  let [x,y] = filamentSwitchZ.toFixed(1).split(".")
-  let regex = new RegExp(`;Z:${x}\\.${y}.*?G1 E\\.${body.PETG ? 8 : 7} F2100`, "s")
+  let [x,y] = (thickness + 0.2).toFixed(1).split(".")
+  let regex = new RegExp(`;Z:${x}\\.${y}.*?G1 E-\\.16 F2100`, "s")
 
   let chunkToReplace = gcodeContents.match(regex)[0]
   if (chunkToReplace.length < 1000) {
@@ -272,7 +270,7 @@ addPOSTListener(async (response, body) => {
   if (body.PROCESS_STOP == "bgcode") return true
   
   console.log("Uploading gcode")
-  let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_box_top.gcode"
+  let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_qr.gcode"
   await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
   let resp = await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${gcodeFilePath}`)
   console.log(resp)
@@ -299,6 +297,7 @@ async function generateGCode(info, index) {
   print.ledSupports = print.ledSupports ?? []
   print.nubs = print.nubs ?? []
   print.embossings = print.embossings ?? []
+  print.qtClips = print.qtClips ?? []
 
   if (info.prints.length == 1) {
     index = ""
@@ -351,6 +350,14 @@ async function generateGCode(info, index) {
     }
   }
 
+  module qt_clip() {
+    rotate(v=[1,0,0], a=-90) 
+    translate([-6,-6,-1])
+    linear_extrude(height = 1)
+    scale([2.83464566929,2.83464566929,2.83464566929])
+    import("../qtclip.svg");
+  }
+
   scale([${info.EXTRA_SCALE}, 1, 1])
   union() {`
     for (let wedge of print.wedges) {
@@ -376,6 +383,12 @@ async function generateGCode(info, index) {
       translate([${nub.position}])
       cylinder(r=${nub.width/2}, h=${nub.height});`
     }
+    for (let qtClips of print.qtClips) {
+      scadFileContents += `
+      translate([${qtClips.position}])
+      qt_clip();`
+    }
+
     for (let svg of print.svgs) {
       if (svg.position) {
         scadFileContents += `

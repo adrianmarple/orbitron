@@ -1,4 +1,4 @@
-// SKI
+// SKIP
 module.exports = async () => {
   // setLaserParams({
   //   PIXEL_DISTANCE: 10,

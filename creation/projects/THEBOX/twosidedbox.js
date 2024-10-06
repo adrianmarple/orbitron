@@ -1,7 +1,7 @@
 
 module.exports = async () => {
   setFor3DPrintedCovers()
-  pixelDensity = 0.1
+  pixelDensity = 1
   exteriorOnly = true
   cat5PortMidway = true
   powerHoleWallIndex = 0
@@ -13,7 +13,7 @@ module.exports = async () => {
   CHANNEL_DEPTH = CAT5_HEIGHT
   HEIGHT = CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
 
-  await addFromSVG("THEBOX/small boxshape.svg")
+  await addFromSVG("THEBOX/medium boxshape.svg")
 
   EulerianPath(1)
 }

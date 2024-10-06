@@ -557,6 +557,7 @@ function blankPrint() {
     ledSupports: [],
     embossings: [],
     nubs: [],
+    qtClips: [],
     svgs: [{
       thickness: WALL_THICKNESS,
     }],
@@ -776,7 +777,7 @@ function wallPath(context) {
     }
     print.wedges.push(wedge2)
 
-    if (wallLength >= NUB_MIN_WALL_LENGTH) {
+    if (addNubs && wallLength >= NUB_MIN_WALL_LENGTH) {
       let nubY1 = WALL_PANEL_HEIGHT - offset[1] - NUB_WIDTH/2 - NUB_INSET
       let nubY2 = WALL_PANEL_HEIGHT - offset[1] + NUB_WIDTH/2 + NUB_INSET - wallHeight
 
@@ -808,11 +809,9 @@ function wallPath(context) {
     }
 
     if (EDGES_DOUBLED && !noSupports && !hasWallPort) {
-      console.log(supportX)
       while (supportX < LED_SUPPORT_WIDTH/2) {
         supportX += PIXEL_DISTANCE
       }
-      console.log(supportX)
       if (supportX + LED_SUPPORT_WIDTH/2 < wallLength) {
         print.ledSupports.push({
           position: [offset[0] - supportX, y, WALL_THICKNESS],
@@ -858,7 +857,7 @@ function wallPath(context) {
 
   // Is the entry wall for CAT5 port
   if (hasWallPort) {
-    path += portPath(offset[0] - cat5Offset, offset[1])
+    path += portPath(offset[0] - cat5Offset, offset[1], printInfo)
   }
 
   // Hole for power cord port
@@ -1048,17 +1047,26 @@ function foldWallPath(path, offset, foldWall, printInfo) {
 
   if (foldWall.hasWallPort) {
     path += portPath(offset[0] - foldWall.bottomLength1 + CAT5_WIDTH/2 + NOTCH_DEPTH,
-                     offset[1] - BOTTOM_THICKNESS)
+                     offset[1] - BOTTOM_THICKNESS,
+                     printInfo)
   }
 
   return path
 }
 
-function portPath(x, y) {
+function portPath(x, y, printInfo) {
   let x1 = x - CAT5_WIRES_WIDTH/2 - CAT5_ADDITONAL_OFFSET
   let y1 = y + BOTTOM_THICKNESS + CHANNEL_DEPTH
   let x2 = x - CAT5_SNAP_DISTANCE/2 - CAT5_ADDITONAL_OFFSET
   let y2 = y1 - CAT5_HEIGHT + CAT5_SNAP_Y
+
+  if (printInfo) {
+    let print = printInfo.prints[printInfo.prints.length - 1]
+    print.qtClips.push({
+      position: [x1 + CAT5_WIRES_WIDTH/2, WALL_PANEL_HEIGHT - y1 + CAT5_WIRES_HEIGHT, 0]
+    })
+  }
+
   return `
     M${x1} ${y1}
     h${CAT5_WIRES_WIDTH}

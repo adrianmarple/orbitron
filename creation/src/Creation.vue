@@ -8,7 +8,7 @@
   <div class="button" @click="toggleCoverMode">Toggle Cover Mode ({{ coverMode[0] }})</div>
   <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
   <div class="button" @click="downloadJSON">Download JSON</div>
-  <div class="button" @click="downloadCovers">Download Cover SVGs</div>
+  <div class="button" @click="downloadCovers">Download Covers</div>
   <div class="button" @click="genWalls">Generate Walls</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
   <div class="button" @click="configure">Configure Default Orb</div>

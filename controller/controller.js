@@ -704,7 +704,7 @@ var app = new Vue({
         }
 
         let [x,y] = this.move
-        if (searchParams.has("mirror")) {
+        if (searchParams.has("mirror") | searchParams.has("m")) {
           x *= -1
         }
 
