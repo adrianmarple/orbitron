@@ -223,6 +223,11 @@ def update_text_display():
     global previous_text
     global previous_scroll_time
 
+    if prefs.fade() == 0:
+      for i in range(4):
+        set_digit(i, 0)
+      return
+
     if current_text == "$LOADING":
       text = CHASE_SEQUENCE[int(time() / 0.1) % 12]
       for i in range(4):
