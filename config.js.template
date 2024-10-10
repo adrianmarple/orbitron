@@ -28,6 +28,10 @@ module.exports={
     // pattern: true,
     // idlePattern: true,
     // fireflies: true,
+    // leaveButton: true,
+  },
+  INCLUDE: {
+    // gameSettings: true,
   },
   // SWITCH_MODE: "toggle",
   // SWITCH_MODE: "push",

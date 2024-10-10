@@ -159,7 +159,6 @@ GAMES_INFO = [
 GLOBAL_RULES = [
   {
     words: [
-      "Welcome!",
       "You will be playing a series of minigames.",
       "The rules change every round, so be sure to read them.",
     ],

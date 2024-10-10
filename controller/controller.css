@@ -760,6 +760,11 @@ input[type="range"]::-moz-range-thumb {
   left: 0;
 }
 
+#queue .scrim {
+  z-index: -1;
+  position: fixed;
+}
+
 #signup {
   z-index: 10;
   background: white;

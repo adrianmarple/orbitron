@@ -219,6 +219,9 @@ var app = new Vue({
     exclude() {
       return this.state.exclude || {}
     },
+    include() {
+      return this.state.include || {}
+    },
     gameStarted() {
       return this.state.game != "idle"
     },

@@ -999,6 +999,7 @@ def broadcast_state():
     "currentText": current_text,
     "extraIdle": config.get("IDLE"),
     "exclude": config.get("EXCLUDE", {}),
+    "include": config.get("INCLUDE", {}),
     "prefNames": prefs.pref_names,
     "currentPrefName": prefs.current_pref_name,
   }
