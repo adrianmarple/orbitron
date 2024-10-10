@@ -100,37 +100,39 @@
     <!-- TIMING MENU -->
     <div v-else-if="nav=='timing'" class="nav-page">
       <div class="column schedule">
-        <div v-if="!prefs.useTimer" class="scrim"></div>
-        <div class="add-wrapper">
-          <div class="padding"></div>
-          <Icon image="add"
-            :w="4*rem" :h="4*rem"
-            @click="addNewEvent({prefName: 'OFF', time: '00:00', fadeIn: 10, fadeOut: 30})">
-          </Icon>
-          <!-- <div class="add" @click="addNewEvent({prefName: 'OFF', time: '00:00'})">+</div> -->
-          <div class="padding"></div>
-        </div>
-        <div v-for="event, i in prefs.schedule" class="event-wrapper">
-          <div v-if="event.prefName == 'OFF'" class="fades">
-              <div class="label">Fade out (min)</div>
-              <input type="number" v-model="event.fadeOut"></input>
-          </div>
-          <div class="event">
-            <dropdown :key="'schedule'+i+'prefName'" :path="['schedule', i, 'prefName']" :options="eventOptions"></dropdown>
-            <input type="time" v-model="event.time" @blur="sortSchedule"></input>
-            <img class="delete" src="/controller/images/delete.svg" @click="deleteEvent(event)"/>
-          </div>
-          <div v-if="event.prefName == 'OFF'" class="fades">
-              <div class="label">Fade in (min)</div>
-              <input type="number" v-model="event.fadeIn"></input>
-          </div>
+        <div class="content">
+          <div v-if="!prefs.useTimer" class="scrim"></div>
           <div class="add-wrapper">
             <div class="padding"></div>
             <Icon image="add"
               :w="4*rem" :h="4*rem"
-              @click="addNewEvent(event)">
+              @click="addNewEvent({prefName: 'OFF', time: '00:00', fadeIn: 10, fadeOut: 30})">
             </Icon>
+            <!-- <div class="add" @click="addNewEvent({prefName: 'OFF', time: '00:00'})">+</div> -->
             <div class="padding"></div>
+          </div>
+          <div v-for="event, i in prefs.schedule" class="event-wrapper">
+            <div v-if="event.prefName == 'OFF'" class="fades">
+                <div class="label">Fade out (min)</div>
+                <input type="number" v-model="event.fadeOut"></input>
+            </div>
+            <div class="event">
+              <dropdown :key="'schedule'+i+'prefName'" :path="['schedule', i, 'prefName']" :options="eventOptions"></dropdown>
+              <input type="time" v-model="event.time" @blur="sortSchedule"></input>
+              <img class="delete" src="/controller/images/delete.svg" @click="deleteEvent(event)"/>
+            </div>
+            <div v-if="event.prefName == 'OFF'" class="fades">
+                <div class="label">Fade in (min)</div>
+                <input type="number" v-model="event.fadeIn"></input>
+            </div>
+            <div class="add-wrapper">
+              <div class="padding"></div>
+              <Icon image="add"
+                :w="4*rem" :h="4*rem"
+                @click="addNewEvent(event)">
+              </Icon>
+              <div class="padding"></div>
+            </div>
           </div>
         </div>
       </div>

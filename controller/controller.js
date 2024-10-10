@@ -352,7 +352,6 @@ var app = new Vue({
       this.vw = innerWidth / 100.0
       this.vh = innerHeight / 100.0
       this.rem =  Math.min(1.35 * this.vh, 2 * this.vw)
-      console.log("rem")
       this.$forceUpdate()
     },
     login() {

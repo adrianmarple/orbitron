@@ -588,6 +588,7 @@ function createPrintInfo(displayOnly) {
       type: "gcode",
       EXTRA_SCALE,
       PROCESS_STOP,
+      INFILL_100,
       prints: [blankPrint()],
       suffix: "walls",
     }
@@ -1023,25 +1024,25 @@ function foldWallPath(path, offset, foldWall, printInfo) {
       let nub1 = new Vector(offset[0], offset[1], 0)
           .addScaledVector(LEFT, NUB_INSET_X + NOTCH_DEPTH)
           .addScaledVector(UP, NUB_INSET + NUB_WIDTH/2 - BOTTOM_THICKNESS)
-      print.nubs.push(makeNub(nub1))
+      if (foldWall.bottomLength1 >= NUB_MIN_WALL_LENGTH) print.nubs.push(makeNub(nub1))
       nub1 = nub1.addScaledVector(LEFT, foldWall.bottomLength1 - 2*(NUB_INSET_X + NOTCH_DEPTH))
-      print.nubs.push(makeNub(nub1))
+      if (foldWall.bottomLength1 >= NUB_MIN_WALL_LENGTH) print.nubs.push(makeNub(nub1))
       nub1 = nub1.addScaledVector(UP, HEIGHT() - NUB_WIDTH - 2*NUB_INSET)
-      print.nubs.push(makeNub(nub1))
+      if (foldWall.topLength1 >= NUB_MIN_WALL_LENGTH) print.nubs.push(makeNub(nub1))
       nub1 = nub1.addScaledVector(RIGHT, foldWall.topLength1 - 2*(NUB_INSET_X + NOTCH_DEPTH))
-      print.nubs.push(makeNub(nub1))
+      if (foldWall.topLength1 >= NUB_MIN_WALL_LENGTH) print.nubs.push(makeNub(nub1))
 
       let nub2 = new Vector(offset[0], offset[1], 0)
           .addScaledVector(E, NUB_INSET_X + NOTCH_DEPTH)
           .addScaledVector(N, NUB_INSET + NUB_WIDTH/2 - BOTTOM_THICKNESS)
           .add(extraOffset)
-      print.nubs.push(makeNub(nub2))
+      if (foldWall.bottomLength2 >= NUB_MIN_WALL_LENGTH) print.nubs.push(makeNub(nub2))
       nub2 = nub2.addScaledVector(E, foldWall.bottomLength2 - 2*(NUB_INSET_X + NOTCH_DEPTH))
-      print.nubs.push(makeNub(nub2))
+      if (foldWall.bottomLength2 >= NUB_MIN_WALL_LENGTH) print.nubs.push(makeNub(nub2))
       nub2 = nub2.addScaledVector(N, HEIGHT() - NUB_WIDTH - 2*NUB_INSET)
-      print.nubs.push(makeNub(nub2))
+      if (foldWall.topLength2 >= NUB_MIN_WALL_LENGTH) print.nubs.push(makeNub(nub2))
       nub2 = nub2.addScaledVector(E, -foldWall.topLength2 + 2*(NUB_INSET_X + NOTCH_DEPTH))
-      print.nubs.push(makeNub(nub2))
+      if (foldWall.topLength2 >= NUB_MIN_WALL_LENGTH) print.nubs.push(makeNub(nub2))
     }
   }
 

@@ -471,11 +471,14 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .scrim {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   top: 0;
   bottom: 0;
+  pointer-events: none;
+  background-color: var(--bg-color);
+  opacity: 0.7;
 }
 
 .vector-wrapper {
@@ -497,10 +500,6 @@ input[type="range"]::-moz-range-thumb {
   border: 0.5rem solid transparent;
   /* border: 0.5rem solid white; */
   position: relative;
-}
-.vector .scrim {
-  background-color: var(--bg-color);
-  opacity: 0.7;
 }
 .vector .shaft {
   margin: -0.5rem;
@@ -524,16 +523,13 @@ input[type="range"]::-moz-range-thumb {
   /* max-height: 54rem; */
   overflow-y: scroll;
   overflow-x: hidden;
-  position: relative;
   box-sizing: border-box;
 }
+.schedule .content {
+  position: relative;
+  width: 100%;
+}
 .schedule .scrim {
-  pointer-events: none;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--bg-color);
   opacity: 0.5;
   z-index: 2;
 }

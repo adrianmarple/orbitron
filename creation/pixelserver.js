@@ -410,7 +410,8 @@ async function generateGCode(info, index) {
   if (info.PROCESS_STOP == "stl") return
 
   console.log("Generating .bgcode " + index)
-  await execute(`${process.env.SLICER} -g --load wall_config.ini "${stlFilePath}" --output ${bgcodeFilePath}`)
+  let config = "wall_config" + (info.INFILL_100 ? "_infill100" : "") + ".ini"
+  await execute(`${process.env.SLICER} -g --load ${config} "${stlFilePath}" --output ${bgcodeFilePath}`)
   if (info.PROCESS_STOP == "bgcode") return
   
   console.log("Uploading .bgcode " + index)

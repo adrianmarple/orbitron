@@ -1,7 +1,9 @@
 
 module.exports = () => {
-  let k = Math.sqrt(2)/2
   CHANNEL_WIDTH = 11
+  INFILL_100 = true
+
+  let k = Math.sqrt(2)/2
   let bigDiamondEdge = 8
   let diamondConnection = 1
   let diamondGap = diamondConnection + k*bigDiamondEdge
@@ -29,7 +31,7 @@ module.exports = () => {
 
   let tips2 = []
   for (let tip of tips) {
-    tips2.push(addLine(tip, 3, -90).verticies[1])
+    tips2.push(addLine(tip, 4, -90).verticies[1])
   }
 
   let v = addTriangulation(tips2[0], tips2[2], 14)
