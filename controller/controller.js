@@ -8,6 +8,24 @@ document.addEventListener("click", event => {
   }
 })
 
+// Send scroll information to parent frame so you can still scroll using this conroller in an iframe
+if (location != parent.location) {
+  let y = 0
+  addEventListener("mousedown", (event) => {
+    y = event.clientY
+  })
+  addEventListener("touchstart", (event) => {
+    y = event.changedTouches[0].clientY
+  })
+
+  addEventListener("mousemove", (event) => {
+    parent.postMessage(y - event.clientY, "*")
+  })
+  addEventListener("touchmove", (event) => {
+    parent.postMessage(y - event.changedTouches[0].clientY, "*")
+  })
+}
+
 const searchParams = new URLSearchParams(location.search)
 
 var app = new Vue({
