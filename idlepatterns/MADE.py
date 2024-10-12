@@ -1,29 +1,47 @@
 #!/usr/bin/env python
 import numpy as np
+from math import sin, pi
 from time import time, sleep
 
-import engine
+from engine import RAW_SIZE, unique_coord_matrix
 from idlepatterns import Idle
+from prefs import get_pref
 
 class MADE(Idle):
-  def render(self):
-    time_to_wait = self.previous_fluid_time + 1.0/engine.get_pref("idleFrameRate") - time()
-    if (time_to_wait > 0):
-      sleep(time_to_wait)
-    self.previous_fluid_time = time()
+  def __init__(self):
+    Idle.__init__(self)
+    self.letters = np.zeros(RAW_SIZE)
+    for i in range(RAW_SIZE):
+      coord = unique_coord_matrix[:,i]
+      x = abs(coord[0])
+      y = coord[1]
+      if 4*y - 3*x > -0.8:
+        self.letters[i] = 1
 
-    self.init_values()
-    self.render_values = np.maximum(self.render_values, 0.02)
-    self.render_values = np.outer(self.render_values, np.array((1,1,1)))
-    green = np.multiply(np.sign(engine.unique_coord_matrix[0]),
-                        np.sign(engine.unique_coord_matrix[1]))
-    green = (green + 1)/2
-    green = np.squeeze(np.asarray(green))
-    red = 1 - green
-    blue = 1 - 2*np.multiply(red, green)
-    self.render_values = np.multiply(self.render_values, np.matrix([red, green, blue]).transpose())
+    self.letters3 = np.outer(self.letters, np.ones(3))
+    
 
-    engine.raw_pixels = self.render_values * 200
+  def init_values(self):
+    Idle.init_values(self)
+    self.render_values += self.letters * 0.02
 
+  def apply_color(self):
+    alpha = sin(time() * pi / 30) * 5 + 0.5
+    alpha = min(1, max(0, alpha))
+
+    rectified_target_values = self.target_values * 100.0 / get_pref("gradientThreshold")
+    rectified_target_values = np.minimum(1, rectified_target_values)
+    start = get_pref("gradientStartColor")/255
+    start_colors = np.outer(rectified_target_values, start)
+    end = get_pref("gradientEndColor")/255
+    end_colors = np.outer(1 - rectified_target_values, end)
+    colors = start_colors + end_colors
+    mix = self.letters3 * alpha + (1 - self.letters3) * (1 - alpha)
+    colors1 = np.multiply(mix, colors)
+    colors2 = np.multiply(1 - mix, colors)
+    colors2[:,[0,1]] = colors2[:,[1,0]]
+    colors = colors1 + colors2
+    self.render_values = np.outer(self.render_values, np.ones(3))
+    self.render_values = np.multiply(self.render_values, colors)
 
 idle = MADE()
