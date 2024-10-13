@@ -41,4 +41,11 @@ module.exports={
   // WEATHER_API_KEY: "go to https://home.openweathermap.org/api_keys",
   // PRICE: 1000,
   // TIMEZONE: "America/Los_Angeles",
+  // EXTRA_STARTING_RULES: [
+  //   {
+  //     words: [
+  //       "Welcome!",
+  //     ]
+  //   },
+  // },
 }

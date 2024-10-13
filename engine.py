@@ -15,6 +15,8 @@ from random import randrange, random
 from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
+prewarm_audio()
+
 import prefs
 get_pref = prefs.get_pref
 
@@ -30,7 +32,6 @@ else:
   start_external_pixel_board()
   start_external_pixel_board_logging()
 
-prewarm_audio()
 
 GOOD_COLOR = np.array((255, 0, 255))
 GOOD_COLOR_STRING = "#ff00ff"
@@ -992,8 +993,6 @@ def broadcast_state():
     "victors": [victor.victor_json() for victor in game.victors],
     "settings": game.settings,
     "data": game.data,
-    "musicActions": remoteMusicActions,
-    "soundActions": remoteSoundActions,
     "prefs": prefs.current_prefs,
     "prefTimestamps": prefs.pref_to_client_timestamp,
     "currentText": current_text,
@@ -1002,6 +1001,7 @@ def broadcast_state():
     "include": config.get("INCLUDE", {}),
     "prefNames": prefs.pref_names,
     "currentPrefName": prefs.current_pref_name,
+    "extraStartingRules": config.get("EXTRA_STARTING_RULES"),
   }
   price = config.get("PRICE")
   if price is not None:

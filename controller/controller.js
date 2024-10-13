@@ -1,11 +1,12 @@
 
 // To prevent zoom on iOS
 document.addEventListener("click", event => {
-  if (event.target.tagName != "INPUT" &&
-      event.target.tagName != "A") {
-    event.preventDefault()
-    event.stopPropagation()
-  }
+  if (event.target.tagName === "INPUT") return
+  if (event.target.tagName === "A") return
+  if (event.target.parentNode.tagName === "A") return
+
+  event.preventDefault()
+  event.stopPropagation()
 })
 
 // Send scroll information to parent frame so you can still scroll using this conroller in an iframe
@@ -349,7 +350,15 @@ var app = new Vue({
     },
 
     rules() {
-      let startingRules = this.hasSeenGlobalRules ? [] : GLOBAL_RULES
+      let startingRules
+      if (this.hasSeenGlobalRules) {
+        startingRules = []
+      } else {
+        startingRules = GLOBAL_RULES
+        if (this.state.extraStartingRules) {
+          startingRules = [...this.state.extraStartingRules, ...startingRules]
+        }
+      }
       if (!this.gameInfo || !this.gameInfo.rules) {
         return startingRules
       } else {
