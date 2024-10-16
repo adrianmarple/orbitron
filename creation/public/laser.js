@@ -817,7 +817,7 @@ function wallPath(context) {
         print.ledSupports.push({
           position: [offset[0] - supportX, y, WALL_THICKNESS],
           width: LED_SUPPORT_WIDTH,
-          height: LED_SUPPORT_HEIGHT,
+          height: LED_SUPPORT_HEIGHT(),
           thickness: LED_SUPPORT_THICKNESS,
           gap: LED_SUPPORT_GAP,
         })
@@ -994,7 +994,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
       print.ledSupports.push({
         position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
         width: LED_SUPPORT_WIDTH,
-        height: LED_SUPPORT_HEIGHT,
+        height: LED_SUPPORT_HEIGHT(),
         thickness: LED_SUPPORT_THICKNESS,
         gap: LED_SUPPORT_GAP,
         rotationAngle: 0,
@@ -1013,7 +1013,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
       print.ledSupports.push({
         position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
         width: LED_SUPPORT_WIDTH,
-        height: LED_SUPPORT_HEIGHT,
+        height: LED_SUPPORT_HEIGHT(),
         thickness: LED_SUPPORT_THICKNESS,
         gap: LED_SUPPORT_GAP,
         rotationAngle: foldWall.angle * 180/Math.PI,
