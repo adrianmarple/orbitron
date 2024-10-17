@@ -39,11 +39,12 @@ class MADE(Idle):
     end_colors = np.outer(1 - rectified_target_values, end)
     colors = start_colors + end_colors
     mix1 = self.letters3 * alpha1 + (1 - self.letters3) * (1 - alpha1)
-    colors1 = np.multiply(1 - mix1, colors)
+    colors1 = np.multiply(mix1, colors)
     mix2 = self.letters3 * alpha2 + (1 - self.letters3) * (1 - alpha2)
-    colors2 = np.multiply(mix2, colors)
+    colors2 = np.multiply(1-mix2, colors)
     colors2[:,[0,1]] = colors2[:,[1,0]]
     colors[:,:2] = (colors1 + colors2)[:,:2]
+    self.render_values += 0.2 * alpha*(1-alpha)
     self.render_values = np.outer(self.render_values, np.ones(3))
     self.render_values = np.multiply(self.render_values, colors)
 
