@@ -28,6 +28,8 @@ class MADE(Idle):
   def apply_color(self):
     alpha = sin(time() * pi / 30) * 5 + 0.5
     alpha = min(1, max(0, alpha))
+    alpha1 = alpha**2
+    alpha2 = 1 - (1-alpha)**2
 
     rectified_target_values = self.target_values * 100.0 / get_pref("gradientThreshold")
     rectified_target_values = np.minimum(1, rectified_target_values)
@@ -36,11 +38,12 @@ class MADE(Idle):
     end = get_pref("gradientEndColor")/255
     end_colors = np.outer(1 - rectified_target_values, end)
     colors = start_colors + end_colors
-    mix = self.letters3 * alpha + (1 - self.letters3) * (1 - alpha)
-    colors1 = np.multiply(mix, colors)
-    colors2 = np.multiply(1 - mix, colors)
+    mix1 = self.letters3 * alpha1 + (1 - self.letters3) * (1 - alpha1)
+    colors1 = np.multiply(1 - mix1, colors)
+    mix2 = self.letters3 * alpha2 + (1 - self.letters3) * (1 - alpha2)
+    colors2 = np.multiply(mix2, colors)
     colors2[:,[0,1]] = colors2[:,[1,0]]
-    colors = colors1 + colors2
+    colors[:,:2] = (colors1 + colors2)[:,:2]
     self.render_values = np.outer(self.render_values, np.ones(3))
     self.render_values = np.multiply(self.render_values, colors)
 
