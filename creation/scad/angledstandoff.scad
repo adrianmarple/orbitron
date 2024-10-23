@@ -1,5 +1,5 @@
 $fn=32;
-angle = 60;
+angle = 45;
 channel_width = 13;
 overhang = 8;
 width = 10;

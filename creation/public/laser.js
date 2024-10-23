@@ -1,5 +1,6 @@
 
 let MM_TO_96DPI = 3.77952755906
+let DPI96_TO_MM = 0.26458333333
 
 wallInfo = []
 foldWalls = []
@@ -206,6 +207,7 @@ async function createCoverSVG(plain) {
       let plains1 = dPath[(i+1) % dPath.length].plains
       let plains2 = dPath[(i+2) % dPath.length].plains
       let deadendPlain = null
+      let dihedralAngle = 0
 
       function addFoldWallInfo(type) {
         let isOne = type == 1
@@ -214,14 +216,14 @@ async function createCoverSVG(plain) {
         let wallStartPoint = (isOne ? v2 : v1)
             .addScaledVector(n, w2)
             .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
-        let angle = plains[0].normal.angleTo(plains[1].normal)
+        dihedralAngle = plains[0].normal.angleTo(plains[1].normal)
         plains = plains.map(plain => plain.rotateAndScale(R, SCALE))
         let sign = (wallStartPoint.isCoplanar(plains[0]) || wallStartPoint.isAbovePlain(plains[0])) &&
             (wallStartPoint.isCoplanar(plains[1]) || wallStartPoint.isAbovePlain(plains[1]))
-        if (!sign) angle *= -1
+        if (!sign) dihedralAngle *= -1
 
         let plainTranslationValue = CHANNEL_DEPTH/2
-        plainTranslationValue += IS_BOTTOM == (angle < 0) ? 0 : THICKNESS()
+        plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS()
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         wallStartPoint = wallStartPoint.addScaledVector(FORWARD, plainTranslationValue)
         let wallEndPoint = deadendPlain.intersection(new Line(wallStartPoint, e1))
@@ -235,7 +237,7 @@ async function createCoverSVG(plain) {
 
         let startingPlain = isOne ? plain : plains2.filter(p => p != plain)[0]
         let vertex = isOne ? vertex1 : vertex2
-        let foldWall = { startingPlain, vertex, angle }
+        let foldWall = { startingPlain, vertex, dihedralAngle }
         for (let fw of foldWalls) {
           if (fw.vertex == vertex && fw.startingPlain == startingPlain) {
             foldWall = fw
@@ -251,20 +253,6 @@ async function createCoverSVG(plain) {
         if (!foldWalls.includes(foldWall)) {
           foldWalls.push(foldWall)
         }
-        // if (!isOne) {
-        //   let centerPoint = v1
-        //   centerPoint = centerPoint.addScaledVector(FORWARD, plainTranslationValue)
-        //   let wedgePoint = deadendPlain.intersection(new Line(centerPoint, e1))
-        //   wedgePoint = wedgePoint.add(e1.scale(ORIGAMI_KERF))
-        //   wedgePoint.z = 0
-        //   coverWedges.push({
-        //     angle: angle/2 * 180/Math.PI * (IS_BOTTOM ? -1 : 1),
-        //     directionAngle: e1.signedAngle(RIGHT) * 180/Math.PI,
-        //     position: wedgePoint.toArray(),
-        //     thickness: THICKNESS() + EXTRA_COVER_THICKNESS,
-        //     width: CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER)
-        //   })
-        // }
       }
 
       if (plains1.length == 2) {
@@ -316,9 +304,8 @@ async function createCoverSVG(plain) {
       let borderLengthOffset = width / -Math.tan((Math.PI - a1)/2)
       
       if (plains1.length == 2) {
-        let angle = plains1[0].normal.angleTo(plains1[1].normal)
         let plainTranslationValue = CHANNEL_DEPTH/2
-        plainTranslationValue += IS_BOTTOM == (angle < 0) ? 0 : THICKNESS() + EXTRA_COVER_THICKNESS
+        plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS() + EXTRA_COVER_THICKNESS
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
         deadendPlain = deadendPlain.translate(e0.normalize().scale(ORIGAMI_KERF))
@@ -335,7 +322,7 @@ async function createCoverSVG(plain) {
         let wedgePoint = deadendPlain.intersection(new Line(centerPoint, e1))
         wedgePoint.z = 0
         coverWedges.push({
-          angle: angle/2 * 180/Math.PI * (IS_BOTTOM ? 1 : -1),
+          angle: dihedralAngle/2 * 180/Math.PI * (IS_BOTTOM ? -1 : 1),
           directionAngle: e1.signedAngle(LEFT) * 180/Math.PI,
           position: wedgePoint.toArray(),
           thickness: THICKNESS() + EXTRA_COVER_THICKNESS,
@@ -897,7 +884,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
 
   let endNotchDepth = NOTCH_DEPTH - WALL_KERF
 
-  let E = RIGHT.rotate(FORWARD, -foldWall.angle)
+  let E = RIGHT.rotate(FORWARD, -foldWall.dihedralAngle)
   let N = E.cross(FORWARD).negate()
 
   wallSegments = [
@@ -913,10 +900,10 @@ function foldWallPath(path, offset, foldWall, printInfo) {
     DOWN.scale(TOP_THICKNESS).addScaledVector(LEFT, ANTI_CORNER),
     RIGHT.scale(endNotchDepth + ANTI_CORNER),
   ]
-  if (foldWall.angle < 0) {
+  if (foldWall.dihedralAngle < 0) {
     if (coverPrint3D) {
-      wallSegments.push(LEFT.scale(-TOP_THICKNESS * Math.tan(-foldWall.angle/2)))
-      wallSegments.push(E.scale(TOP_THICKNESS * Math.tan(-foldWall.angle/2)))
+      wallSegments.push(LEFT.scale(-TOP_THICKNESS * Math.tan(-foldWall.dihedralAngle/2)))
+      wallSegments.push(E.scale(TOP_THICKNESS * Math.tan(-foldWall.dihedralAngle/2)))
     } else {
       wallSegments.push(UP.scale(TOP_THICKNESS))
       wallSegments.push(N.scale(-TOP_THICKNESS))
@@ -935,10 +922,10 @@ function foldWallPath(path, offset, foldWall, printInfo) {
     N.scale(BOTTOM_THICKNESS).addScaledVector(E, ANTI_CORNER),
     E.scale(-endNotchDepth - ANTI_CORNER),
   ])
-  if (foldWall.angle > 0) {
+  if (foldWall.dihedralAngle > 0) {
     if (coverPrint3D) {
-      wallSegments.push(E.scale(-BOTTOM_THICKNESS * Math.tan(foldWall.angle/2)))
-      wallSegments.push(LEFT.scale(BOTTOM_THICKNESS * Math.tan(foldWall.angle/2)))
+      wallSegments.push(E.scale(-BOTTOM_THICKNESS * Math.tan(foldWall.dihedralAngle/2)))
+      wallSegments.push(LEFT.scale(BOTTOM_THICKNESS * Math.tan(foldWall.dihedralAngle/2)))
     } else {
       wallSegments.push(N.scale(-BOTTOM_THICKNESS))
       wallSegments.push(UP.scale(BOTTOM_THICKNESS))
@@ -953,7 +940,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
 
   if (printInfo) {
     let extraOffset = ZERO
-    if (foldWall.angle > 0) {
+    if (foldWall.dihedralAngle > 0) {
       extraOffset = UP.scale(-BOTTOM_THICKNESS).add(N.scale(BOTTOM_THICKNESS))
     }
 
@@ -976,7 +963,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
         // .add(extraOffset)
     let wedge2 = {
       angle: foldWall.miterAngle2 * 180/Math.PI,
-      directionAngle: foldWall.angle * 180/Math.PI,
+      directionAngle: foldWall.dihedralAngle * 180/Math.PI,
       position: [position.x, WALL_PANEL_HEIGHT - position.y, 0],
       width: CHANNEL_DEPTH,
       thickness: WALL_THICKNESS,
@@ -989,7 +976,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
         .addScaledVector(UP, CHANNEL_DEPTH/2)
         .addScaledVector(RIGHT, foldWall.lengthOffset)
     
-    if (!foldWall.hasWallPort) {
+    if (!foldWall.hasWallPort && !noSupports) {
       position = startV.addScaledVector(RIGHT, PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
       print.ledSupports.push({
         position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
@@ -1016,7 +1003,7 @@ function foldWallPath(path, offset, foldWall, printInfo) {
         height: LED_SUPPORT_HEIGHT(),
         thickness: LED_SUPPORT_THICKNESS,
         gap: LED_SUPPORT_GAP,
-        rotationAngle: foldWall.angle * 180/Math.PI,
+        rotationAngle: foldWall.dihedralAngle * 180/Math.PI,
       })
     }
 

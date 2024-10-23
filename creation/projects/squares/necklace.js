@@ -1,4 +1,4 @@
-
+// SKIP
 module.exports = () => {
   CHANNEL_WIDTH = 11
   INFILL_100 = true
