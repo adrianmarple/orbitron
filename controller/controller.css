@@ -29,10 +29,6 @@ body, #app, .main {
   color: white;
 }
 
-html, body, #app {
-  width: 100%;
-  min-height: 100vh;
-}
 /* #app {
   overflow:hidden;
 } */
@@ -126,6 +122,11 @@ a > .fancy-box:hover, a.fancy-box:hover {
 
 #login {
   font-size: 3rem;
+  background-color: black;
+  padding: 5rem;
+}
+#login p {
+  text-align: center;
 }
 #login input {
   font-size: 6rem;
@@ -1119,6 +1120,10 @@ a:active {
   flex-direction: column;
   align-items: center;
 }
+.slide img {
+  width: 40rem;
+}
+
 .carousel-dots {
   display: flex;
 }

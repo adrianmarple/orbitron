@@ -17,4 +17,14 @@ module.exports = async () => {
   removeVertex(42)
 
   EulerianPath(4)
+
+  dataPostProcessingFunction = info => {
+    let deadends = []
+    for (let i = 0; i < info.neighbors.length; i++) {
+      if (info.neighbors[i].length == 1) {
+        deadends.push(i)
+      }
+    }
+    connectPixels(info, deadends.pop(), deadends.pop())
+  }
 }

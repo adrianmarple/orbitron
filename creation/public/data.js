@@ -393,6 +393,14 @@ function generatePixelInfo() {
 function connectPixels(info, i, j) {
   info.neighbors[i].push(j)
   info.neighbors[j].push(i)
+
+  // Assumes connecting deadends and need to define nextPixels appropriately
+  let n_i = info.neighbors[i][0]
+  let n_j = info.neighbors[j][0]
+  info.nextPixel[`(${n_i}, ${i})`] = j
+  info.nextPixel[`(${n_j}, ${j})`] = i
+  info.nextPixel[`(${i}, ${j})`] = n_j
+  info.nextPixel[`(${j}, ${i})`] = n_i
 }
 
 function random() {

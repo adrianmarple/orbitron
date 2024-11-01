@@ -239,7 +239,7 @@
     <div class="carousel" :style="carouselStyle">
       <div v-if="gameInfo" v-for="rule in rules" class="slide">
         <p v-for="paragraph in rule.words" v-html="substitute(paragraph)"></p>
-        <img v-if="rule.image" style="width:100%" :src="rule.image" />
+        <img v-if="rule.image" :src="rule.image" />
       </div>
     </div>
 
