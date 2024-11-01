@@ -931,26 +931,37 @@ input[type="range"]::-moz-range-thumb {
   margin-top: 20vw;
 }
 
-.snek {
-  height: 3rem;
-  border-radius: 1.5rem;
-  margin-top: 2rem;
-  box-sizing: border-box;
-  border:  0.3rem solid black;
+.snek-container {
   position: relative;
+  height: 3rem;
+  margin-top: 2rem;
 }
-.vibrant-snek {
-  background-color: rgba(255,255,255, 0.3);
-  box-shadow: 0 0 0.5rem 0.5rem white;
-  height: 2.5rem;
-  border-radius: 1.25rem;
+.snek {
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 1.5rem;
+  position: absolute;
+}
+.background-darkener {
+  width: 100%;
+  height: 100%;
+  border-radius: 1.5rem;
+  background-color: rgba(0,0,0, 0.5);
+  position: absolute;
+}
+.inner-snek {
+  height: 100%;
+  border-radius: 1.5rem;
+  box-sizing: border-box;
+  position: absolute;
 }
 .snek-score {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   color:  white;
   position: absolute;
-  height: 2.5rem;
-  line-height: 2.5rem;
+  height: 3rem;
+  line-height: 3rem;
   right: 1rem;
   top: 0;
 }

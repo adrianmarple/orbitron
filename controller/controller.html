@@ -366,19 +366,17 @@
         <div v-if="self.isPlaying">
           {{position}} ({{self.score}})
         </div>
-        <div v-for="player in playersByRanking">
+        <div v-for="player in playersByRanking" class="snek-container"
+          :style="{ width: (player.score / maxScore * 100) + '%' }">
           <div class="snek"
-            :style="{
-              backgroundColor: player.color,
-              width: (player.score / maxScore * 100) + '%',
-            }"
-          >
-            <div v-if="gameInfo.statusDisplay.innerScore" class="vibrant-snek"
-              :style="{width: (player.length / player.score * 100) + '%'}"
-            ></div>
+            :style="{ backgroundColor: player.color }"
+          ></div>
+          <div v-if="gameInfo.statusDisplay.innerScore" class="background-darkener"></div>
+          <div v-if="gameInfo.statusDisplay.innerScore" class="inner-snek"
+            :style="{backgroundColor: player.color, width: (player.length / player.score * 100) + '%'}"
+          ></div>
 
-            <div class="snek-score">{{player.score}}</div>
-          </div>
+          <div class="snek-score">{{player.score}}</div>
         </div>
       </div>
       <div v-else-if="!self.isAlive">
