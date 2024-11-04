@@ -127,7 +127,7 @@ export default {
     },
     setCoverSVG() {
       let coverInfo = covers[this.coverMode][this.coverIndex]
-      if (!cover) return
+      if (!coverInfo) return
       cover.outerHTML = coverInfo.svg
 
       if (generateWallNumbers) {
@@ -192,8 +192,16 @@ export default {
               {
                 svg: print.borderSvg,
                 thickness: EXTRA_COVER_THICKNESS,
-              }
+              },
             ]
+            if (INNER_CHANNEL_THICKNESS !== null) {
+              print.svgs.push({
+                svg: print.channelSvg,
+                thickness: THICKNESS() - INNER_CHANNEL_THICKNESS,
+                position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+                negative: true,
+              })
+            }
           })
           let printInfo = {
             type: "gcode",

@@ -318,7 +318,7 @@ async function generateGCode(info, index) {
     await fs.promises.writeFile(svgFilePath(svg), svg.svg, {encoding:'utf8',flag:'w'})
   }
 
-  let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing the .svg as 72 DPI
+  let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing .svg files as 72 DPI
   let scadFileContents = `
   $fn=32;
   module wedge(angle, direction_angle, width, thickness) {
@@ -359,6 +359,7 @@ async function generateGCode(info, index) {
   }
 
   scale([${info.EXTRA_SCALE}, 1, 1])
+  difference() {
   union() {`
     for (let wedge of print.wedges) {
       scadFileContents += `
@@ -390,6 +391,20 @@ async function generateGCode(info, index) {
     }
 
     for (let svg of print.svgs) {
+      if (svg.negative) continue
+      if (svg.position) {
+        scadFileContents += `
+      translate([${svg.position}])`
+      }
+      scadFileContents += `
+      linear_extrude(height = ${svg.thickness})
+      scale([${scale},${scale},${scale}])
+      import("${svgFilePath(svg)}");`
+    }
+    scadFileContents += `
+  }`
+    for (let svg of print.svgs) {
+      if (!svg.negative) continue
       if (svg.position) {
         scadFileContents += `
       translate([${svg.position}])`

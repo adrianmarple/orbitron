@@ -29,6 +29,10 @@ class Edge {
     this.verticies = [vertex1, vertex2]
   }
 
+  clone() {
+    return new Edge(this.verticies[0], this.verticies[1])
+  }
+
   delta() {
     return this.verticies[1].ogCoords.sub(this.verticies[0].ogCoords)
   }
@@ -272,6 +276,31 @@ function addLine(vertex, length, angle) {
   return addEdge(vertex, newVertex)
 }
 
+function extendAtAngle(edge, angle, length, bendPlain, reverse) {
+  angle = angle * Math.PI / 180
+  let vertex = edge.verticies[reverse ? 0 : 1]
+  let direction = edge.delta().normalize()
+  if (reverse) {
+    direction = direction.negate()
+  }
+  let plain = vertex.plains[0]
+  let axis = plain.normal
+  if (bendPlain) {
+    axis = axis.cross(direction)
+  }
+  let newDelta = direction.applyAxisAngle(axis, angle).scale(length)
+  let newVertex = addVertex(vertex.ogCoords.add(newDelta))
+
+  let newPlain = plain
+  if (bendPlain) {
+    newPlain = new Plain(vertex.ogCoords, plain.normal.applyAxisAngle(axis, angle))
+    vertex.plains.push(newPlain)
+    plains.push(newPlain)
+  }
+  newVertex.plains = [newPlain]
+  return addEdge(vertex, newVertex)
+}
+
 // Based on Futurologist's answer from https://math.stackexchange.com/questions/2228018/how-to-calculate-the-third-point-if-two-points-and-all-distances-between-the-poi
 // Assumes z coordinate is always 0
 function addTriangulation(v1, v2, a, b) {
@@ -355,7 +384,7 @@ function resetInidices() {
 
 function doubleEdges() {
   for (let edge of edges.slice()) {
-    var edgeCopy = {...edge}
+    var edgeCopy = edge.clone()
     for (let v of edge.verticies) {
       v.edges.push(edgeCopy)
     }
@@ -604,4 +633,34 @@ function origami(foldPlain) {
     }
   }
   return newPlain
+}
+
+function zeroFoldAllEdges() {
+  // plains = []
+  for (let vertex of verticies) {
+    if (vertex.plains.length > 1) {
+      console.error("Fold walls not supported for zero folding all edges yet")
+      continue;
+    }
+    plains.remove(vertex.plains[0])
+    let plain = vertex.plains[0].clone()
+    vertex.plains = []
+    addPlain(plain)
+    vertex.addPlain(plain)
+  }
+  
+  for (let edge of [...edges]) {
+    console.log(edge)
+    let plain0 = edge.verticies[0].plains[0]
+    let plain1 = edge.verticies[1].plains[0]
+    let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
+    let newVertex = splitEdge(edge, edge.length()/2)
+    newVertex.allowNonIntegerLength = true
+    let fold = new Plain(newVertex.ogCoords, foldNormal)
+    plain0.folds[plain1.index] = fold
+    plain1.folds[plain0.index] = fold
+    newVertex.plains = []
+    newVertex.addPlain(plain0)
+    newVertex.addPlain(plain1)
+  }
 }

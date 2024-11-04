@@ -1,9 +1,16 @@
 module.exports = () => {
+  setFor3DPrintedCovers()
   pixelDensity = 1/3
+  pixelDensity = 0.5
 
-  let baseVerticies = [
-    [2/3, 1/3, 0],
-  ]
+  wallPostProcessingFunction = printInfo => {
+    printInfo.prints = [printInfo.prints[1], printInfo.prints[3]]
+  }
+  coverPostProcessingFunction = covers => {
+    covers.top = [covers.top[0]]
+    covers.bottom = [covers.bottom[0]]
+  }
+
   isWall = false // To avoid non-coplanar errors
   for (let permutation of permutations([2/3, 1/3, 0])) {
     addPlusMinusVertex(permutation)
@@ -44,6 +51,7 @@ module.exports = () => {
     let plain1 = edge.verticies[1].plains[0]
     let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
     let newVertex = splitEdge(edge, edge.length()/2)
+    newVertex.allowNonIntegerLength = true
     newVertex.ogCoords = newVertex.ogCoords.normalize().scale(h)
     let fold = new Plain(newVertex.ogCoords, foldNormal)
     plain0.folds[plain1.index] = fold

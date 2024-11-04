@@ -130,13 +130,16 @@ async function createCoverSVG(plain) {
 
   let totalPathString = ""
   let totalBorderString = ""
+  let totalChannelString = ""
+
   for (let dPath of paths) {
     if (exteriorOnly && dPath != outerPath) continue
 
-    let channelString = ""
+    let slotString = ""
   	let borderString = ""
     let borderPoints = []
-    
+    let channelString = ""
+
    	for (let i = 0; i < dPath.length; i++) {
       let vertex0 = dPath[i]
       let vertex1 = dPath[(i+1) % dPath.length]
@@ -290,8 +293,8 @@ async function createCoverSVG(plain) {
         }
       }
 
-      // Channels
-      channelString += singleChannelPath(wallLength,
+      // Slots
+      slotString += singleSlotPath(wallLength,
         [e1, n],
         v1,
         [lengthOffset1, CHANNEL_WIDTH/2],
@@ -309,10 +312,10 @@ async function createCoverSVG(plain) {
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
         deadendPlain = deadendPlain.translate(e0.normalize().scale(ORIGAMI_KERF))
-        line1 = line.translate(n.scale(width))
-        p1 = deadendPlain.intersection(line1)
-        line2 = line.translate(n.scale(-width))
-        p2 = deadendPlain.intersection(line2)
+        let line1 = line.translate(n.scale(width))
+        let p1 = deadendPlain.intersection(line1)
+        let line2 = line.translate(n.scale(-width))
+        let p2 = deadendPlain.intersection(line2)
         borderString += pointsToSVGString([p2, p1])
         borderPoints.push(p2)
         borderPoints.push(p1)
@@ -349,6 +352,24 @@ async function createCoverSVG(plain) {
             .addScaledVector(e1, borderLengthOffset)
             .addScaledVector(n, width))
       }
+
+      // Inner Channel
+      width = CHANNEL_WIDTH/2 - INNER_CHANNEL_BUFFER
+      let channelLengthOffset = width / -Math.tan((Math.PI - a1)/2)
+      if (plains1.length == 2) {
+        let plainTranslationValue = CHANNEL_DEPTH/2
+        plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS() + EXTRA_COVER_THICKNESS
+        plainTranslationValue *= IS_BOTTOM ? 1 : -1
+        let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
+        deadendPlain = deadendPlain.translate(e0.normalize().scale(1)) // TODO calculate more properply
+        let line1 = line.translate(n.scale(width))
+        let p1 = deadendPlain.intersection(line1)
+        let line2 = line.translate(n.scale(-width))
+        let p2 = deadendPlain.intersection(line2)
+        channelString += pointsToSVGString([p2, p1])
+      } else {
+        channelString += pointsToSVGString([[channelLengthOffset, width]], [e1, n], v1)
+      }
     } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false
@@ -376,7 +397,10 @@ async function createCoverSVG(plain) {
       totalPathString += borderString
       totalBorderString += borderString
     }
-    totalPathString += channelString
+    totalPathString += slotString
+
+    channelString = "M" + channelString.substring(1) + "Z "
+    totalChannelString += channelString
   } // END for (let dPath of paths)
 
   for (let vertex of verticies) {
@@ -388,6 +412,8 @@ async function createCoverSVG(plain) {
   let svg = cover.outerHTML
   cover.querySelector("path").setAttribute("d", totalBorderString)
   let borderSvg = cover.outerHTML
+  cover.querySelector("path").setAttribute("d", totalChannelString)
+  let channelSvg = cover.outerHTML
 
   coverWedges.forEach(wedge => {
     wedge.position = [
@@ -399,11 +425,12 @@ async function createCoverSVG(plain) {
   return {
     svg,
     borderSvg,
+    channelSvg,
     wedges: coverWedges,
   }
 }
 
-function singleChannelPath(wallLength, basis, offset, localOffset, isFinalEdge) {
+function singleSlotPath(wallLength, basis, offset, localOffset, isFinalEdge) {
   offset = offset.sub(new Vector(0,0, offset.z))
   if (wallLength > 1e6) return ""
   let path = ""
