@@ -358,7 +358,6 @@ async function generateGCode(info, index) {
     import("../qtclip.svg");
   }
 
-  scale([${info.EXTRA_SCALE}, 1, 1])
   difference() {
   union() {`
     for (let wedge of print.wedges) {

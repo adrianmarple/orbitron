@@ -9,8 +9,9 @@ module.exports = async () => {
   PIXEL_DISTANCE = pixelDensity
   WALL_THICKNESS = 2
   CHANNEL_WIDTH = 0
-  TOP_KERF = -0.2
-  CHANNEL_DEPTH = CAT5_HEIGHT
+  TOP_THICKNESS = 2
+  BOTTOM_THICKNESS = TOP_THICKNESS
+  INNER_CHANNEL_THICKNESS = null
 
   await addFromSVG("THEBOX/small boxshape.svg")
 
