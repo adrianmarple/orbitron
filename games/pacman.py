@@ -40,8 +40,6 @@ additional_settings = {
 
 
 class PacMan(Game):
-  name = __name__
-
   power_pulses = []
   previous_pellet_generation_time = 0
   previous_power_pellet_generation_time = 0

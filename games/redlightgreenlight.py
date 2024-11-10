@@ -27,7 +27,6 @@ additional_settings = {
 
 
 class RLGL(Game):
-  name = __name__
   red_light = True
   light_change_time = 0
   pulse_duration = 0

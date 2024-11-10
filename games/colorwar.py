@@ -20,7 +20,6 @@ additional_settings = {
 }
 
 class ColorWar(Game):
-  name = __name__
   leader = None
 
   def play_update(self):

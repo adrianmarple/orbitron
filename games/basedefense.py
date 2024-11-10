@@ -30,8 +30,6 @@ additional_settings = {
 
 
 class BaseDefense(Game):
-  name = __name__
-
   invaders = []
   previous_spawn_time = 0
 

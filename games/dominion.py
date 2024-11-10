@@ -28,7 +28,6 @@ additional_settings = {
 }
 
 class Dominion(Game):
-  name = __name__
   leader = None
 
   spotlights = []

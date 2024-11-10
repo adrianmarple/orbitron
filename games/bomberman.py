@@ -35,7 +35,6 @@ additional_settings = {
 }
 
 class Rhomberman(Game):
-  name = __name__
   previous_wall_generation_time = 0
   explosion_providence = [None] * engine.SIZE
 

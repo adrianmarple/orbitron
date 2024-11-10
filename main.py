@@ -6,7 +6,8 @@ import idlepatterns # Required to set initial idle pattern
 
 import fileinput
 import json
-import pkgutil
+import importlib
+# import pkgutil
 import os
 import sys
 import numpy as np
@@ -19,11 +20,18 @@ game_selection_weights = {}
 game_modules = {}
 
 game_dir = os.path.join(os.path.dirname(__file__), 'games')
-for loader, module_name, _ in pkgutil.walk_packages([game_dir]):
-  module = loader.find_module(module_name).load_module(module_name)
+
+for filename in os.listdir(game_dir):
+  if "__" in filename:
+    continue
+  if ".py" not in filename:
+    continue
+  module_name = filename.replace(".py", "")
+  module = importlib.import_module("games." + module_name)
+  module.game.name = module_name
   engine.games[module_name] = module.game
   engine.game_selection_weights[module_name] = 1
-
+  
 
 def check_all_ready():
   if engine.game.state != "start":
