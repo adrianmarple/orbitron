@@ -3,17 +3,17 @@
 module.exports = () => {
   setFor3DPrintedCovers()
 
-  addPolygon(3, [0,0,0], 4)
-  // addPolygon(4, [0,1,0])
+  addPolygon(6, [0,0,0], 3)
+  // addPolygon(4, [0,0,0], 4)
 
-  // origami(new Plain(
-  //   new Vector(0, 0, 0),
-  //   new Vector(0, 1, 2)
-  // ))
+  origami(new Plain(
+    new Vector(0, 0, 0),
+    new Vector(0, 1, 0.3)
+  ))
 
   doubleEdges()
 
-  zeroFoldAllEdges()
+  // zeroFoldAllEdges()
 
   EulerianPath(0)
 }

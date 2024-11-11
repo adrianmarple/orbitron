@@ -606,8 +606,12 @@ function origami(foldPlain) {
 
   // Add new verticies along edges that have been folded
   for (let edge of [...edges]) {
+    if (edge.verticies[0].ogCoords.isCoplanar(foldPlain)) continue
+    if (edge.verticies[1].ogCoords.isCoplanar(foldPlain)) continue
+    
     if (edge.verticies[0].ogCoords.isAbovePlain(foldPlain) !=
         edge.verticies[1].ogCoords.isAbovePlain(foldPlain)) {
+
       removeEdge(edge)
       let newVertexCoords = foldPlain.intersection(edge.toLine())
       let newVertex = addVertex(newVertexCoords)

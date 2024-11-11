@@ -68,9 +68,9 @@ export default {
         {name: "STARTING_WALL_INDEX", type: "int", value: 0},
         {name: "PROCESS_STOP", type: "select",
           options: [
-            ["scad", "Make OpenScade file"],
+            // ["scad", "Make OpenScad file"],
             ["stl", "Generate .stl"], 
-            ["bgcode", "Generate gcode"],
+            // ["bgcode", "Generate gcode"],
             ["upload", "Upload gcode"],
           ],
           value: "upload",

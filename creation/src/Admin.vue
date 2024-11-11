@@ -362,7 +362,7 @@ export default {
         fullProjectName: readFromConfig(this.config, 'PIXELS'),
         type: "qr",
         scale: 48.0 / this.qrSize,
-        PROCESS_STOP,
+        PROCESS_STOP: "upload",
         PETG: true,
         data,
       })

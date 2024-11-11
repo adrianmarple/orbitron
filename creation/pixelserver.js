@@ -9,6 +9,7 @@ const fetch = require("node-fetch")
 // Imports from .env
 console.log(require('dotenv').config())
 
+SVG_SCALE = 2.83464566929 // Sigh. OpenSCAD appears to be importing .svg files as 72 DPI
 
 function execute(command){
   return new Promise(resolve => {
@@ -211,11 +212,16 @@ async function fleshOutBody(body) {
   let heirarchy = body.fullProjectName.split("/")
   let filePath = MANUFACTURING_FOLDER
   let dirPath = filePath + heirarchy[0]
+  let tempDirPath = dirPath + "/temp"
   if (!fs.existsSync(dirPath)) {
     await fs.promises.mkdir(dirPath)
   }
+  if (!fs.existsSync(tempDirPath)) {
+    await fs.promises.mkdir(tempDirPath)
+  }
   body.fileName = heirarchy[heirarchy.length - 1]
   body.fullPath = filePath + body.fullProjectName
+  body.tempPath = tempDirPath + "/" + body.fileName
 }
 
 function replaceScadVariable(content, variable, value) {
@@ -281,8 +287,11 @@ addPOSTListener(async (response, body) => {
 addPOSTListener(async (response, body) => {
   if (!body || body.type != "gcode") return false
   await fleshOutBody(body)
+
   for (let i = 0; i < body.prints.length; i++) {
-    await generateGCode(body, i) // Slic3r doesn't seem to work when running in parallel
+    let print = body.prints[i]
+    print.index = i
+    await generateGCode(body, print)
     console.log("Done " + i)
   }
   response.writeHead(200)
@@ -291,53 +300,159 @@ addPOSTListener(async (response, body) => {
   return true
 })
 
-async function generateGCode(info, index) {
-  let print = info.prints[index]
-  print.wedges = print.wedges ?? []
-  print.ledSupports = print.ledSupports ?? []
-  print.nubs = print.nubs ?? []
-  print.embossings = print.embossings ?? []
-  print.qtClips = print.qtClips ?? []
+// async function generateGCode(info, print) {
+//   index += 1
+//   print.wedges = print.wedges ?? []
+//   print.ledSupports = print.ledSupports ?? []
+//   print.nubs = print.nubs ?? []
+//   print.embossings = print.embossings ?? []
+//   print.qtClips = print.qtClips ?? []
 
-  if (info.prints.length == 1) {
-    index = ""
-  }
-  function svgFilePath(svg) {
-    let svgIndex = print.svgs.indexOf(svg)
-    if (print.svgs.length == 1) {
-      svgIndex = ""
-    }
-    return `${info.fullPath}${index} ${info.suffix}${svgIndex}.svg`
-  }
-  let scadFilePath = `${info.fullPath}${index} ${info.suffix}.scad`
-  let stlFilePath = `${info.fullPath}${index}_${info.suffix}.stl`.replace(" ", "_")
-  let bgcodeFilePath = `${info.fullPath}${index}_${info.suffix}.bgcode`.replace(" ", "_")
-  let bgcodePrinterFile = `${info.fileName}${index}_${info.suffix}.bgcode`
+//   if (info.prints.length == 1) {
+//     index = ""
+//   }
+//   function svgFilePath(svg) {
+//     let svgIndex = print.svgs.indexOf(svg)
+//     if (print.svgs.length == 1) {
+//       svgIndex = ""
+//     }
+//     return `${info.tempPath}${index}_${info.suffix}${svgIndex}.svg`
+//   }
+//   let scadFilePath = `${info.tempPath}${index}_${info.suffix}.scad`
+//   let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}${index}_${info.suffix}.stl`.replace(" ", "_")
+//   let bgcodeFilePath = `${info.tempPath}${index}_${info.suffix}.bgcode`.replace(" ", "_")
+//   let bgcodePrinterFile = `${info.tempPath}${index}_${info.suffix}.bgcode`
 
-  for (let svg of print.svgs) {
-    await fs.promises.writeFile(svgFilePath(svg), svg.svg, {encoding:'utf8',flag:'w'})
-  }
+//   for (let svg of print.svgs) {
+//     await fs.promises.writeFile(svgFilePath(svg), svg.svg, {encoding:'utf8',flag:'w'})
+//   }
 
-  let scale = 2.83464566929 // Sigh. OpenSCAD appears to be importing .svg files as 72 DPI
+//   let scadFileContents = `
+//   $fn=32;
+//   module wedge(angle, direction_angle, width, thickness) {
+//       x = angle < 0 ? thickness : 0;
+//       y = -tan(angle) * thickness * (angle < 0 ? 1 : -1);
+//       rotate(a=direction_angle- 90, v=[0,0,1])
+//       rotate(a=-90, v=[0,1,0])
+//       linear_extrude(width, center=true)
+//       polygon([[0,0], [thickness, 0], [x, y]]);
+//   }
+
+//   module led_support(width, thickness, height, gap) {
+//     union() {
+//       translate([0, (gap + thickness) / 2, height / 2])
+//       cube([width, thickness, height], center=true);
+
+//       translate([0, -(gap + thickness) / 2, height / 2])
+//       cube([width, thickness, height], center=true);
+//     }
+//   }
+
+//   module qt_clip() {
+//     rotate(v=[1,0,0], a=-90) 
+//     translate([-6,-6,-1])
+//     linear_extrude(height = 1)
+//     scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
+//     import("../qtclip.svg");
+//   }
+
+//   difference() {
+//   union() {`
+//     for (let wedge of print.wedges) {
+//       scadFileContents += `
+//       translate([${wedge.position}])
+//       wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
+//     }
+//     for (let support of print.ledSupports) {
+//       scadFileContents += `
+//       translate([${support.position}])
+//       rotate(a=${support.rotationAngle}, v=[0,0,1])
+//       led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
+//     }
+//     for (let embossing of print.embossings) {
+//       scadFileContents += `
+//       translate([${embossing.position}])
+//       translate([-5,-2.5,0])
+//       linear_extrude(0.2)
+//       text("${embossing.text}", size= 5);`
+//     }
+//     for (let nub of print.nubs) {
+//       scadFileContents += `
+//       translate([${nub.position}])
+//       cylinder(r=${nub.width/2}, h=${nub.height});`
+//     }
+//     for (let qtClips of print.qtClips) {
+//       scadFileContents += `
+//       translate([${qtClips.position}])
+//       qt_clip();`
+//     }
+
+//     for (let svg of print.svgs) {
+//       if (svg.negative) continue
+//       if (svg.position) {
+//         scadFileContents += `
+//       translate([${svg.position}])`
+//       }
+//       scadFileContents += `
+//       linear_extrude(height = ${svg.thickness})
+//       scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
+//       import("${svgFilePath(svg)}");`
+//     }
+//     scadFileContents += `
+//   }`
+//     for (let svg of print.svgs) {
+//       if (!svg.negative) continue
+//       if (svg.position) {
+//         scadFileContents += `
+//       translate([${svg.position}])`
+//       }
+//       scadFileContents += `
+//       linear_extrude(height = ${svg.thickness})
+//       scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
+//       import("${svgFilePath(svg)}");`
+//     }
+//     scadFileContents += `
+//   }`
+//   console.log("Making .scad " + index)
+//   await fs.promises.writeFile(scadFilePath, scadFileContents)
+
+//   console.log("Generating .stl " + index)
+//   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
+//   if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
+
+//   console.log("Generating .bgcode " + index)
+//   let config = "wall_config" + (info.INFILL_100 ? "_infill100" : "") + ".ini"
+//   await execute(`${process.env.SLICER} -g --load ${config} "${stlFilePath}" --output ${bgcodeFilePath}`)
+  
+//   console.log("Uploading .bgcode " + index)
+//   await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+//   await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
+//   if (info.PROCESS_STOP == "upload") return stlFilePath
+// }
+
+
+async function generateGCode(info, print) {
+  let index = print.index
+
+  let scadFilePath = `${info.tempPath}${index}_${info.suffix}.scad`
+  let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}${index}_${info.suffix}.stl`.replace(" ", "_")
+  let bgcodeFilePath = `${info.tempPath}${index}_${info.suffix}.bgcode`.replace(" ", "_")
+  let bgcodePrinterFile = `${info.tempPath}${index}_${info.suffix}.bgcode`
+
   let scadFileContents = `
   $fn=32;
-  module wedge(angle, direction_angle, width, thickness) {
-      pivot_z = angle < 0 ? 0 : thickness;
-      actual_angle = angle < 0 ? -90 - angle : 90 - angle;
-      
-      rotate(a=direction_angle, v=[0,0,1])
-      difference() {
-          translate([0, -width/2, pivot_z])
-          rotate(a=actual_angle, v=[0,1,0])
-          translate([0, 0, -pivot_z])
-          cube([90, width, thickness]);
-          
-          translate([0,0,-100])
-          cube([200,200,200], center=true);
-          
-          translate([0,0,100 + thickness])
-          cube([200,200,200], center=true);
-      }
+  module wedge(angle, direction_angle, width, thickness, skew) {
+      M = [[1, 0, 0, 0],
+           [-skew, 1, 0, 0],
+           [0, 0, 1, 0],
+           [0, 0, 0, 1]];
+      x = angle < 0 ? thickness : 0;
+      y = -tan(angle) * thickness * (angle < 0 ? 1 : -1);
+      rotate(a=direction_angle- 90, v=[0,0,1])
+      multmatrix(M)
+      rotate(a=-90, v=[0,1,0])
+      linear_extrude(width, center=true)
+      polygon([[0,0], [thickness, 0], [x, y]]);
   }
 
   module led_support(width, thickness, height, gap) {
@@ -354,37 +469,123 @@ async function generateGCode(info, index) {
     rotate(v=[1,0,0], a=-90) 
     translate([-6,-6,-1])
     linear_extrude(height = 1)
-    scale([2.83464566929,2.83464566929,2.83464566929])
+    scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
     import("../qtclip.svg");
   }
+`
+  if (print.modules) {
+    let moduleIndex = 0
+    for (let module of print.modules) {
+      module.index = moduleIndex
+      scadFileContents += `
+  module module${module.index}() {`
 
+      switch(module.type) {
+        case "union":
+          scadFileContents += generateUnionModule(module)
+          break
+        default:
+          scadFileContents += await generateLeafModule(info, module)
+      }
+      scadFileContents += `
+  }
+  `
+      moduleIndex += 1
+    }
+    scadFileContents += `module${moduleIndex - 1}();`
+  } else {
+    scadFileContents += await generateLeafModule(info, print)
+  }
+
+  console.log("Making .scad " + index)
+  await fs.promises.writeFile(scadFilePath, scadFileContents)
+
+  console.log("Generating .stl " + index)
+  await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
+  if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
+
+  console.log("Generating .bgcode " + index)
+  let config = "wall_config" + (info.INFILL_100 ? "_infill100" : "") + ".ini"
+  await execute(`${process.env.SLICER} -g --load ${config} "${stlFilePath}" --output ${bgcodeFilePath}`)
+  
+  console.log("Uploading .bgcode " + index)
+  await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
+  await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
+  if (info.PROCESS_STOP == "upload") return stlFilePath
+}
+
+
+function generateUnionModule(module) {
+  let moduleString = `
+  union() {`
+    for (let component of module.components) {
+      for (let operation of component.operations) {
+        switch (operation.type) {
+          case "translate":
+            moduleString += `
+            translate([${operation.position}])`
+            break
+          case "rotate":
+            moduleString += `
+            rotate(a=${operation.angle}, v=[${operation.axis}])`
+            break
+        }
+      }
+      moduleString += `
+      module${component.index}();`
+    }
+    moduleString += `
+  }`
+  return moduleString
+}
+async function generateLeafModule(info, print) {
+  print.wedges = print.wedges ?? []
+  print.ledSupports = print.ledSupports ?? []
+  print.nubs = print.nubs ?? []
+  print.embossings = print.embossings ?? []
+  print.qtClips = print.qtClips ?? []
+
+  let moduleIndex = print.index || 0
+  function svgFilePath(svg) {
+    let svgIndex = print.svgs.indexOf(svg)
+    if (print.svgs.length == 1) {
+      svgIndex = ""
+    }
+    return `${info.tempPath}${info.index}_${moduleIndex}_${info.suffix}${svgIndex}.svg`
+  }
+
+  for (let svg of print.svgs) {
+    await fs.promises.writeFile(svgFilePath(svg), svg.svg, {encoding:'utf8',flag:'w'})
+  }
+  moduleString = `
   difference() {
   union() {`
     for (let wedge of print.wedges) {
-      scadFileContents += `
+      let skew = wedge.skew || 0
+      moduleString += `
       translate([${wedge.position}])
-      wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
+      wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness}, ${skew});`
     }
     for (let support of print.ledSupports) {
-      scadFileContents += `
+      moduleString += `
       translate([${support.position}])
       rotate(a=${support.rotationAngle}, v=[0,0,1])
       led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
     }
     for (let embossing of print.embossings) {
-      scadFileContents += `
+      moduleString += `
       translate([${embossing.position}])
       translate([-5,-2.5,0])
       linear_extrude(0.2)
       text("${embossing.text}", size= 5);`
     }
     for (let nub of print.nubs) {
-      scadFileContents += `
+      moduleString += `
       translate([${nub.position}])
       cylinder(r=${nub.width/2}, h=${nub.height});`
     }
     for (let qtClips of print.qtClips) {
-      scadFileContents += `
+      moduleString += `
       translate([${qtClips.position}])
       qt_clip();`
     }
@@ -392,47 +593,32 @@ async function generateGCode(info, index) {
     for (let svg of print.svgs) {
       if (svg.negative) continue
       if (svg.position) {
-        scadFileContents += `
+        moduleString += `
       translate([${svg.position}])`
       }
-      scadFileContents += `
+      moduleString += `
       linear_extrude(height = ${svg.thickness})
-      scale([${scale},${scale},${scale}])
+      scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
       import("${svgFilePath(svg)}");`
     }
-    scadFileContents += `
+    moduleString += `
   }`
     for (let svg of print.svgs) {
       if (!svg.negative) continue
       if (svg.position) {
-        scadFileContents += `
+        moduleString += `
       translate([${svg.position}])`
       }
-      scadFileContents += `
+      moduleString += `
       linear_extrude(height = ${svg.thickness})
-      scale([${scale},${scale},${scale}])
+      scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
       import("${svgFilePath(svg)}");`
     }
-    scadFileContents += `
+    moduleString += `
   }`
-  console.log("Making .scad " + index)
-  await fs.promises.writeFile(scadFilePath, scadFileContents)
-  if (info.PROCESS_STOP == "scad") return
-
-  console.log("Generating .stl " + index)
-  await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
-  if (info.PROCESS_STOP == "stl") return
-
-  console.log("Generating .bgcode " + index)
-  let config = "wall_config" + (info.INFILL_100 ? "_infill100" : "") + ".ini"
-  await execute(`${process.env.SLICER} -g --load ${config} "${stlFilePath}" --output ${bgcodeFilePath}`)
-  if (info.PROCESS_STOP == "bgcode") return
-  
-  console.log("Uploading .bgcode " + index)
-  await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
-  await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
-  if (info.PROCESS_STOP == "upload") return
+  return moduleString
 }
+
 
 addPOSTListener(async (response, body) => {
   if (!body || body.type != "cleanup") return false
