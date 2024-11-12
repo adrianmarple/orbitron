@@ -1,7 +1,6 @@
 // SKIP
 
 addButton("test/endcap", async () => {
-  BOTTOM_THICKNESS = TOP_THICKNESS
   ledAtVertex = false
   setLaserParams({
     BORDER: 4,

@@ -1,5 +1,4 @@
 module.exports = async () => {
-  BOTTOM_THICKNESS = TOP_THICKNESS
   pixelDensity = 2
 
   await addFromSVG("signs/hive.svg")

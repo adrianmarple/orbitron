@@ -300,155 +300,24 @@ addPOSTListener(async (response, body) => {
   return true
 })
 
-// async function generateGCode(info, print) {
-//   index += 1
-//   print.wedges = print.wedges ?? []
-//   print.ledSupports = print.ledSupports ?? []
-//   print.nubs = print.nubs ?? []
-//   print.embossings = print.embossings ?? []
-//   print.qtClips = print.qtClips ?? []
-
-//   if (info.prints.length == 1) {
-//     index = ""
-//   }
-//   function svgFilePath(svg) {
-//     let svgIndex = print.svgs.indexOf(svg)
-//     if (print.svgs.length == 1) {
-//       svgIndex = ""
-//     }
-//     return `${info.tempPath}${index}_${info.suffix}${svgIndex}.svg`
-//   }
-//   let scadFilePath = `${info.tempPath}${index}_${info.suffix}.scad`
-//   let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}${index}_${info.suffix}.stl`.replace(" ", "_")
-//   let bgcodeFilePath = `${info.tempPath}${index}_${info.suffix}.bgcode`.replace(" ", "_")
-//   let bgcodePrinterFile = `${info.tempPath}${index}_${info.suffix}.bgcode`
-
-//   for (let svg of print.svgs) {
-//     await fs.promises.writeFile(svgFilePath(svg), svg.svg, {encoding:'utf8',flag:'w'})
-//   }
-
-//   let scadFileContents = `
-//   $fn=32;
-//   module wedge(angle, direction_angle, width, thickness) {
-//       x = angle < 0 ? thickness : 0;
-//       y = -tan(angle) * thickness * (angle < 0 ? 1 : -1);
-//       rotate(a=direction_angle- 90, v=[0,0,1])
-//       rotate(a=-90, v=[0,1,0])
-//       linear_extrude(width, center=true)
-//       polygon([[0,0], [thickness, 0], [x, y]]);
-//   }
-
-//   module led_support(width, thickness, height, gap) {
-//     union() {
-//       translate([0, (gap + thickness) / 2, height / 2])
-//       cube([width, thickness, height], center=true);
-
-//       translate([0, -(gap + thickness) / 2, height / 2])
-//       cube([width, thickness, height], center=true);
-//     }
-//   }
-
-//   module qt_clip() {
-//     rotate(v=[1,0,0], a=-90) 
-//     translate([-6,-6,-1])
-//     linear_extrude(height = 1)
-//     scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-//     import("../qtclip.svg");
-//   }
-
-//   difference() {
-//   union() {`
-//     for (let wedge of print.wedges) {
-//       scadFileContents += `
-//       translate([${wedge.position}])
-//       wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness});`
-//     }
-//     for (let support of print.ledSupports) {
-//       scadFileContents += `
-//       translate([${support.position}])
-//       rotate(a=${support.rotationAngle}, v=[0,0,1])
-//       led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
-//     }
-//     for (let embossing of print.embossings) {
-//       scadFileContents += `
-//       translate([${embossing.position}])
-//       translate([-5,-2.5,0])
-//       linear_extrude(0.2)
-//       text("${embossing.text}", size= 5);`
-//     }
-//     for (let nub of print.nubs) {
-//       scadFileContents += `
-//       translate([${nub.position}])
-//       cylinder(r=${nub.width/2}, h=${nub.height});`
-//     }
-//     for (let qtClips of print.qtClips) {
-//       scadFileContents += `
-//       translate([${qtClips.position}])
-//       qt_clip();`
-//     }
-
-//     for (let svg of print.svgs) {
-//       if (svg.negative) continue
-//       if (svg.position) {
-//         scadFileContents += `
-//       translate([${svg.position}])`
-//       }
-//       scadFileContents += `
-//       linear_extrude(height = ${svg.thickness})
-//       scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-//       import("${svgFilePath(svg)}");`
-//     }
-//     scadFileContents += `
-//   }`
-//     for (let svg of print.svgs) {
-//       if (!svg.negative) continue
-//       if (svg.position) {
-//         scadFileContents += `
-//       translate([${svg.position}])`
-//       }
-//       scadFileContents += `
-//       linear_extrude(height = ${svg.thickness})
-//       scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-//       import("${svgFilePath(svg)}");`
-//     }
-//     scadFileContents += `
-//   }`
-//   console.log("Making .scad " + index)
-//   await fs.promises.writeFile(scadFilePath, scadFileContents)
-
-//   console.log("Generating .stl " + index)
-//   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
-//   if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
-
-//   console.log("Generating .bgcode " + index)
-//   let config = "wall_config" + (info.INFILL_100 ? "_infill100" : "") + ".ini"
-//   await execute(`${process.env.SLICER} -g --load ${config} "${stlFilePath}" --output ${bgcodeFilePath}`)
-  
-//   console.log("Uploading .bgcode " + index)
-//   await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
-//   await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
-//   if (info.PROCESS_STOP == "upload") return stlFilePath
-// }
-
-
 async function generateGCode(info, print) {
-  let index = print.index
+  info.index = print.index
 
-  let scadFilePath = `${info.tempPath}${index}_${info.suffix}.scad`
-  let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}${index}_${info.suffix}.stl`.replace(" ", "_")
-  let bgcodeFilePath = `${info.tempPath}${index}_${info.suffix}.bgcode`.replace(" ", "_")
-  let bgcodePrinterFile = `${info.tempPath}${index}_${info.suffix}.bgcode`
+  let scadFilePath = `${info.tempPath}${info.index}_${info.suffix}.scad`
+  let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}${info.index}_${info.suffix}.stl`.replace(" ", "_")
+  let bgcodeFilePath = `${info.tempPath}${info.index}_${info.suffix}.bgcode`.replace(" ", "_")
+  let bgcodePrinterFile = `${info.tempPath}${info.index}_${info.suffix}.bgcode`
 
   let scadFileContents = `
   $fn=32;
-  module wedge(angle, direction_angle, width, thickness, skew) {
+  module wedge(angle, width, thickness, skew) {
       M = [[1, 0, 0, 0],
            [-skew, 1, 0, 0],
            [0, 0, 1, 0],
            [0, 0, 0, 1]];
       x = angle < 0 ? thickness : 0;
       y = -tan(angle) * thickness * (angle < 0 ? 1 : -1);
-      rotate(a=direction_angle- 90, v=[0,0,1])
+      rotate(a=-90, v=[0,0,1])
       multmatrix(M)
       rotate(a=-90, v=[0,1,0])
       linear_extrude(width, center=true)
@@ -473,152 +342,103 @@ async function generateGCode(info, print) {
     import("../qtclip.svg");
   }
 `
-  if (print.modules) {
-    let moduleIndex = 0
-    for (let module of print.modules) {
-      module.index = moduleIndex
-      scadFileContents += `
-  module module${module.index}() {`
+  info.svgIndex = 0
+  scadFileContents += await generateModule(info, print)
 
-      switch(module.type) {
-        case "union":
-          scadFileContents += generateUnionModule(module)
-          break
-        default:
-          scadFileContents += await generateLeafModule(info, module)
-      }
-      scadFileContents += `
-  }
-  `
-      moduleIndex += 1
-    }
-    scadFileContents += `module${moduleIndex - 1}();`
-  } else {
-    scadFileContents += await generateLeafModule(info, print)
-  }
-
-  console.log("Making .scad " + index)
+  console.log("Making .scad " + info.index)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
 
-  console.log("Generating .stl " + index)
+  console.log("Generating .stl " + info.index)
   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
   if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
 
-  console.log("Generating .bgcode " + index)
+  console.log("Generating .bgcode " + info.index)
   let config = "wall_config" + (info.INFILL_100 ? "_infill100" : "") + ".ini"
   await execute(`${process.env.SLICER} -g --load ${config} "${stlFilePath}" --output ${bgcodeFilePath}`)
   
-  console.log("Uploading .bgcode " + index)
+  console.log("Uploading .bgcode " + info.index)
   await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
   await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
   if (info.PROCESS_STOP == "upload") return stlFilePath
 }
 
+async function generateModule(info, module) {
+  let moduleString = ""
+  if (module.position) {
+    moduleString += `
+      translate([${module.position}])`
+  }
+  if (module.rotationAngle) {
+    moduleString += `
+      rotate(a=${module.rotationAngle}, v=[0,0,1])`
+  }
+  if (module.operations) {
+    for (let operation of module.operations) {
+      switch (operation.type) {
+        case "translate":
+          moduleString += `
+          translate([${operation.position}])`
+          break
+        case "rotate":
+          moduleString += `
+          rotate(a=${operation.angle}, v=[${operation.axis}])`
+          break
+      }
+    }
+  }
 
-function generateUnionModule(module) {
-  let moduleString = `
-  union() {`
-    for (let component of module.components) {
-      for (let operation of component.operations) {
-        switch (operation.type) {
-          case "translate":
-            moduleString += `
-            translate([${operation.position}])`
-            break
-          case "rotate":
-            moduleString += `
-            rotate(a=${operation.angle}, v=[${operation.axis}])`
-            break
-        }
+  switch (module.type) {
+    case "union":
+    case "difference":
+      moduleString += `
+      ${module.type}() {`
+      for (let component of module.components) {
+        moduleString += await generateModule(info, component)
       }
       moduleString += `
-      module${component.index}();`
-    }
-    moduleString += `
-  }`
-  return moduleString
-}
-async function generateLeafModule(info, print) {
-  print.wedges = print.wedges ?? []
-  print.ledSupports = print.ledSupports ?? []
-  print.nubs = print.nubs ?? []
-  print.embossings = print.embossings ?? []
-  print.qtClips = print.qtClips ?? []
-
-  let moduleIndex = print.index || 0
-  function svgFilePath(svg) {
-    let svgIndex = print.svgs.indexOf(svg)
-    if (print.svgs.length == 1) {
-      svgIndex = ""
-    }
-    return `${info.tempPath}${info.index}_${moduleIndex}_${info.suffix}${svgIndex}.svg`
-  }
-
-  for (let svg of print.svgs) {
-    await fs.promises.writeFile(svgFilePath(svg), svg.svg, {encoding:'utf8',flag:'w'})
-  }
-  moduleString = `
-  difference() {
-  union() {`
-    for (let wedge of print.wedges) {
-      let skew = wedge.skew || 0
+      }`
+      break
+    case "svg":
+      let svgFilePath = `${info.tempPath}${info.index}_${info.suffix}${info.svgIndex}.svg`
+      if (module.type == "svg") {
+        info.svgIndex += 1
+        await fs.promises.writeFile(svgFilePath, module.svg, {encoding:'utf8',flag:'w'})
+      }
       moduleString += `
-      translate([${wedge.position}])
-      wedge(${wedge.angle}, ${wedge.directionAngle}, ${wedge.width}, ${wedge.thickness}, ${skew});`
-    }
-    for (let support of print.ledSupports) {
+      linear_extrude(height = ${module.thickness})
+      scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
+      import("${svgFilePath}");`
+      break
+    case "wedge":
+      let skew = module.skew || 0
       moduleString += `
-      translate([${support.position}])
-      rotate(a=${support.rotationAngle}, v=[0,0,1])
-      led_support(${support.width}, ${support.thickness}, ${support.height}, ${support.gap});`
-    }
-    for (let embossing of print.embossings) {
+      wedge(${module.angle}, ${module.width}, ${module.thickness}, ${skew});`
+      break
+    case "ledSupport":
       moduleString += `
-      translate([${embossing.position}])
+      led_support(${module.width}, ${module.thickness}, ${module.height}, ${module.gap});`
+      break
+    case "nub":
+      moduleString += `
+      cylinder(r=${module.width/2}, h=${module.height});`
+      break
+    case "cube":
+      moduleString += `
+      cube([${module.dimensions}], center=true);`
+      break
+    case "embossing":
+      moduleString += `
       translate([-5,-2.5,0])
       linear_extrude(0.2)
-      text("${embossing.text}", size= 5);`
-    }
-    for (let nub of print.nubs) {
+      text("${module.text}", size= 5);`
+      break
+    case "qtClip":
       moduleString += `
-      translate([${nub.position}])
-      cylinder(r=${nub.width/2}, h=${nub.height});`
-    }
-    for (let qtClips of print.qtClips) {
-      moduleString += `
-      translate([${qtClips.position}])
       qt_clip();`
-    }
-
-    for (let svg of print.svgs) {
-      if (svg.negative) continue
-      if (svg.position) {
-        moduleString += `
-      translate([${svg.position}])`
-      }
-      moduleString += `
-      linear_extrude(height = ${svg.thickness})
-      scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-      import("${svgFilePath(svg)}");`
-    }
-    moduleString += `
-  }`
-    for (let svg of print.svgs) {
-      if (!svg.negative) continue
-      if (svg.position) {
-        moduleString += `
-      translate([${svg.position}])`
-      }
-      moduleString += `
-      linear_extrude(height = ${svg.thickness})
-      scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-      import("${svgFilePath(svg)}");`
-    }
-    moduleString += `
-  }`
+      break
+  }
   return moduleString
 }
-
 
 addPOSTListener(async (response, body) => {
   if (!body || body.type != "cleanup") return false

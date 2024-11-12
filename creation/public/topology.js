@@ -654,7 +654,6 @@ function zeroFoldAllEdges() {
   }
   
   for (let edge of [...edges]) {
-    console.log(edge)
     let plain0 = edge.verticies[0].plains[0]
     let plain1 = edge.verticies[1].plains[0]
     let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)

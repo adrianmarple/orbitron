@@ -42,8 +42,7 @@ function reset() {
 
   EDGES_DOUBLED = false
 
-  TOP_THICKNESS = 3.1 // For 3D printing
-  BOTTOM_THICKNESS = 3.1 // For 3D printing
+  THICKNESS = 3.1
   WALL_THICKNESS = 2
   EXTRA_COVER_THICKNESS = 0
   INNER_CHANNEL_BUFFER = 1
@@ -54,9 +53,19 @@ function reset() {
   CHANNEL_WIDTH = 13
   MIN_NON_NOTCH_LENGTH = 5
   NOTCH_DEPTH = 5
-  ANTI_CORNER = 0.5
   FASTENER_DEPTH = 2.5
   CHANNEL_LATCH_ANGLE = 0 // Only used with 3d printer covers
+
+  LATCH_TYPE = "wedge"
+  ANTI_CORNER = 0.5
+  MAX_LATCH_WIDTH = 5
+
+  HOOK_OVERHANG = 0.8
+  HOOK_THICKNESS = 0.4
+  HOOK_KERF = 0.1
+  HOOK_WIDTH = 1.8
+  HOOK_GAP = 0.6
+
 
   BOTTOM_KERF = 0
   TOP_KERF = -0.05
@@ -91,7 +100,6 @@ function reset() {
 
   POWER_HOLE_RADIUS = 5.8
 
-  // CHANNEL_DEPTH = CAT5_HEIGHT - BOTTOM_THICKNESS
   CHANNEL_DEPTH = CAT5_HEIGHT
   
   END_CAP_FACTOR = 0.3872
@@ -136,8 +144,7 @@ function setFor3DPrintedCovers() {
   addExtraFoldWallWedge = false
 
   ANTI_CORNER = 0.5
-  TOP_THICKNESS = 1.8 //1.6
-  BOTTOM_THICKNESS = TOP_THICKNESS
+  THICKNESS = 1.8 //1.6
   EXTRA_COVER_THICKNESS = 0.4
   INNER_CHANNEL_THICKNESS = 0.4
 
@@ -150,10 +157,13 @@ function setFor3DPrintedCovers() {
   TOP_ORIGAMI_KERF = 0 //-0.1
   BOTTOM_ORIGAMI_KERF = 0
   CHANNEL_LATCH_ANGLE = -8
+
+  // Experimental
+  THICKNESS = 3
+  LATCH_TYPE = "hook"
 }
 
-HEIGHT = () => CHANNEL_DEPTH + BOTTOM_THICKNESS + TOP_THICKNESS
-THICKNESS = () => IS_BOTTOM ? BOTTOM_THICKNESS : TOP_THICKNESS
+HEIGHT = () => CHANNEL_DEPTH + 2*THICKNESS
 
 
 // ===================== rendering =====================
