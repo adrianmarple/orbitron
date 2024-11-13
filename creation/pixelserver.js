@@ -339,7 +339,14 @@ async function generateGCode(info, print) {
     translate([-6,-6,-1])
     linear_extrude(height = 1)
     scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-    import("../qtclip.svg");
+    import("../../qtclip.svg");
+  }
+
+  module innerwall_bit(thickness, is_female) {
+    translate([-6.5,-20,0])
+    linear_extrude(height = thickness)
+    scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
+    import(is_female ? "../../innerwall_female.svg" : "../../innerwall_male.svg");
   }
 `
   info.svgIndex = 0
@@ -370,10 +377,10 @@ async function generateModule(info, module) {
   }
   if (module.rotationAngle) {
     moduleString += `
-      rotate(a=${module.rotationAngle}, v=[0,0,1])`
+      rotate(a=${module.rotationAngle * 180/Math.PI}, v=[0,0,1])`
   }
   if (module.operations) {
-    for (let operation of module.operations) {
+    for (let operation of module.operations.reverse()) {
       switch (operation.type) {
         case "translate":
           moduleString += `
@@ -381,7 +388,7 @@ async function generateModule(info, module) {
           break
         case "rotate":
           moduleString += `
-          rotate(a=${operation.angle}, v=[${operation.axis}])`
+          rotate(a=${operation.angle * 180/Math.PI}, v=[${operation.axis}])`
           break
       }
     }
@@ -412,7 +419,7 @@ async function generateModule(info, module) {
     case "wedge":
       let skew = module.skew || 0
       moduleString += `
-      wedge(${module.angle}, ${module.width}, ${module.thickness}, ${skew});`
+      wedge(${module.angle * 180/Math.PI}, ${module.width}, ${module.thickness}, ${skew});`
       break
     case "ledSupport":
       moduleString += `
@@ -435,6 +442,10 @@ async function generateModule(info, module) {
     case "qtClip":
       moduleString += `
       qt_clip();`
+      break
+    case "innerwallbit":
+      moduleString += `
+      innerwall_bit(${module.thickness}, ${module.isFemale});`
       break
   }
   return moduleString
