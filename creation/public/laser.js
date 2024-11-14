@@ -962,42 +962,47 @@ function wallPath(context) {
     }
   }
 
-  path += `
-    M${offset[0] - wallLength + endNotchDepth} ${offset[1]}
-    l${ANTI_CORNER} ${THICKNESS}
-    h${-ANTI_CORNER - endNotchDepth - extra_start_bit}
-    v${CHANNEL_DEPTH}
-    h${ANTI_CORNER + endNotchDepth + extra_start_bit}
-    l${-ANTI_CORNER} ${THICKNESS}`
+  let wallSegments = []
+  wallSegments = wallSegments.concat(latchPoints(LEFT,UP,true))
+  wallSegments.push(LEFT.scale(endNotchDepth))
+  wallSegments.push(UP.scale(CHANNEL_DEPTH))
+  wallSegments.push(RIGHT.scale(endNotchDepth))
+  wallSegments = wallSegments.concat(latchPoints(RIGHT, UP))
+  let previousX = endNotchDepth + MAX_LATCH_WIDTH
   for (let {center, bottomOnly} of [...notches].reverse()) { // Top notches
     if (bottomOnly) continue
-    path += `
-    H${offset[0] - center - midNotchDepth}
-    l${-ANTI_CORNER} ${-THICKNESS}
-    h${2*ANTI_CORNER + 2*midNotchDepth}
-    l${-ANTI_CORNER} ${THICKNESS}`
+    wallSegments.push(RIGHT.scale(center - previousX - midNotchDepth - MAX_LATCH_WIDTH))
+    wallSegments = wallSegments.concat(latchPoints(RIGHT,DOWN,true))
+    wallSegments.push(RIGHT.scale(2*(midNotchDepth + MAX_LATCH_WIDTH)))
+    wallSegments = wallSegments.concat(latchPoints(RIGHT,UP))
+    previousX = center + midNotchDepth + MAX_LATCH_WIDTH
   }
-  path += `
-    H${offset[0] - endNotchDepth}
-    l${-ANTI_CORNER} ${-THICKNESS}
-    h${ANTI_CORNER + endNotchDepth + extra_end_bit}
-    v${-CHANNEL_DEPTH}
-    h${-ANTI_CORNER - endNotchDepth - extra_end_bit}
-    l${ANTI_CORNER} ${-THICKNESS}`
-  for (let {center} of notches) { // Bottom notches
-    path += `
-    H${offset[0] - center + midNotchDepth}
-    l${ANTI_CORNER} ${THICKNESS}
-    h${-2*ANTI_CORNER - 2*midNotchDepth}
-    l${ANTI_CORNER} ${-THICKNESS}`
+  wallSegments.push(RIGHT.scale(wallLength - previousX - endNotchDepth - MAX_LATCH_WIDTH))
+
+  wallSegments = wallSegments.concat(latchPoints(RIGHT,DOWN,true))
+  wallSegments.push(RIGHT.scale(endNotchDepth))
+  wallSegments.push(DOWN.scale(CHANNEL_DEPTH))
+  wallSegments.push(LEFT.scale(endNotchDepth))
+  wallSegments = wallSegments.concat(latchPoints(LEFT, DOWN))
+  previousX = wallLength - endNotchDepth - MAX_LATCH_WIDTH
+  for (let {center} of [...notches]) { // Top notches
+    wallSegments.push(LEFT.scale(previousX - center - midNotchDepth - MAX_LATCH_WIDTH))
+    wallSegments = wallSegments.concat(latchPoints(LEFT,UP,true))
+    wallSegments.push(LEFT.scale(2*(midNotchDepth + MAX_LATCH_WIDTH)))
+    wallSegments = wallSegments.concat(latchPoints(LEFT,DOWN))
+    previousX = center - midNotchDepth - MAX_LATCH_WIDTH
   }
-  path += `Z`
+
+  path += ` M${offset[0] - wallLength + endNotchDepth + MAX_LATCH_WIDTH} ${offset[1]}`
+  for (let seg of wallSegments) {
+    path += ` l${seg.x} ${seg.y}`
+  }
+  path += " Z"
 
   // Is the entry wall for CAT5 port
   if (hasWallPort) {
     path += portPath(offset[0] - cat5Offset, offset[1], print)
   }
-
   // Hole for power cord port
   if (isPowerCordPort) {
     if (2*POWER_HOLE_RADIUS > CHANNEL_DEPTH) {
@@ -1245,19 +1250,16 @@ function foldWallHalf(foldWall, isLeft) {
       .addScaledVector(UP, CHANNEL_DEPTH/2 * dihedralRatio)
       .addScaledVector(E, topLength)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
-      .addScaledVector(E, isLeft ? -foldWall.lengthOffset1 : foldWall.lengthOffset2)
+      .addScaledVector(E, isLeft ? -foldWall.lengthOffset1 : -foldWall.lengthOffset2)
   position = null
 
   if (isLeft &&
       !noSupports &&
-      !foldWall.hasWallPort) {
+      !foldWall.hasWallPort &&
+      (foldWall.yRotationAngle > 0 ||
+       PRINT_WALL_HALVES_SEPARATELY)) {
 
     position = startV.addScaledVector(E, -PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
-  }
-  if (!isLeft) {
-    console.log("a")
-    console.log(bottomLength > PIXEL_DISTANCE * 3)
-    console.log(foldWall.yRotationAngle > 0)
   }
   if (!isLeft &&
       !noSupports &&
