@@ -9,8 +9,8 @@ module.exports = () => {
   // zeroFoldAllEdges()
 
   let e = addPolygon(6, [0,0,0], 3)[3]
-  extrudePolygon(e, 3)
-  removeEdge(e)
+  // extrudePolygon(e, 3)
+  // removeEdge(e)
   // addPolygon(4, [0,0,0], 4)
   origami(new Plain(
     new Vector(0, 0, 0),

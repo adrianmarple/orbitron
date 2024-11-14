@@ -259,10 +259,8 @@ async function createCoverSVG(plain) {
         }
         foldWall[(IS_BOTTOM ? "bottom" : "top") + "Length" + type] = wallLength
         foldWall["miterAngle" + type] = isOne ? angle2 : angle1
+        foldWall["lengthOffset" + type] = isOne ? lengthOffset2 : lengthOffset1
         foldWall["edgeLength" + type] = edgeLength
-        if (IS_BOTTOM && isOne) {
-          foldWall.lengthOffset = lengthOffset2
-        }
         if (!foldWalls.includes(foldWall)) {
           foldWalls.push(foldWall)
         }
@@ -1023,7 +1021,7 @@ function follWallCreation(foldWall, printInfo) {
   if (!printInfo) return
 
   foldWall.zRotationAngle = Math.atan(Math.tan(foldWall.dihedralAngle/2) / Math.cos(foldWall.aoiComplement))
-  foldWall.yRotationAngle = Math.atan(Math.tan(-foldWall.aoiComplement) * Math.cos(foldWall.zRotationAngle))
+  foldWall.yRotationAngle = Math.atan(Math.tan(foldWall.aoiComplement) * Math.cos(foldWall.zRotationAngle))
 
   let translation = {
     type: "translate",
@@ -1126,7 +1124,7 @@ function follWallCreation(foldWall, printInfo) {
           operations: [{
             type: "rotate",
             axis: [0,1,0],
-            angle: -foldWall.yRotationAngle * 2,
+            angle: foldWall.yRotationAngle * 2,
           }],
           ...foldWallHalf(foldWall, false)
         },
@@ -1214,12 +1212,12 @@ function foldWallHalf(foldWall, isLeft) {
 
   // Wedges
   // End wedge
-  position = wallSegments[0].add(offset)
+  let position = wallSegments[0].add(offset)
       .addScaledVector(E, topLength + WALL_MITER_KERF)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let wedge = {
     type: "wedge",
-    angle: -(isLeft ? foldWall.miterAngle1 : foldWall.miterAngle2),
+    angle: isLeft ? foldWall.miterAngle1 : foldWall.miterAngle2,
     rotationAngle: -rotationAngle + (isLeft ? Math.PI : 0),
     position: [position.x, WALL_PANEL_HEIGHT - position.y, 0],
     width: CHANNEL_DEPTH,
@@ -1231,7 +1229,7 @@ function foldWallHalf(foldWall, isLeft) {
   let skew = -Math.tan(rotationAngle)
   wedge = {
     type: "wedge",
-    angle: -foldWall.aoiComplement,
+    angle: foldWall.aoiComplement,
     skew,
     rotationAngle: -rotationAngle + (isLeft ? 0 : Math.PI),
     position: [xOffset, WALL_PANEL_HEIGHT - yOffset, 0],
@@ -1241,57 +1239,52 @@ function foldWallHalf(foldWall, isLeft) {
   print.components.push(wedge)
 
 
-  // // LED supports
-  // let startV = new Vector(xOffset, 0, 0) // NEEDS CORRECTION!!!
-  //     .addScaledVector(E, -foldWall.bottomLength1)
-  //     .addScaledVector(N, CHANNEL_DEPTH/2)
-  //     .addScaledVector(E, foldWall.lengthOffset)
+  // LED supports
+  let startV = offset
+      .add(extraOffset)
+      .addScaledVector(UP, CHANNEL_DEPTH/2 * dihedralRatio)
+      .addScaledVector(E, topLength)
+      .addScaledVector(N, -CHANNEL_DEPTH/2)
+      .addScaledVector(E, isLeft ? -foldWall.lengthOffset1 : foldWall.lengthOffset2)
+  position = null
 
-  // let shouldCreateSupport = !noSupports
-  // if (isLeft && foldWall.hasWallPort) {
-  //   shouldCreateSupport = false
-  // }
-  // if (!isLeft && foldWall.bottomLength < PIXEL_DISTANCE * 3) {
-  //   shouldCreateSupport = false
-  // }
-  
-  // if (!foldWall.hasWallPort && !noSupports) {
-  //   position = startV.addScaledVector(RIGHT, PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
-  //   print.components.push({
-  //     type: "ledSupport",
-  //     position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
-  //     width: LED_SUPPORT_WIDTH,
-  //     height: LED_SUPPORT_HEIGHT(),
-  //     thickness: LED_SUPPORT_THICKNESS,
-  //     gap: LED_SUPPORT_GAP,
-  //     rotationAngle: rotationAngle,
-  //   })
-  // }
+  if (isLeft &&
+      !noSupports &&
+      !foldWall.hasWallPort) {
 
-  // if (shouldCreateSupport) {
-  //   let supportOffset
-  //   if (isLeft) {
+    position = startV.addScaledVector(E, -PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
+  }
+  if (!isLeft) {
+    console.log("a")
+    console.log(bottomLength > PIXEL_DISTANCE * 3)
+    console.log(foldWall.yRotationAngle > 0)
+  }
+  if (!isLeft &&
+      !noSupports &&
+      bottomLength > PIXEL_DISTANCE * 3 &&
+      foldWall.yRotationAngle > 0 &&
+      PRINT_WALL_HALVES_SEPARATELY) {
+    console.log("b")
 
-  //   } else {
-  //     supportOffset = foldWall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
-  //     secondSupportOffset = secondSupportOffset % PIXEL_DISTANCE
-  //     if (secondSupportOffset < LED_SUPPORT_WIDTH/2) {
-  //       secondSupportOffset += PIXEL_DISTANCE
-  //     }
-  //   }
-  //   position = startV
-  //       .addScaledVector(RIGHT, foldWall.edgeLength1)
-  //       .addScaledVector(E, supportOffset)
-  //   print.components.push({
-  //     type: "ledSupport",
-  //     position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
-  //     width: LED_SUPPORT_WIDTH,
-  //     height: LED_SUPPORT_HEIGHT(),
-  //     thickness: LED_SUPPORT_THICKNESS,
-  //     gap: LED_SUPPORT_GAP,
-  //     rotationAngle: rotationAngle,
-  //   })
-  // }
+    let supportOffset = foldWall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+    offsetNegative = supportOffset % PIXEL_DISTANCE
+    if (offsetNegative < LED_SUPPORT_WIDTH/2) {
+      offsetNegative += PIXEL_DISTANCE
+    }
+    supportOffset -= offsetNegative
+    position = startV.addScaledVector(E, -supportOffset)
+  }
+  if (position) {
+    print.components.push({
+      type: "ledSupport",
+      position: [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS],
+      width: LED_SUPPORT_WIDTH,
+      height: LED_SUPPORT_HEIGHT(),
+      thickness: LED_SUPPORT_THICKNESS,
+      gap: LED_SUPPORT_GAP,
+      rotationAngle: -rotationAngle,
+    })
+  }
 
   if (addNubs) { // Nubs
     let nub = wallSegments[0].add(offset)
