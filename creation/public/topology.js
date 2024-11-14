@@ -178,7 +178,7 @@ function addPolygon(sideCount, center, edgeLengths) {
   }
   average = average.divideScalar(points.length)
   center = center.sub(average)
-  let previousVertex = addVertex(points[points.length - 1].add(center))
+  let previousVertex = addVertex(points.last().add(center))
   for (let point of points) {
     let vertex = addVertex(point.add(center))
     newEdges.push(addEdge(previousVertex, vertex))

@@ -16,10 +16,10 @@ module.exports = () => {
 
   diamonds(verticies[3], verticies[7], [...longSequence], true)
   diamonds(verticies[verticies.length - 5],
-    verticies[verticies.length - 1], [...shortSequence], true)
+    verticies.last(), [...shortSequence], true)
   diamonds(verticies[2], verticies[6], [...shortSequence], false)
   diamonds(verticies[verticies.length - 5],
-    verticies[verticies.length - 1], [...longSequence], false)
+    verticies.last(), [...longSequence], false)
 
   EulerianPath(59)
 }

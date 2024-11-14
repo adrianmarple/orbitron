@@ -90,7 +90,7 @@ function bindOrb(socket, orbID) {
         let savedPrefFileNames = (await fs.promises.readdir(BACKUPS_DIR))
           .filter(name => name.startsWith(id))
         if (savedPrefFileNames.length > 0) {
-          let lastFilePath = BACKUPS_DIR + savedPrefFileNames[savedPrefFileNames.length - 1]
+          let lastFilePath = BACKUPS_DIR + savedPrefFileNames.last()
           let lastFileContents = await fs.promises.readFile(lastFilePath)
           if (backup == lastFileContents) {
             return

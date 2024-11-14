@@ -238,8 +238,8 @@ function triangularArea(points) {
 function windingNumber(points) {
   if (points.length < 3) return 0
   let returnVal = 0
-  let prevPoint1 = points[points.length - 1]
-  let prevPoint2 = points[points.length - 2]
+  let prevPoint1 = points.last()
+  let prevPoint2 = points.last(2)
   for (let point of points) {
     let e1 = point.sub(prevPoint1)
     let e2 = prevPoint1.sub(prevPoint2)

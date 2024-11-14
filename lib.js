@@ -122,3 +122,18 @@ function noCorsHeader(response, contentType) {
 module.exports = {
   execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand, noCorsHeader
 }
+
+
+// Extensions
+
+Array.prototype.remove = function(elem) {
+  let index = this.indexOf(elem)
+  if (index >= 0) {
+    this.splice(index, 1)
+  }
+  // Just ignore if not in array
+}
+Array.prototype.last = function(val) {
+  if (val === undefined) val = 1
+  return this[this.length - val]
+}

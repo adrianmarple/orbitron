@@ -219,7 +219,7 @@ async function fleshOutBody(body) {
   if (!fs.existsSync(tempDirPath)) {
     await fs.promises.mkdir(tempDirPath)
   }
-  body.fileName = heirarchy[heirarchy.length - 1]
+  body.fileName = heirarchy.last()
   body.fullPath = filePath + body.fullProjectName
   body.tempPath = tempDirPath + "/" + body.fileName
 }

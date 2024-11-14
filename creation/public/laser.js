@@ -52,8 +52,16 @@ async function createCoverSVG(plain) {
     if (edge.isDupe) continue;
     if (!edge.verticies[0].plains.includes(plain)) continue
     if (!edge.verticies[1].plains.includes(plain)) continue
-    directedEdges.push([edge.verticies[1], edge.verticies[0]])
-    directedEdges.push([edge.verticies[0], edge.verticies[1]])
+    directedEdges.push({
+      v0: edge.verticies[0],
+      v1: edge.verticies[1],
+      associatedEdge: edge
+    })
+    directedEdges.push({
+      v0: edge.verticies[1],
+      v1: edge.verticies[0],
+      associatedEdge: edge
+    })
   }
 
   let outerPath = null
@@ -61,22 +69,22 @@ async function createCoverSVG(plain) {
   for (let i = 0; i < 1000; i++) {
     if (directedEdges.length == 0) break
     let lastEdge = directedEdges.pop()
-    let dPath = [...lastEdge]
+    let dPath = [lastEdge.v0, lastEdge.v1]
     let cumulativeAngle = 0
 
     for (let j = 0; j < 1000; j++) {
-      let e0 = dPath[dPath.length-1].ogCoords.sub(dPath[dPath.length-2].ogCoords)
+      let e0 = dPath.last().ogCoords.sub(dPath.last(2).ogCoords)
       let leftmostTurn = null
       let minAngle = 7
 
-      if (dPath[0] == dPath[dPath.length - 1]) {
+      if (dPath[0] == dPath.last()) {
         let e1 = dPath[1].ogCoords.sub(dPath[0].ogCoords)
         minAngle = e1.signedAngle(e0)
       }
 
       for (let dEdge of directedEdges) {
-        let [v0, v1] = dEdge
-        if (dPath[dPath.length - 1] != v0) continue
+        let {v0, v1} = dEdge
+        if (dPath.last() != v0) continue
 
         let e1 = v1.ogCoords.sub(v0.ogCoords)
         
@@ -91,21 +99,21 @@ async function createCoverSVG(plain) {
       }
       if (!leftmostTurn) break
       if (epsilonEquals(minAngle, Math.PI) &&
-          leftmostTurn[0].plains.length <= 1) {
+          leftmostTurn.v0.plains.length <= 1) {
         // End cap for double back
-        dPath.push(leftmostTurn[0])
+        dPath.push(leftmostTurn.v0)
       }
-      directedEdges.splice(directedEdges.indexOf(leftmostTurn), 1)
+      directedEdges.remove(leftmostTurn)
       if (epsilonEquals(minAngle, 0) && !epsilonEquals(e0.length(), 0)) {
         dPath.pop() // Join edges if the path is straight
       }
       cumulativeAngle += minAngle
-      dPath.push(leftmostTurn[1])
+      dPath.push(leftmostTurn.v1)
     }
   	dPath.pop() // Remove duplicated first/last vertex
 
     // Start and end might be straight still
-    e0 = dPath[0].ogCoords.sub(dPath[dPath.length-1].ogCoords)
+    e0 = dPath[0].ogCoords.sub(dPath.last().ogCoords)
     e1 = dPath[1].ogCoords.sub(dPath[0].ogCoords)
     let lastAngle = e1.signedAngle(e0)
     if (epsilonEquals(lastAngle, 0)) {
@@ -638,7 +646,7 @@ function blankPrint() {
 
 function setLatestWallSvg(path, printInfo) {
   wall.querySelector("path").setAttribute("d", path)
-  printInfo.prints[printInfo.prints.length - 1].components.push({
+  printInfo.prints.last().components.push({
     type: "svg",
     svg: wall.outerHTML,
     thickness: WALL_THICKNESS
@@ -692,7 +700,7 @@ function createPrintInfo3D() {
       if (completedFoldWalls.includes(foldWall)) continue
 
       foldWallCreation(foldWall, printInfo)
-      let print = printInfo.prints[printInfo.prints.length - 1]
+      let print = printInfo.prints.last()
       let n = completedFoldWalls.length
       print.suffix = Math.floor(n/2) + ((n%2==0) ? "a" : "b")
       // TODO add embossing
@@ -854,7 +862,7 @@ function wallPath(context) {
 
   let print
   if (printInfo) {
-    print = printInfo.prints[printInfo.prints.length - 1]
+    print = printInfo.prints.last()
   } else {
     print = blankPrint()
   }

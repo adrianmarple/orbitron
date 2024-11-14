@@ -39,7 +39,7 @@ async function EulerianHelper(currentVertex, pathOverride) {
   let edgesCopy = currentVertex.edges.slice()
   shuffle(edgesCopy)
 
-  previousEdge = edges[path[path.length - 1]]
+  previousEdge = edges[path.last()]
   p = sortOverride || potential
   function distance(edge) {
     let v0 = otherVertex(previousEdge, currentVertex).coordinates
@@ -118,7 +118,7 @@ function startVertex() {
   }
 }
 function penultimateVertex() {
-  return otherVertex(edges[path[path.length - 1]], startVertex())
+  return otherVertex(edges[path.last()], startVertex())
 }
 
 function remainingEdges(vertex) {
@@ -183,10 +183,10 @@ function generatePixelInfo() {
     vertexAdjacencies.push([])
   }
 
-  let lastEdge = edges[path[path.length - 1]]
+  let lastEdge = edges[path.last()]
   if (startMidwayDownFinalEdge) {
     previousVertex = otherVertex(lastEdge, previousVertex)
-    path.unshift(path[path.length - 1])
+    path.unshift(path.last())
   }
   hasSeenLastEdge = false
 
@@ -275,7 +275,7 @@ function generatePixelInfo() {
     neighbors.push([])
     dupeToUniques.push([])
   }
-  let previousIndex = uniqueToDupe[uniqueToDupe.length - 1]
+  let previousIndex = uniqueToDupe.last()
   for (let i = 0; i < uniqueToDupe.length; i++) {
     let index = uniqueToDupe[i]
     if (!neighbors[index].includes(previousIndex))

@@ -300,6 +300,10 @@ Array.prototype.remove = function(elem) {
   }
   // Just ignore if not in array
 }
+Array.prototype.last = function(val) {
+  if (val === undefined) val = 1
+  return this[this.length - val]
+}
     </script>
     
 
