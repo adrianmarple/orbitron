@@ -43,7 +43,7 @@ module.exports = () => {
   let pentagonVertices = [previousVertex, currentVertex]
   for (let i = 0; i < 3; i++) {
     for (let edge of currentVertex.edges) {
-      let vertex = otherVertex(edge, currentVertex)
+      let vertex = edge.otherVertex(currentVertex)
       let dist = vertex.ogCoords.distanceTo(previousVertex.ogCoords)
       if (dist > 3 && dist < 3.5) {
         previousVertex = currentVertex

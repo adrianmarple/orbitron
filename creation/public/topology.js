@@ -21,6 +21,32 @@ class Vertex {
       console.error("Vertex not coplanar with plain", plain, this.ogCoords)
     }
   }
+
+  edgeInDirection(direction) {
+    direction = direction.normalize()
+    for (let edge of this.edges) {
+      if (edge.isDupe) continue
+
+      let other = edge.otherVertex(this)
+      let edgeDirection = other.ogCoords.sub(this.ogCoords).normalize()
+      if (direction.equals(edgeDirection)) {
+        return edge
+      }
+    }
+    return null
+  }
+  leftmostEdge(direction) {
+    let minAngle = 7
+    let leftmost = null
+    for (let edge of this.edges) {
+      let a = edge.toVector(this).signedAngle(direction)
+      if (!epsilonEquals(a, -Math.PI) && a < minAngle) {
+        minAngle = a
+        leftmost = edge
+      }
+    }
+    return leftmost
+  }
 }
 
 class Edge {
@@ -48,6 +74,17 @@ class Edge {
   
   remove() {
     removeEdge(this)
+  }
+  otherVertex(vertex) {
+    let otherVertex = this.verticies[0]
+    if (otherVertex.index === vertex.index) {
+      otherVertex = this.verticies[1]
+    }
+    return otherVertex
+  }
+  toVector(fromVertex) {
+    let toVertex = this.otherVertex(fromVertex)
+    return toVertex.ogCoords.sub(fromVertex.ogCoords)
   }
 }
 
@@ -441,10 +478,10 @@ async function addFromSVG(src) {
   for (let vertex of verticies) {
     let v0 = vertex.ogCoords
     for (let edge1 of vertex.edges) {
-      let e1 = v0.sub(otherVertex(edge1, vertex).ogCoords)
+      let e1 = v0.sub(edge1.otherVertex(vertex).ogCoords)
       for (let edge2 of vertex.edges) {
         if (edge1 == edge2) continue
-        let e2 = v0.sub(otherVertex(edge2, vertex).ogCoords)
+        let e2 = v0.sub(edge2.otherVertex(vertex).ogCoords)
         if (!epsilonEquals(e1.signedAngle(e2), 0)) continue
 
         if (e2.length() < e1.length()) {
@@ -452,7 +489,7 @@ async function addFromSVG(src) {
           edge1 = edge2
           edge2 = t
         }
-        vertex1 = otherVertex(edge1, vertex)
+        vertex1 = edge1.otherVertex(vertex)
         edge2.verticies.push(vertex1)
         vertex1.edges.push(edge2)
         remove(vertex.edges, edge2)
@@ -474,7 +511,7 @@ function integerize(startingThreshold) {
   for (let v of sortedVerticies) {
     let lowerNeighbors = []
     for (let e of v.edges) {
-      let v1 = otherVertex(e, v)
+      let v1 = e.otherVertex(v)
       if (sortedVerticies.indexOf(v1) < sortedVerticies.indexOf(v)) {
         lowerNeighbors.push(v1)
       }
@@ -488,7 +525,7 @@ function integerize(startingThreshold) {
       let angle = v.ogCoords.sub(nCoords).signedAngle(RIGHT)
       let dist = Math.round(v.ogCoords.distanceTo(nCoords))
       let e = addLine(lowerNeighbors[0], dist, angle*180/Math.PI)
-      replacement = otherVertex(e, lowerNeighbors[0])
+      replacement = e.otherVertex(lowerNeighbors[0])
     } else if (lowerNeighbors.length == 2) {
       let n0 = lowerNeighbors[0]
       let n1 = lowerNeighbors[1]

@@ -35,7 +35,7 @@ module.exports = () => {
     let initialLength = side.length()
     let v = splitEdge(side, INITIAL_OFFSET)
     side = v.edges[1]
-    let outerV = otherVertex(addLine(v, BONE_LENGTH, ANGLE), v)
+    let outerV = addLine(v.otherVertex(BONE_LENGTH, ANGLE), v)
     points.push(outerV)
     for (let i = 0; i < 1000; i++) {
       if (side.length() < initialLength/2 + GAP) {
@@ -43,7 +43,7 @@ module.exports = () => {
       }
       v = splitEdge(side, GAP)
       side = v.edges[1]
-      let outerV2 = otherVertex(addLine(v, BONE_LENGTH, ANGLE), v)
+      let outerV2 = addLine(v, BONE_LENGTH, ANGLE).otherVertex(v)
       addEdge(outerV, outerV2)
       outerV = outerV2
     }
@@ -56,14 +56,14 @@ module.exports = () => {
     }
 
     v = splitEdge(side, side.length() - INITIAL_OFFSET)
-    outerV = otherVertex(addLine(v, BONE_LENGTH, ANGLE), v)
+    outerV = addLine(v, BONE_LENGTH, ANGLE).otherVertex(v)
     points.push(outerV)
     for (let i = 0; i < 1000; i++) {
       if (side.length() < 1.48*GAP) {
         break
       }
       v = splitEdge(side, side.length() - GAP)
-      let outerV2 = otherVertex(addLine(v, BONE_LENGTH, ANGLE), v)
+      let outerV2 = addLine(v, BONE_LENGTH, ANGLE).otherVertex(v)
       addEdge(outerV, outerV2)
       outerV = outerV2
     }

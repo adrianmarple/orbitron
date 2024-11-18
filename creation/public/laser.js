@@ -6,11 +6,12 @@ wallInfo = []
 foldWalls = []
 covers = {top: [], bottom: []}
 entryWallLength = 0
-minX = 0
-minY = 0
-maxX = 0
-maxY = 0
-coverWedges = null
+minX = 1e6
+minY = 1e6
+maxX = -1e6
+maxY = -1e6
+
+edgeToWalls = {}
 
 async function createCoverSVG(plain) {
   let print = blankPrint()
@@ -24,6 +25,7 @@ async function createCoverSVG(plain) {
   minY = 1e6
   maxX = -1e6
   maxY = -1e6
+  edgeToWalls = {}
   const SCALE = PIXEL_DISTANCE / pixelDensity
 
   // Rotate all verticies to make this plain lie "flat"
@@ -52,16 +54,8 @@ async function createCoverSVG(plain) {
     if (edge.isDupe) continue;
     if (!edge.verticies[0].plains.includes(plain)) continue
     if (!edge.verticies[1].plains.includes(plain)) continue
-    directedEdges.push({
-      v0: edge.verticies[0],
-      v1: edge.verticies[1],
-      associatedEdge: edge
-    })
-    directedEdges.push({
-      v0: edge.verticies[1],
-      v1: edge.verticies[0],
-      associatedEdge: edge
-    })
+    directedEdges.push([edge.verticies[1], edge.verticies[0]])
+    directedEdges.push([edge.verticies[0], edge.verticies[1]])
   }
 
   let outerPath = null
@@ -69,7 +63,7 @@ async function createCoverSVG(plain) {
   for (let i = 0; i < 1000; i++) {
     if (directedEdges.length == 0) break
     let lastEdge = directedEdges.pop()
-    let dPath = [lastEdge.v0, lastEdge.v1]
+    let dPath = [...lastEdge]
     let cumulativeAngle = 0
 
     for (let j = 0; j < 1000; j++) {
@@ -83,7 +77,7 @@ async function createCoverSVG(plain) {
       }
 
       for (let dEdge of directedEdges) {
-        let {v0, v1} = dEdge
+        let [v0, v1] = dEdge
         if (dPath.last() != v0) continue
 
         let e1 = v1.ogCoords.sub(v0.ogCoords)
@@ -99,18 +93,18 @@ async function createCoverSVG(plain) {
       }
       if (!leftmostTurn) break
       if (epsilonEquals(minAngle, Math.PI) &&
-          leftmostTurn.v0.plains.length <= 1) {
+          leftmostTurn[0].plains.length <= 1) {
         // End cap for double back
-        dPath.push(leftmostTurn.v0)
+        dPath.push(leftmostTurn[0])
       }
       directedEdges.remove(leftmostTurn)
       if (epsilonEquals(minAngle, 0) && !epsilonEquals(e0.length(), 0)) {
         dPath.pop() // Join edges if the path is straight
       }
       cumulativeAngle += minAngle
-      dPath.push(leftmostTurn.v1)
+      dPath.push(leftmostTurn[1])
     }
-  	dPath.pop() // Remove duplicated first/last vertex
+    dPath.pop() // Remove duplicated first/last vertex
 
     // Start and end might be straight still
     e0 = dPath[0].ogCoords.sub(dPath.last().ogCoords)
@@ -163,6 +157,20 @@ async function createCoverSVG(plain) {
 
       let a1 = e1.signedAngle(e0)
       let a2 = e1.signedAngle(e2)
+
+      let associatedEdges = []
+      let vertex = vertex1
+      while (true) {
+        let edge = vertex.edgeInDirection(e1)
+        if (!edge) {
+          break
+        }
+        if (associatedEdges.length > 0 && edge != vertex.leftmostEdge(e1)) {
+          break
+        }
+        associatedEdges.push(edge)
+        vertex = edge.otherVertex(vertex)
+      }
 
       let endCapOffset = CHANNEL_WIDTH * END_CAP_FACTOR * -0.5
       if (epsilonEquals(e0.length(), 0)) {
@@ -272,6 +280,7 @@ async function createCoverSVG(plain) {
         if (!foldWalls.includes(foldWall)) {
           foldWalls.push(foldWall)
         }
+        associateWallWithEdges(foldWall, associatedEdges)
       }
 
       if (plains1.length == 2) {
@@ -279,6 +288,11 @@ async function createCoverSVG(plain) {
       } else if (plains2.length == 2) {
         addFoldWallInfo(2)
       } else {
+        associateWallWithEdges({
+          length: wallLength,
+          angle1,
+          angle2,
+        }, associatedEdges) // TODO eventually remove the rest of normal wall logic
 
         // Logic for normal walls
         let edgeCenter = v1.addScaledVector(e1, edgeLength/2)
@@ -458,17 +472,6 @@ async function createCoverSVG(plain) {
     thickness: EXTRA_COVER_THICKNESS,
   })
 
-  let svgs = [
-    {
-      svg: svg,
-      thickness: THICKNESS,
-      position: [0,0,EXTRA_COVER_THICKNESS],
-    },
-    {
-      svg: borderSvg,
-      thickness: EXTRA_COVER_THICKNESS,
-    },
-  ]
   if (INNER_CHANNEL_THICKNESS !== null) {
     print = {
       type: "difference",
@@ -485,6 +488,17 @@ async function createCoverSVG(plain) {
   }
   print.svg = svg
   return print
+}
+
+function associateWallWithEdges(wall, associatedEdges) {
+  for (let edge of associatedEdges) {
+    if (!edgeToWalls[edge.index]) {
+      edgeToWalls[edge.index] = []
+    }
+    if (!edgeToWalls[edge.index].includes(wall)) {
+      edgeToWalls[edge.index].push(wall)
+    }
+  }
 }
 
 function singleSlotPath(wallLength, basis, offset, localOffset, isFinalEdge, print) {
@@ -673,10 +687,9 @@ function createPrintInfo3D() {
     PROCESS_STOP,
     INFILL_100,
     prints: [],
-    // suffix: "walls",
   }
   completedPlains = []
-  completedFoldWalls = []
+  completedWalls = []
   let vertex = startVertex()
   for (let edgeIndex of path) {
     for (let plain of vertex.plains) {
@@ -694,21 +707,20 @@ function createPrintInfo3D() {
 
       completedPlains.push(plain)
     }
-    let edge = edges[edgeIndex]
-    // TODO assign foldwalls to edges
-    for (let foldWall of edge.foldWalls) { // Should always come in pairs
-      if (completedFoldWalls.includes(foldWall)) continue
 
-      foldWallCreation(foldWall, printInfo)
-      let print = printInfo.prints.last()
-      let n = completedFoldWalls.length
-      print.suffix = Math.floor(n/2) + ((n%2==0) ? "a" : "b")
-      // TODO add embossing
+    for (let wall of edgeToWalls[edgeIndex]) {
+      if (completedWalls.includes(wall)) continue
+
+      if (wall.topLength1) {
+        foldWallCreation(foldWall, printInfo)
+        // TODO add embossing
+      } else {
+        // TODO normal walls
+      }
     }
   }
 
   // TODO adjust pixelserver
-  //  - Everything but stls in temp folder
   //  - Utilize new "suffix" field and make sure global "suffix" can be empty
 
   return printInfo

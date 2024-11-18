@@ -42,9 +42,9 @@ async function EulerianHelper(currentVertex, pathOverride) {
   previousEdge = edges[path.last()]
   p = sortOverride || potential
   function distance(edge) {
-    let v0 = otherVertex(previousEdge, currentVertex).coordinates
+    let v0 = previousEdge.otherVertex(currentVertex).coordinates
     let v1 = currentVertex.coordinates
-    let v2 = otherVertex(edge, currentVertex).coordinates
+    let v2 = edge.otherVertex(currentVertex).coordinates
   
     let e0 = v1.sub(v0)
     let e1 = v2.sub(v1)
@@ -69,9 +69,9 @@ async function EulerianHelper(currentVertex, pathOverride) {
     // Avoid a straight twist that is forced in a last pair of edges
     if (remainingEdges.length == 2 &&
         remainingEdges[0].isDupe != remainingEdges[1].isDupe) {
-      let v0 = otherVertex(remainingEdges[0], currentVertex).coordinates
+      let v0 = remainingEdges[0].otherVertex(currentVertex).coordinates
       let v1 = currentVertex.coordinates
-      let v2 = otherVertex(remainingEdges[1], currentVertex).coordinates
+      let v2 = remainingEdges[1].otherVertex(currentVertex).coordinates
       let e0 = v1.sub(v0)
       let e1 = v2.sub(v1)
 
@@ -82,9 +82,9 @@ async function EulerianHelper(currentVertex, pathOverride) {
       }
     }
 
-    let nextVertex = otherVertex(edge, currentVertex)
+    let nextVertex = edge.otherVertex(currentVertex)
     // await delay(20)
-    let finished = await EulerianHelper(nextVertex);
+    let finished = await EulerianHelper(nextVertex)
     if (finished) {
       return true
     } else {
@@ -118,7 +118,7 @@ function startVertex() {
   }
 }
 function penultimateVertex() {
-  return otherVertex(edges[path.last()], startVertex())
+  return edges[path.last()].otherVertex(startVertex())
 }
 
 function remainingEdges(vertex) {
@@ -135,7 +135,7 @@ function isConnectedToStart(vertex) {
     let v = verticiesToProcess.pop()
     for (let edge of v.edges) {
       if (path.includes(edge.index)) continue
-      let v2 = otherVertex(edge, v)
+      let v2 = edge.otherVertex(v)
       if (v2 == start) return true
       if (accessibleVertices.includes(v2)) continue
 
@@ -144,14 +144,6 @@ function isConnectedToStart(vertex) {
     }
   }
   return false
-}
-
-function otherVertex(edge, vertex) {
-  let otherVertex = edge.verticies[0]
-  if (otherVertex.index === vertex.index) {
-    otherVertex = edge.verticies[1]
-  }
-  return otherVertex
 }
 
 function generatePixelInfo() {
@@ -185,7 +177,7 @@ function generatePixelInfo() {
 
   let lastEdge = edges[path.last()]
   if (startMidwayDownFinalEdge) {
-    previousVertex = otherVertex(lastEdge, previousVertex)
+    previousVertex = lastEdge.otherVertex(previousVertex)
     path.unshift(path.last())
   }
   hasSeenLastEdge = false
@@ -193,7 +185,7 @@ function generatePixelInfo() {
   let alpha = ledAtVertex ? 0 : rectifiedPixelDensity/2
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
-    let nextVertex = otherVertex(edge, previousVertex)
+    let nextVertex = edge.otherVertex(previousVertex)
     let v1 = previousVertex.ogCoords
     let v2 = nextVertex.ogCoords
     let e1 = v1.sub(v0)

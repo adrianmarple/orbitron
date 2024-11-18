@@ -31,7 +31,7 @@ function subdivide(triangle, iterations) {
     let v1 = newVerticies[(i+1)%3]
     newTriangle.push(addEdge(v0,v1))
 
-    let v2 = otherVertex(v0.edges[0], v0)
+    let v2 = v0.edges[0].otherVertex(v0)
     if (v1.edges[0].verticies.includes(v2)) {
       newTriangle.push(v0.edges[0])
       newTriangle.push(v1.edges[0])
@@ -39,7 +39,7 @@ function subdivide(triangle, iterations) {
       newTriangle.push(v0.edges[0])
       newTriangle.push(v1.edges[1])
     } else {
-      v2 = otherVertex(v0.edges[1], v0)
+      v2 = v0.edges[1].otherVertex(v0)
       if (v1.edges[0].verticies.includes(v2)) {
         newTriangle.push(v0.edges[1])
         newTriangle.push(v1.edges[0])
