@@ -59,6 +59,7 @@ export default {
       settings: [
         {name: "showVertexNumbers", type: "bool"},
         {name: "showEdgeNumbers", type: "bool"},
+        {name: "showPixelNumbers", type: "bool"},
         {name: "showLaserSVG", type: "bool"},
         {name: "showWallSVG", type: "bool"},
         {name: "generateWallNumbers", type: "bool"},

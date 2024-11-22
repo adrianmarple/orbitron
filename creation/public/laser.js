@@ -1166,13 +1166,11 @@ function follWallCreation(foldWall, printInfo) {
 function foldWallHalf(foldWall, isLeft) {
   let topLength = isLeft ? foldWall.topLength1 : foldWall.topLength2
   let bottomLength = isLeft ? foldWall.bottomLength1 : foldWall.bottomLength2
-  let miterAngle = isLeft ? foldWall.miterAngle1 : foldWall.miterAngle2
   let print = blankPrint()
   let path = ""
   
-  let connectionMiterAngle = -foldWall.aoiComplement // THIS ANGLE IS WRONG!
-  // let connectionMiterAngle = atan(tan(foldWall.angleOfIncidence - Math.PI/2) * )
   let rotationAngle = foldWall.zRotationAngle * (isLeft ? 1 : -1)
+  let dihedralRatio = 1 / Math.cos(rotationAngle)
 
   let E = RIGHT.rotate(FORWARD, rotationAngle)
   let N = E.cross(FORWARD).negate()
@@ -1185,14 +1183,13 @@ function foldWallHalf(foldWall, isLeft) {
   let endNotchDepth = NOTCH_DEPTH - WALL_KERF
   let extraOffset = ZERO
   if (foldWall.dihedralAngle < 0) {
-    extraOffset = E.scale(THICKNESS * dihedralRatio)
+    extraOffset = E.scale(-THICKNESS * Math.tan(foldWall.zRotationAngle))
   }
 
-  let dihedralRatio = 1 / Math.cos(rotationAngle)
   let wallSegments = [UP.scale(CHANNEL_DEPTH/2 * dihedralRatio)]
   if (foldWall.dihedralAngle < 0) {
     if (coverPrint3D) {
-      wallSegments.push(extraOffset)
+      wallSegments.push(E.scale(-THICKNESS * Math.tan(foldWall.zRotationAngle)))
     } else {
       wallSegments.push(UP.scale(THICKNESS * dihedralRatio))
       wallSegments.push(N.scale(-THICKNESS))
@@ -1238,6 +1235,7 @@ function foldWallHalf(foldWall, isLeft) {
   // Wedges
   // End wedge
   let position = wallSegments[0].add(offset)
+      .add(extraOffset)
       .addScaledVector(E, topLength + WALL_MITER_KERF)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let wedge = {

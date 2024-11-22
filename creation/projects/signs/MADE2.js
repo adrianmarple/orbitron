@@ -26,5 +26,17 @@ module.exports = async () => {
       }
     }
     connectPixels(info, deadends.pop(), deadends.pop())
+
+    info.northPole = [
+      ...range(359, 385),
+      ...range(420, 442),
+    ]
   }
+}
+
+function range(start, end, step = 1) {
+  return Array.from(
+    { length: Math.ceil((end - start) / step) }, 
+    (_, i) => i * step + start
+  )
 }

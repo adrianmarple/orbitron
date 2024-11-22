@@ -266,19 +266,28 @@ function render() {
   }
 
   ctx.fillStyle = "white"
-  ctx.fontSize = 30
+  ctx.font = "11px Arial"
   for (let vertex of verticies) {
-    let xy0 = vertex.coordinates.project(projScale)
+    let xy = vertex.coordinates.project(projScale)
     if (showVertexNumbers) {
-      ctx.fillText(vertex.index, xy0[0] + 4, xy0[1] - 5)
+      ctx.fillText(vertex.index, xy[0] + 4, xy[1] - 5)
     }
   }
   for (let edge of edges) {
     let center = edge.verticies[0].coordinates.add(edge.verticies[1].coordinates)
     center = center.scale(0.5)
-    let xy0 = center.project(projScale)
+    let xy = center.project(projScale)
     if (showEdgeNumbers && !edge.isDupe) {
-      ctx.fillText(edge.index, xy0[0] + 4, xy0[1] - 5)
+      ctx.fillText(edge.index, xy[0] + 4, xy[1] - 5)
+    }
+  }
+  if (window.pixelInfo && showPixelNumbers) {
+    ctx.font = "8px Arial"
+    for (let coord of pixelInfo.coords) {
+      let xy = new Vector(...coord)
+          .scale(1/pixelToGraphSpace.rectifiedPixelDensity)
+          .project(projScale)
+      ctx.fillText(pixelInfo.coords.indexOf(coord), xy[0] + 2, xy[1] - 2)
     }
   }
 

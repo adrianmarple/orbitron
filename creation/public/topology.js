@@ -65,6 +65,14 @@ class Edge {
   length() {
     return this.delta().length()
   }
+  commonPlain() {
+    for (let candidate of this.verticies[0].plains) {
+      if (this.verticies[1].plains.includes(candidate)) {
+        return candidate
+      }
+    }
+    return null
+  }
   toLine() {
     return new Line(
       this.verticies[0].ogCoords,
@@ -394,6 +402,7 @@ function addSquareulation(v1, v2, a, b) {
 
 function splitEdge(edge, distance) {
   edge = resolveEdge(edge)
+
   let delta = edge.delta()
   if (distance < 0) {
     distance = delta.length() + distance
@@ -402,6 +411,7 @@ function splitEdge(edge, distance) {
   delta = delta.multiplyScalar(distance)
   let coords = edge.verticies[0].ogCoords.add(delta)
   let newVertex = addVertex(coords)
+  newVertex.plains = [edge.commonPlain()]
   let v1 = edge.verticies[1]
   v1.edges.splice(v1.edges.indexOf(edge), 1)
   edge.verticies[1] = newVertex
@@ -420,7 +430,15 @@ function resetInidices() {
 }
 
 function doubleEdges() {
-  for (let edge of edges.slice()) {
+  // First check if there are any edges with two fold verticies so they can be split
+  for (let edge of [...edges]) {
+    if (edge.verticies[0].plains.length == 2 && edge.verticies[1].plains.length == 2) {
+      let newVertex = splitEdge(edge, edge.length()/2)
+      newVertex.allowNonIntegerLength = true
+    }
+  }
+
+  for (let edge of [...edges]) {
     var edgeCopy = edge.clone()
     for (let v of edge.verticies) {
       v.edges.push(edgeCopy)

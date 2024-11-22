@@ -351,6 +351,7 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
   width: 100%;
   display: flex;
   justify-content: space-between;
+  z-index: 2;
 }
 .slider {
   width: calc(100% - 0.1rem);

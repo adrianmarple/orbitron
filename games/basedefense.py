@@ -17,7 +17,7 @@ Player = engine.Player
 
 additional_settings = {
   "CONTINUOUS_MOVEMENT": True,
-  "LIVES": 5,
+  "LIVES": 3,
   "STARTING_SPAWN_DELAY": 6,
   "ENDING_SPAWN_DELAY": 5,
   "MIN_INVADER_MOVE_FREQ": 0.4,
@@ -77,6 +77,8 @@ class BaseDefense(Game):
 class Defender(Player):
   def move(self):
     Player.move(self)
+    if self.position in engine.north_pole:
+      return
     for invader in game.invaders:
       if invader.is_alive and invader.position == self.position:
         invader.color = engine.GOOD_COLOR

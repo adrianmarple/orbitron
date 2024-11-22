@@ -168,6 +168,10 @@ function generatePixelInfo() {
     resizeScale = resize(true)
   }
   let rectifiedPixelDensity = pixelDensity * resizeScale
+  window.pixelToGraphSpace = {
+    centerOffset,
+    rectifiedPixelDensity,
+  }
 
   let additionalNeighbors = []
   let vertexAdjacencies = []
@@ -379,6 +383,7 @@ function generatePixelInfo() {
         .sub(centerOffset)
   }
 
+  window.pixelInfo = info // For rendering pixel numbers
   return info
 }
 
