@@ -25,7 +25,6 @@ async function createCoverSVG(plain) {
   minY = 1e6
   maxX = -1e6
   maxY = -1e6
-  edgeToWalls = {}
   const SCALE = PIXEL_DISTANCE / pixelDensity
 
   // Rotate all verticies to make this plain lie "flat"
@@ -203,6 +202,8 @@ async function createCoverSVG(plain) {
         e1 = e1.normalize()
       }
 
+      console.log(e0, e1, e2)
+
       let n = FORWARD.cross(e1)
 
       let isFinalEdge = dPath == outerPath && e1.normalize().equals(v2.sub(start).normalize())
@@ -232,7 +233,11 @@ async function createCoverSVG(plain) {
       function addFoldWallInfo(type) {
         let isOne = type == 1
         let plains = (isOne ? plains1 : plains2)
-        deadendPlain = plains[0].folds[plains[1].index].rotateAndScale(R, SCALE)
+        deadendPlain = plains[0].folds[plains[1].index]
+        if (!deadendPlain) {
+          deadendPlain = plains[0].midPlain(plains[1])
+        }
+        deadendPlain = deadendPlain.rotateAndScale(R, SCALE)
         plains = plains.map(plain => plain.rotateAndScale(R, SCALE))
 
         let crease = plains[0].intersection(deadendPlain)
@@ -405,6 +410,16 @@ async function createCoverSVG(plain) {
       } else {
         channelString += pointsToSVGString([[channelLengthOffset, width]], [e1, n], v1)
       }
+
+      // Embossed id
+      if (!findEmbossing(print) && plains1.length == 1) {
+        print.components.push({
+          type: "embossing",
+          position: [v1.x, v1.y, EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+          text: "...", // To be filled in later in the process
+        })
+      }
+
     } // END for (let i = 0; i < dPath.length; i++)
 
     let skipBorder = false
@@ -691,32 +706,44 @@ function createPrintInfo3D() {
   completedPlains = []
   completedWalls = []
   let vertex = startVertex()
+  let partID = 1
+  
   for (let edgeIndex of path) {
+    if (edges[edgeIndex].isDupe) continue
+
     for (let plain of vertex.plains) {
       if (completedPlains.includes(plain)) continue
 
       let plainIndex = plains.indexOf(plain)
-      let bottomPrint = coverInfo["bottom"][plainIndex]
-      bottomPrint.suffix = completedPlains.legnth + "b"
-      // TODO add embossing
+      let bottomPrint = covers["bottom"][plainIndex]
+      bottomPrint.suffix = partID + "b"
+      let embossing = findEmbossing(bottomPrint)
+      if (embossing) {
+        embossing.text = bottomPrint.suffix
+      }
       printInfo.prints.push(bottomPrint)
-      let topPrint = coverInfo["top"][plainIndex]
-      topPrint.suffix = completedPlains.legnth + "t"
-      // TODO add embossing
+
+      let topPrint = covers["top"][plainIndex]
+      topPrint.suffix = partID + "t"
+      embossing = findEmbossing(topPrint)
+      if (embossing) {
+        embossing.text = topPrint.suffix
+      }
       printInfo.prints.push(topPrint)
 
       completedPlains.push(plain)
+      partID += 1
     }
 
     for (let wall of edgeToWalls[edgeIndex]) {
       if (completedWalls.includes(wall)) continue
-
+      wall.partID = partID
       if (wall.topLength1) {
-        foldWallCreation(foldWall, printInfo)
-        // TODO add embossing
+        foldWallCreation(wall, printInfo)
       } else {
         // TODO normal walls
       }
+      partID += 1
     }
   }
 
@@ -724,6 +751,24 @@ function createPrintInfo3D() {
   //  - Utilize new "suffix" field and make sure global "suffix" can be empty
 
   return printInfo
+}
+
+function findEmbossing(print) {
+  if (print.type == "embossing") {
+    return print
+  }
+  if (print.type == "difference") {
+    return findEmbossing(print.components[0])
+  }
+  if (print.type == "union") {
+    for (let component of print.components) {
+      let embo = findEmbossing(component)
+      if (embo) {
+        return embo
+      }
+    }
+  }
+  return null
 }
   
 
@@ -853,8 +898,9 @@ function createPrintInfo(displayOnly) {
   }
 
   for (let foldWall of foldWalls) {
-    foldWall.hasWallPort = foldWalls.indexOf(foldWall) == cat5FoldWallIndex
-    follWallCreation(foldWall, printInfo)
+    foldWall.partID = foldWalls.indexOf(foldWall)
+    foldWall.hasWallPort = foldWall.partID == cat5FoldWallIndex
+    foldWallCreation(foldWall, printInfo)
   }
   
   if (!printInfo) {
@@ -1042,7 +1088,7 @@ function wallPath(context) {
   return path
 }
 
-function follWallCreation(foldWall, printInfo) {
+function foldWallCreation(foldWall, printInfo) {
   if (!printInfo) return
 
   foldWall.zRotationAngle = Math.atan(Math.tan(foldWall.dihedralAngle/2) / Math.cos(foldWall.aoiComplement))
@@ -1263,11 +1309,12 @@ function foldWallHalf(foldWall, isLeft) {
 
 
   // LED supports
-  let startV = offset
+  let wallStart = offset
       .add(extraOffset)
       .addScaledVector(UP, CHANNEL_DEPTH/2 * dihedralRatio)
       .addScaledVector(E, topLength)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
+  let startV = wallStart
       .addScaledVector(E, isLeft ? -foldWall.lengthOffset1 : -foldWall.lengthOffset2)
   position = null
 
@@ -1318,6 +1365,17 @@ function foldWallHalf(foldWall, isLeft) {
     if (bottomLength >= NUB_MIN_WALL_LENGTH) print.components.push(makeNub(nub))
     nub = nub.addScaledVector(E, -bottomLength + 2*(NUB_INSET_X + NOTCH_DEPTH))
     if (bottomLength >= NUB_MIN_WALL_LENGTH) print.components.push(makeNub(nub))
+  }
+
+  // Embossing
+  if (isLeft || (foldWall.dihedralAngle > 0 && PRINT_WALL_HALVES_SEPARATELY)) {
+    print.components.push({
+      type: "embossing",
+      position: [startV.x, startV.y, EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+      rotationAngle: -rotationAngle,
+      halign: "left",
+      text: foldWall.id + (isLeft ? "L" : "R"),
+    })
   }
 
   wall.querySelector("path").setAttribute("d", path)
@@ -1472,6 +1530,7 @@ async function generateManufacturingInfo() {
   if (isWall) {
     KERF = TOP_KERF
     foldWalls = []
+    edgeToWalls = {}
     covers = {top: [], bottom: []}
     
     IS_BOTTOM = false
@@ -1495,6 +1554,7 @@ async function generateManufacturingInfo() {
     }
 
     wallInfo.sort((a,b) => a.length - b.length)
-    createPrintInfo(true)
+    // createPrintInfo(true)
+    createPrintInfo3D()
   }
 }

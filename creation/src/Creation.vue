@@ -8,8 +8,9 @@
   <div class="button" @click="toggleCoverMode">Toggle Cover Mode ({{ coverMode[0] }})</div>
   <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
   <div class="button" @click="downloadJSON">Download JSON</div>
-  <div class="button" @click="downloadCovers">Download Covers</div>
-  <div class="button" @click="genWalls">Generate Walls</div>
+  <div class="button" @click="genPrints">Generate Prints</div>
+  <!-- <div class="button" @click="downloadCovers">Download Covers</div>
+  <div class="button" @click="genWalls">Generate Walls</div> -->
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
   <div class="button" @click="configure">Configure Default Orb</div>
 </div>
@@ -165,6 +166,21 @@ export default {
       console.log(`Downloading ${fileName}`, data)
     },
 
+    downloadJSON() {
+      let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
+      let fileName = this.fullProjectName + '.json'
+      this.download(fileName, fileContent)
+      console.log("Downloaded " + fileName)
+    },
+    genPrints() {
+      let printInfo = createPrintInfo3D()
+      printInfo.fullProjectName = fullProjectName
+      wallPostProcessingFunction(printInfo)
+      this.$root.post(printInfo)
+      console.log("Generating prints")
+
+    },
+
     genWalls() {
       let wall = document.getElementById("wall")
       wall.style.display = "block"
@@ -173,12 +189,6 @@ export default {
       wallPostProcessingFunction(printInfo)
       this.$root.post(printInfo)
       console.log("Generating wall gcode")
-    },
-    downloadJSON() {
-      let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
-      let fileName = this.fullProjectName + '.json'
-      this.download(fileName, fileContent)
-      console.log("Downloaded " + fileName)
     },
     async downloadCovers() {
       if (coverPrint3D) {

@@ -98,7 +98,7 @@ class Plain {
   mirror(mirror) {
     return new Plain(
       this.offset.mirror(mirror),
-      this.normal.mirror(mirror, true).negate(),
+      this.normal.mirror(mirror, true)//.negate(),
     )
   }
   translate(v) {
@@ -131,6 +131,12 @@ class Plain {
       let thisLine = new Line(this.offset, plain.normal.orthoProj(this.normal))
       return new Line(plain.intersection(thisLine), this.normal.cross(plain.normal))
     }
+  }
+  midPlain(plain) {
+    return new Plain(
+      this.intersection(plain).offset,
+      this.normal.sub(plain.normal),
+    )
   }
 }
 

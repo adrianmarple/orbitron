@@ -434,10 +434,12 @@ async function generateModule(info, module) {
       cube([${module.dimensions}], center=true);`
       break
     case "embossing":
+      let valign = module.valign || "center"
+      let halign = module.halign || "center"
       moduleString += `
       translate([-5,-2.5,0])
       linear_extrude(0.2)
-      text("${module.text}", size= 5);`
+      text("${module.text}", size= 4, valign${valign}, halign=${halign});`
       break
     case "qtClip":
       moduleString += `

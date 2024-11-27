@@ -1,9 +1,9 @@
 
 class Vertex {
   constructor(coordinates) {
-    if (isWall && !coordinates.isCoplanar(currentPlain)) {
-      console.error("Vertex not coplanar with plain", currentPlain, coordinates)
-    }
+    // if (isWall && !coordinates.isCoplanar(currentPlain)) {
+    //   console.error("Vertex not coplanar with plain", currentPlain, coordinates)
+    // }
     this.coordinates = coordinates
     this.ogCoords = coordinates.clone()
     this.plains = [currentPlain]
