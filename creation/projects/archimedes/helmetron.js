@@ -120,7 +120,6 @@ module.exports = () => {
     let plain1 = edge.verticies[1].plains[0]
     let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
     let newVertex = splitEdge(edge, edge.length()/2)
-    newVertex.allowNonIntegerLength = true
     newVertex.ogCoords = newVertex.ogCoords.normalize().scale(h)
     let fold = new Plain(newVertex.ogCoords, foldNormal)
     plain0.folds[plain1.index] = fold

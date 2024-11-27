@@ -434,7 +434,6 @@ function doubleEdges() {
   for (let edge of [...edges]) {
     if (edge.verticies[0].plains.length == 2 && edge.verticies[1].plains.length == 2) {
       let newVertex = splitEdge(edge, edge.length()/2)
-      newVertex.allowNonIntegerLength = true
     }
   }
 
@@ -670,7 +669,6 @@ function origami(foldPlain) {
       removeEdge(edge)
       let newVertexCoords = foldPlain.intersection(edge.toLine())
       let newVertex = addVertex(newVertexCoords)
-      newVertex.allowNonIntegerLength = true
       addEdge(newVertex, edge.verticies[0])
       addEdge(newVertex, edge.verticies[1])
     }
@@ -713,7 +711,6 @@ function zeroFoldAllEdges() {
     let plain1 = edge.verticies[1].plains[0]
     let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
     let newVertex = splitEdge(edge, edge.length()/2)
-    newVertex.allowNonIntegerLength = true
     let fold = new Plain(newVertex.ogCoords, foldNormal)
     plain0.folds[plain1.index] = fold
     plain1.folds[plain0.index] = fold

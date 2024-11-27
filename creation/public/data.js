@@ -199,7 +199,7 @@ function generatePixelInfo() {
       
       if (alpha > edgeLength - 0.005) {
         alpha -= edgeLength
-        if (nextVertex.allowNonIntegerLength) break
+        if (nextVertex.edges.length == 2) break // Verticies with two edges can have non-integer lengths
         if (ledAtVertex && epsilonEquals(alpha, 0, 0.01)) {
           alpha = 0
           break

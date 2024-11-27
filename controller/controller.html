@@ -125,7 +125,7 @@
               <dropdown v-if="prefs.weeklyTimer" :key="scheduleType+i+'weekday'"
                   class="weekday-dropdown"
                   :path="[scheduleType, i, 'weekday']"
-                  :options="[[0, 'Mon'], [1, 'Tue'], [2, 'Wed'], [3, 'Thu'], [4, 'Fre'], [5, 'Sat'], [6, 'Sun']]"
+                  :options="[[0, 'Mon'], [1, 'Tue'], [2, 'Wed'], [3, 'Thu'], [4, 'Fri'], [5, 'Sat'], [6, 'Sun']]"
                   @changed="sortSchedule">
               </dropdown>
               
