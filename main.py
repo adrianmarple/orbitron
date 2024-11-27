@@ -49,10 +49,7 @@ def consume_input():
       message = json.loads(line)
 
       # Commands from orb.js
-      if message["type"] == "start":
-        engine.start(engine.games[message["game"]])
-        continue
-      elif message["type"] == "text":
+      if message["type"] == "text":
         engine.display_text(message["text"], priority=message.get("priority", 0))
         continue
 

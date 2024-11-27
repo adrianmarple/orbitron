@@ -13,6 +13,7 @@ module.exports={
   //KEY_LOCATION: "",
   // PIXELS: "diamond",
   AUTO_GAME: false,
+  DEFAULT_GAME: "snektron",
   CONTINUOUS_INTEGRATION: false,
   SHOW_FRAME_INFO: false,
   // IDLE: "lamp",

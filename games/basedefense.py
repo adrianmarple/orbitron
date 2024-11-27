@@ -24,7 +24,7 @@ additional_settings = {
   "MAX_INVADER_MOVE_FREQ": 0.9,
   "PULSE_DURATION": 0.75,
   "ROUND_TIME": 90,
-  "SELECTION_WEIGHTS": [0, 0.5, 1, 1, 1, 1],
+  "SELECTION_WEIGHTS": [0.5, 0.5, 1, 1, 1, 1],
   "REQUIREMENTS": ["north_pole", "south_pole"],
 }
 

@@ -159,15 +159,12 @@ def select_random_game():
 
   selection = weighted_random(weights)
   if selection is None:
-    selection = "snektron"
+    selection = config.get("DEFAULT_GAME", "snektron")
 
   for name in game_selection_weights.keys():
     game_selection_weights[name] += 1
   game_selection_weights[selection] = 0
   return games[selection]
-
-def start_random_game():
-  start(select_random_game())
 
 def start(new_game):
   if not new_game:
@@ -186,6 +183,44 @@ def start(new_game):
   for (i, player) in enumerate(game.players):
     if i < len(claimed):
       player.is_claimed = claimed[i]
+
+def start_first_game():
+  start(games[config.get("DEFAULT_GAME", "snektron")])
+
+def start_random_game():
+  start(select_random_game())
+
+
+# ================================ UPDATE =========================================
+
+def update():
+  global raw_pixels
+  try:
+    if game is None:
+      start(idle)
+    elif len(game.claimed_players()) == 0 and game != idle:
+      start(idle)
+    elif config.get("AUTO_GAME") and len(game.claimed_players()) > 0 and game == idle:
+      start_first_game()
+
+    game.update()
+    if game.end_time <= time() and game.end_time > 0:
+      game.ontimeout()
+    game.render()
+
+    raw_pixels = np.minimum(raw_pixels, 255)
+    raw_pixels = np.maximum(raw_pixels, 0)
+    display_pixels(raw_pixels)
+    broadcast_state()
+
+    raw_pixels *= 0
+
+    # Text display update tick
+    if display is not None:
+      update_text_display()
+
+  except Exception:
+    print(traceback.format_exc(), file=sys.stderr)
 
 
 # ================================ Text display =========================================
@@ -285,38 +320,6 @@ CHASE_SEQUENCE = [
   [0b11000, 0b1000, 0, 0],
   [0b111000, 0, 0, 0],
 ]
-
-# ================================ UPDATE =========================================
-
-def update():
-  global raw_pixels
-  try:
-    if game is None:
-      start(idle)
-    elif len(game.claimed_players()) == 0 and game != idle:
-      start(idle)
-    elif config.get("AUTO_GAME") and len(game.claimed_players()) > 0 and game == idle:
-      start_random_game()
-
-    game.update()
-    if game.end_time <= time() and game.end_time > 0:
-      game.ontimeout()
-    game.render()
-
-    raw_pixels = np.minimum(raw_pixels, 255)
-    raw_pixels = np.maximum(raw_pixels, 0)
-    display_pixels(raw_pixels)
-    broadcast_state()
-
-    raw_pixels *= 0
-
-    # Text display update tick
-    if display is not None:
-      update_text_display()
-
-  except Exception:
-    print(traceback.format_exc(), file=sys.stderr)
-
 
 # ================================ PLAYER =========================================
 

@@ -28,12 +28,6 @@ const NO_TIMEOUT = process.argv.includes('-t')
 if (process.argv.includes('-f')) {
   config.SHOW_FRAME_INFO = true
 }
-let starting_game = null
-let game_index = process.argv.indexOf('-g') + 1
-if (game_index) {
-  starting_game = process.argv[game_index]
-  console.log("Starting with game: " + starting_game)
-}
 
 // Cloud save
 async function saveBackup() {
@@ -390,10 +384,6 @@ function bindPlayer(socket) {
   connectionQueue.push(socket)
   bindDataEvents(socket)
   upkeep() // Will claim player if available
-  if (starting_game) {
-    let message = {type: 'start', game: starting_game}
-    python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
-  }
 }
 
 function bindDataEvents(peer) {
