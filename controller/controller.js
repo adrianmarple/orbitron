@@ -231,6 +231,10 @@ var app = new Vue({
       return info
     },
 
+    scheduleType() {
+      return this.prefs.weeklyTimer ? "weeklySchedule" : "schedule"
+    },
+
     eventOptions() {
       return this.state.prefNames.concat("OFF").map(name => [name, name])
     },
@@ -404,14 +408,19 @@ var app = new Vue({
       this.send({type: "skip"})
     },
     addNewEvent(event) {
-      this.prefs.schedule.push({...event})
+      this.prefs[this.scheduleType].push({...event})
       this.sortSchedule()
     },
     deleteEvent(event) {
-      this.prefs.schedule.remove(event)
+      this.prefs[this.scheduleType].remove(event)
     },
     sortSchedule() {
-      this.prefs.schedule.sort((a,b) => a.time.localeCompare(b.time))
+      this.prefs.schedule.sort((a,b) => {
+        return a.time.localeCompare(b.time)
+      })
+      this.prefs.weeklySchedule.sort((a,b) => {
+        return a.time.localeCompare(b.time) + 1e6 * (a.weekday - b.weekday)
+      })
     },
 
     saveFocused(name) {

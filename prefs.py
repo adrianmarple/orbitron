@@ -7,6 +7,7 @@ import shutil
 import sys
 
 from datetime import datetime, timedelta
+from math import isnan
 from time import sleep, time
 
 # To be overwritten by idlepatterns
@@ -51,6 +52,7 @@ default_prefs = {
 }
 timing_prefs = {
   "useTimer": False,
+  "weeklyTimer": False,
   "schedule": [
     {
       "prefName": "OFF",
@@ -59,6 +61,7 @@ timing_prefs = {
       "fadeOut": 30,
     },
   ],
+  "weeklySchedule": [],
 }
 default_prefs["idlePattern"] = config.get("IDLE", default_prefs["idlePattern"])
 
@@ -94,6 +97,15 @@ sort_pref_names()
 def update(update, client_timestamp=0):
   if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
       client_timestamp = 0
+
+  if update.get("weeklyTimer", False) and len(current_prefs["weeklySchedule"]) == 0:
+    update["weeklySchedule"] = []
+    for i in range(7):
+      for event in current_prefs["schedule"]:
+        new_event = json.loads(json.dumps(event))
+        new_event["weekday"] = i
+        update["weeklySchedule"].append(new_event)
+
   for key, value in update.items():
     converted_prefs[key] = None
     pref_to_client_timestamp[key] = client_timestamp
@@ -101,6 +113,7 @@ def update(update, client_timestamp=0):
       timing_prefs[key] = value
     else:
       prefs[key] = value
+
   current_prefs.update(update)
   set_idle()
 
@@ -111,7 +124,12 @@ def update(update, client_timestamp=0):
   f.write(json.dumps(timing_prefs, indent=2))
   f.close()
 
-  if get_pref("useTimer") and ("schedule" in update or "useTimer" in update):
+  should_update_schedule = False
+  for key in timing_prefs.keys():
+    if key in update:
+      should_update_schedule = True
+      break
+  if get_pref("useTimer") and should_update_schedule:
     update_schedule()
   identify_name()
 
@@ -227,13 +245,10 @@ def get_pref(pref_name):
     pref = pref.split(",")
     pref = [float(x) for x in pref]
     pref = np.array(pref)
-  elif pref_name == "schedule":
+  elif pref_name == "schedule" or pref_name == "weeklySchedule":
     pref = json.loads(json.dumps(pref)) # deep copy
     for event in pref:
-      try:
-        event["time"] = datetime.strptime(event["time"], '%H:%M').time()
-      except:
-        event["time"] = datetime.strptime("00:00", '%H:%M').time()
+        event["repeated_time"] = RepeatedTime(event)
 
   converted_prefs[pref_name] = pref
   return pref
@@ -278,20 +293,19 @@ def fade():
   return fade
 
 def update_schedule():
-  schedule = get_pref("schedule")
+  schedule = get_pref("weeklySchedule") if get_pref("weeklyTimer") else get_pref("schedule")
   if len(schedule) == 0:
     return
 
   global start, end, previous, current, next
 
   now = datetime.now()
-  now_date = now.date()
-  now_time = now.time()
+  now_repeated = RepeatedTime(now)
   previous = schedule[-1]
   current = schedule[-1]
   next = schedule[0]
   for event in schedule:
-    if cyclic_interval_check(current["time"], event["time"], now_time):
+    if cyclic_interval_check(current["repeated_time"], event[ "repeated_time"], now_repeated):
       next = event
       break
     previous = current
@@ -299,18 +313,59 @@ def update_schedule():
 
   if current["prefName"] != "OFF":
     load(current["prefName"])
-  start = datetime.combine(now_date, current["time"])
-  end = datetime.combine(now_date, next["time"])
+  start = current["repeated_time"].combine(now)
+  end = next["repeated_time"].combine(now)
   if end < now:
-    end += timedelta(days=1)
+    end += next["repeated_time"].cycle_delta()
   if start > end:
-    start -= timedelta(days=1)
+    start -= current["repeated_time"].cycle_delta()
   if end - start > timedelta(days=1):
-    start += timedelta(days=1)
+    start += current["repeated_time"].cycle_delta()
 
 def cyclic_interval_check(start, end, x):
   return ((start <= end) != (start < x)) != (x < end)
 
+class RepeatedTime():
+  def __init__(self, time_thing):
+    if isinstance(time_thing, datetime):
+      self.time = time_thing.time()
+      self.weekday = time_thing.weekday()
+    else:
+      try:
+        self.time = datetime.strptime(time_thing["time"], '%H:%M').time()
+      except:
+        self.time = datetime.strptime("00:00", '%H:%M').time()
+      self.weekday = time_thing.get("weekday", None)
+
+  def combine(self, datetime):
+    combination = datetime.combine(datetime.date(), self.time)
+    if self.weekday is not None:
+      days_offset = self.weekday - combination.weekday()
+      combination += timedelta(days=days_offset)
+    return combination
+
+  def __eq__(self, other):
+    if self.weekday is None or other.weekday is None:
+      return self.time == other.time
+    else:
+      return self.time == other.time and self.weekday == other.weekday
+  def __ge__(self, other):
+    if self.weekday is None or other.weekday is None:
+      return self.time >= other.time
+    else:
+      return self.weekday > other.weekday or (self.weekday == other.weekday and self.time >= other.time)
+  def __le__(self, other):
+    return other >= self
+  def __gt__(self, other):
+    return not (other >= self)
+  def __lt__(self, other):
+    return not (self >= other)
+
+  def cycle_delta(self):
+    if self.weekday is None:
+      return timedelta(days=1)
+    else:
+      return timedelta(days=7)
 
 # Initial load
 

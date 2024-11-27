@@ -111,15 +111,25 @@
             <!-- <div class="add" @click="addNewEvent({prefName: 'OFF', time: '00:00'})">+</div> -->
             <div class="padding"></div>
           </div>
-          <div v-for="event, i in prefs.schedule" class="event-wrapper">
+          <div v-for="event, i in prefs[scheduleType]" class="event-wrapper">
             <div v-if="event.prefName == 'OFF'" class="fades">
                 <div class="label">Fade out (min)</div>
                 <input type="number" v-model="event.fadeOut"></input>
             </div>
             <div class="event">
-              <dropdown :key="'schedule'+i+'prefName'" :path="['schedule', i, 'prefName']" :options="eventOptions"></dropdown>
-              <input type="time" v-model="event.time" @blur="sortSchedule"></input>
+              <dropdown :key="scheduleType+i+'prefName'" :path="[scheduleType, i, 'prefName']" :options="eventOptions"></dropdown>
+              <!-- <input type="time" v-model="event.time" @blur="sortSchedule"></input> -->
               <img class="delete" src="/controller/images/delete.svg" @click="deleteEvent(event)"/>
+            </div>
+            <div class="repeated-time">
+              <dropdown v-if="prefs.weeklyTimer" :key="scheduleType+i+'weekday'"
+                  class="weekday-dropdown"
+                  :path="[scheduleType, i, 'weekday']"
+                  :options="[[0, 'Mon'], [1, 'Tue'], [2, 'Wed'], [3, 'Thu'], [4, 'Fre'], [5, 'Sat'], [6, 'Sun']]"
+                  @changed="sortSchedule">
+              </dropdown>
+              
+              <input type="time" v-model="event.time" @blur="sortSchedule"></input>
             </div>
             <div v-if="event.prefName == 'OFF'" class="fades">
                 <div class="label">Fade in (min)</div>
@@ -136,6 +146,7 @@
           </div>
         </div>
       </div>
+      <boolean v-if="include['weeklyTimer']" title="Weekly Timer" key="weeklyTimer"></boolean>
       <boolean title="Use Timer" key="useTimer"></boolean>
     </div>
 

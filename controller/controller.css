@@ -551,23 +551,33 @@ input[type="range"]::-moz-range-thumb {
   align-items: center;
   width: 100%;
 }
-.event, .fades {
+.event, .fades, .repeated-time {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   width: 100%;
   background-color: var(--bg-color);
 }
-.event > * {
-  margin: 0 1rem;
+.event > *, .repeated-time > * {
+  margin: 0 0.5rem;
   z-index: 1;
 }
 .event .custom-select {
-  width: 18rem;
+  width: 28rem;
 }
-.event input[type="time"] {
+.weekday-dropdown {
+  width: 12rem;
+}
+.repeated-time {
+  justify-content: left;
+  padding-top: 0.5rem;
+}
+.fades {
+  justify-content: center;
+}
+/* .event input[type="time"] {
   width: 15rem;
-}
+} */
 
 .fades {
   padding: 0.5rem;

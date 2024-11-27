@@ -186,6 +186,7 @@ Vue.component('dropdown', {
       } else {
         this.$root.prefs[this.name] = value
       }
+      this.$emit("changed")
     },
     toDisplay(value) {
       for (let [v, display] of this.options) {
