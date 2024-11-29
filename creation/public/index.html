@@ -121,8 +121,7 @@ function reset() {
   }
   WALL_SVG_GAP = 6
 
-  MAX_WALL_LENGTH = WALL_PANEL_WIDTH - WALL_SVG_PADDING.left - WALL_SVG_PADDING.right - 10
-  // MAX_WALL_LENGTH = 200
+  MAX_WALL_LENGTH = 100
   MAX_NOTCH_DISTANCE = 120
 
   coverPrint3D = false
@@ -296,9 +295,9 @@ function render() {
   if (cover) {
     cover.style.display = window.showLaserSVG && isWall ? "block" : "none"
   }
-  let wall = document.getElementById("wall")
-  if (wall) {
-    wall.style.display = window.showWallSVG && isWall ? "block" : "none"
+  let wallElem = document.getElementById("wall")
+  if (wallElem) {
+    wallElem.style.display = window.showWallSVG && isWall ? "block" : "none"
   }
 }
 

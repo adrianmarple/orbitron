@@ -65,14 +65,11 @@ export default {
         {name: "showWallSVG", type: "bool"},
         {name: "generateWallNumbers", type: "bool"},
         {name: "noSupports", type: "bool"},
-        // {name: "noInputShaper", type: "bool"},
         {name: "onlyOneWall", type: "bool"},
         {name: "STARTING_WALL_INDEX", type: "int", value: 0},
         {name: "PROCESS_STOP", type: "select",
           options: [
-            // ["scad", "Make OpenScad file"],
-            ["stl", "Generate .stl"], 
-            // ["bgcode", "Generate gcode"],
+            ["stl", "Generate .stl"],
             ["upload", "Upload gcode"],
           ],
           value: "upload",
@@ -179,38 +176,6 @@ export default {
       this.$root.post(printInfo)
       console.log("Generating prints")
 
-    },
-
-    genWalls() {
-      let wall = document.getElementById("wall")
-      wall.style.display = "block"
-      let printInfo = createPrintInfo()
-      printInfo.fullProjectName = fullProjectName
-      wallPostProcessingFunction(printInfo)
-      this.$root.post(printInfo)
-      console.log("Generating wall gcode")
-    },
-    async downloadCovers() {
-      if (coverPrint3D) {
-        for (let type of ["top", "bottom"]) {
-          let printInfo = {
-            type: "gcode",
-            PROCESS_STOP,
-            prints: covers[type],
-            suffix: type + "_cover",
-            fullProjectName: this.fullProjectName,
-          }
-          await this.$root.post(printInfo)
-          console.log(`Generating ${type} cover gcode`)
-        }
-      } else {
-        for (let i=0; i < covers.top.length; i++) {
-          this.download(`${this.fullProjectName} top${i}.svg`, covers.top[i].svg)
-        }
-        for (let i=0; i < covers.bottom.length; i++) {
-          this.download(`${this.fullProjectName} bottom${i}.svg`, covers.bottom[i].svg)
-        }
-      }
     },
 
     configure() {

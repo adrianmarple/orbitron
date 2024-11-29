@@ -308,14 +308,13 @@ async function createCoverSVG(plain) {
           // length: wallLength,
           // angle1,
           // angle2,
-          miterAngle1: angle1,
+          miterAngle: angle1,
           lengthOffset1,
           dihedralAngle: 0,
           zRotationAngle: 0,
           aoiComplement: angle2,
           yRotationAngle: angle2,
-          topLength1: wallLength,
-          bottomLength1: wallLength,
+          length: wallLength,
         }, associatedEdges) // TODO eventually remove the rest of normal wall logic
 
         // Logic for normal walls
@@ -551,7 +550,6 @@ function singleSlotPath(wallLength, basis, offset, localOffset, isFinalEdge, pri
       let position = offset.addScaledVector(basis[0], x)
           .addScaledVector(basis[1], WALL_THICKNESS/2)
           .addScaledVector(FORWARD, EXTRA_COVER_THICKNESS)
-      console.log(CHANNEL_LATCH_ANGLE)
       print.components.push({
         type: "wedge",
         angle: CHANNEL_LATCH_ANGLE * Math.PI / 180,
@@ -654,7 +652,9 @@ function pointsToSVGString(points, basis, offset, flip) {
 function generateNotches(wallLength, isFinalEdge) {
   if (wallLength === Infinity || wallLength === NaN) return []
 
-  let notchCount = Math.ceil(wallLength / MAX_NOTCH_DISTANCE) // Effectively includes starting/ending half notches
+  
+  // let notchCount = Math.ceil(wallLength / MAX_NOTCH_DISTANCE) // Effectively includes starting/ending half notches
+  let notchCount = Math.ceil(wallLength / MAX_WALL_LENGTH) // No more inner notches
   let notchDistance = wallLength / notchCount
   let notches = []
   for (let i = 1; i < notchCount; i++) {
@@ -662,24 +662,24 @@ function generateNotches(wallLength, isFinalEdge) {
       center: notchDistance * i,
     })
   }
-  if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
-    if (cat5PortMidway) {
-      notches.push({
-        center: (wallLength + CAT5_WIDTH)/2 + NOTCH_DEPTH + KERF,
-        bottomOnly: true,
-      })
-      notches.push({
-        center: (wallLength - CAT5_WIDTH)/2 - (NOTCH_DEPTH + KERF),
-        bottomOnly: true,
-      })
-      notches.sort((a,b) => a.center - b.center)
-    } else {
-      notches.unshift({
-        center: CAT5_WIDTH + 2*(NOTCH_DEPTH + KERF),
-        bottomOnly: true,
-      })
-    }
-  }
+  // if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
+  //   if (cat5PortMidway) {
+  //     notches.push({
+  //       center: (wallLength + CAT5_WIDTH)/2 + NOTCH_DEPTH + KERF,
+  //       bottomOnly: true,
+  //     })
+  //     notches.push({
+  //       center: (wallLength - CAT5_WIDTH)/2 - (NOTCH_DEPTH + KERF),
+  //       bottomOnly: true,
+  //     })
+  //     notches.sort((a,b) => a.center - b.center)
+  //   } else {
+  //     notches.unshift({
+  //       center: CAT5_WIDTH + 2*(NOTCH_DEPTH + KERF),
+  //       bottomOnly: true,
+  //     })
+  //   }
+  // }
   return notches
 }
 
@@ -763,14 +763,13 @@ function createPrintInfo3D() {
       if (wall.isFoldWall) {
         foldWallCreation(wall, printInfo)
       } else {
-        let print = foldWallHalf(wall, true)
-        print.suffix = wall.partID
-        printInfo.prints.push(print)
+        printInfo.prints = [...printInfo.prints, ...wallPrints(wall, true)]
       }
       completedWalls.push(wall)
       partID += 1
     }
   }
+  console.log(printInfo)
   return printInfo
 }
 
@@ -791,323 +790,6 @@ function findEmbossing(print) {
   }
   return null
 }
-  
-
-function createPrintInfo(displayOnly) {
-  let printInfo = null
-  if (!displayOnly) {
-    printInfo = {
-      type: "gcode",
-      PROCESS_STOP,
-      INFILL_100,
-      prints: [blankPrint()],
-      suffix: "walls",
-    }
-  }
-  wall.querySelectorAll("text").forEach(elem => wall.removeChild(elem))
-  // Set now in case of pagination
-  wall.setAttribute("width", WALL_PANEL_WIDTH)
-  wall.setAttribute("height", WALL_PANEL_HEIGHT)
-  wall.setAttribute("viewBox", `0 0 ${WALL_PANEL_WIDTH} ${WALL_PANEL_HEIGHT}`)
-
-  let path = ""
-  let offset = [WALL_SVG_PADDING.left, WALL_SVG_PADDING.top, 1] // offset[2] is panelCount
-  for (let wallIndex = STARTING_WALL_INDEX; wallIndex < wallInfo.length; wallIndex++) {
-    let wallType = wallInfo[wallIndex]
-    let wallLength = wallType.length
-    let targetCount = 0
-    for (let plain in wallType.edgeCenters) {
-      targetCount += wallType.edgeCenters[plain].length
-    }
-    if (displayOnly) {
-      path += decimalPath(wallIndex, offset)
-    } else {
-      offset[0] += 8 * (""+wallIndex).length
-    }
-
-    if (targetCount > 8) targetCount += 1
-    if (targetCount > 30) targetCount += 1
-    for (let i = STARTING_I; i < targetCount; i++) {
-      let isFinalEdge = epsilonEquals(wallType.length, entryWallLength, 0.01)
-      if (cat5WallOverride >= 0) {
-        isFinalEdge = wallIndex == cat5WallOverride
-      }
-      let powerHoleInstanceIndex = isFinalEdge ? 1:0
-
-      isFinalEdge = isFinalEdge && i == 0
-      let context = {
-        printInfo,
-        offset,
-        angle1: wallType.angle1,
-        angle2: wallType.angle2,
-        isPowerCordPort: wallIndex == powerHoleWallIndex && i == powerHoleInstanceIndex,
-      }
-      let cat5Offset = NaN
-      if (isFinalEdge) {
-        if (cat5PortMidway) {
-          cat5Offset = wallLength/2
-        } else if (cat5PortAtEnd) {
-          cat5Offset = wallLength - (NOTCH_DEPTH + CAT5_WIDTH / 2)
-        } else {
-          cat5Offset = NOTCH_DEPTH + CAT5_WIDTH / 2
-        }
-      }
-
-      let supportX = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
-      supportX += Math.tan(wallType.angle1) * CHANNEL_WIDTH/2
-      if (wallType.angle1 < 0) {
-        supportX += Math.tan(wallType.angle1) * WALL_THICKNESS
-      }
-      
-      let notches = generateNotches(wallLength, isFinalEdge)
-      let nextNotches = []
-      let remainingWallLength = wallLength
-      let bottomOnlyNotches = []
-      let k = 0
-      while (k < 100) {
-        if ((notches.length == 0 && remainingWallLength > MAX_WALL_LENGTH) ||
-            (notches.length > 0 && notches[0].center > MAX_WALL_LENGTH)) {
-          let tempWallLength = nextNotches.pop().center
-          let embossingText = `${wallIndex}.${k}`
-          k++
-          path = wallPath({...context, path, embossingText, cat5Offset, supportX,
-            wallLength: tempWallLength,
-            angle2: 0,
-            notches: nextNotches,
-            isPowerCordPort: false
-          })
-          context.angle1 = 0
-          nextNotches = bottomOnlyNotches
-          bottomOnlyNotches = []
-          nextNotches.forEach(notch => notch.center -= tempWallLength)
-          notches.forEach(notch => notch.center -= tempWallLength)
-          remainingWallLength -= tempWallLength
-          supportX -= tempWallLength
-          cat5Offset -= tempWallLength
-        } else if (notches.length == 0) {
-          break
-        } else {
-          let notch = notches.shift()
-          if (notch.bottomOnly) {
-            bottomOnlyNotches.push(notch)
-          } else {
-            nextNotches = nextNotches.concat(bottomOnlyNotches)
-            bottomOnlyNotches = []
-            nextNotches.push(notch)
-          }
-        }
-      }
-      nextNotches = nextNotches.concat(bottomOnlyNotches)
-      let embossingText = wallIndex.toString()
-      if (k > 0) {
-        embossingText += "." + k
-      }
-      path = wallPath({...context, path, embossingText, cat5Offset, supportX,
-        wallLength: remainingWallLength,
-        notches: nextNotches
-      })
-
-      if (onlyOneWall) break
-    }
-    if (onlyOneWall) break
-  }
-
-
-  if (printInfo) {
-    setLatestWallSvg(path, printInfo)
-    path = ""
-  }
-
-  for (let foldWall of foldWalls) {
-    foldWall.partID = foldWalls.indexOf(foldWall)
-    foldWall.hasWallPort = foldWall.partID == cat5FoldWallIndex
-    foldWallCreation(foldWall, printInfo)
-  }
-  
-  if (!printInfo) {
-    let width = (offset[2]+1)*WALL_PANEL_WIDTH
-    wall.querySelector("path").setAttribute("d", path)
-    wall.setAttribute("width", width)
-    wall.setAttribute("viewBox", `0 0 ${width} ${WALL_PANEL_HEIGHT}`)
-  }
-
-  return printInfo
-}
-function wallPath(context) {
-  let {
-    path, offset, wallLength, angle1, angle2, notches, cat5Offset,
-    isPowerCordPort, embossingText, printInfo, supportX
-  } = context
-
-  let print
-  if (printInfo) {
-    print = printInfo.prints.last()
-  } else {
-    print = blankPrint()
-  }
-  
-  let hasWallPort = cat5Offset !== undefined &&
-      cat5Offset !== NaN &&
-      cat5Offset < wallLength + CAT5_WIDTH/2 &&
-      cat5Offset > -CAT5_WIDTH/2
-
-  offset[0] += wallLength
-  if (offset[0] > offset[2]*WALL_PANEL_WIDTH - WALL_SVG_PADDING.right) {
-    offset[0] = (offset[2] - 1)*WALL_PANEL_WIDTH + WALL_SVG_PADDING.left + wallLength
-    offset[1] += HEIGHT() + WALL_SVG_GAP
-  }
-  if (offset[1] + HEIGHT() > WALL_PANEL_HEIGHT - WALL_SVG_PADDING.bottom) {
-    if (printInfo) {
-      setLatestWallSvg(path, printInfo)
-      print = blankPrint()
-      printInfo.prints.push(print)
-      path = ""
-      offset[0] = WALL_SVG_PADDING.left + wallLength
-    } else {
-      offset[0] = offset[2]*WALL_PANEL_WIDTH + WALL_SVG_PADDING.left + wallLength
-      offset[2] += 1
-    }
-    offset[1] = WALL_SVG_PADDING.top
-  }
-
-  offset[0] += Math.tan(Math.abs(angle2)) * WALL_THICKNESS
-  let endNotchDepth = trueNotchDepth(wallLength) - WALL_KERF
-  let midNotchDepth = trueNotchDepth(wallLength) - NOTCH_KERF
-  let extra_end_bit = epsilonEquals(angle1, 0) ? WALL_STRAIGHT_KERF : WALL_MITER_KERF
-  let extra_start_bit = epsilonEquals(angle2, 0) ? WALL_STRAIGHT_KERF : WALL_MITER_KERF
-
-  // WEDGES
-  let y = WALL_PANEL_HEIGHT - offset[1] - THICKNESS - CHANNEL_DEPTH/2
-  let wedge1 = {
-    type: "wedge",
-    angle: angle1,
-    rotationAngle: 0,
-    position: [offset[0] + extra_end_bit, y, 0],
-    width: CHANNEL_DEPTH,
-    thickness: WALL_THICKNESS,
-  }
-  print.components.push(wedge1)
-  
-  let wedge2 = {
-    type: "wedge",
-    angle: angle2,
-    rotationAngle: Math.PI,
-    position: [offset[0] - wallLength - extra_start_bit, y, 0],
-    width: CHANNEL_DEPTH,
-    thickness: WALL_THICKNESS,
-  }
-  print.components.push(wedge2)
-
-  // NUBS
-  if (addNubs && wallLength >= NUB_MIN_WALL_LENGTH) {
-    let nubY1 = WALL_PANEL_HEIGHT - offset[1] - NUB_WIDTH/2 - NUB_INSET
-    let nubY2 = WALL_PANEL_HEIGHT - offset[1] + NUB_WIDTH/2 + NUB_INSET - HEIGHT()
-
-    let x = 0
-    let nubX = offset[0] - (x + NOTCH_DEPTH + NUB_INSET_X)
-    print.components.push(makeNub([nubX, nubY1]))
-    print.components.push(makeNub([nubX, nubY2]))
-    for (let notch of notches) {
-      x = notch.center
-      nubX = offset[0] - (x - NOTCH_DEPTH - NUB_INSET_X)
-      print.components.push(makeNub([nubX, nubY1]))
-      print.components.push(makeNub([nubX, nubY2]))
-      nubX = offset[0] - (x + NOTCH_DEPTH + NUB_INSET_X)
-      print.components.push(makeNub([nubX, nubY1]))
-      print.components.push(makeNub([nubX, nubY2]))
-      x = notch.center
-    }
-    x = wallLength
-    nubX = offset[0] - (x - NOTCH_DEPTH - NUB_INSET_X)
-    print.components.push(makeNub([nubX, nubY1]))
-    print.components.push(makeNub([nubX, nubY2]))
-  }
-
-  // Embossing
-  if (!hasWallPort && !isPowerCordPort) {
-    print.components.push({
-      type: "embossing",
-      text: embossingText,
-      position: [offset[0] - wallLength/2, y, WALL_THICKNESS],
-    })
-  }
-
-  // LED SUPPORTS
-  if (EDGES_DOUBLED && !noSupports && !hasWallPort) {
-    while (supportX < LED_SUPPORT_WIDTH/2) {
-      supportX += PIXEL_DISTANCE
-    }
-    if (supportX + LED_SUPPORT_WIDTH/2 < wallLength) {
-      print.components.push({
-        type: "ledSupport",
-        position: [offset[0] - supportX, y, WALL_THICKNESS],
-        width: LED_SUPPORT_WIDTH,
-        height: LED_SUPPORT_HEIGHT(),
-        thickness: LED_SUPPORT_THICKNESS,
-        gap: LED_SUPPORT_GAP,
-      })
-    }
-  }
-
-  let wallSegments = []
-  wallSegments = wallSegments.concat(latchPoints(LEFT,UP,true))
-  wallSegments.push(LEFT.scale(endNotchDepth))
-  wallSegments.push(UP.scale(CHANNEL_DEPTH))
-  wallSegments.push(RIGHT.scale(endNotchDepth))
-  wallSegments = wallSegments.concat(latchPoints(RIGHT, UP))
-  let previousX = endNotchDepth + MAX_LATCH_WIDTH
-  for (let {center, bottomOnly} of [...notches].reverse()) { // Top notches
-    if (bottomOnly) continue
-    wallSegments.push(RIGHT.scale(center - previousX - midNotchDepth - MAX_LATCH_WIDTH))
-    wallSegments = wallSegments.concat(latchPoints(RIGHT,DOWN,true))
-    wallSegments.push(RIGHT.scale(2*(midNotchDepth + MAX_LATCH_WIDTH)))
-    wallSegments = wallSegments.concat(latchPoints(RIGHT,UP))
-    previousX = center + midNotchDepth + MAX_LATCH_WIDTH
-  }
-  wallSegments.push(RIGHT.scale(wallLength - previousX - endNotchDepth - MAX_LATCH_WIDTH))
-
-  wallSegments = wallSegments.concat(latchPoints(RIGHT,DOWN,true))
-  wallSegments.push(RIGHT.scale(endNotchDepth))
-  wallSegments.push(DOWN.scale(CHANNEL_DEPTH))
-  wallSegments.push(LEFT.scale(endNotchDepth))
-  wallSegments = wallSegments.concat(latchPoints(LEFT, DOWN))
-  previousX = wallLength - endNotchDepth - MAX_LATCH_WIDTH
-  for (let {center} of [...notches]) { // Top notches
-    wallSegments.push(LEFT.scale(previousX - center - midNotchDepth - MAX_LATCH_WIDTH))
-    wallSegments = wallSegments.concat(latchPoints(LEFT,UP,true))
-    wallSegments.push(LEFT.scale(2*(midNotchDepth + MAX_LATCH_WIDTH)))
-    wallSegments = wallSegments.concat(latchPoints(LEFT,DOWN))
-    previousX = center - midNotchDepth - MAX_LATCH_WIDTH
-  }
-
-  path += ` M${offset[0] - wallLength + endNotchDepth + MAX_LATCH_WIDTH} ${offset[1]}`
-  for (let seg of wallSegments) {
-    path += ` l${seg.x} ${seg.y}`
-  }
-  path += " Z"
-
-  // Is the entry wall for CAT5 port
-  if (hasWallPort) {
-    path += portPath(offset[0] - cat5Offset, offset[1], print)
-  }
-  // Hole for power cord port
-  if (isPowerCordPort) {
-    if (2*POWER_HOLE_RADIUS > CHANNEL_DEPTH) {
-      console.error("Power cord hole doesn't fit!")
-    }
-    let r = POWER_HOLE_RADIUS
-    let x1 = offset[0] - wallLength/2 - r
-    let y1 = offset[1] + THICKNESS + CHANNEL_DEPTH/2
-    path += `
-      M${x1} ${y1}
-      a ${r},${r} 0 1,0 ${r*2},0
-      a ${r},${r} 0 1,0,${-r*2},0`
-  }
-
-  offset[0] += Math.tan(Math.abs(angle1)) * WALL_THICKNESS
-  offset[0] += WALL_SVG_GAP
-  return path
-}
 
 function foldWallCreation(foldWall, printInfo) {
   if (!printInfo) return
@@ -1125,13 +807,21 @@ function foldWallCreation(foldWall, printInfo) {
     angle: Math.PI,
   }
 
+  let leftPrints = wallPrints(foldWall, true)
+  let rightPrints = wallPrints(foldWall, false)
+
+  let leftJoint = leftPrints.shift(leftPrints)
+  let rightJoint = rightPrints.shift(rightPrints)
+
+  printInfo.prints = [...printInfo.prints, ...leftPrints, ...rightPrints]
+
   if (epsilonEquals(foldWall.yRotationAngle, 0)) {
     printInfo.prints.push({
-      suffix: foldWall.partID + "",
+      suffix: leftJoint.suffix,
       type: "union",
       components: [
-        foldWallHalf(foldWall, true),
-        foldWallHalf(foldWall, false),
+        leftJoint,
+        rightJoint,
       ]
     })
     return
@@ -1139,10 +829,10 @@ function foldWallCreation(foldWall, printInfo) {
   if (PRINT_WALL_HALVES_SEPARATELY) {
     // Left (female) side
     printInfo.prints.push({
-      suffix: foldWall.partID + "L",
+      suffix: leftJoint.suffix,
       type: "difference",
       components: [
-        foldWallHalf(foldWall, true),
+        leftJoint,
         {
           type: "innerwallbit",
           isFemale: true,
@@ -1164,10 +854,10 @@ function foldWallCreation(foldWall, printInfo) {
     
     // Right (male) side
     let rightPrint = {
-      suffix: foldWall.partID + "R",
+      suffix: rightJoint.suffix,
       type: "union",
       components: [
-        foldWallHalf(foldWall, false),
+        rightJoint,
         {
           type: "difference",
           operations: [
@@ -1212,17 +902,17 @@ function foldWallCreation(foldWall, printInfo) {
   }
   else { // !PRINT_WALL_HALVES_SEPARATELY
     let print = {
-      suffix: foldWall.partID + "",
+      suffix: leftJoint.suffix,
       type: "union",
       components: [
-        foldWallHalf(foldWall, true),
+        leftJoint,
         {
           operations: [{
             type: "rotate",
             axis: [0,1,0],
             angle: foldWall.yRotationAngle * 2,
           }],
-          ...foldWallHalf(foldWall, false)
+          ...rightJoint
         },
       ]
     }
@@ -1234,13 +924,50 @@ function foldWallCreation(foldWall, printInfo) {
     printInfo.prints.push(print)
   }
 }
-function foldWallHalf(foldWall, isLeft) {
-  let topLength = isLeft ? foldWall.topLength1 : foldWall.topLength2
-  let bottomLength = isLeft ? foldWall.bottomLength1 : foldWall.bottomLength2
+function wallPrints(wall, isLeft) {
+  let topLength = wall.length
+  let bottomLength = wall.length
+  if (!topLength) {
+    topLength = isLeft ? wall.topLength1 : wall.topLength2
+    bottomLength = isLeft ? wall.bottomLength1 : wall.bottomLength2
+  }
+  let miterAngle = wall.miterAngle
+  if (!miterAngle) {
+    miterAngle = isLeft ? wall.miterAngle1 : wall.miterAngle2
+  }
+
   let print = blankPrint()
+  print.suffix = wall.partID + ""
+  let prints = [print]
+
+  if (topLength > MAX_WALL_LENGTH) {
+    let wallCount = Math.ceil(topLength / MAX_WALL_LENGTH) // No more inner notches
+    let wallLength = topLength / wallCount
+    for (let i = 1; i < wallCount; i++) {
+      let isLastWall = i == wallCount - 1
+      let newWall = {...wall}
+      newWall.partID += "." + i
+      newWall.dihedralAngle = 0
+      newWall.zRotationAngle = 0
+      newWall.aoiComplement = 0
+      newWall.yRotationAngle = 0
+      newWall.miterAngle = isLastWall ? miterAngle : 0
+      newWall.length = wallLength
+      prints.push(wallPrints(newWall, isLeft)[0])
+    }
+    bottomLength = bottomLength - topLength + wallLength
+    topLength = wallLength
+    miterAngle = 0
+    print.suffix += "." + 0
+  }
+
+  if (wall.isFoldWall) {
+    print.suffix += isLeft ? "L" : "R"
+  }
+
   let path = ""
   
-  let rotationAngle = foldWall.zRotationAngle * (isLeft ? 1 : -1)
+  let rotationAngle = wall.zRotationAngle * (isLeft ? 1 : -1)
   let dihedralRatio = 1 / Math.cos(rotationAngle)
 
   let E = RIGHT.rotate(FORWARD, rotationAngle)
@@ -1249,18 +976,18 @@ function foldWallHalf(foldWall, isLeft) {
     E = E.negate()
   }
 
-  // console.log((CHANNEL_DEPTH + THICKNESS) - (topLength - bottomLength)/Math.tan(foldWall.zRotationAngle))
+  // console.log((CHANNEL_DEPTH + THICKNESS) - (topLength - bottomLength)/Math.tan(wall.zRotationAngle))
 
   let endNotchDepth = NOTCH_DEPTH - WALL_KERF
   let extraOffset = ZERO
-  if (foldWall.dihedralAngle < 0) {
-    extraOffset = E.scale(-THICKNESS * Math.tan(foldWall.zRotationAngle))
+  if (wall.dihedralAngle < 0) {
+    extraOffset = E.scale(-THICKNESS * Math.tan(wall.zRotationAngle))
   }
 
   let wallSegments = [UP.scale(CHANNEL_DEPTH/2 * dihedralRatio)]
-  if (foldWall.dihedralAngle < 0) {
+  if (wall.dihedralAngle < 0) {
     if (coverPrint3D) {
-      wallSegments.push(E.scale(-THICKNESS * Math.tan(foldWall.zRotationAngle)))
+      wallSegments.push(E.scale(-THICKNESS * Math.tan(wall.zRotationAngle)))
     } else {
       wallSegments.push(UP.scale(THICKNESS * dihedralRatio))
       wallSegments.push(N.scale(-THICKNESS))
@@ -1279,15 +1006,15 @@ function foldWallHalf(foldWall, isLeft) {
   wallSegments.push(E.scale(-bottomLength + 2*(endNotchDepth + MAX_LATCH_WIDTH)))
   wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true))
   wallSegments.push(E.scale(-endNotchDepth))
-  if (foldWall.dihedralAngle > 0) {
+  if (wall.dihedralAngle > 0) {
     if (coverPrint3D) {
-      wallSegments.push(E.scale(-THICKNESS * Math.tan(foldWall.zRotationAngle)))
+      wallSegments.push(E.scale(-THICKNESS * Math.tan(wall.zRotationAngle)))
     } else {
       wallSegments.push(N.scale(-THICKNESS))
     }
   }
 
-  let xOffset = (WALL_THICKNESS * Math.abs(Math.tan(foldWall.yRotationAngle))) * (isLeft ? -1 : 1)
+  let xOffset = (WALL_THICKNESS * Math.abs(Math.tan(wall.yRotationAngle))) * (isLeft ? -1 : 1)
   let yOffset = xOffset * Math.tan(rotationAngle)
   let offset = RIGHT.scale(xOffset)
       .addScaledVector(UP, yOffset)
@@ -1298,8 +1025,8 @@ function foldWallHalf(foldWall, isLeft) {
   }
   path += " Z"
 
-  // if (foldWall.hasWallPort && isLeft) {
-  //   path += portPath(xOffset - foldWall.bottomLength1 + CAT5_WIDTH/2 + NOTCH_DEPTH,
+  // if (wall.hasWallPort && isLeft) {
+  //   path += portPath(xOffset - wall.bottomLength1 + CAT5_WIDTH/2 + NOTCH_DEPTH,
   //                    -THICKNESS, print)
   // }
 
@@ -1311,7 +1038,7 @@ function foldWallHalf(foldWall, isLeft) {
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let wedge = {
     type: "wedge",
-    angle: isLeft ? foldWall.miterAngle1 : foldWall.miterAngle2,
+    angle: miterAngle,
     rotationAngle: -rotationAngle + (isLeft ? Math.PI : 0),
     position: [position.x, WALL_PANEL_HEIGHT - position.y, 0],
     width: CHANNEL_DEPTH,
@@ -1323,7 +1050,7 @@ function foldWallHalf(foldWall, isLeft) {
   let skew = -Math.tan(rotationAngle)
   wedge = {
     type: "wedge",
-    angle: foldWall.aoiComplement,
+    angle: wall.aoiComplement,
     skew,
     rotationAngle: -rotationAngle + (isLeft ? 0 : Math.PI),
     position: [xOffset, WALL_PANEL_HEIGHT - yOffset, 0],
@@ -1340,13 +1067,13 @@ function foldWallHalf(foldWall, isLeft) {
       .addScaledVector(E, topLength)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let startV = wallStart
-      .addScaledVector(E, isLeft ? -foldWall.lengthOffset1 : -foldWall.lengthOffset2)
+      .addScaledVector(E, isLeft ? -wall.lengthOffset1 : -wall.lengthOffset2)
   position = null
 
   if (isLeft &&
       !noSupports &&
-      !foldWall.hasWallPort &&
-      (foldWall.yRotationAngle > 0 ||
+      !wall.hasWallPort &&
+      (wall.yRotationAngle > 0 ||
        PRINT_WALL_HALVES_SEPARATELY)) {
 
     position = startV.addScaledVector(E, -PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
@@ -1354,9 +1081,9 @@ function foldWallHalf(foldWall, isLeft) {
   if (!isLeft &&
       !noSupports &&
       bottomLength > PIXEL_DISTANCE * 3 &&
-      foldWall.yRotationAngle > 0 &&
+      wall.yRotationAngle > 0 &&
       PRINT_WALL_HALVES_SEPARATELY) {
-    let supportOffset = foldWall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+    let supportOffset = wall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
     offsetNegative = supportOffset % PIXEL_DISTANCE
     if (offsetNegative < LED_SUPPORT_WIDTH/2) {
       offsetNegative += PIXEL_DISTANCE
@@ -1391,30 +1118,27 @@ function foldWallHalf(foldWall, isLeft) {
   }
 
   // Embossing
-  if (isLeft || (foldWall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY)) {
+  if (isLeft || (wall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY)) {
     let V = wallStart.sub(extraOffset)
-    let text = foldWall.partID + ""
-    if (foldWall.isFoldWall) {
-      text += isLeft ? "L" : "R"
-    }
     print.components.push({
       type: "embossing",
       position: [V.x, WALL_PANEL_HEIGHT - V.y, WALL_THICKNESS],
       rotationAngle: -rotationAngle,
       halign: isLeft ? "left" : "right",
-      text,
+      text: print.suffix,
     })
   }
 
-  wall.querySelector("path").setAttribute("d", path)
+  let wallElem = document.getElementById("wall")
+  wallElem.querySelector("path").setAttribute("d", path)
   print.components.push({
     type: "svg",
-    svg: wall.outerHTML,
+    svg: wallElem.outerHTML,
     thickness: WALL_THICKNESS,
     position: [0, WALL_PANEL_HEIGHT/2, 0],
   })
 
-  return print
+  return prints
 }
 
 function latchPoints(E, N, reverse) {
