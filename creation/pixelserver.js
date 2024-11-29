@@ -301,12 +301,17 @@ addPOSTListener(async (response, body) => {
 })
 
 async function generateGCode(info, print) {
-  info.index = print.index
+  info.svgIndex = 0
+  if (print.suffix) {
+    info.fullSuffix = print.suffix
+  } else {
+    info.fullSuffix = info.suffix + print.index
+  }
 
-  let scadFilePath = `${info.tempPath}${info.index}_${info.suffix}.scad`
-  let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}${info.index}_${info.suffix}.stl`.replace(" ", "_")
-  let bgcodeFilePath = `${info.tempPath}${info.index}_${info.suffix}.bgcode`.replace(" ", "_")
-  let bgcodePrinterFile = `${info.tempPath}${info.index}_${info.suffix}.bgcode`
+  let scadFilePath = `${info.tempPath}_${info.fullSuffix}.scad`
+  let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}_${info.fullSuffix}.stl`.replace(" ", "_")
+  let bgcodeFilePath = `${info.tempPath}_${info.fullSuffix}.bgcode`.replace(" ", "_")
+  let bgcodePrinterFile = `${info.tempPath}_${info.fullSuffix}.bgcode`
 
   let scadFileContents = `
   $fn=32;
@@ -349,21 +354,20 @@ async function generateGCode(info, print) {
     import(is_female ? "../../innerwall_female.svg" : "../../innerwall_male.svg");
   }
 `
-  info.svgIndex = 0
   scadFileContents += await generateModule(info, print)
 
-  console.log("Making .scad " + info.index)
+  console.log("Making .scad " + info.fullSuffix)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
 
-  console.log("Generating .stl " + info.index)
+  console.log("Generating .stl " + info.fullSuffix)
   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
   if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
 
-  console.log("Generating .bgcode " + info.index)
+  console.log("Generating .bgcode " + info.fullSuffix)
   let config = "wall_config" + (info.INFILL_100 ? "_infill100" : "") + ".ini"
   await execute(`${process.env.SLICER} -g --load ${config} "${stlFilePath}" --output ${bgcodeFilePath}`)
   
-  console.log("Uploading .bgcode " + info.index)
+  console.log("Uploading .bgcode " + info.fullSuffix)
   await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
   await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
   if (info.PROCESS_STOP == "upload") return stlFilePath
@@ -406,7 +410,7 @@ async function generateModule(info, module) {
       }`
       break
     case "svg":
-      let svgFilePath = `${info.tempPath}${info.index}_${info.suffix}${info.svgIndex}.svg`
+      let svgFilePath = `${info.tempPath}_${info.fullSuffix}${info.svgIndex}.svg`
       if (module.type == "svg") {
         info.svgIndex += 1
         await fs.promises.writeFile(svgFilePath, module.svg, {encoding:'utf8',flag:'w'})
@@ -437,9 +441,8 @@ async function generateModule(info, module) {
       let valign = module.valign || "center"
       let halign = module.halign || "center"
       moduleString += `
-      translate([-5,-2.5,0])
       linear_extrude(0.2)
-      text("${module.text}", size= 4, valign${valign}, halign=${halign});`
+      text("${module.text}", size=4, valign="${valign}", halign="${halign}");`
       break
     case "qtClip":
       moduleString += `

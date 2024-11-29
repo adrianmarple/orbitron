@@ -98,7 +98,7 @@ class Plain {
   mirror(mirror) {
     return new Plain(
       this.offset.mirror(mirror),
-      this.normal.mirror(mirror, true)//.negate(),
+      this.normal.mirror(mirror, true).negate(),
     )
   }
   translate(v) {

@@ -105,19 +105,24 @@ async function createCoverSVG(plain) {
     }
     dPath.pop() // Remove duplicated first/last vertex
 
-    // Start and end might be straight still
     e0 = dPath[0].ogCoords.sub(dPath.last().ogCoords)
     e1 = dPath[1].ogCoords.sub(dPath[0].ogCoords)
     let lastAngle = e1.signedAngle(e0)
+    // Start and end might be straight still
     if (epsilonEquals(lastAngle, 0)) {
       dPath.shift() // Remove middle (start) vertex if start and end is straight
     }
+    // Check if first/last vertex doubles back
+    if (dPath[0].plains.legnth == 1 && epsilonEquals(lastAngle, Math.PI)) {
+      dPath.unshift(dPath[0]) // Add cap
+    }
+
     cumulativeAngle += lastAngle
     if (epsilonEquals(cumulativeAngle, 2*Math.PI)) {
       outerPath = dPath
     } else if (!epsilonEquals(cumulativeAngle, -2*Math.PI)) {
       // Should always be either 2pi or -2pi
-      console.error("Cumulative angle not single turn: " + cumulativeAngle);
+      console.log("Cumulative angle not single turn: " + cumulativeAngle);
     }
     paths.push(dPath)
   }
@@ -202,7 +207,6 @@ async function createCoverSVG(plain) {
         e1 = e1.normalize()
       }
 
-      console.log(e0, e1, e2)
 
       let n = FORWARD.cross(e1)
 
@@ -235,7 +239,7 @@ async function createCoverSVG(plain) {
         let plains = (isOne ? plains1 : plains2)
         deadendPlain = plains[0].folds[plains[1].index]
         if (!deadendPlain) {
-          deadendPlain = plains[0].midPlain(plains[1])
+          deadendPlain = plains[0].midPlain(plains[1]) // DOESN"T PRODUCE SAME RESULTS!!!
         }
         deadendPlain = deadendPlain.rotateAndScale(R, SCALE)
         plains = plains.map(plain => plain.rotateAndScale(R, SCALE))
@@ -244,9 +248,10 @@ async function createCoverSVG(plain) {
         angleOfIncidence = e1.signedAngle(crease.direction) * (isOne ? -1 : 1)
         if (angleOfIncidence < 0) angleOfIncidence += Math.PI
         if (angleOfIncidence > Math.PI) angleOfIncidence -= Math.PI
+        let aoiComplement = Math.PI/2 - angleOfIncidence
 
         let wallStartPoint = (isOne ? v2 : v1)
-            .addScaledVector(n, angleOfIncidence > Math.PI/2 ? w2 : w1)
+            .addScaledVector(n, aoiComplement < 0 ? w2 : w1)
             .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
         dihedralAngle = plains[0].normal.angleTo(plains[1].normal)
         let sign = (wallStartPoint.isCoplanar(plains[0]) || wallStartPoint.isAbovePlain(plains[0])) &&
@@ -270,8 +275,14 @@ async function createCoverSVG(plain) {
 
         let startingPlain = isOne ? plain : plains2.filter(p => p != plain)[0]
         let vertex = isOne ? vertex1 : vertex2
-        let foldWall = { startingPlain, vertex, dihedralAngle, angleOfIncidence }
-        foldWall.aoiComplement = Math.PI/2 - angleOfIncidence
+        let foldWall = {
+          isFoldWall: true,
+          startingPlain,
+          vertex,
+          dihedralAngle,
+          angleOfIncidence,
+          aoiComplement,
+        }
         for (let fw of foldWalls) {
           if (fw.vertex == vertex && fw.startingPlain == startingPlain) {
             foldWall = fw
@@ -294,9 +305,17 @@ async function createCoverSVG(plain) {
         addFoldWallInfo(2)
       } else {
         associateWallWithEdges({
-          length: wallLength,
-          angle1,
-          angle2,
+          // length: wallLength,
+          // angle1,
+          // angle2,
+          miterAngle1: angle1,
+          lengthOffset1,
+          dihedralAngle: 0,
+          zRotationAngle: 0,
+          aoiComplement: angle2,
+          yRotationAngle: angle2,
+          topLength1: wallLength,
+          bottomLength1: wallLength,
         }, associatedEdges) // TODO eventually remove the rest of normal wall logic
 
         // Logic for normal walls
@@ -506,6 +525,7 @@ async function createCoverSVG(plain) {
 }
 
 function associateWallWithEdges(wall, associatedEdges) {
+  if (IS_BOTTOM) return
   for (let edge of associatedEdges) {
     if (!edgeToWalls[edge.index]) {
       edgeToWalls[edge.index] = []
@@ -531,9 +551,10 @@ function singleSlotPath(wallLength, basis, offset, localOffset, isFinalEdge, pri
       let position = offset.addScaledVector(basis[0], x)
           .addScaledVector(basis[1], WALL_THICKNESS/2)
           .addScaledVector(FORWARD, EXTRA_COVER_THICKNESS)
+      console.log(CHANNEL_LATCH_ANGLE)
       print.components.push({
         type: "wedge",
-        angle: CHANNEL_LATCH_ANGLE,
+        angle: CHANNEL_LATCH_ANGLE * Math.PI / 180,
         rotationAngle: basis[0].scale(directionSign).signedAngle(RIGHT),
         position: position.toArray(),
         thickness: THICKNESS,
@@ -709,6 +730,7 @@ function createPrintInfo3D() {
   let partID = 1
   
   for (let edgeIndex of path) {
+    vertex = edges[edgeIndex].otherVertex(vertex)
     if (edges[edgeIndex].isDupe) continue
 
     for (let plain of vertex.plains) {
@@ -738,18 +760,17 @@ function createPrintInfo3D() {
     for (let wall of edgeToWalls[edgeIndex]) {
       if (completedWalls.includes(wall)) continue
       wall.partID = partID
-      if (wall.topLength1) {
+      if (wall.isFoldWall) {
         foldWallCreation(wall, printInfo)
       } else {
-        // TODO normal walls
+        let print = foldWallHalf(wall, true)
+        print.suffix = wall.partID
+        printInfo.prints.push(print)
       }
+      completedWalls.push(wall)
       partID += 1
     }
   }
-
-  // TODO adjust pixelserver
-  //  - Utilize new "suffix" field and make sure global "suffix" can be empty
-
   return printInfo
 }
 
@@ -1106,6 +1127,7 @@ function foldWallCreation(foldWall, printInfo) {
 
   if (epsilonEquals(foldWall.yRotationAngle, 0)) {
     printInfo.prints.push({
+      suffix: foldWall.partID + "",
       type: "union",
       components: [
         foldWallHalf(foldWall, true),
@@ -1117,6 +1139,7 @@ function foldWallCreation(foldWall, printInfo) {
   if (PRINT_WALL_HALVES_SEPARATELY) {
     // Left (female) side
     printInfo.prints.push({
+      suffix: foldWall.partID + "L",
       type: "difference",
       components: [
         foldWallHalf(foldWall, true),
@@ -1141,6 +1164,7 @@ function foldWallCreation(foldWall, printInfo) {
     
     // Right (male) side
     let rightPrint = {
+      suffix: foldWall.partID + "R",
       type: "union",
       components: [
         foldWallHalf(foldWall, false),
@@ -1188,6 +1212,7 @@ function foldWallCreation(foldWall, printInfo) {
   }
   else { // !PRINT_WALL_HALVES_SEPARATELY
     let print = {
+      suffix: foldWall.partID + "",
       type: "union",
       components: [
         foldWallHalf(foldWall, true),
@@ -1331,8 +1356,6 @@ function foldWallHalf(foldWall, isLeft) {
       bottomLength > PIXEL_DISTANCE * 3 &&
       foldWall.yRotationAngle > 0 &&
       PRINT_WALL_HALVES_SEPARATELY) {
-    console.log("b")
-
     let supportOffset = foldWall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
     offsetNegative = supportOffset % PIXEL_DISTANCE
     if (offsetNegative < LED_SUPPORT_WIDTH/2) {
@@ -1368,13 +1391,18 @@ function foldWallHalf(foldWall, isLeft) {
   }
 
   // Embossing
-  if (isLeft || (foldWall.dihedralAngle > 0 && PRINT_WALL_HALVES_SEPARATELY)) {
+  if (isLeft || (foldWall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY)) {
+    let V = wallStart.sub(extraOffset)
+    let text = foldWall.partID + ""
+    if (foldWall.isFoldWall) {
+      text += isLeft ? "L" : "R"
+    }
     print.components.push({
       type: "embossing",
-      position: [startV.x, startV.y, EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+      position: [V.x, WALL_PANEL_HEIGHT - V.y, WALL_THICKNESS],
       rotationAngle: -rotationAngle,
-      halign: "left",
-      text: foldWall.id + (isLeft ? "L" : "R"),
+      halign: isLeft ? "left" : "right",
+      text,
     })
   }
 
@@ -1383,6 +1411,7 @@ function foldWallHalf(foldWall, isLeft) {
     type: "svg",
     svg: wall.outerHTML,
     thickness: WALL_THICKNESS,
+    position: [0, WALL_PANEL_HEIGHT/2, 0],
   })
 
   return print
