@@ -32,7 +32,7 @@ class Weather(Sin):
       contents = urllib.request.urlopen(url).read()
       self.weather_data = json.loads(contents)["hourly"]
     except:
-      pass
+      print("Failed to access weather data.", file=sys.stderr)
     self.previous_update_time = time()
 
   def init_values(self):

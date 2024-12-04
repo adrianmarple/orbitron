@@ -274,6 +274,7 @@ def fade():
     start_fade_duration = float(start_fade_duration)
   except:
     start_fade_duration = 0.01
+    print("fadeIn set to bad value %s" % start_fade_duration, file=sys.stderr)
   if start_fade_duration <= 0:
     start_fade_duration = 0.01
   start_fade = (now - start).total_seconds() / start_fade_duration / 60
@@ -283,6 +284,7 @@ def fade():
     end_fade_duration = float(end_fade_duration)
   except:
     end_fade_duration = 0.01
+    print("fadeOutn set to bad value %s" % end_fade_duration, file=sys.stderr)
   if end_fade_duration <= 0:
     end_fade_duration = 0.01
   end_fade = (end - now).total_seconds() / end_fade_duration / 60
@@ -335,6 +337,7 @@ class RepeatedTime():
         self.time = datetime.strptime(time_thing["time"], '%H:%M').time()
       except:
         self.time = datetime.strptime("00:00", '%H:%M').time()
+        print("time set to bad value %s" % time_thing["time"], file=sys.stderr)
       self.weekday = time_thing.get("weekday", None)
 
   def combine(self, datetime):
@@ -380,6 +383,7 @@ if os.path.exists(pref_path):
     prefs = json.loads(f.read())
   except:
     prefs = {}
+    print("Failed to load prefs.json: %s" % f.read(), file=sys.stderr)
   f.close()
   current_prefs.update(prefs)
   identify_name()
@@ -406,7 +410,7 @@ if os.path.exists(timing_pref_path):
   try:
     timing_prefs.update(json.loads(f.read()))
   except:
-    pass
+    print("Failed to load timingprefs.json: %s" % f.read(), file=sys.stderr)
   f.close()
 current_prefs.update(timing_prefs)
 
