@@ -58,11 +58,11 @@ function getContentType(filePath){
 function respondWithFile(response, filePath){
   filePath = `${__dirname}${filePath}`
   let contentType = getContentType(filePath)
-  fs.readFile(filePath, function(error, content) {
+  fs.readFile(filePath, async function(error, content) {
     if (error) {
       if(error.code == 'ENOENT'){
-        response.writeHead(404)
-        response.end(`Nothing found at ${filePath}. Either the Orb is not connected or the URL is incorrect. Check the URL or refresh the page to try again.`, 'utf-8')
+        response.writeHead(404, { 'Content-Type': 'text/html' })
+        response.end(await fs.promises.readFile("controller/instructions.html"), 'utf-8')
       }
       else {
         response.writeHead(500)

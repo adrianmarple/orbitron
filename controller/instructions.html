@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
+<meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+
+<title>Controller - Lumatron</title>
+<link rel="shortcut icon" href="/controller/images/ravenstear.png" />
+<style>
+html, body {
+  background-color: #121212;
+  margin: 0;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+}
+#main {
+  display: flex;
+  flex-direction: column;
+  color: white;
+  margin: 0 auto;
+  min-height: 100vh;
+  max-width: 700px;
+  font-size: 1.2rem;
+}
+
+a:link, a:visited, a:hover, a:active {
+  color: white;
+}
+</style>
+
+</head>
+<body>
+
+<div id="main">
+  <div id="background"></div>
+
+  <p>Do the following instructions to connect this device to the internet
+    (they should generally be reflected on the LCD segment display on the box and
+    update to the next step after the previous step has been accomplished):</p>
+  <ul>
+    <li>Join the wifi named <b>Lumatron</b>.</li>
+    <li>Once on the wifi, the visit url <a href="http://10.42.0.1">http://10.42.0.1</a>.</li>
+    <li>Enter the wifi name (SSID) and password in the page that loads.</li>
+    <li>Refresh the page. (You may also need to power cycle the box)</li>
+  </ul>
+
+  <p>If you've already successfully connected this device, but are getting this page anyway,
+    contact <a href="mailto:adrian@marplebot.com">adrian@marplebot.com</a>.
+    <em>(Be sure to check that the device is on and the url is correct first though)</em></p>
+</div>
+
+<a href="https://lumatron.art" target="_blank" id="about-button" @click="console.log('test')">
+  <img src="/controller/images/ravenstear.svg">
+</a>
+
+
+</body>
+</html>
