@@ -40,10 +40,14 @@ async function saveBackup() {
     for (let fileName of savedPrefFileNames) {
       savedPrefs[fileName] = (await fs.promises.readFile("savedprefs/" + fileName)).toString()
     }
+    let timingprefs = (await fs.promises.readFile("timingprefs.json")).toString()
     let backup = {
       savedPrefs,
-      timingprefs: (await fs.promises.readFile("timingprefs.json")).toString(),
+      timingprefs,
       config: (await fs.promises.readFile("config.js")).toString(),
+    }
+    if (timingprefs.match(/"useTimer"\:\s*false,/)) {
+      backup.prefs = (await fs.promises.readFile("prefs.json")).toString()
     }
     orbToRelaySocket.send(JSON.stringify({ backup }))
   }
@@ -180,6 +184,9 @@ function connectOrbToRelay(){
           let backup = command.backup
           promises.push(fs.promises.writeFile("config.js", backup.config))
           promises.push(fs.promises.writeFile("timingprefs.json", backup.timingprefs))
+          if (backup.prefs) {
+            promises.push(fs.promises.writeFile("prefs.json", backup.prefs))
+          }
 
           await fs.promises.rm("savedprefs", { recursive: true })
           await fs.promises.mkdir("savedprefs")
