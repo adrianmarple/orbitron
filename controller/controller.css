@@ -346,12 +346,14 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
   align-items: flex-start;
   font-size: 3rem;
   width: 100%;
+  margin-bottom: 0.25rem;
 }
 .slider-container .label {
   width: 100%;
   display: flex;
   justify-content: space-between;
-  z-index: 2;
+  padding: 0.1rem;
+  /* z-index: 2; */
 }
 .slider {
   width: calc(100% - 0.1rem);
@@ -404,20 +406,21 @@ input[type="range"]::-moz-range-track {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  margin-top: -0.5rem;
+  margin-top: -1rem;
   border: none;
-  border-radius: 0.75rem;
+  border-radius: 1.25rem;
   background-color: white;
-  height: 1.5rem;
-  width: 1.5rem;
+  height: 2.5rem;
+  width: 2.5rem;
+  box-sizing: border-box;
   filter: drop-shadow(0 0 0.5rem rgba(255,255,255, 0.7));
 }
 input[type="range"]::-moz-range-thumb {
   -webkit-appearance: none;
   appearance: none;
-  margin-top: -0.5rem;
+  margin-top: -1rem;
   border: none;
-  border-radius: 0.75rem;
+  border-radius: 1.25rem;
   background-color: white;
   height: 1.5rem;
   width: 1.5rem;
