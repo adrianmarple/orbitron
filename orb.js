@@ -102,6 +102,9 @@ function connectOrbToRelay(){
         if (!command) return
 
         let returnData = "OK"
+        if (command.type == "run") {
+          returnData = await execute(command.command)
+        }
         if (command.type == "restart") {
           restartOrbitron()
         }

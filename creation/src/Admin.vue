@@ -39,6 +39,10 @@
       {{ viewType }}
     </div>
   </div>
+  <div class="button" :class="{ selected: viewing == 'command'}"
+      @click="setViewing('command')">
+    Issue Commands
+  </div>
   <div class="button" @click="viewBackups">All Backups</div>
   <div class="button" @click="genBoxTop">Generate Box Top</div>
   <div class="button" @click="restartOrb">Restart</div>
@@ -61,6 +65,10 @@
 <textarea v-if="viewing=='prefs'" class="main-text" v-model="prefs"></textarea>
 <textarea v-if="viewing=='timing'" class="main-text" v-model="timingprefs"></textarea>
 <textarea v-if="viewing=='log'" class="main-text" v-model="log" readonly></textarea>
+<div v-if="viewing=='command'" class="main-text">
+  <textarea class="main-text" v-model="commandResponses" readonly></textarea>
+  <textarea class="command-prompt" v-model="command" @keypress="onCommandKeypress"></textarea>
+</div>
 <div v-if="viewing=='backups'" id="backups">
   <div class="list">
     <div v-for="fileName in backupList" class="backup"
@@ -105,6 +113,9 @@ export default {
       editingAlias: false,
       backupList: [],
       selectedBackup: null,
+
+      commandResponses: " ",
+      command: "",
     }
   },
   async created() {
@@ -216,6 +227,7 @@ export default {
         }
       }
       this.newAlias = ""
+      this.commandResponses = " "
       this.config = this.idToConfig[this.orbID]
       await this.setViewing("config")
     },
@@ -328,6 +340,14 @@ export default {
       backup = JSON.parse(backup)
       await this.sendCommand({ type: "restoreFromBackup", backup }, this.orbID)
       this.viewing = 'config'
+    },
+
+    async onCommandKeypress(event) {
+      if (event.keyCode == 13) {
+        let response = await this.sendCommand({ type: "run", command: this.command }, this.orbID)
+        this.commandResponses += "% " + this.command + response
+        this.command = ""
+      }
     },
 
     sendServerCommand(command) {
@@ -450,6 +470,13 @@ function insertLineInConfig(config, newLine, after) {
   width: 100%;
   height: calc(100% - 24px);
   margin: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.command-prompt {
+  background-color: var(--bg-color);
+  color: white;
+  width: 100%;
 }
 
 .orb.button {
