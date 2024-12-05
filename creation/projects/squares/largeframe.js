@@ -30,12 +30,19 @@ module.exports = () => {
   let points = []
   let ends = []
 
+  // alt values
+  BORDER = 10
+  ANGLE = -135
+  POINT_LENGTH = 5
+  MID_LENGTH_S = 6.5
+  MID_LENGTH_L = 9.5
+
   let squedges = addPolygon(4, [0,0,0], [xCount, yCount])
   for (let side of squedges) {
     let initialLength = side.length()
     let v = splitEdge(side, INITIAL_OFFSET)
     side = v.edges[1]
-    let outerV = addLine(v.otherVertex(BONE_LENGTH, ANGLE), v)
+    let outerV = addLine(v, BONE_LENGTH, ANGLE).otherVertex(v)
     points.push(outerV)
     for (let i = 0; i < 1000; i++) {
       if (side.length() < initialLength/2 + GAP) {
@@ -84,4 +91,5 @@ module.exports = () => {
   }
 
   EulerianPath(92)
+  console.log("MAKE SURE TO CHANGE INNER BORDER IN COVER SVGS (may require splicing two svgs together)")
 }

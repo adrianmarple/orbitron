@@ -41,6 +41,9 @@ class Vector extends THREE.Vector3 {
     return Math.atan2(v.y*this.x - v.x*this.y, v.x*this.x + v.y*this.y)
   }
 
+  isColinear(line) {
+    return line.offset.equals(this.orthoProj(line.direction))
+  }
   isCoplanar(plain) {
     let v2 = this.sub(plain.offset)
     return epsilonEquals(v2.dot(plain.normal), 0)
@@ -93,6 +96,9 @@ class Plain {
 
   clone() {
     return new Plain(this.offset, this.normal)
+  }
+  otherSide() {
+    return new Plain(this.offset, this.normal.negate())
   }
 
   mirror(mirror) {

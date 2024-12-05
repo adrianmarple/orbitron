@@ -434,6 +434,7 @@ function doubleEdges() {
   for (let edge of [...edges]) {
     if (edge.verticies[0].plains.length == 2 && edge.verticies[1].plains.length == 2) {
       let newVertex = splitEdge(edge, edge.length()/2)
+      newVertex.dontMergeEdges = true
     }
   }
 
@@ -666,11 +667,11 @@ function origami(foldPlain) {
     if (edge.verticies[0].ogCoords.isAbovePlain(foldPlain) !=
         edge.verticies[1].ogCoords.isAbovePlain(foldPlain)) {
 
-      removeEdge(edge)
       let newVertexCoords = foldPlain.intersection(edge.toLine())
       let newVertex = addVertex(newVertexCoords)
       addEdge(newVertex, edge.verticies[0])
       addEdge(newVertex, edge.verticies[1])
+      removeEdge(edge)
     }
   }
   
@@ -707,15 +708,18 @@ function zeroFoldAllEdges() {
   }
   
   for (let edge of [...edges]) {
-    let plain0 = edge.verticies[0].plains[0]
-    let plain1 = edge.verticies[1].plains[0]
-    let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
-    let newVertex = splitEdge(edge, edge.length()/2)
-    let fold = new Plain(newVertex.ogCoords, foldNormal)
-    plain0.folds[plain1.index] = fold
-    plain1.folds[plain0.index] = fold
-    newVertex.plains = []
-    newVertex.addPlain(plain0)
-    newVertex.addPlain(plain1)
+    zeroFold(edge)
   }
+}
+function zeroFold(edge) {
+  let plain0 = edge.verticies[0].plains[0]
+  let plain1 = edge.verticies[1].plains[0]
+  let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
+  let newVertex = splitEdge(edge, edge.length()/2)
+  let fold = new Plain(newVertex.ogCoords, foldNormal)
+  plain0.folds[plain1.index] = fold
+  plain1.folds[plain0.index] = fold
+  newVertex.plains = []
+  newVertex.addPlain(plain0)
+  newVertex.addPlain(plain1)
 }

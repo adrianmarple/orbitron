@@ -97,7 +97,8 @@ async function createCoverSVG(plain) {
         dPath.push(leftmostTurn[0])
       }
       directedEdges.remove(leftmostTurn)
-      if (epsilonEquals(minAngle, 0) && !epsilonEquals(e0.length(), 0)) {
+      if (epsilonEquals(minAngle, 0) && !epsilonEquals(e0.length(), 0) &&
+          !leftmostTurn[0].dontMergeEdges && !leftmostTurn[1].dontMergeEdges) {
         dPath.pop() // Join edges if the path is straight
       }
       cumulativeAngle += minAngle
@@ -113,7 +114,7 @@ async function createCoverSVG(plain) {
       dPath.shift() // Remove middle (start) vertex if start and end is straight
     }
     // Check if first/last vertex doubles back
-    if (dPath[0].plains.legnth == 1 && epsilonEquals(lastAngle, Math.PI)) {
+    if (dPath[0].plains.length == 1 && epsilonEquals(lastAngle, Math.PI)) {
       dPath.unshift(dPath[0]) // Add cap
     }
 
@@ -239,7 +240,7 @@ async function createCoverSVG(plain) {
         let plains = (isOne ? plains1 : plains2)
         deadendPlain = plains[0].folds[plains[1].index]
         if (!deadendPlain) {
-          deadendPlain = plains[0].midPlain(plains[1]) // DOESN"T PRODUCE SAME RESULTS!!!
+          deadendPlain = plains[0].midPlain(plains[1])
         }
         deadendPlain = deadendPlain.rotateAndScale(R, SCALE)
         plains = plains.map(plain => plain.rotateAndScale(R, SCALE))
@@ -266,6 +267,7 @@ async function createCoverSVG(plain) {
         wallStartPoint = wallStartPoint.addScaledVector(FORWARD, plainTranslationValue)
         let wallEndPoint = deadendPlain.intersection(new Line(wallStartPoint, e1))
 
+        console.log(wallEndPoint.sub(wallStartPoint).normalize().dot(e1) * (isOne ?-1:1))
         wallLength = wallEndPoint.sub(wallStartPoint).length()
         if (isOne) {
           lengthOffset1 = edgeLength + lengthOffset2 - wallLength
@@ -1291,7 +1293,13 @@ async function generateManufacturingInfo() {
     window.ORIGAMI_KERF = TOP_ORIGAMI_KERF == null ? ORIGAMI_KERF : TOP_ORIGAMI_KERF
     for (let plain of plains) {
       covers.top.push(await createCoverSVG(plain))
-      console.log(`Top svg ${covers.top.length-1} is ${((maxX - minX)/96).toFixed(2)}" by ${((maxY-minY)/96).toFixed(2)}"`)
+      let w = (maxX - minX) / 96
+      let h = (maxY - minY) / 96
+      if (coverPrint3D) {
+        w *= MM_TO_96DPI
+        h *= MM_TO_96DPI
+      }
+      console.log(`Top svg ${covers.top.length-1} is ${w.toFixed(2)}" by ${h.toFixed(2)}"`)
     }
     wallInfo = [] // Avoid duplicating wall info
     IS_BOTTOM = true
@@ -1299,7 +1307,13 @@ async function generateManufacturingInfo() {
     window.ORIGAMI_KERF = BOTTOM_ORIGAMI_KERF == null ? ORIGAMI_KERF : BOTTOM_ORIGAMI_KERF
     for (let plain of plains) {
       covers.bottom.push(await createCoverSVG(plain))
-      console.log(`Bottom svg ${covers.bottom.length-1} is ${((maxX - minX)/96).toFixed(2)}" by ${((maxY-minY)/96).toFixed(2)}"`)
+      let w = (maxX - minX) / 96
+      let h = (maxY - minY) / 96
+      if (coverPrint3D) {
+        w *= MM_TO_96DPI
+        h *= MM_TO_96DPI
+      }
+      console.log(`Bottom svg ${covers.bottom.length-1} is ${w.toFixed(2)}" by ${h.toFixed(2)}"`)
     }
     coverPostProcessingFunction(covers)
     if (covers.bottom.length[0]) {
