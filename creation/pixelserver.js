@@ -394,6 +394,10 @@ async function generateModule(info, module) {
           moduleString += `
           rotate(a=${operation.angle * 180/Math.PI}, v=[${operation.axis}])`
           break
+        case "scale":
+          moduleString += `
+          scale([${operation.scale}, ${operation.scale}, ${operation.scale}])`
+          break
       }
     }
   }

@@ -24,6 +24,7 @@ function reset() {
   verticies = []
   edges = []
   DEFAULT_PLAIN.index = 0
+  DEFAULT_PLAIN.folds = {}
   plains = [DEFAULT_PLAIN]
   currentPlain = DEFAULT_PLAIN
 
@@ -124,20 +125,20 @@ function reset() {
   MAX_WALL_LENGTH = 100
   MAX_NOTCH_DISTANCE = 120
 
+  NO_EMBOSSING = false
+
   coverPrint3D = false
   exteriorOnly = false
   cat5PortMidway = false
   cat5PortAtEnd = false
   addNubs = true
   addExtraFoldWallWedge = true
-  cat5WallOverride = -1
-  cat5FoldWallIndex = -1
+  cat5partID = ""
 
   powerHoleWallIndex = -1
 
   dataPostProcessingFunction = pixelInfo => {}
-  wallPostProcessingFunction = printInfo => {}
-  coverPostProcessingFunction = covers => {}
+  printPostProcessingFunction = covers => {}
 }
 reset()
 

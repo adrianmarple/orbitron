@@ -1,41 +1,32 @@
 module.exports = () => {
   CHANNEL_WIDTH = 13
-  BORDER = 12
+  BORDER = 10
   MAX_NOTCH_DISTANCE = 100
-  // cat5PortMidway = true
-  // startMidwayDownFinalEdge = true
-  // ledAtVertex = true
+  PRINT_WALL_HALVES_SEPARATELY = false
+  // LED_SUPPORT_GAP = 1
+  cat5PortMidway = true
+  addNubs = false
+  cat5partID = "3L"
 
   let xCount = 93
   let xWiggle = xCount * PIXEL_DISTANCE - CHANNEL_WIDTH - 2*WALL_THICKNESS - 1524
   console.log("x", xWiggle)
   let yCount = 63
-  let yWiggle = yCount * PIXEL_DISTANCE - CHANNEL_WIDTH - 2*WALL_THICKNESS - 1016
+  let yWiggle = yCount * PIXEL_DISTANCE - CHANNEL_WIDTH - 2*WALL_THICKNESS - 1015
   console.log("y", yWiggle)
 
-  // let ANGLE = -120
-  // let INITIAL_OFFSET = 4
-  // let GAP = 5
-  // let BONE_LENGTH = 5
-  // let POINT_LENGTH = 7
-  // let MID_LENGTH = 6
-  let ANGLE = -120
+
   let INITIAL_OFFSET = 4
   let GAP = 12
   let BONE_LENGTH = 4
-  let POINT_LENGTH = 7
-  let MID_LENGTH_S = 6
-  let MID_LENGTH_L = 9
+  let ANGLE = -135
+  let POINT_LENGTH = 5
+  let MID_LENGTH_S = 6.5
+  let MID_LENGTH_L = 9.5
 
   let points = []
   let ends = []
 
-  // alt values
-  BORDER = 10
-  ANGLE = -135
-  POINT_LENGTH = 5
-  MID_LENGTH_S = 6.5
-  MID_LENGTH_L = 9.5
 
   let squedges = addPolygon(4, [0,0,0], [xCount, yCount])
   for (let side of squedges) {
@@ -83,13 +74,38 @@ module.exports = () => {
     }
   }
 
+  let tips = []
   for (let i = 0; i < 4; i++) {
-    addTriangulation(points[(i*2 + 7)%8], points[i*2], POINT_LENGTH)
+    let v = addTriangulation(points[(i*2 + 7)%8], points[i*2], POINT_LENGTH)
+    tips.push(v)
   }
   for (let i = 0; i < 4; i++) {
     addTriangulation(ends[i*2], ends[(i*2 + 1)%8], i%2==0 ? MID_LENGTH_L : MID_LENGTH_S)
   }
+  origami(new Plain(ZERO, RIGHT))
+  let rightSide = plains[1]
+  origami(new Plain(tips[0].ogCoords, new Vector(1,1,0)))
+  origami(new Plain(tips[3].ogCoords, new Vector(1,-1,0)))
+  currentPlain = rightSide
+  origami(new Plain(tips[2].ogCoords, new Vector(-1,-1,0)))
+  origami(new Plain(tips[1].ogCoords, new Vector(1,-1,0)))
 
-  EulerianPath(92)
-  console.log("MAKE SURE TO CHANGE INNER BORDER IN COVER SVGS (may require splicing two svgs together)")
+  for (let i of [4,10,18,12,20,24,30,26,32,38,46,40,48,52,58,54]) {
+    verticies[i].dontMergeEdges = true
+  }
+  for (let v of verticies) {
+    v.dontMergeEdges = true
+  }
+
+  printPostProcessingFunction = printInfo => {
+    for (let print of printInfo.prints) {
+      if (print.suffix.endsWith("t") || print.suffix.endsWith("b")) {
+        continue
+      }
+      print.operations = print.operations || []
+      print.operations.push({ type: "scale", scale: 1.009 })
+    }
+  }
+
+  EulerianPath(82)
 }

@@ -31,6 +31,10 @@ class Vector extends THREE.Vector3 {
     return epsilonEquals(this.distanceTo(v), 0, epsilon)
   }
 
+  magintude() {
+    return 
+  }
+
   project(scale) {
     const SCALE = 800 * scale
     let z = this.z * scale + 15

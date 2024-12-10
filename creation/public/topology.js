@@ -641,26 +641,32 @@ function addPlain(plain) {
 }
 
 function origami(foldPlain) {
-  let mirrorPlainOffset = currentPlain.intersection(foldPlain).offset
-  let mirrorPlainNormal = currentPlain.normal.orthoProj(foldPlain.normal)
+  let newPlain, mirrorPlain
 
-  let newPlain
-  let mirrorPlain = null
-  let isSplit = mirrorPlainNormal.equals(ZERO)
-
+  let isSplit = epsilonEquals(currentPlain.normal.dot(foldPlain.normal), 0)
   if (isSplit) {
     newPlain = currentPlain.clone()
   } else {
+    let mirrorPlainOffset = currentPlain.intersection(foldPlain).offset
+    let mirrorPlainNormal = currentPlain.normal.orthoProj(foldPlain.normal)
     mirrorPlain = new Plain(mirrorPlainOffset, mirrorPlainNormal)
     newPlain = currentPlain.mirror(mirrorPlain)
   }
 
   addPlain(newPlain)
+  if (isSplit) {
+    for (let plainIndex in currentPlain.folds) {
+      let oldFold = currentPlain.folds[plainIndex]
+      newPlain.folds[plainIndex] = oldFold
+      plains[plainIndex].folds[newPlain.index] = oldFold
+    }
+  }
   currentPlain.folds[newPlain.index] = foldPlain
   newPlain.folds[currentPlain.index] = foldPlain
 
   // Add new verticies along edges that have been folded
   for (let edge of [...edges]) {
+    if (edge.commonPlain() != currentPlain) continue
     if (edge.verticies[0].ogCoords.isCoplanar(foldPlain)) continue
     if (edge.verticies[1].ogCoords.isCoplanar(foldPlain)) continue
     
@@ -674,7 +680,6 @@ function origami(foldPlain) {
       removeEdge(edge)
     }
   }
-  
   for (let vertex of verticies) {
     if (!vertex.plains.includes(currentPlain)) continue
 

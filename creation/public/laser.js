@@ -2,10 +2,8 @@
 let MM_TO_96DPI = 3.77952755906
 let DPI96_TO_MM = 0.26458333333
 
-wallInfo = []
 foldWalls = []
 covers = {top: [], bottom: []}
-entryWallLength = 0
 minX = 1e6
 minY = 1e6
 maxX = -1e6
@@ -98,7 +96,7 @@ async function createCoverSVG(plain) {
       }
       directedEdges.remove(leftmostTurn)
       if (epsilonEquals(minAngle, 0) && !epsilonEquals(e0.length(), 0) &&
-          !leftmostTurn[0].dontMergeEdges && !leftmostTurn[1].dontMergeEdges) {
+          !leftmostTurn[0].dontMergeEdges) {
         dPath.pop() // Join edges if the path is straight
       }
       cumulativeAngle += minAngle
@@ -175,6 +173,9 @@ async function createCoverSVG(plain) {
         }
         associatedEdges.push(edge)
         vertex = edge.otherVertex(vertex)
+        if (vertex.dontMergeEdges) {
+          break
+        }
       }
 
       let endCapOffset = CHANNEL_WIDTH * END_CAP_FACTOR * -0.5
@@ -251,7 +252,9 @@ async function createCoverSVG(plain) {
         if (angleOfIncidence > Math.PI) angleOfIncidence -= Math.PI
         let aoiComplement = Math.PI/2 - angleOfIncidence
 
-        let wallStartPoint = (isOne ? v2 : v1)
+        let outerV = isOne ? v2 : v1
+        // let innerV = isOne ? v1 : v2
+        let wallStartPoint = outerV
             .addScaledVector(n, aoiComplement < 0 ? w2 : w1)
             .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
         dihedralAngle = plains[0].normal.angleTo(plains[1].normal)
@@ -307,9 +310,6 @@ async function createCoverSVG(plain) {
         addFoldWallInfo(2)
       } else {
         associateWallWithEdges({
-          // length: wallLength,
-          // angle1,
-          // angle2,
           miterAngle: angle1,
           lengthOffset1,
           dihedralAngle: 0,
@@ -317,35 +317,12 @@ async function createCoverSVG(plain) {
           aoiComplement: angle2,
           yRotationAngle: angle2,
           length: wallLength,
+          edgeLength,
         }, associatedEdges) // TODO eventually remove the rest of normal wall logic
 
-        // Logic for normal walls
         let edgeCenter = v1.addScaledVector(e1, edgeLength/2)
             .addScaledVector(n, w1*1.5)
-        let addedToCount = false
-        for (let wallType of wallInfo) {
-          if (epsilonEquals(wallType.length, wallLength, 0.01) &&
-              epsilonEquals(wallType.angle1, angle1, 0.01) &&
-              epsilonEquals(wallType.angle2, angle2, 0.01)) {
-            if (!wallType.edgeCenters[plain]) {
-              wallType.edgeCenters[plain] = []
-            }
-            wallType.edgeCenters[plain].push(edgeCenter)
-            addedToCount = true
-            break
-          }
-        }
-        if (!addedToCount) {
-          wallInfo.push({
-            length: wallLength,
-            angle1,
-            angle2,
-            edgeCenters: {[plain]: [edgeCenter]},
-          })
-        }
-        if (isFinalEdge) {
-          entryWallLength = wallLength
-        }
+
       }
 
       // Slots
@@ -705,20 +682,6 @@ function setLatestWallSvg(path, printInfo) {
   })
 }
 
-function makeNub(position) {
-  if (position.isVector) {
-    position = [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS]
-  } else {
-    position[2] = WALL_THICKNESS
-  }
-  return {
-    type: "nub",
-    width: NUB_WIDTH,
-    height: NUB_HEIGHT,
-    position,
-  }
-}
-
 function createPrintInfo3D() {
   printInfo = {
     type: "gcode",
@@ -770,6 +733,20 @@ function createPrintInfo3D() {
       completedWalls.push(wall)
       partID += 1
     }
+  }
+  let prints = []
+  let hasReachedStart
+  let hasReachedEnd
+  for (let print of printInfo.prints) {
+    hasReachedStart = hasReachedStart || print.suffix.startsWith(STARTING_PART_ID + "")
+    hasReachedEnd = hasReachedEnd || print.suffix.startsWith(ENDING_PART_ID + "")
+    if (hasReachedStart && !hasReachedEnd) {
+      prints.push(print)
+    }
+  }
+  printInfo.prints = prints
+  if (window.printPostProcessingFunction) {
+    printPostProcessingFunction(printInfo)
   }
   console.log(printInfo)
   return printInfo
@@ -903,29 +880,36 @@ function foldWallCreation(foldWall, printInfo) {
     printInfo.prints.push(rightPrint)
   }
   else { // !PRINT_WALL_HALVES_SEPARATELY
+    // TODO: consider just automatically doing this for the case of 0 dihedral angle
     let print = {
       suffix: leftJoint.suffix,
       type: "union",
+      operations: [{
+        type: "rotate",
+        axis: [1, 0, 0],
+        angle: Math.PI/2,
+      }],
       components: [
         leftJoint,
         {
           operations: [{
             type: "rotate",
             axis: [0,1,0],
-            angle: foldWall.yRotationAngle * 2,
+            angle: -foldWall.yRotationAngle * 2,
           }],
           ...rightJoint
         },
       ]
     }
     if (foldWall.yRotationAngle < 0) {
-      print.operations = [flipOver]
       print.components[0].operations = [translation]
       print.components[1].operations.unshift(translation)
     }
     printInfo.prints.push(print)
   }
 }
+
+
 function wallPrints(wall, isLeft) {
   let topLength = wall.length
   let bottomLength = wall.length
@@ -937,31 +921,58 @@ function wallPrints(wall, isLeft) {
   if (!miterAngle) {
     miterAngle = isLeft ? wall.miterAngle1 : wall.miterAngle2
   }
+  let edgeLength = wall.edgeLength
+  if (!edgeLength) {
+    edgeLength = isLeft ? wall.edgeLength1 : wall.edgeLength2
+  }
 
   let print = blankPrint()
   print.suffix = wall.partID + ""
   let prints = [print]
 
+
+  // TODO REMOVE ME
   if (topLength > MAX_WALL_LENGTH) {
     let wallCount = Math.ceil(topLength / MAX_WALL_LENGTH) // No more inner notches
     let wallLength = topLength / wallCount
-    for (let i = 1; i < wallCount; i++) {
-      let isLastWall = i == wallCount - 1
-      let newWall = {...wall}
-      newWall.partID += "." + i
-      newWall.dihedralAngle = 0
-      newWall.zRotationAngle = 0
-      newWall.aoiComplement = 0
-      newWall.yRotationAngle = 0
-      newWall.miterAngle = isLastWall ? miterAngle : 0
-      newWall.length = wallLength
+    let supportOffset = wall.lengthOffset1 + (wall.supportOffset || 0) // TODO may need to subtract wall.lengthOffset1 instead
+    for (let i = 0; i < wallCount-1; i++) {
+      let newEdgeLength = wallLength
+      if (i == 0) {
+        newEdgeLength -= wall.lengthOffset2 || 0
+      }
+      let newWall = {
+        isFoldWall: wall.isFoldWall,
+        edgeLength: newEdgeLength,
+        partID: wall.partID + "." + i,
+        dihedralAngle: 0,
+        dihedralAngle: 0,
+        zRotationAngle: 0,
+        aoiComplement: 0,
+        yRotationAngle: 0,
+        miterAngle: i == 0 ? miterAngle : 0,
+        length: wallLength,
+        lengthOffset1: 0,
+        lengthOffset2: i == 0 ? wall.lengthOffset2 : 0,
+        supportOffset,
+      }
       prints.push(wallPrints(newWall, isLeft)[0])
+
+      supportOffset -= wallLength
+      while (supportOffset < LED_SUPPORT_WIDTH/2) {
+        supportOffset += PIXEL_DISTANCE
+      }
     }
+    wall.supportOffset = supportOffset
+    wall.lengthOffset1 = 0
+    wall.lengthOffset2 = 0
+    wall.edgeLength = wallLength
     bottomLength = bottomLength - topLength + wallLength
     topLength = wallLength
     miterAngle = 0
-    print.suffix += "." + 0
+    print.suffix += "." + (wallCount - 1)
   }
+  // END REMOVE ME
 
   if (wall.isFoldWall) {
     print.suffix += isLeft ? "L" : "R"
@@ -1021,16 +1032,55 @@ function wallPrints(wall, isLeft) {
   let offset = RIGHT.scale(xOffset)
       .addScaledVector(UP, yOffset)
 
-  path += ` M${xOffset} ${yOffset}`
-  for (let seg of wallSegments) {
-    path += ` l${seg.x} ${seg.y}`
-  }
-  path += " Z"
+  path += pathFromSegments(offset, wallSegments)
 
-  // if (wall.hasWallPort && isLeft) {
-  //   path += portPath(xOffset - wall.bottomLength1 + CAT5_WIDTH/2 + NOTCH_DEPTH,
-  //                    -THICKNESS, print)
-  // }
+  let wallStart = offset
+      .add(extraOffset)
+      .addScaledVector(UP, CHANNEL_DEPTH/2 * dihedralRatio)
+      .addScaledVector(E, topLength)
+      .addScaledVector(N, -CHANNEL_DEPTH/2)
+  let startV = wallStart
+      .addScaledVector(E, isLeft ? -wall.lengthOffset1 : wall.lengthOffset2)
+
+  // CAT5 port
+  if (print.suffix == cat5partID) {
+    let cat5BottomCenter = wallStart
+        .addScaledVector(N, -CHANNEL_DEPTH/2)
+    if (cat5PortMidway) {
+      cat5BottomCenter = cat5BottomCenter.addScaledVector(E, -topLength/2)
+    } else {
+      cat5BottomCenter = cat5BottomCenter.addScaledVector(E, -CAT5_WIDTH/2 - NOTCH_DEPTH - CAT5_ADDITONAL_OFFSET)
+    }
+
+    let cat5Start1 = cat5BottomCenter
+        .addScaledVector(E, CAT5_WIRES_WIDTH/2)
+    path += pathFromSegments(cat5Start1, [
+      E.scale(-CAT5_WIRES_WIDTH),
+      N.scale(CAT5_WIRES_HEIGHT),
+      E.scale(CAT5_WIRES_WIDTH),
+    ])
+    let cat5Start2 = cat5BottomCenter
+        .addScaledVector(E, -CAT5_SNAP_DISTANCE/2)
+        .addScaledVector(N, CAT5_HEIGHT - CAT5_SNAP_Y)
+    path += pathFromSegments(cat5Start2, [
+      E.scale(CAT5_SNAP_WIDTH),
+      N.scale(CAT5_SNAP_HEIGHT),
+      E.scale(-CAT5_SNAP_WIDTH),
+    ])
+    let cat5Start3 = cat5Start2
+        .addScaledVector(E, CAT5_SNAP_DISTANCE)
+    path += pathFromSegments(cat5Start3, [
+      E.scale(-CAT5_SNAP_WIDTH),
+      N.scale(CAT5_SNAP_HEIGHT),
+      E.scale(CAT5_SNAP_WIDTH),
+    ])
+
+    print.components.push({
+      type: "qtClip",
+      position: [cat5BottomCenter.x, WALL_PANEL_HEIGHT - cat5BottomCenter.y - CAT5_WIRES_HEIGHT, 0],
+      rotationAngle: -rotationAngle + Math.PI,
+    })
+  }
 
   // Wedges
   // End wedge
@@ -1063,31 +1113,27 @@ function wallPrints(wall, isLeft) {
 
 
   // LED supports
-  let wallStart = offset
-      .add(extraOffset)
-      .addScaledVector(UP, CHANNEL_DEPTH/2 * dihedralRatio)
-      .addScaledVector(E, topLength)
-      .addScaledVector(N, -CHANNEL_DEPTH/2)
-  let startV = wallStart
-      .addScaledVector(E, isLeft ? -wall.lengthOffset1 : -wall.lengthOffset2)
   position = null
-
-  if (isLeft &&
-      !noSupports &&
-      !wall.hasWallPort &&
-      (wall.yRotationAngle > 0 ||
-       PRINT_WALL_HALVES_SEPARATELY)) {
-
-    position = startV.addScaledVector(E, -PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1))
+  if (isLeft && !noSupports && print.suffix != cat5partID && !wall.hasWallPort) {
+    let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
+    if (wall.supportOffset) {
+      supportOffset += wall.supportOffset
+    }
+    // if (supportOffset < edgeLength - topLength + LED_SUPPORT_WIDTH/2) {
+    //   supportOffset += PIXEL_DISTANCE
+    // }
+    position = startV.addScaledVector(E, -supportOffset)
   }
-  if (!isLeft &&
-      !noSupports &&
+  if (!isLeft && !noSupports && print.suffix != cat5partID &&
       bottomLength > PIXEL_DISTANCE * 3 &&
-      wall.yRotationAngle > 0 &&
-      PRINT_WALL_HALVES_SEPARATELY) {
-    let supportOffset = wall.edgeLength2 + PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+      (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
+    let supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+    if (wall.supportOffset) {
+      supportOffset -= wall.supportOffset
+    }
     offsetNegative = supportOffset % PIXEL_DISTANCE
-    if (offsetNegative < LED_SUPPORT_WIDTH/2) {
+    // TODO better calculation for how much negative offset should be (based on angles)
+    while (offsetNegative < PIXEL_DISTANCE + LED_SUPPORT_WIDTH/2) {
       offsetNegative += PIXEL_DISTANCE
     }
     supportOffset -= offsetNegative
@@ -1105,7 +1151,7 @@ function wallPrints(wall, isLeft) {
     })
   }
 
-  if (addNubs) { // Nubs
+  if (addNubs && !wall.isFoldWall) { // Nubs
     let nub = wallSegments[0].add(offset)
         .addScaledVector(E, NUB_INSET_X + NOTCH_DEPTH)
         .addScaledVector(N, -NUB_INSET - NUB_WIDTH/2 + THICKNESS)
@@ -1120,7 +1166,8 @@ function wallPrints(wall, isLeft) {
   }
 
   // Embossing
-  if (isLeft || (wall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY)) {
+  if (!NO_EMBOSSING &&
+    (isLeft || (wall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY))) {
     let V = wallStart.sub(extraOffset)
     print.components.push({
       type: "embossing",
@@ -1141,6 +1188,29 @@ function wallPrints(wall, isLeft) {
   })
 
   return prints
+}
+
+function pathFromSegments(start, segments) {
+  let path = ` M${start.x} ${start.y}`
+  for (let seg of segments) {
+    path += ` l${seg.x} ${seg.y}`
+  }
+  path += " Z"
+  return path
+}
+
+function makeNub(position) {
+  if (position.isVector) {
+    position = [position.x, WALL_PANEL_HEIGHT - position.y, WALL_THICKNESS]
+  } else {
+    position[2] = WALL_THICKNESS
+  }
+  return {
+    type: "nub",
+    width: NUB_WIDTH,
+    height: NUB_HEIGHT,
+    position,
+  }
 }
 
 function latchPoints(E, N, reverse) {
@@ -1174,97 +1244,6 @@ function latchPoints(E, N, reverse) {
   return points
 }
 
-function portPath(x, y, print) {
-  let x1 = x - CAT5_WIRES_WIDTH/2 - CAT5_ADDITONAL_OFFSET
-  let y1 = y + THICKNESS + CHANNEL_DEPTH
-  let x2 = x - CAT5_SNAP_DISTANCE/2 - CAT5_ADDITONAL_OFFSET
-  let y2 = y1 - CAT5_HEIGHT + CAT5_SNAP_Y
-
-  print.components.push({
-    type: "qtClip",
-    position: [x1 + CAT5_WIRES_WIDTH/2, WALL_PANEL_HEIGHT - y1 + CAT5_WIRES_HEIGHT, 0]
-  })
-
-  return `
-    M${x1} ${y1}
-    h${CAT5_WIRES_WIDTH}
-    v${-CAT5_WIRES_HEIGHT}
-    h${-CAT5_WIRES_WIDTH}
-    Z
-    M${x2} ${y2}
-    h${CAT5_SNAP_WIDTH}
-    v${-CAT5_SNAP_HEIGHT}
-    h${-CAT5_SNAP_WIDTH}
-    Z
-    M${x2 + CAT5_SNAP_DISTANCE} ${y2}
-    h${-CAT5_SNAP_WIDTH}
-    v${-CAT5_SNAP_HEIGHT}
-    h${CAT5_SNAP_WIDTH}
-    Z`
-}
-
-
-function decimalPath(x, offset) {
-  minX = Math.min(minX, offset[0])
-  minY = Math.min(minY, offset[1])
-
-  x = "" + x
-  let path = ""
-  for (let d of x) {
-    if (d == ".") {
-      path += `M${offset[0]-2} ${offset[1] + 10}
-      v -1 h 1 v 1 Z`
-      continue
-    }
-
-    switch(d) {
-      case "0":
-        path += `M${offset[0]} ${offset[1]}
-        h 5 v 10 h -5 v -8`
-        break
-      case "1":
-        path += `M${offset[0] + 5} ${offset[1]}
-        v 10`
-        break
-      case "2":
-        path += `M${offset[0]} ${offset[1]}
-        h 5 v 5 h -5 v 5 h 5`
-        break
-      case "3":
-        path += `M${offset[0]} ${offset[1]}
-        h 5 v 10 h -5 m 0 -5 h 5`
-        break
-      case "4":
-        path += `M${offset[0]} ${offset[1]}
-        v 5 h 5 v -5 v 10`
-        break
-      case "5":
-        path += `M${offset[0] + 5} ${offset[1]}
-        h -5 v 5 h 5 v 5 h -5`
-        break
-      case "6":
-        path += `M${offset[0] + 5} ${offset[1]}
-        h -5 v 10 h 5 v -5 h -3`
-        break
-      case "7":
-        path += `M${offset[0]} ${offset[1]}
-        h 5 l -4 10`
-        break
-      case "8":
-        path += `M${offset[0]} ${offset[1]}
-        h 5 v 10 h -5 v -8 m 0 3 h 3`
-        break
-      case "9":
-        path += `M${offset[0] + 5} ${offset[1] + 10}
-        v -10 h -5 v 5 h 3`
-        break
-    }
-    offset[0] += 8
-  }
-  maxX = Math.max(maxX, offset[0])
-  maxY = Math.max(maxY, offset[1] + 10)
-  return path
-}
 
 function downloadSVGAsText(id, name) {
   if (!name) name = id;
@@ -1301,7 +1280,6 @@ async function generateManufacturingInfo() {
       }
       console.log(`Top svg ${covers.top.length-1} is ${w.toFixed(2)}" by ${h.toFixed(2)}"`)
     }
-    wallInfo = [] // Avoid duplicating wall info
     IS_BOTTOM = true
     window.KERF = BOTTOM_KERF
     window.ORIGAMI_KERF = BOTTOM_ORIGAMI_KERF == null ? ORIGAMI_KERF : BOTTOM_ORIGAMI_KERF
@@ -1315,12 +1293,10 @@ async function generateManufacturingInfo() {
       }
       console.log(`Bottom svg ${covers.bottom.length-1} is ${w.toFixed(2)}" by ${h.toFixed(2)}"`)
     }
-    coverPostProcessingFunction(covers)
     if (covers.bottom.length[0]) {
       document.getElementById("cover").outerHTML = covers.bottom[0].svg
     }
 
-    wallInfo.sort((a,b) => a.length - b.length)
     // createPrintInfo(true)
     createPrintInfo3D()
   }
