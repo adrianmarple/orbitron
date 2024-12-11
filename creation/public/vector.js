@@ -77,8 +77,11 @@ for (let method of methodsToValuize) {
   }
 }
 
-// https://threejs.org/docs/?q=matri#api/en/math/Matrix4
+// https://threejs.org/docs/?q=matri#api/en/math/Matrix3
 class Matrix extends THREE.Matrix3 {
+  clone() {
+    return new Matrix().copy(this)
+  }
   add(m) {
     for (let i = 0; i < 9; i++) {
       this.elements[i] += m.elements[i]
@@ -87,6 +90,17 @@ class Matrix extends THREE.Matrix3 {
   }
   divideScalar(s) {
     return this.multiplyScalar(1/s)
+  }
+  invert() {
+    return new Matrix().copy(this).invert()
+  }
+}
+methodsToValuize = [
+  "invert"
+]
+for (let method of methodsToValuize) {
+  Matrix.prototype[method] = function(...args) {
+    return THREE.Matrix3.prototype[method].apply(this.clone(), args)
   }
 }
 

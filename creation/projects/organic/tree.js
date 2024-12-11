@@ -1,5 +1,5 @@
 module.exports = async () => {
-  CHANNEL_WIDTH = 11
+  setFor3DPrintedCovers()
 
   await addFromSVG("organic/tree.svg")
 

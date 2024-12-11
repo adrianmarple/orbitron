@@ -252,7 +252,6 @@ addPOSTListener(async (response, body) => {
   scadContents = replaceScadVariable(scadContents, "svg_file", `"${MANUFACTURING_FOLDER}qr.svg"`)
   scadContents = replaceScadVariable(scadContents, "frame_file", `"${MANUFACTURING_FOLDER}scad/qrframe.svg"`)
   await fs.promises.writeFile(MANUFACTURING_FOLDER + "qr.scad", scadContents)
-  if (body.PROCESS_STOP == "scad") return true
 
   let stlFilePath = MANUFACTURING_FOLDER + body.fullProjectName + "_qr.stl"
   await execute(`openscad -o "${stlFilePath}" "${MANUFACTURING_FOLDER}qr.scad"`)
@@ -273,7 +272,6 @@ addPOSTListener(async (response, body) => {
     gcodeContents = gcodeContents.replace(chunkToReplace, chunkLines.join("\n"))
     await fs.promises.writeFile(gcodeFilePath, gcodeContents)
   }
-  if (body.PROCESS_STOP == "bgcode") return true
   
   console.log("Uploading gcode")
   let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_qr.gcode"
@@ -397,6 +395,20 @@ async function generateModule(info, module) {
         case "scale":
           moduleString += `
           scale([${operation.scale}, ${operation.scale}, ${operation.scale}])`
+          break
+        case "mirror":
+          moduleString += `
+          mirror([${operation.normal}])`
+          break
+        case "matrix3":
+          let M = operation.M
+          moduleString += `
+          multmatrix([
+            [${M[0]}, ${M[3]}, ${M[6]}, 0],
+            [${M[1]}, ${M[4]}, ${M[7]}, 0],
+            [${M[2]}, ${M[5]}, ${M[8]}, 0],
+            [0,          0,           0,         1]
+          ])`
           break
       }
     }

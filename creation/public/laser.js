@@ -42,6 +42,7 @@ async function createCoverSVG(plain) {
     vertex.ogCoords = vertex.ogCoords.scale(SCALE).applyMatrix(R)
   }
   
+  let zOffset = 0
   // Gather paths
   let paths = []
   let directedEdges = []
@@ -53,6 +54,7 @@ async function createCoverSVG(plain) {
     if (!edge.verticies[1].plains.includes(plain)) continue
     directedEdges.push([edge.verticies[1], edge.verticies[0]])
     directedEdges.push([edge.verticies[0], edge.verticies[1]])
+    zOffset = edge.verticies[0].ogCoords.z
   }
 
   let outerPath = null
@@ -229,6 +231,41 @@ async function createCoverSVG(plain) {
       let angle1 = a1/2
       let angle2 = -a2/2
 
+      let wallCorner = v2
+          .addScaledVector(n, CHANNEL_WIDTH/2 + WALL_THICKNESS)
+          .addScaledVector(e1, Math.tan(angle2) * CHANNEL_WIDTH/2)
+      if (angle2 > 0) {
+        wallCorner = wallCorner.addScaledVector(e1, Math.tan(angle2) * WALL_THICKNESS)
+      }
+      let worldPlacementOperations = [
+        {
+          type: "translate",
+          position: [0, -WALL_PANEL_HEIGHT, 0],
+        },
+        {
+          type: "rotate",
+          axis: [1, 0, 0],
+          angle: Math.PI/2,
+        },
+        {
+          type: "rotate",
+          axis: [0, 0, 1],
+          angle: RIGHT.signedAngle(e1),
+        },
+        {
+          type: "translate",
+          position: wallCorner.toArray(),
+        },
+        {
+          type: "matrix3",
+          M: R.invert().toArray(),
+        },
+        {
+          type: "mirror",
+          normal: [0, 1, 0],
+        },
+      ]
+
       // Logic for fold walls
       let plains1 = dPath[(i+1) % dPath.length].plains
       let plains2 = dPath[(i+2) % dPath.length].plains
@@ -298,10 +335,29 @@ async function createCoverSVG(plain) {
         foldWall["miterAngle" + type] = isOne ? angle2 : angle1
         foldWall["lengthOffset" + type] = isOne ? lengthOffset2 : lengthOffset1
         foldWall["edgeLength" + type] = edgeLength
+        foldWall["worldPlacementOperations" + type] = worldPlacementOperations
         if (!foldWalls.includes(foldWall)) {
           foldWalls.push(foldWall)
         }
         associateWallWithEdges(foldWall, associatedEdges)
+
+        // World placement adjustments
+        // let wallCorner = v1
+        //     .addScaledVector(n, CHANNEL_WIDTH/2 + WALL_THICKNESS)
+        //     .addScaledVector(e1, Math.tan(angle2) * CHANNEL_WIDTH/2)
+        let outerPoint = outerV
+            .addScaledVector(n, w2)
+            .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
+        let wallCorner = deadendPlain.intersection(new Line(outerPoint, e1))
+        // worldPlacementOperations[2].angle *= -1
+        if (!isOne) {
+          // worldPlacementOperations[2].angle *= -1
+        }
+        worldPlacementOperations[3].position = wallCorner.toArray()
+        worldPlacementOperations.splice(2, 0, {
+          type: "mirror",
+          normal: [1,0,0],
+        })
       }
 
       if (plains1.length == 2) {
@@ -318,6 +374,7 @@ async function createCoverSVG(plain) {
           yRotationAngle: angle2,
           length: wallLength,
           edgeLength,
+          worldPlacementOperations,
         }, associatedEdges) // TODO eventually remove the rest of normal wall logic
 
         let edgeCenter = v1.addScaledVector(e1, edgeLength/2)
@@ -499,6 +556,36 @@ async function createCoverSVG(plain) {
     }
   }
   print.svg = svg
+
+  print.worldPlacementOperations = [
+    {
+      type: "translate",
+      position: [minX, 2*minY - maxY, -(CHANNEL_DEPTH/2 + THICKNESS + EXTRA_COVER_THICKNESS)],
+    },
+    {
+      type: "mirror",
+      normal: [0, 1, 0],
+    },
+  ]
+  if (IS_BOTTOM) {
+    print.worldPlacementOperations.push({
+      type: "mirror",
+      normal: [0,0,1],
+    })
+  }
+  print.worldPlacementOperations.push({
+    type: "translate",
+    position: [0, 0, zOffset],
+  })
+  print.worldPlacementOperations.push({
+    type: "matrix3",
+    M: R.invert().toArray(),
+  })
+  print.worldPlacementOperations.push({
+      type: "mirror",
+      normal: [0, 1, 0],
+  })
+
   return print
 }
 
@@ -682,6 +769,71 @@ function setLatestWallSvg(path, printInfo) {
   })
 }
 
+
+function createFullModel() {
+  // TODO consider removing all LED supports and embossings etc.
+  let print = blankPrint()
+  print.suffix = "_full"
+  print.operations = [{ type: "rotation", axis: [1,0,0], angle: Math.PI }]
+
+  for (let type of ["top", "bottom"]) {
+    for (let bottomPrint of covers[type]) {
+      bottomPrint.operations = bottomPrint.worldPlacementOperations
+      print.components.push(bottomPrint)
+    }
+  }
+
+  let completedParts = {}
+  for (let edge of edges) {
+    if (edge.isDupe) continue
+    for (let wall of edgeToWalls[edge.index]) {
+      if (completedParts[wall.partID]) continue
+      if (wall.isFoldWall) {
+        let wallPrint1 = wallPrints(wall, true)[0]
+        wallPrint1.operations = [...wall.worldPlacementOperations1]
+        wallPrint1.operations.splice(3, 0, {
+          type: "rotate",
+          axis: [0,1,0],
+          angle: wall.zRotationAngle,
+        })
+        if (wall.aoiComplement < 0) {
+          wallPrint1.operations.splice(4, 0, {
+            type: "translate",
+            position: [Math.tan(wall.aoiComplement) * WALL_THICKNESS, 0, 0],
+          })
+        }
+        print.components.push(wallPrint1)
+
+        let wallPrint2 = wallPrints(wall, false)[0]
+        wallPrint2.operations = [...wall.worldPlacementOperations2]
+        wallPrint2.operations.splice(3, 0, {
+          type: "rotate",
+          axis: [0,1,0],
+          angle: -wall.zRotationAngle,
+        })
+        if (wall.aoiComplement < 0) {
+          wallPrint2.operations.splice(4, 0, {
+            type: "translate",
+            position: [-Math.tan(wall.aoiComplement) * WALL_THICKNESS, 0, 0],
+          })
+        }
+        print.components.push(wallPrint2)
+      } else {
+        let wallPrint = wallPrints(wall, true)[0]
+        wallPrint.operations = wall.worldPlacementOperations
+        print.components.push(wallPrint)
+      }
+      completedParts[wall.partID] = true
+    }
+  }
+
+  return {
+    type: "gcode",
+    prints: [print],
+    PROCESS_STOP: "stl",
+  }
+}
+
 function createPrintInfo3D() {
   printInfo = {
     type: "gcode",
@@ -702,7 +854,7 @@ function createPrintInfo3D() {
       if (completedPlains.includes(plain)) continue
 
       let plainIndex = plains.indexOf(plain)
-      let bottomPrint = covers["bottom"][plainIndex]
+      let bottomPrint = covers.bottom[plainIndex]
       bottomPrint.suffix = partID + "b"
       let embossing = findEmbossing(bottomPrint)
       if (embossing) {
@@ -710,7 +862,7 @@ function createPrintInfo3D() {
       }
       printInfo.prints.push(bottomPrint)
 
-      let topPrint = covers["top"][plainIndex]
+      let topPrint = covers.top[plainIndex]
       topPrint.suffix = partID + "t"
       embossing = findEmbossing(topPrint)
       if (embossing) {

@@ -9,8 +9,7 @@
   <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
   <div class="button" @click="downloadJSON">Download JSON</div>
   <div class="button" @click="genPrints">Generate Prints</div>
-  <!-- <div class="button" @click="downloadCovers">Download Covers</div>
-  <div class="button" @click="genWalls">Generate Walls</div> -->
+  <div class="button" @click="genModel">Full 3D Model</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
   <div class="button" @click="configure">Configure Default Orb</div>
 </div>
@@ -175,6 +174,12 @@ export default {
       printInfo.fullProjectName = fullProjectName
       this.$root.post(printInfo)
       console.log("Generating prints")
+    },
+    genModel() {
+      let printInfo = createFullModel()
+      printInfo.fullProjectName = fullProjectName
+      this.$root.post(printInfo)
+      console.log("Generating full")
     },
 
     configure() {

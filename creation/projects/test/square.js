@@ -2,20 +2,22 @@
 
 module.exports = () => {
   setFor3DPrintedCovers()
-  cat5WallOverride = 13
+  MAX_WALL_LENGTH = 1000
   // PRINT_WALL_HALVES_SEPARATELY = false
 
   // addPolygon(3, [0,0,0], 4)
   // zeroFoldAllEdges()
-
-  let e = addPolygon(6, [0,0,0], 3)[3]
-  // extrudePolygon(e, 3)
-  // removeEdge(e)
-  // addPolygon(4, [0,0,0], 4)
+  let offset = new Vector(1,-2,0)
+  // currentPlain = new Plain(offset, FORWARD)
+  // plains = [currentPlain]
+  let e = addPolygon(6, offset, 3)[3]
+  // let e = addPolygon(4, offset, 4)[2]
   origami(new Plain(
-    new Vector(0, 0, 0),
+    offset,
     new Vector(0, 1, 1)
   ))
+  addTriangulation(e.verticies[0], e.verticies[1], 3, 4)
+  removeEdge(e)
 
   doubleEdges()
   EulerianPath(0)
