@@ -134,6 +134,7 @@ function reset() {
   addNubs = true
   addExtraFoldWallWedge = true
   cat5partID = ""
+  powerHolePartID = ""
 
   powerHoleWallIndex = -1
 
@@ -266,8 +267,8 @@ function render() {
     ctx.stroke()
   }
 
-  ctx.fillStyle = "white"
-  ctx.font = "11px Arial"
+  ctx.fillStyle = "#f06"
+  ctx.font = "10px Arial"
   for (let vertex of verticies) {
     let xy = vertex.coordinates.project(projScale)
     if (showVertexNumbers) {
@@ -279,7 +280,15 @@ function render() {
     center = center.scale(0.5)
     let xy = center.project(projScale)
     if (showEdgeNumbers && !edge.isDupe) {
-      ctx.fillText(edge.index, xy[0] + 4, xy[1] - 5)
+      let text = edge.index + ""
+      if (window.edgeToWalls && window.edgeToWalls[edge.index]) {
+        text += " ("
+        for (let wall of window.edgeToWalls[edge.index]) {
+          text += wall.partID + " "
+        }
+        text += ")"
+      }
+      ctx.fillText(text, xy[0] - 2, xy[1] +4)
     }
   }
   if (window.pixelInfo && showPixelNumbers) {

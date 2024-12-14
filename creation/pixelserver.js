@@ -345,6 +345,20 @@ async function generateGCode(info, print) {
     import("../../qtclip.svg");
   }
 
+  module pcb_clip(height, width, inset, pcb_thickness, clip_thickness, notch_height) {
+    union() {
+      translate([0,0,height/2])
+      cube([width, clip_thickness, height], center=true);
+        
+      translate([-width/2, -clip_thickness/2,height])
+      cube([width, clip_thickness/2-inset, pcb_thickness + notch_height]);
+        
+      translate([0, -inset, height+pcb_thickness])
+      rotate(a=90, v=[0,0,1])
+      wedge(30, width, notch_height, 0);
+    }
+  }
+
   module innerwall_bit(thickness, is_female) {
     translate([-6.5,-20,0])
     linear_extrude(height = thickness)
@@ -463,6 +477,10 @@ async function generateModule(info, module) {
     case "qtClip":
       moduleString += `
       qt_clip();`
+      break
+    case "pcbClip":
+      moduleString += `
+      pcb_clip(${module.height}, ${module.width}, ${module.inset}, ${module.pcb_thickness}, ${module.clip_thickness}, ${module.notchHeight});`
       break
     case "innerwallbit":
       moduleString += `

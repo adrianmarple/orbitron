@@ -65,8 +65,8 @@ export default {
         {name: "generateWallNumbers", type: "bool"},
         {name: "noSupports", type: "bool"},
         {name: "onlyOneWall", type: "bool"},
-        {name: "ENDING_PART_ID", type: "int", value: 0},
         {name: "STARTING_PART_ID", type: "int", value: 0},
+        {name: "ENDING_PART_ID", type: "int", value: 0},
         {name: "PROCESS_STOP", type: "select",
           options: [
             ["stl", "Generate .stl"],

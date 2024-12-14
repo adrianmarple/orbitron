@@ -307,7 +307,9 @@ async function createCoverSVG(plain) {
         wallStartPoint = wallStartPoint.addScaledVector(FORWARD, plainTranslationValue)
         let wallEndPoint = deadendPlain.intersection(new Line(wallStartPoint, e1))
 
-        console.log(wallEndPoint.sub(wallStartPoint).normalize().dot(e1) * (isOne ?-1:1))
+        if (wallEndPoint.sub(wallStartPoint).normalize().dot(e1) * (isOne ?-1:1) < 0) {
+          console.log("wallStartPoint on wrong side of deadend plain!")
+        }
         wallLength = wallEndPoint.sub(wallStartPoint).length()
         if (isOne) {
           lengthOffset1 = edgeLength + lengthOffset2 - wallLength
@@ -774,7 +776,7 @@ function createFullModel() {
   // TODO consider removing all LED supports and embossings etc.
   let print = blankPrint()
   print.suffix = "_full"
-  print.operations = [{ type: "rotation", axis: [1,0,0], angle: Math.PI }]
+  print.operations = [{ type: "rotate", axis: [1,0,0], angle: -Math.PI/2 }]
 
   for (let type of ["top", "bottom"]) {
     for (let bottomPrint of covers[type]) {
@@ -885,6 +887,11 @@ function createPrintInfo3D() {
       completedWalls.push(wall)
       partID += 1
     }
+  }
+
+  let startingPartID = STARTING_PART_ID
+  if (startingPartID < 1) {
+    startingPartID = 1
   }
   let prints = []
   let hasReachedStart
@@ -1234,6 +1241,16 @@ function wallPrints(wall, isLeft) {
     })
   }
 
+  // Power hole
+  if (print.suffix == powerHolePartID) {
+    let r = POWER_HOLE_RADIUS
+    let powerCenter = wallStart.addScaledVector(E, -topLength/2 + r)
+    path += `
+      M${powerCenter.x} ${powerCenter.y}
+      a ${r},${r} 0 1,0 ${r*2},0
+      a ${r},${r} 0 1,0,${-r*2},0`
+  }
+
   // Wedges
   // End wedge
   let position = wallSegments[0].add(offset)
@@ -1267,7 +1284,7 @@ function wallPrints(wall, isLeft) {
   // LED supports
   position = null
   if (isLeft && !noSupports && print.suffix != cat5partID && !wall.hasWallPort) {
-    let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
+    let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 2)
     if (wall.supportOffset) {
       supportOffset += wall.supportOffset
     }
@@ -1285,7 +1302,7 @@ function wallPrints(wall, isLeft) {
     }
     offsetNegative = supportOffset % PIXEL_DISTANCE
     // TODO better calculation for how much negative offset should be (based on angles)
-    while (offsetNegative < PIXEL_DISTANCE + LED_SUPPORT_WIDTH/2) {
+    while (offsetNegative < PIXEL_DISTANCE/2 + LED_SUPPORT_WIDTH/2) {
       offsetNegative += PIXEL_DISTANCE
     }
     supportOffset -= offsetNegative
@@ -1449,7 +1466,6 @@ async function generateManufacturingInfo() {
       document.getElementById("cover").outerHTML = covers.bottom[0].svg
     }
 
-    // createPrintInfo(true)
     createPrintInfo3D()
   }
 }
