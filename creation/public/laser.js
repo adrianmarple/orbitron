@@ -413,7 +413,7 @@ async function createCoverSVG(plain) {
         borderPoints.push(p1)
 
         // fold wall miter
-        let skew = -Math.tan(angleOfIncidence - Math.PI/2)
+        let skew = Math.tan(angleOfIncidence - Math.PI/2)
         let angle = Math.atan(Math.tan(dihedralAngle/2) / Math.sin(angleOfIncidence))
         centerPoint = v2.addScaledVector(FORWARD, plainTranslationValue)
         let wedgePoint = deadendPlain.intersection(new Line(centerPoint, e1))
@@ -421,7 +421,7 @@ async function createCoverSVG(plain) {
         print.components.push({
           type: "wedge",
           angle: angle * (IS_BOTTOM ? -1 : 1),
-          rotationAngle: e1.signedAngle(LEFT),
+          rotationAngle: -e1.signedAngle(LEFT),
           position: wedgePoint.toArray(),
           thickness: THICKNESS + EXTRA_COVER_THICKNESS,
           width: CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER),
@@ -521,26 +521,29 @@ async function createCoverSVG(plain) {
   cover.querySelector("path").setAttribute("d", totalChannelString)
   let channelSvg = cover.outerHTML
 
-  print.components.forEach(component => {
-    if (component.position) {
-      component.position = [
-        component.position[0] - minX,
-        maxY - 2*minY - component.position[1],
-        component.position[2],
-      ]
+  let importCorrectionOperations = [
+    {
+      type: "translate",
+      position: [minX, 2*minY - maxY, 0]
+    },
+    {
+      type: "mirror",
+      normal: [0,1,0],
     }
-  })
+  ]
 
   print.components.push({
     type: "svg",
     svg,
     thickness: THICKNESS,
     position: [0,0,EXTRA_COVER_THICKNESS],
+    operations: importCorrectionOperations,
   })
   print.components.push({
     type: "svg",
     svg: borderSvg,
     thickness: EXTRA_COVER_THICKNESS,
+    operations: importCorrectionOperations,
   })
 
   if (INNER_CHANNEL_THICKNESS !== null) {
@@ -553,6 +556,7 @@ async function createCoverSVG(plain) {
           svg: channelSvg,
           thickness: THICKNESS - INNER_CHANNEL_THICKNESS,
           position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+          operations: importCorrectionOperations,
         }
       ]
     }
@@ -562,11 +566,7 @@ async function createCoverSVG(plain) {
   print.worldPlacementOperations = [
     {
       type: "translate",
-      position: [minX, 2*minY - maxY, -(CHANNEL_DEPTH/2 + THICKNESS + EXTRA_COVER_THICKNESS)],
-    },
-    {
-      type: "mirror",
-      normal: [0, 1, 0],
+      position: [0, 0, -(CHANNEL_DEPTH/2 + THICKNESS + EXTRA_COVER_THICKNESS)],
     },
   ]
   if (IS_BOTTOM) {
@@ -621,7 +621,7 @@ function singleSlotPath(wallLength, basis, offset, localOffset, isFinalEdge, pri
       print.components.push({
         type: "wedge",
         angle: CHANNEL_LATCH_ANGLE * Math.PI / 180,
-        rotationAngle: basis[0].scale(directionSign).signedAngle(RIGHT),
+        rotationAngle: -basis[0].scale(directionSign).signedAngle(RIGHT),
         position: position.toArray(),
         thickness: THICKNESS,
         width: WALL_THICKNESS - 2*KERF,
@@ -633,7 +633,7 @@ function singleSlotPath(wallLength, basis, offset, localOffset, isFinalEdge, pri
           .addScaledVector(FORWARD, EXTRA_COVER_THICKNESS + THICKNESS - HOOK_THICKNESS/2)
       print.components.push({
         type: "cube",
-        rotationAngle: basis[0].scale(directionSign).signedAngle(RIGHT),
+        rotationAngle: -basis[0].scale(directionSign).signedAngle(RIGHT),
         position: position.toArray(),
         dimensions: [HOOK_OVERHANG, WALL_THICKNESS - 2*KERF, HOOK_THICKNESS],
       })
@@ -1283,7 +1283,7 @@ function wallPrints(wall, isLeft) {
 
   // LED supports
   position = null
-  if (isLeft && !noSupports && print.suffix != cat5partID && !wall.hasWallPort) {
+  if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID && !wall.hasWallPort) {
     let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 2)
     if (wall.supportOffset) {
       supportOffset += wall.supportOffset
@@ -1293,7 +1293,7 @@ function wallPrints(wall, isLeft) {
     // }
     position = startV.addScaledVector(E, -supportOffset)
   }
-  if (!isLeft && !noSupports && print.suffix != cat5partID &&
+  if (!isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       bottomLength > PIXEL_DISTANCE * 3 &&
       (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
     let supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)

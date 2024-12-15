@@ -18,7 +18,7 @@ module.exports = async () => {
   THICKNESS = 2.6
   LATCH_TYPE = "hook"
 
-  await addFromSVG("THEBOX/small boxshape.svg")
+  addPolygon(4, [0,0,0], [72, 108])
 
   printPostProcessingFunction = printInfo => {
     let width = 10
@@ -27,14 +27,12 @@ module.exports = async () => {
     let pcb_thickness2 = 1.6
     let inset = 0.2
     let notchHeight = 1
-    let coverThickness = 2.2
-    let segmentClipHeight = 6 + coverThickness
-    let piClipHeight = 2 + coverThickness
+    let segmentClipHeight = 6 + THICKNESS + EXTRA_COVER_THICKNESS
+    let piClipHeight = 2 + THICKNESS + EXTRA_COVER_THICKNESS
 
-    let suffix = printInfo.prints[0].suffix
     printInfo.prints[0] = {
       type: "union",
-      suffix,
+      suffix: printInfo.prints[0].suffix,
       components: [
         printInfo.prints[0],
         {
@@ -89,7 +87,24 @@ module.exports = async () => {
       ]
     }
 
-    // TODO cut out gap for QR code in top
+    let qrIndentRadius = 6
+    let qrIndentWidth = 54
+    let qrIndentDepth = 1
+    printInfo.prints[1] = {
+      type: "difference",
+      suffix: printInfo.prints[1].suffix,
+      components: [
+        printInfo.prints[1],
+        {
+          position: [0, -20, 0],
+          code: `
+          linear_extrude(height=${qrIndentDepth})
+          offset(r=${qrIndentRadius})
+          square(${qrIndentWidth - qrIndentRadius*2}, center=true);
+          `,
+        }
+      ]
+    }
   }
 
   EulerianPath(1)

@@ -9,8 +9,6 @@ const fetch = require("node-fetch")
 // Imports from .env
 console.log(require('dotenv').config())
 
-SVG_SCALE = 2.83464566929 // Sigh. OpenSCAD appears to be importing .svg files as 72 DPI
-
 function execute(command){
   return new Promise(resolve => {
     exec(command, (error, stdout, stderr) => {
@@ -341,8 +339,7 @@ async function generateGCode(info, print) {
     rotate(v=[1,0,0], a=-90) 
     translate([-6,-6,-1])
     linear_extrude(height = 1)
-    scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-    import("../../qtclip.svg");
+    import("../../qtclip.svg", dpi=25.4);
   }
 
   module pcb_clip(height, width, inset, pcb_thickness, clip_thickness, notch_height) {
@@ -362,8 +359,7 @@ async function generateGCode(info, print) {
   module innerwall_bit(thickness, is_female) {
     translate([-6.5,-20,0])
     linear_extrude(height = thickness)
-    scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-    import(is_female ? "../../innerwall_female.svg" : "../../innerwall_male.svg");
+    import(is_female ? "../../innerwall_female.svg" : "../../innerwall_male.svg", dpi=25.4);
   }
 `
   scadFileContents += await generateModule(info, print)
@@ -387,14 +383,6 @@ async function generateGCode(info, print) {
 
 async function generateModule(info, module) {
   let moduleString = ""
-  if (module.position) {
-    moduleString += `
-      translate([${module.position}])`
-  }
-  if (module.rotationAngle) {
-    moduleString += `
-      rotate(a=${module.rotationAngle * 180/Math.PI}, v=[0,0,1])`
-  }
   if (module.operations) {
     for (let operation of module.operations.reverse()) {
       switch (operation.type) {
@@ -428,6 +416,15 @@ async function generateModule(info, module) {
     }
   }
 
+  if (module.position) {
+    moduleString += `
+      translate([${module.position}])`
+  }
+  if (module.rotationAngle) {
+    moduleString += `
+      rotate(a=${module.rotationAngle * 180/Math.PI}, v=[0,0,1])`
+  }
+
   switch (module.type) {
     case "union":
     case "difference":
@@ -447,8 +444,7 @@ async function generateModule(info, module) {
       }
       moduleString += `
       linear_extrude(height = ${module.thickness})
-      scale([${SVG_SCALE},${SVG_SCALE},${SVG_SCALE}])
-      import("${svgFilePath}");`
+      import("${svgFilePath}", dpi=25.4);`
       break
     case "wedge":
       let skew = module.skew || 0
@@ -486,6 +482,8 @@ async function generateModule(info, module) {
       moduleString += `
       innerwall_bit(${module.thickness}, ${module.isFemale});`
       break
+    default:
+      moduleString += "\n" + module.code
   }
   return moduleString
 }

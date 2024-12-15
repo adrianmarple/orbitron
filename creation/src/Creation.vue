@@ -42,7 +42,7 @@
 <svg id="wall" class="laser" width=1000 height=100 viewBox="0 0 1000 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path stroke="#808080"/>
 </svg>
-<svg id="cover" class="laser" width=1000 height=1000 viewBox="0 0 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scaleY(-1)">
+<svg id="cover" class="laser" width=0 height=0 viewBox="-1000 -1000 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scaleY(-1)">
   <path stroke="#808080"/>
 </svg>
 </template>
@@ -62,9 +62,6 @@ export default {
         {name: "showPixelNumbers", type: "bool"},
         {name: "showLaserSVG", type: "bool"},
         {name: "showWallSVG", type: "bool"},
-        {name: "generateWallNumbers", type: "bool"},
-        {name: "noSupports", type: "bool"},
-        {name: "onlyOneWall", type: "bool"},
         {name: "STARTING_PART_ID", type: "int", value: 0},
         {name: "ENDING_PART_ID", type: "int", value: 0},
         {name: "PROCESS_STOP", type: "select",
@@ -128,23 +125,6 @@ export default {
       let coverInfo = covers[this.coverMode][this.coverIndex]
       if (!coverInfo) return
       cover.outerHTML = coverInfo.svg
-
-      if (generateWallNumbers) {
-        let scale = coverPrint3D ? 1 : MM_TO_96DPI
-        let plain = plains[this.coverIndex]
-        cover.querySelectorAll("text").forEach(elem => cover.removeChild(elem))
-        for (let wallType of wallInfo) {
-          let index = wallInfo.indexOf(wallType)
-          wallType.id = index
-          for (let edgeCenter of wallType.edgeCenters[plain]) {
-            let txt = document.createElementNS("http://www.w3.org/2000/svg", "text")
-            txt.setAttribute("x", edgeCenter.x * scale)
-            txt.setAttribute("y", edgeCenter.y * scale)
-            txt.innerHTML = "" + index
-            cover.appendChild(txt)
-          }
-        }
-      }
     },
 
     cleanup() {
