@@ -1,7 +1,6 @@
 module.exports = () => {
   CHANNEL_WIDTH = 13
   BORDER = 10
-  MAX_NOTCH_DISTANCE = 100
   PRINT_WALL_HALVES_SEPARATELY = false
   // LED_SUPPORT_GAP = 1
   cat5PortMidway = true

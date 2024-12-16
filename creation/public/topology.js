@@ -94,6 +94,10 @@ class Edge {
     let toVertex = this.otherVertex(fromVertex)
     return toVertex.ogCoords.sub(fromVertex.ogCoords)
   }
+
+  split(distance) {
+    splitEdge(this, distance)
+  }
 }
 
 function resolveVertex(vertex) {
@@ -131,13 +135,6 @@ function addEdge(vertex1, vertex2) {
   vertex1 = resolveVertex(vertex1)
   vertex2 = resolveVertex(vertex2)
   if (!vertex1 || !vertex2) return null
-
-  var edgeCenter = vertex1.coordinates.add(vertex2.coordinates).multiplyScalar(.5)
-  for (let center of edgeCentersBlacklist) {
-    if (vectorEquals(edgeCenter, center)) {
-      return null
-    }
-  }
 
   for (let existingEdge of edges) {
     if (existingEdge.verticies[0] == vertex1 && existingEdge.verticies[1] == vertex2) {
@@ -429,15 +426,36 @@ function resetInidices() {
   }
 }
 
-function doubleEdges() {
+function edgeCleanup() {
   // First check if there are any edges with two fold verticies so they can be split
   for (let edge of [...edges]) {
     if (edge.verticies[0].plains.length == 2 && edge.verticies[1].plains.length == 2) {
-      let newVertex = splitEdge(edge, edge.length()/2)
+      let newVertex = edge.split(edge.length()/2)
       newVertex.dontMergeEdges = true
     }
   }
 
+  for (let edge of [...edges]) {
+    let maxLength = MAX_WALL_LENGTH
+    if (edge.verticies[0].plains.length == 2 || edge.verticies[1].plains.length == 2) {
+      maxLength = MAX_FOLD_WALL_LENGTH
+    }
+    let splitCount = Math.floor(edge.length() * SCALE() / MAX_WALL_LENGTH)
+    let newLength = edge.length() / (splitCount + 1)
+    for (let i = 0; i < splitCount; i++) {
+      edge.split(-newLength)
+    }
+  }
+
+  for (let vertex of verticies) {
+    if (vertex.edges.length % 2 == 1) {
+      doubleEdges()
+      break
+    }
+  }
+}
+
+function doubleEdges() {
   for (let edge of [...edges]) {
     var edgeCopy = edge.clone()
     for (let v of edge.verticies) {

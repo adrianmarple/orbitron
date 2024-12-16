@@ -3,16 +3,7 @@ startMidwayDownFinalEdge = false
 
 noncovergenceGuard = 1e4
 async function EulerianPath(currentVertex, pathOverride) {
-  for (let vertex of verticies) {
-    if (!vertex.ogCoords.isValid()) {
-      console.error("Bad vertex found. Abandining finding eulerian cycle.", vertex.ogCoords)
-      return
-    }
-    if (vertex.edges.length % 2 == 1) {
-      doubleEdges()
-      break
-    }
-  }
+  edgeCleanup()
   noncovergenceGuard = 1e4
   EulerianHelper(currentVertex, pathOverride)
 }

@@ -28,7 +28,6 @@ function reset() {
   plains = [DEFAULT_PLAIN]
   currentPlain = DEFAULT_PLAIN
 
-  edgeCentersBlacklist = []
   path = []
   seed = initialSeed
   pixelDensity = 1
@@ -42,6 +41,7 @@ function reset() {
   orbID = null
 
   EDGES_DOUBLED = false
+  SCALE = () => PIXEL_DISTANCE / pixelDensity
 
   THICKNESS = 3.1
   WALL_THICKNESS = 2
@@ -112,8 +112,6 @@ function reset() {
   IS_BOTTOM = true
   INFILL_100 = false
 
-  STARTING_I = 0
-
   WALL_PANEL_HEIGHT = 200  // Prusa MK4
   WALL_PANEL_WIDTH = 250  // Prusa MK4
   WALL_SVG_PADDING = {
@@ -122,8 +120,8 @@ function reset() {
   }
   WALL_SVG_GAP = 6
 
-  MAX_WALL_LENGTH = 100
-  MAX_NOTCH_DISTANCE = 120
+  MAX_FOLD_WALL_LENGTH = 100
+  MAX_WALL_LENGTH = 200
 
   NO_EMBOSSING = false
   NO_SUPPORTS = false
@@ -140,7 +138,7 @@ function reset() {
   powerHoleWallIndex = -1
 
   dataPostProcessingFunction = pixelInfo => {}
-  printPostProcessingFunction = covers => {}
+  printPostProcessingFunction = printInfo => {}
 }
 reset()
 
