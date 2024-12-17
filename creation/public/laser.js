@@ -624,7 +624,7 @@ function singleSlotPath(wallLength, basis, offset, localOffset, isFinalEdge, pri
         type: "cube",
         rotationAngle: -basis[0].scale(directionSign).signedAngle(RIGHT),
         position: position.toArray(),
-        dimensions: [HOOK_OVERHANG, WALL_THICKNESS - 2*KERF, HOOK_THICKNESS],
+        dimensions: [HOOK_LATCH_LENGTH, WALL_THICKNESS - 2*KERF, HOOK_THICKNESS],
       })
     }
   }

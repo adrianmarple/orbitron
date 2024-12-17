@@ -66,11 +66,11 @@ module.exports = async () => {
         },
         {
           type: "union",
-          position: [5,-10,0],
+          position: [-5,-10,0],
           components: [
             {
               type: "pcbClip",
-              position: [0, -29.9, 0],
+              position: [0, -30, 0],
               height: piClipHeight,
               pcb_thickness: pcb_thickness2,
               width, inset, clip_thickness, notchHeight,
