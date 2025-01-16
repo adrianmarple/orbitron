@@ -300,7 +300,7 @@ function generatePixelInfo() {
     let local_neighbors = neighbors[i]
     for (let n of local_neighbors) {
       furthest_neighbor = null
-      max_dist = 0
+      max_dist = -1 // max_dist of 0 will mean doubling back
       for (let n2 of neighbors[n]) {
         let dist = coords[n2].distanceTo(coords[i])
         if (dist > max_dist) {

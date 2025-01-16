@@ -152,13 +152,13 @@ export default {
     this.updateConfig()
 
     await this.getOrbInfo()
-    setInterval(async function() {
-      self.getOrbInfo()
-      if (self.viewing == "log") {
-        self.updateLog()
-      }
-      self.commits = await (await fetch("http://localhost:8000/commits")).json()
-    }, 5000)
+    // setInterval(async function() {
+    //   self.getOrbInfo()
+    //   if (self.viewing == "log") {
+    //     self.updateLog()
+    //   }
+    //   self.commits = await (await fetch("http://localhost:8000/commits")).json()
+    // }, 5000)
     this.setOrb(this.orbID)
 
 

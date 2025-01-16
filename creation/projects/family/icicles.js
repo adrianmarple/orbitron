@@ -2,16 +2,39 @@
 module.exports = () => {
   setFor3DPrintedCovers()
 
-  const MAX = 10
-  let startPoint = new Vector(0,0,0)
-  let v0 = addVertex(startPoint)
+  let v0 = addVertex(new Vector(0,0,0))
+  spiral(v0, 29, true)
 
-  let previousPlain = new Plain(startPoint, FORWARD)
+  let v1 = addVertex(new Vector(16,0,0))
+  addEdge(v0,v1)
+  spiral(v1, 12)
+
+  let v2 = addVertex(new Vector(54,0,0))
+  addEdge(v2,v1)
+  spiral(v2, 8)
+
+  let v3 = addVertex(new Vector(110,0,0))
+  addEdge(v2,v3)
+  spiral(v3, 39)
+
+  let v4 = addVertex(new Vector(146,0,0))
+  addEdge(v4,v3)
+  // spiral(v4, 14, true)
+
+  EulerianPath(0)
+}
+
+function spiral(v0, count, clampX) {
+  let previousPlain = new Plain(v0.ogCoords, FORWARD)
   let previousEdge = addLine(v0, 3, 90)
   let previousVertex = previousEdge.otherVertex(v0)
-  for (let i = 0; i < 7; i++) {
-    let targetPoint = DOWN.scale(i * (3 + Math.log(i/2+1)/2) + 7)
-      .add(FORWARD.scale(2 * (MAX - i/2)/MAX).rotate(UP, i+1))
+  for (let i = 0; i < count; i++) {
+    let targetPoint = v0.ogCoords.add(DOWN.scale(i * (3 + Math.log(i/2+1)/2) + 7))
+      .add(FORWARD.scale(2 * (count - i/2)/count).rotate(UP, i+1))
+
+    if (clampX) {
+      targetPoint.x = v0.ogCoords.x
+    }
 
     let diff = targetPoint.sub(previousVertex.ogCoords)
     diff = diff.scale(Math.round(diff.length()) / diff.length())
@@ -36,5 +59,4 @@ module.exports = () => {
     previousVertex = newVertex
   }
 
-  EulerianPath(0)
 }

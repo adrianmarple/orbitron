@@ -307,7 +307,7 @@ def update_schedule():
   current = schedule[-1]
   next = schedule[0]
   for event in schedule:
-    if cyclic_interval_check(current["repeated_time"], event[ "repeated_time"], now_repeated):
+    if cyclic_interval_check(current["repeated_time"], event["repeated_time"], now_repeated):
       next = event
       break
     previous = current
@@ -321,7 +321,7 @@ def update_schedule():
     end += next["repeated_time"].cycle_delta()
   if start > end:
     start -= current["repeated_time"].cycle_delta()
-  if end - start > timedelta(days=1):
+  if end - start > current["repeated_time"].cycle_delta():
     start += current["repeated_time"].cycle_delta()
 
 def cyclic_interval_check(start, end, x):

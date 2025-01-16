@@ -96,10 +96,6 @@ async function createCoverSVG(plain) {
         dPath.push(leftmostTurn[0])
       }
       directedEdges.remove(leftmostTurn)
-      if (epsilonEquals(minAngle, 0) && !epsilonEquals(e0.length(), 0) &&
-          !leftmostTurn[0].dontMergeEdges) {
-        dPath.pop() // Join edges if the path is straight
-      }
       cumulativeAngle += minAngle
       dPath.push(leftmostTurn[1])
     }
@@ -162,21 +158,9 @@ async function createCoverSVG(plain) {
       let a1 = e1.signedAngle(e0)
       let a2 = e1.signedAngle(e2)
 
-      let associatedEdges = []
-      let vertex = vertex1
-      while (true) {
-        let edge = vertex.edgeInDirection(e1)
-        if (!edge) {
-          break
-        }
-        if (associatedEdges.length > 0 && edge != vertex.leftmostEdge(e1)) {
-          break
-        }
-        associatedEdges.push(edge)
-        vertex = edge.otherVertex(vertex)
-        if (vertex.dontMergeEdges) {
-          break
-        }
+      let associatedEdge = vertex1.edgeInDirection(e1)
+      if (!associatedEdge) { // Assumed due to end cap
+        associatedEdge = vertex1.edges[0]
       }
 
       let endCapOffset = CHANNEL_WIDTH * END_CAP_FACTOR * -0.5
@@ -336,7 +320,7 @@ async function createCoverSVG(plain) {
         if (!foldWalls.includes(foldWall)) {
           foldWalls.push(foldWall)
         }
-        associateWallWithEdges(foldWall, associatedEdges)
+        associateWallWithEdge(foldWall, associatedEdge)
 
         // World placement adjustments
         let outerPoint = outerV
@@ -356,7 +340,7 @@ async function createCoverSVG(plain) {
       } else if (plains2.length == 2) {
         addFoldWallInfo(2)
       } else {
-        associateWallWithEdges({
+        associateWallWithEdge({
           miterAngle: angle1,
           lengthOffset1,
           dihedralAngle: 0,
@@ -366,11 +350,7 @@ async function createCoverSVG(plain) {
           length: wallLength,
           edgeLength,
           worldPlacementOperations,
-        }, associatedEdges) // TODO eventually remove the rest of normal wall logic
-
-        let edgeCenter = v1.addScaledVector(e1, edgeLength/2)
-            .addScaledVector(n, w1*1.5)
-
+        }, associatedEdge)
       }
 
       // Slots
@@ -580,15 +560,13 @@ async function createCoverSVG(plain) {
   return print
 }
 
-function associateWallWithEdges(wall, associatedEdges) {
+function associateWallWithEdge(wall, associatedEdge) {
   if (IS_BOTTOM) return
-  for (let edge of associatedEdges) {
-    if (!edgeToWalls[edge.index]) {
-      edgeToWalls[edge.index] = []
-    }
-    if (!edgeToWalls[edge.index].includes(wall)) {
-      edgeToWalls[edge.index].push(wall)
-    }
+  if (!edgeToWalls[associatedEdge.index]) {
+    edgeToWalls[associatedEdge.index] = []
+  }
+  if (!edgeToWalls[associatedEdge.index].includes(wall)) {
+    edgeToWalls[associatedEdge.index].push(wall)
   }
 }
 
@@ -806,6 +784,7 @@ function createPrintInfo3D() {
       if (embossing) {
         embossing.text = topPrint.suffix
       }
+      topPrint.operations = [{type: "mirror", normal: [1,0,0]}]
       printInfo.prints.push(topPrint)
 
       completedPlains.push(plain)

@@ -266,6 +266,15 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
   position: fixed;
   bottom: 0;
 }
+.nav-bar::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: -0.1rem;
+  height: 0.5rem;
+  background-color: var(--bg-color);
+}
 
 .icon {
   border: 0.5rem solid var(--bg-color);
@@ -1355,7 +1364,9 @@ a:active {
 #select-items {
   color: white;
   border-radius: 0.5rem;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  max-height: 100%;
   border: 0.1rem solid #666;
   position: absolute;
   background-color: #333;

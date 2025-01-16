@@ -183,6 +183,8 @@ h1 {
   z-index: 9;
   display: flex;
   flex-direction: column;
+  height: 95vh;
+  overflow-y: scroll;
 }
 .actions {
   z-index: 10;

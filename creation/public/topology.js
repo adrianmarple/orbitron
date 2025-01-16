@@ -96,7 +96,7 @@ class Edge {
   }
 
   split(distance) {
-    splitEdge(this, distance)
+    return splitEdge(this, distance)
   }
 }
 
