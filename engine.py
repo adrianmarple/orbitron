@@ -210,6 +210,12 @@ def update():
 
     raw_pixels = np.minimum(raw_pixels, 255)
     raw_pixels = np.maximum(raw_pixels, 0)
+
+    max_power_draw = config.get("MAX_POWER_DRAW")
+    if max_power_draw is not None:
+      power_draw = np.sum(np.matmul(raw_pixels, np.array([0.00013, 0.00013, 0.00013])))
+      if power_draw > max_power_draw:
+        raw_pixels *= max_power_draw / power_draw
     display_pixels(raw_pixels)
     broadcast_state()
 
