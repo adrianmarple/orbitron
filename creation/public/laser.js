@@ -27,15 +27,24 @@ async function createCoverSVG(plain) {
   // Rotate all verticies to make this plain lie "flat"
   // Also scale verticies to be in mm space
   let v = plain.normal.cross(FORWARD)
-  let c = plain.normal.normalize().dot(FORWARD)
+  let c = plain.normal.dot(FORWARD)
   let R = new Matrix().identity()
+  // if (c < 0) {
+  //   c *= -1
+  //   v = v.negate()
+  // }
+
   let vCross = new Matrix().set(
     0, -v.z, v.y,
     v.z, 0, -v.x,
     -v.y, v.x, 0
   )
   R.add(vCross)
-  R.add(vCross.clone().multiply(vCross).divideScalar(1+c))
+  if (epsilonEquals(c, -1)) {
+    R.set(-1,0,0,0,1,0,0,0,-1)
+  } else {
+    R.add(vCross.clone().multiply(vCross).divideScalar(1+c))
+  }
   for (let vertex of verticies) {
     vertex.oogCoords = vertex.ogCoords
     vertex.ogCoords = vertex.ogCoords.scale(SCALE()).applyMatrix(R)
@@ -81,9 +90,6 @@ async function createCoverSVG(plain) {
         let e1 = v1.ogCoords.sub(v0.ogCoords)
         
         let a = e1.signedAngle(e0)
-        if (epsilonEquals(Math.abs(a), Math.PI)) {
-          a = Math.PI
-        }
         if (a < minAngle) {
           minAngle = a
           leftmostTurn = dEdge
@@ -104,10 +110,10 @@ async function createCoverSVG(plain) {
     e0 = dPath[0].ogCoords.sub(dPath.last().ogCoords)
     e1 = dPath[1].ogCoords.sub(dPath[0].ogCoords)
     let lastAngle = e1.signedAngle(e0)
-    // Start and end might be straight still
-    if (epsilonEquals(lastAngle, 0)) {
-      dPath.shift() // Remove middle (start) vertex if start and end is straight
-    }
+    // // Start and end might be straight still
+    // if (epsilonEquals(lastAngle, 0) && dPath[0].re) {
+    //   dPath.shift() // Remove middle (start) vertex if start and end is straight
+    // }
     // Check if first/last vertex doubles back
     if (dPath[0].plains.length == 1 && epsilonEquals(lastAngle, Math.PI)) {
       dPath.unshift(dPath[0]) // Add cap
@@ -246,39 +252,40 @@ async function createCoverSVG(plain) {
       ]
 
       // Logic for fold walls
-      let plains1 = dPath[(i+1) % dPath.length].plains
-      let plains2 = dPath[(i+2) % dPath.length].plains
-      let deadendPlain = null
-      let dihedralAngle = 0
-      let angleOfIncidence = Math.PI/2
+      let plains1 = vertex1.plains
+      let plains2 = vertex2.plains
+      // let deadendPlain = null
+      // let dihedralAngle = 0
+      // let angleOfIncidence = Math.PI/2
 
       function addFoldWallInfo(type) {
         let isOne = type == 1
-        let plains = (isOne ? plains1 : plains2)
-        deadendPlain = plains[0].folds[plains[1].index]
-        if (!deadendPlain) {
-          deadendPlain = plains[0].midPlain(plains[1])
-        }
+        let vertex = isOne ? vertex1 : vertex2
+        let {deadendPlain, dihedralAngle, aoiComplement} =
+            vertex.fold().getCoverInfo(plain, isOne)
         deadendPlain = deadendPlain.rotateAndScale(R, SCALE())
-        plains = plains.map(plain => plain.rotateAndScale(R, SCALE()))
+        
+        
+        // let plains = isOne ? plains1 : plains2
+        // plains = plains.map(plain => plain.rotateAndScale(R, SCALE()))
 
-        let crease = plains[0].intersection(deadendPlain)
-        angleOfIncidence = e1.signedAngle(crease.direction) * (isOne ? -1 : 1)
-        if (angleOfIncidence < 0) angleOfIncidence += Math.PI
-        if (angleOfIncidence > Math.PI) angleOfIncidence -= Math.PI
-        let aoiComplement = Math.PI/2 - angleOfIncidence
+        // let crease = plains[0].intersection(deadendPlain)
+        // angleOfIncidence = e1.signedAngle(crease.direction) * (isOne ? -1 : 1)
+        // if (angleOfIncidence < 0) angleOfIncidence += Math.PI
+        // if (angleOfIncidence > Math.PI) angleOfIncidence -= Math.PI
+        // let aoiComplement = Math.PI/2 - angleOfIncidence
 
         let outerV = isOne ? v2 : v1
-        // let innerV = isOne ? v1 : v2
         let wallStartPoint = outerV
             .addScaledVector(n, aoiComplement < 0 ? w2 : w1)
             .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
-        dihedralAngle = plains[0].normal.angleTo(plains[1].normal)
-        let sign = (wallStartPoint.isCoplanar(plains[0]) || wallStartPoint.isAbovePlain(plains[0])) &&
-            (wallStartPoint.isCoplanar(plains[1]) || wallStartPoint.isAbovePlain(plains[1]))
-        if (!sign) {
-          dihedralAngle *= -1
-        }
+
+        // dihedralAngle = plains[0].normal.angleTo(plains[1].normal)
+        // let sign = (wallStartPoint.isCoplanar(plains[0]) || wallStartPoint.isAbovePlain(plains[0])) &&
+        //     (wallStartPoint.isCoplanar(plains[1]) || wallStartPoint.isAbovePlain(plains[1]))
+        // if (!sign) {
+        //   dihedralAngle *= -1
+        // }
 
         let plainTranslationValue = CHANNEL_DEPTH/2
         plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS
@@ -287,7 +294,7 @@ async function createCoverSVG(plain) {
         let wallEndPoint = deadendPlain.intersection(new Line(wallStartPoint, e1))
 
         if (wallEndPoint.sub(wallStartPoint).normalize().dot(e1) * (isOne ?-1:1) < 0) {
-          console.log("wallStartPoint on wrong side of deadend plain!")
+          console.log("wallStartPoint on wrong side of deadend plain!", isOne ? vertex1 : vertex2)
         }
         wallLength = wallEndPoint.sub(wallStartPoint).length()
         if (isOne) {
@@ -296,31 +303,43 @@ async function createCoverSVG(plain) {
           lengthOffset2 = wallLength + lengthOffset1 - edgeLength
         }
 
-        let startingPlain = isOne ? plain : plains2.filter(p => p != plain)[0]
-        let vertex = isOne ? vertex1 : vertex2
-        let foldWall = {
-          isFoldWall: true,
-          startingPlain,
-          vertex,
-          dihedralAngle,
-          angleOfIncidence,
-          aoiComplement,
-        }
-        for (let fw of foldWalls) {
-          if (fw.vertex == vertex && fw.startingPlain == startingPlain) {
-            foldWall = fw
-            break
-          }
-        }
-        foldWall[(IS_BOTTOM ? "bottom" : "top") + "Length" + type] = wallLength
-        foldWall["miterAngle" + type] = isOne ? angle2 : angle1
-        foldWall["lengthOffset" + type] = isOne ? lengthOffset2 : lengthOffset1
-        foldWall["edgeLength" + type] = edgeLength
-        foldWall["worldPlacementOperations" + type] = worldPlacementOperations
-        if (!foldWalls.includes(foldWall)) {
-          foldWalls.push(foldWall)
-        }
-        associateWallWithEdge(foldWall, associatedEdge)
+        vertex.fold().addFoldWallInfo({
+          plain,
+          isOutgoing: isOne,
+          wallLength,
+          angle: isOne ? angle2 : angle1,
+          lengthOffset: isOne ? lengthOffset2 : lengthOffset1,
+          edgeLength,
+          worldPlacementOperations,
+        })
+        associateWallWithEdge(vertex.fold().getWall(plain, isOne), associatedEdge)
+
+        // let startingPlain = isOne ? plain : plains2.filter(p => p != plain)[0]
+        // let foldWall = {
+        //   isFoldWall: true,
+        //   startingPlain,
+        //   vertex,
+        //   dihedralAngle,
+        //   angleOfIncidence,
+        //   aoiComplement,
+        // }
+        // for (let fw of foldWalls) {
+        //   if (fw.vertex == vertex && fw.startingPlain == startingPlain) {
+        //     foldWall = fw
+        //     break
+        //   }
+        // }
+        // foldWall[(IS_BOTTOM ? "bottom" : "top") + "Length" + type] = wallLength
+        // foldWall["miterAngle" + type] = isOne ? angle2 : angle1
+        // foldWall["lengthOffset" + type] = isOne ? lengthOffset2 : lengthOffset1
+        // foldWall["edgeLength" + type] = edgeLength
+        // foldWall["worldPlacementOperations" + type] = worldPlacementOperations
+        // if (!foldWalls.includes(foldWall)) {
+        //   foldWalls.push(foldWall)
+        // }
+        // console.log(foldWall)
+        // console.log(vertex.fold().foldWalls)
+        // associateWallWithEdge(foldWall, associatedEdge)
 
         // World placement adjustments
         let outerPoint = outerV
@@ -368,10 +387,13 @@ async function createCoverSVG(plain) {
       let borderLengthOffset = width / -Math.tan((Math.PI - a1)/2)
       
       if (plains1.length == 2) {
+        let {deadendPlain, dihedralAngle, angleOfIncidence} = vertex1.fold().getCoverInfo(plain, true)
+
         let plainTranslationValue = CHANNEL_DEPTH/2
         plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
+        deadendPlain = deadendPlain.rotateAndScale(R, SCALE())
         deadendPlain = deadendPlain.translate(e0.normalize().scale(ORIGAMI_KERF))
         let line1 = line.translate(n.scale(width))
         let p1 = deadendPlain.intersection(line1)
@@ -423,9 +445,12 @@ async function createCoverSVG(plain) {
       let channelLengthOffset = width / -Math.tan((Math.PI - a1)/2)
       if (plains1.length == 2) {
         let plainTranslationValue = CHANNEL_DEPTH/2
+        let {deadendPlain, dihedralAngle} = vertex1.fold().getCoverInfo(plain, true)
+
         plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
+        deadendPlain = deadendPlain.rotateAndScale(R, SCALE())
         deadendPlain = deadendPlain.translate(e0.normalize().scale(5)) // TODO calculate more properply
         let line1 = line.translate(n.scale(width))
         let p1 = deadendPlain.intersection(line1)
@@ -1019,8 +1044,6 @@ function wallPrints(wall, isLeft) {
   if (isLeft) {
     E = E.negate()
   }
-
-  // console.log((CHANNEL_DEPTH + THICKNESS) - (topLength - bottomLength)/Math.tan(wall.zRotationAngle))
 
   let endNotchDepth = NOTCH_DEPTH - WALL_KERF
   let extraOffset = ZERO

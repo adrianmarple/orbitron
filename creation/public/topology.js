@@ -1,9 +1,6 @@
 
 class Vertex {
   constructor(coordinates) {
-    // if (isWall && !coordinates.isCoplanar(currentPlain)) {
-    //   console.error("Vertex not coplanar with plain", currentPlain, coordinates)
-    // }
     this.coordinates = coordinates
     this.ogCoords = coordinates.clone()
     this.plains = [currentPlain]
@@ -17,9 +14,21 @@ class Vertex {
   addPlain(plain) {
     if (this.ogCoords.isCoplanar(plain)) {
       this.plains.push(plain)
+      if (!plains.includes(plain)) {
+        addPlain(plain)
+      }
     } else {
-      console.error("Vertex not coplanar with plain", plain, this.ogCoords)
+      console.error("Vertex not coplanar with plain", plain, this)
     }
+  }
+  
+  getPlainThatContains(vector) {
+    for (let plain of this.plains) {
+      if (vector.isCoplanar(plain)) {
+        return plain
+      }
+    }
+    return null
   }
 
   edgeInDirection(direction) {
@@ -46,6 +55,13 @@ class Vertex {
       }
     }
     return leftmost
+  }
+
+  fold() {
+    if (!this._fold) {
+      this._fold = new Fold(this)
+    }
+    return this._fold
   }
 }
 
@@ -90,15 +106,129 @@ class Edge {
     }
     return otherVertex
   }
-  toVector(fromVertex) {
+  toVector(fromVertex, useOogIfAvailable) {
     let toVertex = this.otherVertex(fromVertex)
-    return toVertex.ogCoords.sub(fromVertex.ogCoords)
+    let end, start
+    if (useOogIfAvailable) {
+      end = toVertex.oogCoords || toVertex.ogCoords
+      start = fromVertex.oogCoords || fromVertex.ogCoords
+    } else {
+      end = toVertex.ogCoords
+      start = fromVertex.ogCoords
+    }
+    return end.sub(start)
   }
 
   split(distance) {
     return splitEdge(this, distance)
   }
 }
+
+class Fold {
+  // Assumes vertex with two edges and two plains
+  constructor(vertex) {
+    this.vertex = vertex
+    
+    let e0 = vertex.edges[0].toVector(vertex, true)
+    let e1 = vertex.edges[1].toVector(vertex, true)
+    let n0, n1
+    this.plainToIndex = {}
+    this.negations = [1, 1]
+    if (epsilonEquals(vertex.plains[0].normal.dot(e0), 0)) {
+      n0 = vertex.plains[0].normal
+      n1 = vertex.plains[1].normal
+      this.plainToIndex[vertex.plains[0].index] = 0
+      this.plainToIndex[vertex.plains[1].index] = 1
+    } else {
+      n0 = vertex.plains[1].normal
+      n1 = vertex.plains[0].normal
+      this.plainToIndex[vertex.plains[0].index] = 1
+      this.plainToIndex[vertex.plains[1].index] = 0
+    }
+    if (n0.dot(e1) < 0) {
+      n0 = n0.negate()
+      this.negations[0] = -1
+    }
+    if (n1.dot(e0) < 0) {
+      n1 = n1.negate()
+      this.negations[1] = -1
+    }
+    if (n0.negate().equals(n1)) {
+      n1 = n1.negate()
+      this.negations[1] = -1
+    }
+
+    let coords = vertex.oogCoords || vertex.ogCoords
+    this.deadendPlain = this.vertex.deadendPlain
+    if (!this.deadendPlain) {
+      this.deadendPlain = new Plain(coords, n0.sub(n1))
+    }
+    this.dihedralAngle = n0.angleTo(n1)
+
+
+    let crease = vertex.plains[0].intersection(this.deadendPlain)
+    if (crease.direction.dot(n0.cross(n1)) < 0) {
+      crease.direction = crease.direction.negate()
+    }
+    let aoi = e1.angleTo(crease.direction)
+    if (aoi < 0) aoi += Math.PI
+    if (aoi > Math.PI) aoi -= Math.PI
+    this.angleOfIncidence = aoi
+    this.aoiComplement = Math.PI/2 - aoi
+
+    this.foldWalls = [{
+      isFoldWall: true,
+      vertex,
+      dihedralAngle: this.dihedralAngle,
+      angleOfIncidence: aoi,
+      aoiComplement: this.aoiComplement,
+    }]
+    this.foldWalls.push({...this.foldWalls[0]})
+    this.foldWalls[1].aoiComplement *= -1
+    this.foldWalls[1].angleOfIncidence = Math.PI - this.foldWalls[1].aoiComplement
+  }
+
+  getCoverInfo(plain, isOutgoing) {
+    let index = this.plainToIndex[plain.index]
+    let info = {
+      deadendPlain: this.deadendPlain,
+      dihedralAngle: this.dihedralAngle * this.negations[index],
+      aoiComplement: this.aoiComplement * this.negations[index] *
+        (isOutgoing ? 1:-1) * (index == 0 ? -1:1),
+    }
+    info.angleOfIncidence = Math.PI/2 - info.aoiComplement
+    return info
+  }
+
+  getWall(plain, isOutgoing) {
+    let foldWallIndex = this.plainToIndex[plain.index]
+    if (isOutgoing) {
+      foldWallIndex = 1 - foldWallIndex
+    }
+    return this.foldWalls[foldWallIndex]
+  }
+
+  addFoldWallInfo(params) {
+    let { plain, isOutgoing, wallLength, angle, lengthOffset, edgeLength, worldPlacementOperations } = params
+    let type = isOutgoing ? 1 : 2
+    let index = this.plainToIndex[plain.index]
+    let foldWallIndex = index
+    if (isOutgoing) {
+      foldWallIndex = 1 - foldWallIndex
+    }
+    let coverType = IS_BOTTOM == (this.negations[index] == 1) ? "bottom" : "top"
+    
+    let foldWall = this.foldWalls[foldWallIndex]
+    foldWall["miterAngle" + type] = angle
+    foldWall["edgeLength" + type] = edgeLength
+    foldWall["lengthOffset" + type] = lengthOffset
+    foldWall["worldPlacementOperations" + type] = worldPlacementOperations
+    foldWall[coverType + "Length" + type] = wallLength
+  }
+}
+
+
+
 
 function resolveVertex(vertex) {
   if (typeof(vertex) == "number") {
@@ -163,6 +293,7 @@ function removeVertex(vertex) {
 function removeEdge(edge) {
   if (!edges || edge == undefined || edge == null) return
   edge = resolveEdge(edge)
+  console.log(edge)
   remove(edges, edge)
   for (let vertex of edge.verticies) {
     remove(vertex.edges, edge)
@@ -173,7 +304,8 @@ function removeEdge(edge) {
   resetInidices()
 }
 function removeEdges(...indicies) {
-  indicies = indicies.sort().reverse()
+  indicies = indicies.sort((a,b) => a-b).reverse()
+  console.log(indicies)
   for (let index of indicies) {
     removeEdge(index)
   }
@@ -345,11 +477,14 @@ function extendAtAngle(edge, angle, length, bendPlain, reverse) {
 
 // Based on Futurologist's answer from https://math.stackexchange.com/questions/2228018/how-to-calculate-the-third-point-if-two-points-and-all-distances-between-the-poi
 // Assumes z coordinate is always 0
-function addTriangulation(v1, v2, a, b) {
+function addTriangulation(v1, v2, a, b, basis) {
   v1 = resolveVertex(v1)
   v2 = resolveVertex(v2)
 
   if (!b) b = a
+  if (!basis) basis = [RIGHT, UP, FORWARD]
+  if (!basis[2]) basis[2] = basis[0].cross(basis[1])
+
   let A = v1.ogCoords
   let B = v2.ogCoords
   let c = A.distanceTo(B)
@@ -360,10 +495,15 @@ function addTriangulation(v1, v2, a, b) {
     return null
   }
   s = Math.sqrt(s) / 4
-  x = A.x + (c*c + b*b - a*a)/(2*c*c) * AtoB.x - 2*s*AtoB.y/(c*c)
-  y = A.y + (c*c + b*b - a*a)/(2*c*c) * AtoB.y + 2*s*AtoB.x/(c*c)
+  // let x = A.x + (c*c + b*b - a*a)/(2*c*c) * AtoB.x - 2*s*AtoB.y/(c*c)
+  // let y = A.y + (c*c + b*b - a*a)/(2*c*c) * AtoB.y + 2*s*AtoB.x/(c*c)
 
-  v = addVertex(new Vector(x,y,0))
+  // let v = addVertex(new Vector(x,y,0))
+
+  let d0 = (c*c + b*b - a*a)/(2*c*c) * AtoB.dot(basis[0]) - 2*s*AtoB.dot(basis[1])/(c*c)
+  let d1 = (c*c + b*b - a*a)/(2*c*c) * AtoB.dot(basis[1]) + 2*s*AtoB.dot(basis[0])/(c*c)
+  let v = addVertex(A.addScaledVector(basis[0], d0).addScaledVector(basis[1], d1))
+
   addEdge(v1,v)
   addEdge(v,v2)
 
@@ -657,6 +797,28 @@ function addPlain(plain) {
   plain.index = plains.length
   plains.push(plain)
 }
+function mergePlains(plain0, plain1) {
+  if (plain0 == plain1) return
+  if (!plain0.isCoplanar(plain1)) {
+    console.error("Trying to merge non-coplanar plains", plain0, plain1)
+    return
+  }
+  for (let vertex of verticies) {
+    for (let i = 0; i < vertex.plains.length; i++) {
+      if (vertex.plains[i] == plain1) {
+        vertex.plains[i] = plain0
+      }
+    }
+  }
+  plains.remove(plain1)
+  let indexMapping = {}
+  for (let i = 0; i < plains.length; i++) {
+    indexMapping[plains[i].index] = i
+    plains[i].index = i
+  }
+  indexMapping[plain1.index] = plain0.index
+
+}
 
 function origami(foldPlain) {
   let newPlain, mirrorPlain
@@ -672,16 +834,6 @@ function origami(foldPlain) {
   }
 
   addPlain(newPlain)
-  if (isSplit) {
-    for (let plainIndex in currentPlain.folds) {
-      let oldFold = currentPlain.folds[plainIndex]
-      newPlain.folds[plainIndex] = oldFold
-      plains[plainIndex].folds[newPlain.index] = oldFold
-    }
-  }
-  currentPlain.folds[newPlain.index] = foldPlain
-  newPlain.folds[currentPlain.index] = foldPlain
-
   // Add new verticies along edges that have been folded
   for (let edge of [...edges]) {
     if (edge.commonPlain() != currentPlain) continue
@@ -717,31 +869,134 @@ function origami(foldPlain) {
 }
 
 function zeroFoldAllEdges() {
-  // plains = []
+  plains.length = 0
+
+  twoEdgeVertecies = []
+  oneEdgeVertecies = []
   for (let vertex of verticies) {
-    if (vertex.plains.length > 1) {
-      console.error("Fold walls not supported for zero folding all edges yet")
-      continue;
-    }
-    plains.remove(vertex.plains[0])
-    let plain = vertex.plains[0].clone()
     vertex.plains = []
-    addPlain(plain)
-    vertex.addPlain(plain)
+    if (vertex.edges.length == 1) {
+      oneEdgeVertecies.push(vertex)
+      continue
+    }
+    if (vertex.edges.length == 2) {
+      twoEdgeVertecies.push(vertex)
+      continue
+    }
+    let normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[1].toVector(vertex))
+    if (normal.equals(ZERO)) {
+      normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[2].toVector(vertex))
+    }
+    if (normal.dot(FORWARD) < 0) {
+      normal = normal.negate()
+    }
+    normal = normal.normalize()
+
+    for (let i = 2; i < vertex.edges.length; i++) {
+      let n2 = vertex.edges[0].toVector(vertex).cross(vertex.edges[i].toVector(vertex)).normalize()
+      if (!n2.equals(ZERO) && !normal.plusMinusEquals(n2)) {
+        console.error("vertex edges not coplanar", normal, n2)
+      }
+    }
+    vertex.addPlain(new Plain(vertex.ogCoords, normal))
   }
-  
+
+  let c = 0
+  while (twoEdgeVertecies.length > 0) {
+    c++;
+    if (c > 1000) break;
+    let vertex = twoEdgeVertecies.shift()
+    let v0 = vertex.edges[0].otherVertex(vertex)
+    let v1 = vertex.edges[1].otherVertex(vertex)
+    let e0 = v0.ogCoords.sub(vertex.ogCoords)
+    let e1 = v1.ogCoords.sub(vertex.ogCoords)
+    let normal = e0.cross(e1).normalize()
+    if (v0.plains.length > 0 && v1.plains.length > 0) {
+      let plain0 = v0.getPlainThatContains(vertex.ogCoords)
+      let plain1 = v1.getPlainThatContains(vertex.ogCoords)
+      vertex.addPlain(plain0.clone())
+      if (!plain0.isCoplanar(plain1)) {
+        vertex.addPlain(plain1.clone())
+      }
+      continue
+    }
+    if (v1.plains.length > 0) {
+      let t = v0
+      v0 = v1
+      v1 = t
+    }
+    if (v0.plains.length > 0) {
+      let plain0 = v0.getPlainThatContains(vertex.ogCoords)
+      vertex.addPlain(plain0.clone())
+      if (normal.equals(ZERO) || plain0.normal.plusMinusEquals(normal)) {
+        continue
+      }
+      let mirror = new Plain(vertex.ogCoords, e0.normalize().add(e1.normalize()))
+      vertex.addPlain(plain0.mirror(mirror))
+      if (twoEdgeVertecies.includes(v1)) {
+        twoEdgeVertecies.remove(v1)
+        twoEdgeVertecies.unshift(v1)
+      }
+      continue
+    }
+
+    twoEdgeVertecies.push(vertex)
+  }
+
+  for (let vertex of oneEdgeVertecies) {
+    let v0 = vertex.edges[0].otherVertex(vertex)
+    vertex.plains.push(v0.plains[0])
+  }
+    
   for (let edge of [...edges]) {
-    zeroFold(edge)
+    let lengthThreshold = ZERO_FOLD_LENGTH_THRESHOLD
+    if (edge.verticies[0].plains.length > 1 || edge.verticies[1].plains.length > 1) {
+      lengthThreshold *= 2
+    }
+    
+    if (edge.length() > lengthThreshold) {
+      zeroFold(edge)
+      continue
+    }
+    
+    for (let plain0 of edge.verticies[0].plains) {
+      for (let plain1 of edge.verticies[1].plains) {
+        if (plain0.isCoplanar(plain1)) {
+          mergePlains(plain0, plain1)
+          break
+        }
+      }
+    }
+  }
+
+  for (let plain of plains) {
+    if (plain.normal.dot(plain.offset.sub(CENTER)) < 0) {
+      plain.normal = plain.normal.negate()
+    }
   }
 }
 function zeroFold(edge) {
-  let plain0 = edge.verticies[0].plains[0]
-  let plain1 = edge.verticies[1].plains[0]
+  let plain0 = null
+  let plain1 = null
+  for (let p0 of edge.verticies[0].plains) {
+    for (let p1 of edge.verticies[1].plains) {
+      if (p0.isCoplanar(p1)) {
+        plain0 = p0
+        plain1 = p1
+        break
+      }
+    }
+  }
+  if (plain0 == null) {
+    console.log(edge)
+    return
+  }
   let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
   let newVertex = splitEdge(edge, edge.length()/2)
-  let fold = new Plain(newVertex.ogCoords, foldNormal)
-  plain0.folds[plain1.index] = fold
-  plain1.folds[plain0.index] = fold
+  newVertex.deadendPlain = new Plain(newVertex.ogCoords, foldNormal)
+  // let fold = new Plain(newVertex.ogCoords, foldNormal)
+  // plain0.folds[plain1.index] = fold
+  // plain1.folds[plain0.index] = fold
   newVertex.plains = []
   newVertex.addPlain(plain0)
   newVertex.addPlain(plain1)

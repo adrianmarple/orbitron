@@ -1,3 +1,4 @@
+// SKIP
 module.exports = async () => {
   pixelDensity = 2
 

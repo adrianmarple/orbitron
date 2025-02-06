@@ -1,3 +1,4 @@
+// SKIP
 module.exports = () => {
   CHANNEL_WIDTH = 13
   BORDER = 10

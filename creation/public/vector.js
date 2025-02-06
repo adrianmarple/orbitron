@@ -6,6 +6,10 @@ class Vector extends THREE.Vector3 {
     return [this.x, this.y, this.z]
   }
 
+  swizzle(permutation) {
+    return new Vector(this[permutation[0]], this[permutation[1]], this[permutation[2]])
+  }
+
   isValid() {
     return this.x < 1e6 && this.x > -1e6 &&
       this.y < 1e6 && this.y > -1e6 &&
@@ -30,6 +34,9 @@ class Vector extends THREE.Vector3 {
   equals(v, epsilon=0.001) {
     return epsilonEquals(this.distanceTo(v), 0, epsilon)
   }
+  plusMinusEquals(v, epsilon=0.001) {
+    return this.equals(v, epsilon) || this.equals(v.negate(), epsilon)
+  }
 
   magintude() {
     return 
@@ -42,7 +49,12 @@ class Vector extends THREE.Vector3 {
   }
   // Assume z coordinate is 0 or otherwise ignorable
   signedAngle(v) {
-    return Math.atan2(v.y*this.x - v.x*this.y, v.x*this.x + v.y*this.y)
+    let a = Math.atan2(v.y*this.x - v.x*this.y, v.x*this.x + v.y*this.y)
+    if (epsilonEquals(Math.abs(a), Math.PI)) {
+      return Math.PI
+    } else {
+      return a
+    }
   }
 
   isColinear(line) {
@@ -162,6 +174,15 @@ class Plain {
       this.normal.sub(plain.normal),
     )
   }
+
+  isCoplanar(thing) {
+    if (thing.isVector || this.isLine) {
+      return thing.isCoplanar(this)
+    }
+    if (thing.isPlain) {
+      return thing.offset.equals(this.offset) && thing.normal.plusMinusEquals(this.normal)
+    }
+  }
 }
 
 class Line {
@@ -183,6 +204,9 @@ class Line {
 
   intersection(plain) {
     return plain.intersection(this)
+  }
+  isCoplanar(plain) {
+    return this.offset.equals(plain.offset) && epsilonEquals(this.direction.dot(plain.normal), 0)
   }
 }
 
