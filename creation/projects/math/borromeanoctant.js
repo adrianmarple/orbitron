@@ -2,8 +2,9 @@
 module.exports = () => {
   setFor3DPrintedCovers()
 
+  cat5partID = "3L"
   CENTER = new Vector(3, 3, 3)
-  const SIZE = 4
+  const SIZE = -4
 
   addVertex(new Vector(0, 1, 0).scale(SIZE))
   addVertex(new Vector(0, 3, 0).scale(SIZE))
@@ -52,6 +53,6 @@ module.exports = () => {
   }
 
   zeroFoldAllEdges()
-  EulerianPath(0)
+  EulerianPath(37)
   center()
 }

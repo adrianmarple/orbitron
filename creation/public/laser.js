@@ -110,10 +110,7 @@ async function createCoverSVG(plain) {
     e0 = dPath[0].ogCoords.sub(dPath.last().ogCoords)
     e1 = dPath[1].ogCoords.sub(dPath[0].ogCoords)
     let lastAngle = e1.signedAngle(e0)
-    // // Start and end might be straight still
-    // if (epsilonEquals(lastAngle, 0) && dPath[0].re) {
-    //   dPath.shift() // Remove middle (start) vertex if start and end is straight
-    // }
+
     // Check if first/last vertex doubles back
     if (dPath[0].plains.length == 1 && epsilonEquals(lastAngle, Math.PI)) {
       dPath.unshift(dPath[0]) // Add cap
@@ -254,9 +251,6 @@ async function createCoverSVG(plain) {
       // Logic for fold walls
       let plains1 = vertex1.plains
       let plains2 = vertex2.plains
-      // let deadendPlain = null
-      // let dihedralAngle = 0
-      // let angleOfIncidence = Math.PI/2
 
       function addFoldWallInfo(type) {
         let isOne = type == 1
@@ -264,28 +258,11 @@ async function createCoverSVG(plain) {
         let {deadendPlain, dihedralAngle, aoiComplement} =
             vertex.fold().getCoverInfo(plain, isOne)
         deadendPlain = deadendPlain.rotateAndScale(R, SCALE())
-        
-        
-        // let plains = isOne ? plains1 : plains2
-        // plains = plains.map(plain => plain.rotateAndScale(R, SCALE()))
-
-        // let crease = plains[0].intersection(deadendPlain)
-        // angleOfIncidence = e1.signedAngle(crease.direction) * (isOne ? -1 : 1)
-        // if (angleOfIncidence < 0) angleOfIncidence += Math.PI
-        // if (angleOfIncidence > Math.PI) angleOfIncidence -= Math.PI
-        // let aoiComplement = Math.PI/2 - angleOfIncidence
 
         let outerV = isOne ? v2 : v1
         let wallStartPoint = outerV
             .addScaledVector(n, aoiComplement < 0 ? w2 : w1)
             .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
-
-        // dihedralAngle = plains[0].normal.angleTo(plains[1].normal)
-        // let sign = (wallStartPoint.isCoplanar(plains[0]) || wallStartPoint.isAbovePlain(plains[0])) &&
-        //     (wallStartPoint.isCoplanar(plains[1]) || wallStartPoint.isAbovePlain(plains[1]))
-        // if (!sign) {
-        //   dihedralAngle *= -1
-        // }
 
         let plainTranslationValue = CHANNEL_DEPTH/2
         plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS
@@ -303,44 +280,6 @@ async function createCoverSVG(plain) {
           lengthOffset2 = wallLength + lengthOffset1 - edgeLength
         }
 
-        vertex.fold().addFoldWallInfo({
-          plain,
-          isOutgoing: isOne,
-          wallLength,
-          angle: isOne ? angle2 : angle1,
-          lengthOffset: isOne ? lengthOffset2 : lengthOffset1,
-          edgeLength,
-          worldPlacementOperations,
-        })
-        associateWallWithEdge(vertex.fold().getWall(plain, isOne), associatedEdge)
-
-        // let startingPlain = isOne ? plain : plains2.filter(p => p != plain)[0]
-        // let foldWall = {
-        //   isFoldWall: true,
-        //   startingPlain,
-        //   vertex,
-        //   dihedralAngle,
-        //   angleOfIncidence,
-        //   aoiComplement,
-        // }
-        // for (let fw of foldWalls) {
-        //   if (fw.vertex == vertex && fw.startingPlain == startingPlain) {
-        //     foldWall = fw
-        //     break
-        //   }
-        // }
-        // foldWall[(IS_BOTTOM ? "bottom" : "top") + "Length" + type] = wallLength
-        // foldWall["miterAngle" + type] = isOne ? angle2 : angle1
-        // foldWall["lengthOffset" + type] = isOne ? lengthOffset2 : lengthOffset1
-        // foldWall["edgeLength" + type] = edgeLength
-        // foldWall["worldPlacementOperations" + type] = worldPlacementOperations
-        // if (!foldWalls.includes(foldWall)) {
-        //   foldWalls.push(foldWall)
-        // }
-        // console.log(foldWall)
-        // console.log(vertex.fold().foldWalls)
-        // associateWallWithEdge(foldWall, associatedEdge)
-
         // World placement adjustments
         let outerPoint = outerV
             .addScaledVector(n, w2)
@@ -352,6 +291,23 @@ async function createCoverSVG(plain) {
           type: "mirror",
           normal: [1,0,0],
         })
+        worldPlacementOperations.splice(2, 0, {
+          type: "rotate",
+          axis: [0,1,0],
+          angle: 0, // Create stub so other functions can manipulate this angle
+        })
+
+        vertex.fold().addFoldWallInfo({
+          plain,
+          isOutgoing: isOne,
+          wallLength,
+          angle: isOne ? angle2 : angle1,
+          lengthOffset: isOne ? lengthOffset2 : lengthOffset1,
+          edgeLength,
+          worldPlacementOperations,
+        })
+        associateWallWithEdge(vertex.fold().getWall(plain, isOne), associatedEdge)
+
       }
 
       if (plains1.length == 2) {
@@ -732,11 +688,7 @@ function createFullModel() {
       if (wall.isFoldWall) {
         let wallPrint1 = wallPrints(wall, true)[0]
         wallPrint1.operations = [...wall.worldPlacementOperations1]
-        wallPrint1.operations.splice(2, 0, {
-          type: "rotate",
-          axis: [0,1,0],
-          angle: wall.zRotationAngle,
-        })
+        wallPrint1.operations[2].angle += wall.zRotationAngle
         if (wall.aoiComplement < 0) {
           wallPrint1.operations.splice(3, 0, {
             type: "translate",
@@ -747,11 +699,7 @@ function createFullModel() {
 
         let wallPrint2 = wallPrints(wall, false)[0]
         wallPrint2.operations = [...wall.worldPlacementOperations2]
-        wallPrint2.operations.splice(2, 0, {
-          type: "rotate",
-          axis: [0,1,0],
-          angle: -wall.zRotationAngle,
-        })
+        wallPrint2.operations[2].angle -= wall.zRotationAngle
         if (wall.aoiComplement < 0) {
           wallPrint2.operations.splice(3, 0, {
             type: "translate",
@@ -1129,9 +1077,10 @@ function wallPrints(wall, isLeft) {
       E.scale(CAT5_SNAP_WIDTH),
     ])
 
+    let qtPosition = cat5BottomCenter.addScaledVector(N, CAT5_WIRES_HEIGHT)
     print.components.push({
       type: "qtClip",
-      position: [cat5BottomCenter.x, -cat5BottomCenter.y - CAT5_WIRES_HEIGHT, 0],
+      position: [qtPosition.x, -qtPosition.y, 0],
       rotationAngle: -rotationAngle + Math.PI,
     })
   }
@@ -1178,7 +1127,9 @@ function wallPrints(wall, isLeft) {
 
   // LED supports
   position = null
-  if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID && !wall.hasWallPort) {
+  if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
+      !wall.hasWallPort &&
+      bottomLength > PIXEL_DISTANCE) {
     let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
     if (wall.supportOffset) {
       supportOffset += wall.supportOffset
@@ -1186,6 +1137,7 @@ function wallPrints(wall, isLeft) {
     // if (supportOffset < edgeLength - topLength + LED_SUPPORT_WIDTH/2) {
     //   supportOffset += PIXEL_DISTANCE
     // }
+    console.log(wall.partID)
     position = startV.addScaledVector(E, -supportOffset)
   }
   if (!isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
