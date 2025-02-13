@@ -333,7 +333,6 @@ async function createCoverSVG(plain) {
         [e1, n],
         v1,
         [lengthOffset1, CHANNEL_WIDTH/2],
-        isFinalEdge,
         print)
 
       // Border
@@ -419,9 +418,10 @@ async function createCoverSVG(plain) {
 
       // Embossed id
       if (!findEmbossing(print) && plains1.length == 1) {
+        let z = EXTRA_COVER_THICKNESS + (INNER_CHANNEL_THICKNESS ? INNER_CHANNEL_THICKNESS : THICKNESS)
         print.components.push({
           type: "embossing",
-          position: [v1.x, v1.y, EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+          position: [v1.x, v1.y, z],
           text: "...", // To be filled in later in the process
         })
       }
@@ -498,16 +498,22 @@ async function createCoverSVG(plain) {
 
   if (INNER_CHANNEL_THICKNESS !== null) {
     print = {
-      type: "difference",
+      type: "union",
       components: [
-        print,
         {
-          type: "svg",
-          svg: channelSvg,
-          thickness: THICKNESS - INNER_CHANNEL_THICKNESS,
-          position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
-          operations: importCorrectionOperations,
-        }
+          type: "difference",
+          components: [
+            print,
+            {
+              type: "svg",
+              svg: channelSvg,
+              thickness: THICKNESS - INNER_CHANNEL_THICKNESS,
+              position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+              operations: importCorrectionOperations,
+            }
+          ],
+        },
+        findEmbossing(print),
       ]
     }
   }
@@ -551,7 +557,7 @@ function associateWallWithEdge(wall, associatedEdge) {
   }
 }
 
-function singleSlotPath(wallLength, basis, offset, localOffset, isFinalEdge, print) {
+function singleSlotPath(wallLength, basis, offset, localOffset, print) {
   offset = offset.sub(new Vector(0,0, offset.z))
   if (wallLength > 1e6) return ""
   let path = ""
@@ -736,8 +742,11 @@ function createPrintInfo3D() {
   let partID = 1
   
   for (let edgeIndex of path) {
-    vertex = edges[edgeIndex].otherVertex(vertex)
-    if (edges[edgeIndex].isDupe) continue
+    let edge = edges[edgeIndex]
+    vertex = edge.otherVertex(vertex)
+    if (edge.isDupe) {
+      edgeIndex = edge.dual.index
+    }
 
     for (let plain of vertex.plains) {
       if (completedPlains.includes(plain)) continue
@@ -1137,7 +1146,6 @@ function wallPrints(wall, isLeft) {
     // if (supportOffset < edgeLength - topLength + LED_SUPPORT_WIDTH/2) {
     //   supportOffset += PIXEL_DISTANCE
     // }
-    console.log(wall.partID)
     position = startV.addScaledVector(E, -supportOffset)
   }
   if (!isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
@@ -1230,7 +1238,7 @@ function makeNub(position) {
   }
 }
 
-function latchPoints(E, N, reverse) {
+function latchPoints(E, N, reverse, ) {
   let points = []
   switch (LATCH_TYPE) {
     case "wedge":

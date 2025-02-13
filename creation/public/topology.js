@@ -607,6 +607,8 @@ function doubleEdges() {
     }
     edgeCopy.index = edges.length
     edgeCopy.isDupe = true
+    edgeCopy.dual = edge
+    edge.dual = edgeCopy
     edges.push(edgeCopy)
   }
 
