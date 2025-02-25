@@ -190,7 +190,9 @@ function generatePixelInfo() {
       
       if (alpha > edgeLength - 0.005) {
         alpha -= edgeLength
-        if (nextVertex.edges.length == 2) break // Verticies with two edges can have non-integer lengths
+        // Verticies with two edges can have non-integer lengths
+        // Currently assumes doubled edges
+        if (nextVertex.edges.length == 4) break 
         if (ledAtVertex && epsilonEquals(alpha, 0, 0.01)) {
           alpha = 0
           break
@@ -200,7 +202,7 @@ function generatePixelInfo() {
           break
         }
 
-        console.log(alpha/resizeScale, edgeLength/resizeScale, pixelDensity)
+        console.log(edge, nextVertex.edges.length, alpha/resizeScale, edgeLength/resizeScale, pixelDensity)
         console.error("Edge length not a integer multiple of pixel density")
         return
       }

@@ -8,6 +8,13 @@ class Vertex {
     this.index = verticies.length
   }
 
+  addLine(vector) {
+    if (!vector.isVector) {
+      vector = new Vector(...vector)
+    }
+    return addLine(this, vector).verticies[1]
+  }
+
   remove() {
     removeVertex(this)
   }
@@ -297,7 +304,6 @@ function removeVertex(vertex) {
 function removeEdge(edge) {
   if (!edges || edge == undefined || edge == null) return
   edge = resolveEdge(edge)
-  console.log(edge)
   remove(edges, edge)
   for (let vertex of edge.verticies) {
     remove(vertex.edges, edge)
@@ -448,8 +454,12 @@ function findEdgeFromCenter(center) {
 
 
 function addLine(vertex, length, angle) {
+  let vector = length
+  if (typeof(length) == "number") {
+    vector = fromMagAngle(length, angle)
+  }
   vertex = resolveVertex(vertex)
-  let coords = vertex.ogCoords.add(fromMagAngle(length, angle))
+  let coords = vertex.ogCoords.add(vector)
   let newVertex = addVertex(coords)
   return addEdge(vertex, newVertex)
 }
@@ -951,11 +961,16 @@ function zeroFoldAllEdges() {
 
   for (let vertex of oneEdgeVertecies) {
     let v0 = vertex.edges[0].otherVertex(vertex)
-    vertex.plains.push(v0.plains[0])
+    for (let plain of v0.plains) {
+      if (vertex.ogCoords.isCoplanar(plain)) {
+        vertex.addPlain(plain)
+        break
+      }
+    }
   }
-    
+
   for (let edge of [...edges]) {
-    let lengthThreshold = ZERO_FOLD_LENGTH_THRESHOLD
+    let lengthThreshold = ZERO_FOLD_LENGTH_THRESHOLD * pixelDensity
     if (edge.verticies[0].plains.length > 1 || edge.verticies[1].plains.length > 1) {
       lengthThreshold *= 2
     }

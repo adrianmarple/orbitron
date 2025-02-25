@@ -417,7 +417,7 @@ async function createCoverSVG(plain) {
       }
 
       // Embossed id
-      if (!findEmbossing(print) && plains1.length == 1) {
+      if (!NO_EMBOSSING && !findEmbossing(print) && plains1.length == 1) {
         let z = EXTRA_COVER_THICKNESS + (INNER_CHANNEL_THICKNESS ? INNER_CHANNEL_THICKNESS : THICKNESS)
         print.components.push({
           type: "embossing",
@@ -589,7 +589,7 @@ function singleSlotPath(wallLength, basis, offset, localOffset, print) {
         type: "cube",
         rotationAngle: -basis[0].scale(directionSign).signedAngle(RIGHT),
         position: position.toArray(),
-        dimensions: [HOOK_LATCH_LENGTH, WALL_THICKNESS - 2*KERF, HOOK_THICKNESS],
+        dimensions: [HOOK_OVERHANG, WALL_THICKNESS - 2*KERF, HOOK_THICKNESS],
       })
     }
   }
@@ -1008,6 +1008,8 @@ function wallPrints(wall, isLeft) {
     extraOffset = E.scale(-THICKNESS * Math.tan(wall.zRotationAngle))
   }
 
+  let insetAngle = (wall.dihedralAngle ?? 0) / 2
+
   let wallSegments = [UP.scale(CHANNEL_DEPTH/2 * dihedralRatio)]
   if (wall.dihedralAngle < 0) {
     if (coverPrint3D) {
@@ -1018,7 +1020,7 @@ function wallPrints(wall, isLeft) {
     }
   }
   wallSegments.push(E.scale(endNotchDepth))
-  wallSegments = wallSegments.concat(latchPoints(E,N))
+  wallSegments = wallSegments.concat(latchPoints(E,N, false, -insetAngle))
   wallSegments.push(E.scale(topLength - 2*(endNotchDepth + MAX_LATCH_WIDTH)))
   wallSegments = wallSegments.concat(latchPoints(E,N.negate(), true))
   wallSegments = wallSegments.concat([
@@ -1028,7 +1030,7 @@ function wallPrints(wall, isLeft) {
   ])
   wallSegments = wallSegments.concat(latchPoints(E.negate(),N.negate()))
   wallSegments.push(E.scale(-bottomLength + 2*(endNotchDepth + MAX_LATCH_WIDTH)))
-  wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true))
+  wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true, insetAngle))
   wallSegments.push(E.scale(-endNotchDepth))
   if (wall.dihedralAngle > 0) {
     if (coverPrint3D) {
@@ -1051,7 +1053,7 @@ function wallPrints(wall, isLeft) {
       .addScaledVector(E, topLength)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let startV = wallStart
-      .addScaledVector(E, isLeft ? -wall.lengthOffset1 : wall.lengthOffset2)
+      .addScaledVector(E, isLeft ? wall.lengthOffset1 : wall.lengthOffset2)
 
   // CAT5 port
   if (print.suffix == cat5partID) {
@@ -1138,7 +1140,7 @@ function wallPrints(wall, isLeft) {
   position = null
   if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       !wall.hasWallPort &&
-      bottomLength > PIXEL_DISTANCE) {
+      bottomLength > PIXEL_DISTANCE * 1.7) {
     let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
     if (wall.supportOffset) {
       supportOffset += wall.supportOffset
@@ -1238,14 +1240,18 @@ function makeNub(position) {
   }
 }
 
-function latchPoints(E, N, reverse, ) {
+function latchPoints(E, N, reverse, insetAngle) {
   let points = []
   switch (LATCH_TYPE) {
     case "wedge":
+      let inset = 0
+      if (insetAngle > 0) {
+        inset = Math.tan(insetAngle) * THICKNESS
+      }
       points = [
         E.scale(ANTI_CORNER),
-        N.scale(THICKNESS).addScaledVector(E, -ANTI_CORNER),
-        E.scale(MAX_LATCH_WIDTH),
+        N.scale(THICKNESS).addScaledVector(E, -ANTI_CORNER + inset),
+        E.scale(MAX_LATCH_WIDTH - inset),
       ]
       break
     case "hook":
