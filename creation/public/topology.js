@@ -136,6 +136,8 @@ class Fold {
   constructor(vertex) {
     this.vertex = vertex
     
+    let vertex0 = vertex.edges[0].otherVertex(vertex)
+    let vertex1 = vertex.edges[1].otherVertex(vertex)
     let e0 = vertex.edges[0].toVector(vertex, true)
     let e1 = vertex.edges[1].toVector(vertex, true)
     let n0, n1
@@ -189,10 +191,14 @@ class Fold {
       dihedralAngle: this.dihedralAngle,
       angleOfIncidence: aoi,
       aoiComplement: this.aoiComplement,
+      leftVertex: vertex1,
+      rightVertex: vertex0,
     }]
     this.foldWalls.push({...this.foldWalls[0]})
     this.foldWalls[1].aoiComplement *= -1
     this.foldWalls[1].angleOfIncidence = Math.PI - this.foldWalls[1].aoiComplement
+    this.foldWalls[1].leftVertex = vertex0
+    this.foldWalls[1].rightVertex = vertex1
   }
 
   getCoverInfo(plain, isOutgoing) {

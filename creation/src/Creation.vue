@@ -61,8 +61,8 @@ export default {
         {name: "showEdgeNumbers", type: "bool"},
         {name: "showPixelNumbers", type: "bool"},
         {name: "showLaserSVG", type: "bool"},
-        {name: "showWallSVG", type: "bool"},
-        {name: "STARTING_PART_ID", type: "int", value: 0},
+        // {name: "showWallSVG", type: "bool"},
+        {name: "STARTING_PART_ID", type: "int", value: 1},
         {name: "ENDING_PART_ID", type: "int", value: 0},
         {name: "PROCESS_STOP", type: "select",
           options: [
@@ -93,9 +93,24 @@ export default {
     updateSetting(setting) {
       localStorage.setItem(setting.name, setting.value)
       window[setting.name] = setting.value
-      this.openProject(this.fullProjectName)
+      if (!["STARTING_PART_ID", "ENDING_PART_ID", "PROCESS_STOP"].includes(setting.name)) {
+        this.openProject(this.fullProjectName)
+      }
+    },
+    setSetting(name, value) {
+      for (let setting of this.settings) {
+        if (setting.name == name) {
+          setting.value = value
+          this.updateSetting(setting, true)
+          break
+        }
+      }
     },
     async openProject(name) {
+      if (this.fullProjectName && this.fullProjectName != name) {
+        this.setSetting("STARTING_PART_ID", 1)
+        this.setSetting("ENDING_PART_ID", 0)
+      }
       window.fullProjectName = name
       this.fullProjectName = name
       localStorage.setItem("button", name)

@@ -325,6 +325,8 @@ async function createCoverSVG(plain) {
           length: wallLength,
           edgeLength,
           worldPlacementOperations,
+          leftVertex: vertex1,
+          vertex: vertex2,
         }, associatedEdge)
       }
 
@@ -763,8 +765,13 @@ function createPrintInfo3D() {
       let topPrint = covers.top[plainIndex]
       topPrint.suffix = partID + "t"
       embossing = findEmbossing(topPrint)
-      if (embossing) {
+      if (embossing && !embossing.operations) {
         embossing.text = topPrint.suffix
+        embossing.operations = [
+          {type: "mirror", normal: [1,0,0]},
+          {type: "translate", position: embossing.position},
+        ]
+        embossing.position = null
       }
       topPrint.operations = [{type: "mirror", normal: [1,0,0]}]
       printInfo.prints.push(topPrint)
@@ -1142,21 +1149,16 @@ function wallPrints(wall, isLeft) {
       !wall.hasWallPort &&
       bottomLength > PIXEL_DISTANCE * 1.7) {
     let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
-    if (wall.supportOffset) {
-      supportOffset += wall.supportOffset
-    }
-    // if (supportOffset < edgeLength - topLength + LED_SUPPORT_WIDTH/2) {
-    //   supportOffset += PIXEL_DISTANCE
-    // }
+    supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * PIXEL_DISTANCE / pixelDensity
+
     position = startV.addScaledVector(E, -supportOffset)
   }
   if (!isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       bottomLength > PIXEL_DISTANCE * 3 &&
       (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
     let supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
-    if (wall.supportOffset) {
-      supportOffset -= wall.supportOffset
-    }
+    supportOffset += edgeOffset(wall.rightVertex, wall.vertex)
+
     offsetNegative = supportOffset % PIXEL_DISTANCE
     // TODO better calculation for how much negative offset should be (based on angles)
     while (offsetNegative < PIXEL_DISTANCE/2 + LED_SUPPORT_WIDTH/2) {
@@ -1273,6 +1275,23 @@ function latchPoints(E, N, reverse, insetAngle) {
     points.reverse()
   }
   return points
+}
+
+function edgeOffset(vertex, prevVertex) {
+  if (vertex.edges.length != 4) return 0
+
+  let nextVertex = null
+  let offset = 0
+  for (let edge of vertex.edges) {
+    if (edge.isDupe) continue
+    let other = edge.otherVertex(vertex)
+    if (other == prevVertex) continue
+
+    nextVertex = other
+    offset = edge.length()
+  }
+  offset = (edgeOffset(nextVertex, vertex) + offset) % 1
+  return offset
 }
 
 
