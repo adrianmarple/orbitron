@@ -145,6 +145,7 @@ class Idle(Game):
 
       for n in neighbors[head]:
         x = self.fluid_values[dupe_to_uniques[n][0]] + 0.01
+        x /= get_pref("idleDensity") * 0.1
         x *= dampening_factor
         if x < random():
           new_heads.append(n)
