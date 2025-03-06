@@ -85,6 +85,11 @@
             </div>
           </div>
         </div>
+        <div v-if="saveNames.length == 0" class="zero-state">
+          Feel free to save any presets of pattern and color here.
+          Just enter a name in the text box below and hit the "Save As" button.
+          Note that you need to save presets in order to use the timer (next tab over with the clock).
+        </div>
       </div>
       <div class="bottom-plug"></div>
       <div id="save-bottom-stuff" class="horiz-box">
@@ -101,7 +106,11 @@
     <div v-else-if="nav=='timing'" class="nav-page">
       <div class="column schedule">
         <div class="content">
-          <div v-if="!prefs.useTimer" class="scrim"></div>
+          <div v-if="!prefs.useTimer" class="scrim">
+            <div class="text">
+              You can have this Lumatron change to any series of saved presets (or turn off completely) at the time of day of your choosing.
+            </div>
+          </div>
           <div class="add-wrapper">
             <div class="padding"></div>
             <Icon image="add"
@@ -143,6 +152,9 @@
               </Icon>
               <div class="padding"></div>
             </div>
+          </div>
+          <div v-if="allTimersAreOff" class="warning">
+            Warning all Timers are currently OFF.
           </div>
         </div>
       </div>

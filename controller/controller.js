@@ -210,7 +210,7 @@ var app = new Vue({
     },
 
     navBarItems() {
-      return ['colors', 'pattern', 'timing', 'save', 'games']
+      return ['colors', 'pattern', 'save', 'timing', 'games']
         .filter(name => !this.exclude[name])
     },
     patternDropdownInfo() {
@@ -233,6 +233,14 @@ var app = new Vue({
 
     scheduleType() {
       return this.prefs.weeklyTimer ? "weeklySchedule" : "schedule"
+    },
+    allTimersAreOff() {
+      for (let event of this.prefs[this.scheduleType]) {
+        if (event.prefName != 'OFF') {
+          return false
+        }
+      }
+      return true
     },
 
     eventOptions() {

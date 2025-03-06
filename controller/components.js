@@ -162,7 +162,6 @@ Vue.component('dropdown', {
           width: box.width + "px",
         },
       }
-      console.log(JSON.stringify(this.$root.activeDropdown))
       this.open = true
       setTimeout(() => {
         document.addEventListener('click', this.close)

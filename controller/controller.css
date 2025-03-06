@@ -490,9 +490,14 @@ input[type="range"]::-moz-range-thumb {
   right: 0;
   top: 0;
   bottom: 0;
-  pointer-events: none;
+  /* pointer-events: none; */
   background-color: var(--bg-color);
   opacity: 0.7;
+}
+
+.warning {
+  border: 1rem solid var(--bg-color);
+  background: rgba(0,0,0, 0.2);
 }
 
 .vector-wrapper {
@@ -544,8 +549,16 @@ input[type="range"]::-moz-range-thumb {
   width: 100%;
 }
 .schedule .scrim {
-  opacity: 0.5;
+  opacity: 0.95;
   z-index: 2;
+  display: flex;
+  justify-content: center;
+}
+.schedule .scrim .text {
+  position: fixed;
+  top: 12rem;
+  width: 37rem;
+  text-align: left;
 }
 .schedule::after {
   content: "";
@@ -646,6 +659,11 @@ input[type="range"]::-moz-range-thumb {
 }
 .scroll-containter textarea:focus-visible {
   outline-width: 0;
+}
+
+.zero-state {
+  text-align: left;
+  background-color: var(--bg-color);
 }
 
 .bottom-plug {
