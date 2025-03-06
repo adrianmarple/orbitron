@@ -438,10 +438,8 @@ async function generateModule(info, module) {
       break
     case "svg":
       let svgFilePath = `${info.tempPath}_${info.fullSuffix}${info.svgIndex}.svg`
-      if (module.type == "svg") {
-        info.svgIndex += 1
-        await fs.promises.writeFile(svgFilePath, module.svg, {encoding:'utf8',flag:'w'})
-      }
+      info.svgIndex += 1
+      await fs.promises.writeFile(svgFilePath, module.svg, {encoding:'utf8',flag:'w'})
       moduleString += `
       linear_extrude(height = ${module.thickness})
       import("${svgFilePath}", dpi=25.4);`

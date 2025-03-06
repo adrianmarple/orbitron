@@ -8,7 +8,7 @@ module.exports = async () => {
   powerHolePartID = "3"
   powerHoleWallIndex = 0
   
-
+  NO_EMBOSSING = true
   PIXEL_DISTANCE = pixelDensity
   WALL_THICKNESS = 2
   CHANNEL_WIDTH = 0

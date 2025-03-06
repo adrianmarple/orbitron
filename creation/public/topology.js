@@ -227,6 +227,7 @@ class Fold {
     if (this.negations[index] == -1) {
       isOutgoing = !isOutgoing
       worldPlacementOperations[2].angle = Math.PI
+      lengthOffset *= -1
     }
     let type = isOutgoing ? 1 : 2
     let foldWallIndex = index
@@ -238,7 +239,7 @@ class Fold {
     let foldWall = this.foldWalls[foldWallIndex]
     foldWall["miterAngle" + type] = angle
     foldWall["edgeLength" + type] = edgeLength
-    foldWall["lengthOffset" + type] = lengthOffset
+    foldWall["lengthOffset" + type] = -lengthOffset
     foldWall[coverType + "Length" + type] = wallLength
     foldWall["worldPlacementOperations" + type] = worldPlacementOperations
   }

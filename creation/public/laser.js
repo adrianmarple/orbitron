@@ -376,21 +376,21 @@ async function createCoverSVG(plain) {
           skew,
         })
       } else {
-        if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
-          if (cat5PortMidway) {
-            x1 = (x1 + x2 - CAT5_WIDTH) / 2
-          }
-          x1 += CAT5_ADDITONAL_OFFSET
-          points = [
-            [borderLengthOffset, width],
-            [x1, width],
-            [x1, width - BORDER],
-            [x1 + CAT5_WIDTH, width - BORDER],
-            [x1 + CAT5_WIDTH, width],
-          ]
-        } else {
+        // if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
+        //   if (cat5PortMidway) {
+        //     x1 = (x1 + x2 - CAT5_WIDTH) / 2
+        //   }
+        //   x1 += CAT5_ADDITONAL_OFFSET
+        //   points = [
+        //     [borderLengthOffset, width],
+        //     [x1, width],
+        //     [x1, width - BORDER],
+        //     [x1 + CAT5_WIDTH, width - BORDER],
+        //     [x1 + CAT5_WIDTH, width],
+        //   ]
+        // } else {
           points = [[borderLengthOffset, width]]
-        }
+        // }
         borderString += pointsToSVGString(points, [e1, n], v1)
         borderPoints.push(v1
             .addScaledVector(e1, borderLengthOffset)
@@ -1060,7 +1060,7 @@ function wallPrints(wall, isLeft) {
       .addScaledVector(E, topLength)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let startV = wallStart
-      .addScaledVector(E, isLeft ? wall.lengthOffset1 : wall.lengthOffset2)
+      .addScaledVector(E, isLeft ? wall.lengthOffset1 : -wall.lengthOffset2)
 
   // CAT5 port
   if (print.suffix == cat5partID) {
@@ -1157,7 +1157,7 @@ function wallPrints(wall, isLeft) {
       bottomLength > PIXEL_DISTANCE * 3 &&
       (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
     let supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
-    supportOffset += edgeOffset(wall.rightVertex, wall.vertex)
+    supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * PIXEL_DISTANCE / pixelDensity
 
     offsetNegative = supportOffset % PIXEL_DISTANCE
     // TODO better calculation for how much negative offset should be (based on angles)
@@ -1288,10 +1288,14 @@ function edgeOffset(vertex, prevVertex) {
     if (other == prevVertex) continue
 
     nextVertex = other
-    offset = edge.length()
+    offset = edge.length() % 1
   }
-  offset = (edgeOffset(nextVertex, vertex) + offset) % 1
-  return offset
+  offset = (edgeOffset(nextVertex, vertex) + 1-offset) % 1
+  if (epsilonEquals(offset, 1)) {
+    return 0
+  } else {
+    return offset
+  }
 }
 
 

@@ -28,7 +28,7 @@ module.exports = async () => {
     let inset = 0.2
     let notchHeight = 1
     let segmentClipHeight = 6 + THICKNESS + EXTRA_COVER_THICKNESS
-    let piClipHeight = 2 + THICKNESS + EXTRA_COVER_THICKNESS
+    let piClipHeight = 5 + THICKNESS + EXTRA_COVER_THICKNESS
 
     printInfo.prints[0] = {
       type: "union",
