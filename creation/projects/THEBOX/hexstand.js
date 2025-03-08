@@ -19,7 +19,7 @@ module.exports = async () => {
   LATCH_TYPE = "hook"
   HOOK_OVERHANG = 0.6
 
-  addPolygon(6, [0,0,0], 60)
+  addPolygon(6, [0,0,0], 64)
 
   printPostProcessingFunction = printInfo => {
     let width = 10
@@ -63,7 +63,7 @@ module.exports = async () => {
     console.log()
     let snapY = CAT5_HEIGHT - CAT5_SNAP_Y + CAT5_SNAP_HEIGHT/2
     let snapX = CAT5_SNAP_DISTANCE/2 - CAT5_SNAP_WIDTH/2
-    let BUFFER = 10
+    let BUFFER = 2
     let CAT5_THICKNESS = 13
     let cat5Holes = {
       type: "union",
@@ -109,8 +109,10 @@ module.exports = async () => {
             {
               code: `
               union() {
-                linear_extrude(height=${CAT5_THICKNESS + BUFFER - 2}, scale=0.7)
-                circle(62, $fn=6);
+                linear_extrude(height=${CAT5_THICKNESS + 16}, scale=0.7)
+                translate([-69,-180,0])
+                import("hexstand_1t1.svg", dpi=25.4);
+                // circle(69, $fn=6);
 
                 translate([0,0, ${(CAT5_THICKNESS + BUFFER)/2}])
                 cube([17.4, 17.4, ${CAT5_THICKNESS + BUFFER}], center=true);
@@ -119,8 +121,8 @@ module.exports = async () => {
             cat5Holes,
             {
               type: "cube",
-              position: [0, 0, BUFFER + CAT5_THICKNESS/2 + 1],
-              dimensions: [15.4, 15.4, CAT5_THICKNESS+2]
+              position: [0, 0, BUFFER + 25],
+              dimensions: [15.4, 15.4, 50]
             }
           ]
         }

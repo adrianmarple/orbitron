@@ -10,6 +10,16 @@ from datetime import datetime, timedelta
 from math import isnan
 from time import sleep, time
 
+
+def _now(): # Solely for use in testing
+  return datetime.now()
+  # return datetime.now() + timedelta(days=1, hours=0, minutes=0)
+  td = datetime.now() - datetime(year=2025, month=3, day=5)
+  time = datetime.now()
+  for _ in range(3000):
+    time += td
+  return time
+
 # To be overwritten by idlepatterns
 def set_idle():
   pass
@@ -263,7 +273,7 @@ next = None
 def fade():
   if not get_pref("useTimer") or current is None:
     return 1
-  now = datetime.now()
+  now = _now()
   if now > end:
     update_schedule()
   if current["prefName"] == "OFF":
@@ -301,7 +311,7 @@ def update_schedule():
 
   global start, end, previous, current, next
 
-  now = datetime.now()
+  now = _now()
   now_repeated = RepeatedTime(now)
   previous = schedule[-1]
   current = schedule[-1]
@@ -313,6 +323,8 @@ def update_schedule():
     previous = current
     current = event
 
+  print("Pattern changed to '%s' at %s" % (current["prefName"], now.strftime("%Y-%m-%d %H:%M %A")), file=sys.stderr)
+        
   if current["prefName"] != "OFF":
     load(current["prefName"])
   start = current["repeated_time"].combine(now)
