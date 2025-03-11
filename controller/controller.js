@@ -464,6 +464,9 @@ var app = new Vue({
       }
       return string
     },
+    advanceManualFade() {
+      this.send({type: "advanceManualFade"})
+    },
     pulse() {
       this.send({type: "pulse"})
     },

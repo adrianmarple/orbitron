@@ -1010,6 +1010,7 @@ def broadcast_state():
     "include": config.get("INCLUDE", {}),
     "prefNames": prefs.pref_names,
     "currentPrefName": prefs.current_pref_name,
+    "manualFadePoint": prefs.manual_fade_point,
     "extraStartingRules": config.get("EXTRA_STARTING_RULES"),
   }
   price = config.get("PRICE")
@@ -1019,6 +1020,12 @@ def broadcast_state():
   print(json.dumps(message))
 
 # ================================ Core loop =========================================
+
+if config.get("MANUAL_FADE_PIN"):
+  TOGGLE_PIN = config.get("MANUAL_FADE_PIN") # board pin 10/GPIO pin 15
+  import RPi.GPIO as GPIO
+  GPIO.setwarnings(False)
+  GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def run_core_loop():
   display_text("$LOADING", 0)
@@ -1031,6 +1038,8 @@ def run_core_loop():
     'very_slow_frame_count': 0,
     'slowest_frame': 0,
   }
+
+  previous_pin_value = 0
 
   while True:
     time_to_wait = last_frame_time + 1.0/FRAMERATE - time()
@@ -1048,5 +1057,12 @@ def run_core_loop():
     if config.get("SHOW_FRAME_INFO"):
       print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
+
+
+    if config.get("MANUAL_FADE_PIN"):
+      pin_value = GPIO.input(TOGGLE_PIN) == GPIO.HIGH
+      if pin_value and not previous_pin_value:
+        prefs.advance_manual_fade()
+      previous_pin_value = pin_value
 
     update()

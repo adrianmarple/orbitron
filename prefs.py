@@ -270,14 +270,16 @@ previous = None
 current = None
 next = None
 
+manual_fade_point = 1
+
 def fade():
   if not get_pref("useTimer") or current is None:
-    return 1
+    return manual_fade_point
   now = _now()
   if now > end:
     update_schedule()
   if current["prefName"] == "OFF":
-    return 0
+    return manual_fade_point
 
   start_fade_duration = previous.get("fadeIn", 10) if previous["prefName"] == "OFF" else 0.2
   try:
@@ -302,14 +304,23 @@ def fade():
   fade = min(start_fade, end_fade)
   fade = min(fade, 1)
   fade = max(fade, 0)
-  return fade
+  return min(fade, manual_fade_point)
+
+def advance_manual_fade(): # Consider adding a delay before being callable again
+  global manual_fade_point
+  step = config.get("MANUAL_FADE_STEP", 2)
+  defacto_fade = fade()
+  defacto_fade = (round(defacto_fade * step) - 1) / step
+  if defacto_fade < 0:
+    defacto_fade = 1
+  manual_fade_point = defacto_fade
 
 def update_schedule():
   schedule = get_pref("weeklySchedule") if get_pref("weeklyTimer") else get_pref("schedule")
   if len(schedule) == 0:
     return
 
-  global start, end, previous, current, next
+  global start, end, previous, current, next, manual_fade_point
 
   now = _now()
   now_repeated = RepeatedTime(now)
@@ -324,7 +335,13 @@ def update_schedule():
     current = event
 
   print("Pattern changed to '%s' at %s" % (current["prefName"], now.strftime("%Y-%m-%d %H:%M %A")), file=sys.stderr)
-        
+
+  if previous["prefName"] == "OFF":
+    manual_fade_point = 1
+  if current["prefName"] == "OFF":
+    manual_fade_point = 0
+
+
   if current["prefName"] != "OFF":
     load(current["prefName"])
   start = current["repeated_time"].combine(now)

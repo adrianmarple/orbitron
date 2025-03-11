@@ -79,6 +79,8 @@ def consume_input():
         prefs.delete(message["name"])
       elif message["type"] == "renamePref":
         prefs.rename(message["originalName"], message["newName"])
+      elif message["type"] == "advanceManualFade":
+        prefs.advance_manual_fade()
 
       if "self" not in message or message["self"] is None:
         continue
