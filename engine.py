@@ -1022,10 +1022,9 @@ def broadcast_state():
 # ================================ Core loop =========================================
 
 if config.get("MANUAL_FADE_PIN"):
-  TOGGLE_PIN = config.get("MANUAL_FADE_PIN") # board pin 10/GPIO pin 15
   import RPi.GPIO as GPIO
   GPIO.setwarnings(False)
-  GPIO.setup(TOGGLE_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+  GPIO.setup(config["MANUAL_FADE_PIN"], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def run_core_loop():
   display_text("$LOADING", 0)
@@ -1060,7 +1059,7 @@ def run_core_loop():
 
 
     if config.get("MANUAL_FADE_PIN"):
-      pin_value = GPIO.input(TOGGLE_PIN) == GPIO.HIGH
+      pin_value = GPIO.input(config["MANUAL_FADE_PIN"]) != GPIO.HIGH
       if pin_value and not previous_pin_value:
         prefs.advance_manual_fade()
       previous_pin_value = pin_value

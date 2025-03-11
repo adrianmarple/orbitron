@@ -308,12 +308,24 @@ def fade():
 
 def advance_manual_fade(): # Consider adding a delay before being callable again
   global manual_fade_point
-  step = config.get("MANUAL_FADE_STEP", 2)
+  steps = config.get("MANUAL_FADE_STEPS", [1, 0.5, 0.25, 0])
   defacto_fade = fade()
-  defacto_fade = (round(defacto_fade * step) - 1) / step
-  if defacto_fade < 0:
-    defacto_fade = 1
-  manual_fade_point = defacto_fade
+  
+  closest_index = 0
+  closest_distance = 1
+  for i, step in enumerate(steps):
+    distance = abs(defacto_fade - step)
+    if distance < closest_distance:
+      closest_distance = distance
+      closest_index = i
+
+  index = (closest_index + 1) % len(steps)
+  manual_fade_point = steps[index]
+
+  # defacto_fade = (round(defacto_fade * step) - 1) / step
+  # if defacto_fade < 0:
+  #   defacto_fade = 1
+  # manual_fade_point = defacto_fade
 
 def update_schedule():
   schedule = get_pref("weeklySchedule") if get_pref("weeklyTimer") else get_pref("schedule")
