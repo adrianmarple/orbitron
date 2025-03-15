@@ -45,6 +45,7 @@ default_prefs = {
   "rippleWidth": 9,
   "sinDirection": "1,0,0",
   "sinMin": 25,
+  "disableBeatMode": False,
 
   # COLOR
   "idleColor": "gradient",

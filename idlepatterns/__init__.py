@@ -40,6 +40,8 @@ def set_idle():
     engine.idle = idle
     engine.start(idle)
 
+def beat_mode():
+  return config.get("BEAT_PIN") and not get_pref("disableBeatMode")
 
 class Idle(Game):
   name = "idle"
@@ -73,14 +75,15 @@ class Idle(Game):
   def update(self):
     pass
 
+
   def beat_factor(self):
-    if not config.get("BEAT_PIN"):
+    if not beat_mode():
       return 1
     time_since_last_beat = time() - self.previous_beat_time
     return 2 * exp(-10*time_since_last_beat) + 0.3
 
   def render(self):
-    if (config.get("BEAT_PIN") and
+    if (beat_mode() and
         time() - self.previous_beat_time > 0.11 and
         GPIO.input(config["BEAT_PIN"]) == GPIO.HIGH):
       self.previous_beat_time = time()
@@ -123,7 +126,7 @@ class Idle(Game):
 
   def get_frame_time(self):
     frame_time = 1.0/get_pref("idleFrameRate")
-    if config.get("BEAT_PIN"):
+    if beat_mode():
       return frame_time / (self.beat_factor() + 0.1)
     else:
       return frame_time

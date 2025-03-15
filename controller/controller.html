@@ -160,12 +160,6 @@
       </div>
       <boolean v-if="include['weeklyTimer']" title="Weekly Timer" key="weeklyTimer"></boolean>
       <boolean title="Use Timer" key="useTimer"></boolean>
-      <div class="horiz-box">
-        <div class="button" style="font-size: 3.2rem; width: 38rem; display: flex; justify-content: center;" @click="advanceManualFade">
-          <div>Cycle Brightness &ensp;</div>
-          <div style="text-align: left; width: 10rem;">({{Math.round(state.manualFadePoint * 100)}}%)</div>
-        </div>
-      </div>
     </div>
 
     <!-- COLORS MENU -->
@@ -195,6 +189,12 @@
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
           title="Blend" key="idleBlend"></slider>
       <slider title="Brightness" key="brightness"  :max="200"></slider>
+      <div class="horiz-box">
+        <div class="button" style="font-size: 3rem; width: 38rem; height: 4rem; display: flex; justify-content: center;" @click="advanceManualFade">
+          <div>Temporary Dimmer &ensp;</div>
+          <div style="text-align: left; width: 10rem;">({{Math.round(state.manualFadePoint * 100)}}%)</div>
+        </div>
+      </div>
     </div>
 
     <!-- PATTERN MENU -->
@@ -223,6 +223,8 @@
       <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 
           title="Speed" key="idleFrameRate"
           :min="5" :max="30"></slider>
+      <boolean v-if="include.beatMode && ['default'].includes(prefs.idlePattern)"
+          title="Disable Beat Mode" key="disableBeatMode"></boolean>
       <dropdown title="Pattern" key="idlePattern"
           :options="patternDropdownInfo"
       ></dropdown>
