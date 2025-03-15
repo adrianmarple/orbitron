@@ -124,7 +124,7 @@ class Idle(Game):
   def get_frame_time(self):
     frame_time = 1.0/get_pref("idleFrameRate")
     if config.get("BEAT_PIN"):
-      return frame_time / (self.beat_factor() + 0.3)
+      return frame_time / (self.beat_factor() + 0.1)
     else:
       return frame_time
 
@@ -212,8 +212,9 @@ class Idle(Game):
     frame_delta = (time() - self.previous_render_time)
     frame_delta *= get_pref("idleFrameRate") / 15
     frame_delta *= exp(2.7 - get_pref("idleBlend")/17)
-    if time() - self.previous_beat_time < 0.01:
+    if time() - self.previous_beat_time < 0.05:
       frame_delta = 2
+
     if frame_delta < 1:
       alpha = exp(-10 * frame_delta)
       self.render_values = self.target_values * (1-alpha) + self.previous_values * alpha
