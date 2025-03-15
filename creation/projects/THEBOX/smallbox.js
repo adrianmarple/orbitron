@@ -27,7 +27,6 @@ module.exports = async () => {
     let pcb_thickness2 = 1.6
     let inset = 0.2
     let notchHeight = 1
-    let segmentClipHeight = 6 + THICKNESS + EXTRA_COVER_THICKNESS
     let piClipHeight = 5 + THICKNESS + EXTRA_COVER_THICKNESS
 
     printInfo.prints[0] = {

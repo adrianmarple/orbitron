@@ -499,24 +499,25 @@ async function createCoverSVG(plain) {
   })
 
   if (INNER_CHANNEL_THICKNESS !== null) {
+    let embo = findEmbossing(print)
     print = {
-      type: "union",
+      type: "difference",
       components: [
+        print,
         {
-          type: "difference",
-          components: [
-            print,
-            {
-              type: "svg",
-              svg: channelSvg,
-              thickness: THICKNESS - INNER_CHANNEL_THICKNESS,
-              position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
-              operations: importCorrectionOperations,
-            }
-          ],
-        },
-        findEmbossing(print),
-      ]
+          type: "svg",
+          svg: channelSvg,
+          thickness: THICKNESS - INNER_CHANNEL_THICKNESS,
+          position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+          operations: importCorrectionOperations,
+        }
+      ],
+    }
+    if (embo) {
+      print = {
+        type: "union",
+        components: [print, embo],
+      }
     }
   }
   print.svg = svg
@@ -1147,7 +1148,7 @@ function wallPrints(wall, isLeft) {
   position = null
   if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       !wall.hasWallPort &&
-      bottomLength > PIXEL_DISTANCE * 1.7) {
+      bottomLength > PIXEL_DISTANCE * 1.2) {
     let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
     supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * PIXEL_DISTANCE / pixelDensity
 

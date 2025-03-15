@@ -2,14 +2,54 @@ module.exports = () => {
   setFor3DPrintedCovers()
   pixelDensity = 0.5
   cat5FoldWallIndex = 3
+  NO_EMBOSSING = true
 
-  wallPostProcessingFunction = printInfo => {
-    printInfo.prints = [printInfo.prints[1], printInfo.prints[5], printInfo.prints[4]]
+
+  printPostProcessingFunction = printInfo => {
+    printInfo.prints = [
+      printInfo.prints[0],
+      printInfo.prints[1].components[0],
+      printInfo.prints[4],
+      printInfo.prints[5],
+    ]
+    printInfo.prints[0].suffix = "bottom"
+    printInfo.prints[1].suffix = "top"
+    printInfo.prints[2].suffix = "square_wall"
+    printInfo.prints[3].suffix = "hex_wall"
+
+    h = 44
+    printInfo.prints.push({
+      type: "difference",
+      suffix: "top_with_column",
+      components: [
+        {
+          type: "union",
+          operations: [{
+            type: "mirror",
+            normal: [0,0,1],
+          }],
+          components: [
+            printInfo.prints[1],
+            {
+              position: [0, 0, 0-h],
+              code: `
+              cylinder(h=${h}, r=7.5, $fn=64);`
+            },
+          ]
+        },
+        {
+          position: [0, 0, -3],
+          code: `
+          cylinder(h=${h+10}, r=6.1, $fn=64);`
+        },
+      ]
+    })
   }
-  coverPostProcessingFunction = covers => {
-    covers.top = [covers.top[0]]
-    covers.bottom = [covers.bottom[0]]
-  }
+
+  // TODO
+  // + convert to "printPostProcessingFunction"
+  // - copy a top cover and add the column alterations (and add 14mm to column height vs pervious alteration)
+  // - add and test usb-c port to power core (center with centor of a hexagon)
 
   isWall = false // To avoid non-coplanar errors
   for (let permutation of permutations([2/3, 1/3, 0])) {

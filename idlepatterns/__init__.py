@@ -17,11 +17,10 @@ from prefs import get_pref
 
 name_to_idle_game = {}
 
-if config.get("BEAT_MODE"):
-  BEAT_PIN = 15 # board pin 10/GPIO pin 15
+if config.get("BEAT_PIN"):
   import RPi.GPIO as GPIO
   GPIO.setwarnings(False)
-  GPIO.setup(BEAT_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+  GPIO.setup(config["BEAT_PIN"], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 def set_idle():
   name = engine.get_pref("idlePattern")
@@ -75,15 +74,15 @@ class Idle(Game):
     pass
 
   def beat_factor(self):
-    if not config.get("BEAT_MODE"):
+    if not config.get("BEAT_PIN"):
       return 1
     time_since_last_beat = time() - self.previous_beat_time
     return 2 * exp(-10*time_since_last_beat) + 0.3
 
   def render(self):
-    if (config.get("BEAT_MODE") and
+    if (config.get("BEAT_PIN") and
         time() - self.previous_beat_time > 0.11 and
-        GPIO.input(BEAT_PIN) == GPIO.HIGH):
+        GPIO.input(config["BEAT_PIN"]) == GPIO.HIGH):
       self.previous_beat_time = time()
 
     self.wait_for_frame_end()
@@ -124,7 +123,7 @@ class Idle(Game):
 
   def get_frame_time(self):
     frame_time = 1.0/get_pref("idleFrameRate")
-    if config.get("BEAT_MODE"):
+    if config.get("BEAT_PIN"):
       return frame_time / (self.beat_factor() + 0.3)
     else:
       return frame_time

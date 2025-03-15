@@ -35,8 +35,9 @@ module.exports={
     // gameSettings: true,
     // weeklyTimer: true,
   },
-  // SWITCH_MODE: "toggle",
-  // SWITCH_MODE: "push",
+  // BEAT_PIN: 15, // board pin 10/GPIO pin 15
+  // MANUAL_FADE_PIN: 15, // board pin 10/GPIO pin 15
+  // MANUAL_FADE_STEPS: [1, 0.5, 0.25, 0],
   // TEXT_DISPLAY: "Seg14x4",
   // LAT: 0,
   // LON: 0,

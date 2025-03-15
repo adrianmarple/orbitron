@@ -1,4 +1,4 @@
-
+// SKIP
 module.exports = async () => {
   setFor3DPrintedCovers()
   pixelDensity = 0.1
