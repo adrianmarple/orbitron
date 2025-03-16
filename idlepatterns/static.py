@@ -24,7 +24,6 @@ class Static(Idle):
     self.target_values = (1 + self.target_values) / 2
     self.target_values = np.maximum(0, self.target_values)
     self.target_values = np.minimum(1, self.target_values)
-    self.render_values = np.ones(RAW_SIZE)
 
   def apply_brightness(self):
     Idle.apply_brightness(self)
