@@ -323,10 +323,6 @@ def advance_manual_fade(): # Consider adding a delay before being callable again
   index = (closest_index + 1) % len(steps)
   manual_fade_point = steps[index]
 
-  # defacto_fade = (round(defacto_fade * step) - 1) / step
-  # if defacto_fade < 0:
-  #   defacto_fade = 1
-  # manual_fade_point = defacto_fade
 
 def update_schedule():
   schedule = get_pref("weeklySchedule") if get_pref("weeklyTimer") else get_pref("schedule")
@@ -337,7 +333,10 @@ def update_schedule():
 
   now = _now()
   now_repeated = RepeatedTime(now)
-  previous = schedule[-1]
+  if len(schedule) > 1:
+    previous = schedule[-2]
+  else:
+    previous = schedule[-1]
   current = schedule[-1]
   next = schedule[0]
   for event in schedule:

@@ -170,14 +170,16 @@ export default {
       this.$root.post(printInfo)
       console.log("Generating prints")
     },
-    genModel() {
+    async genModel() {
       let mode = SIMPLE_MODE
       SIMPLE_MODE = true
+      await generateManufacturingInfo()
       let printInfo = createFullModel()
       SIMPLE_MODE = mode
       printInfo.fullProjectName = fullProjectName
       this.$root.post(printInfo)
       console.log("Generating full")
+      generateManufacturingInfo() // In potentially non-simple mode
     },
 
     configure() {

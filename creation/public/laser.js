@@ -419,7 +419,8 @@ async function createCoverSVG(plain) {
       }
 
       // Embossed id
-      if (!NO_EMBOSSING && !findEmbossing(print) && plains1.length == 1) {
+      if (!NO_EMBOSSING && !SIMPLE_MODE &&
+          !findEmbossing(print) && plains1.length == 1) {
         let z = EXTRA_COVER_THICKNESS + (INNER_CHANNEL_THICKNESS ? INNER_CHANNEL_THICKNESS : THICKNESS)
         print.components.push({
           type: "embossing",
