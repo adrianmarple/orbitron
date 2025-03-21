@@ -171,7 +171,10 @@ export default {
       console.log("Generating prints")
     },
     genModel() {
+      let mode = SIMPLE_MODE
+      SIMPLE_MODE = true
       let printInfo = createFullModel()
+      SIMPLE_MODE = mode
       printInfo.fullProjectName = fullProjectName
       this.$root.post(printInfo)
       console.log("Generating full")

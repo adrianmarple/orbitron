@@ -1,5 +1,5 @@
 
-module.exports = () => {
+module.exports = async () => {
   setFor3DPrintedCovers()
 
   cat5partID = "3L"
@@ -42,7 +42,6 @@ module.exports = () => {
   addEdge(14, 15)
 
   removeVertex(6)
-
 
   for (let permutation of ["yzx", "zxy"]) {
     for (let edge of [...edges]) {

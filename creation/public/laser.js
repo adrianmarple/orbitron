@@ -484,42 +484,51 @@ async function createCoverSVG(plain) {
     }
   ]
 
-  print.components.push({
-    type: "svg",
-    svg,
-    thickness: THICKNESS,
-    position: [0,0,EXTRA_COVER_THICKNESS],
-    operations: importCorrectionOperations,
-  })
-  print.components.push({
-    type: "svg",
-    svg: borderSvg,
-    thickness: EXTRA_COVER_THICKNESS,
-    operations: importCorrectionOperations,
-  })
+  if (SIMPLE_MODE) {
+    print.components.push({
+      type: "svg",
+      svg: borderSvg,
+      thickness: EXTRA_COVER_THICKNESS + THICKNESS,
+      operations: importCorrectionOperations,
+    })
+  } else {
+    print.components.push({
+      type: "svg",
+      svg,
+      thickness: THICKNESS,
+      position: [0,0,EXTRA_COVER_THICKNESS],
+      operations: importCorrectionOperations,
+    })
+    print.components.push({
+      type: "svg",
+      svg: borderSvg,
+      thickness: EXTRA_COVER_THICKNESS,
+      operations: importCorrectionOperations,
+    })
 
-  if (INNER_CHANNEL_THICKNESS !== null) {
-    let embo = findEmbossing(print)
-    print = {
-      type: "difference",
-      components: [
-        print,
-        {
-          type: "svg",
-          svg: channelSvg,
-          thickness: THICKNESS - INNER_CHANNEL_THICKNESS,
-          position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
-          operations: importCorrectionOperations,
-        }
-      ],
-    }
-    if (embo) {
+    if (INNER_CHANNEL_THICKNESS !== null) {
+      let embo = findEmbossing(print)
       print = {
-        type: "union",
-        components: [print, embo],
+        type: "difference",
+        components: [
+          print,
+          {
+            type: "svg",
+            svg: channelSvg,
+            thickness: THICKNESS - INNER_CHANNEL_THICKNESS,
+            position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
+            operations: importCorrectionOperations,
+          }
+        ],
+      }
+      if (embo) {
+        print = {
+          type: "union",
+          components: [print, embo],
+        }
       }
     }
-  }
+  } // !SIMPLE_MODE
   print.svg = svg
 
   print.worldPlacementOperations = [
@@ -697,6 +706,7 @@ function createFullModel() {
       if (wall.isFoldWall) {
         let wallPrint1 = wallPrints(wall, true)[0]
         wallPrint1.operations = [...wall.worldPlacementOperations1]
+        wallPrint1.operations[2] = {...wallPrint1.operations[2]}
         wallPrint1.operations[2].angle += wall.zRotationAngle
         if (wall.aoiComplement < 0) {
           wallPrint1.operations.splice(3, 0, {
@@ -708,6 +718,7 @@ function createFullModel() {
 
         let wallPrint2 = wallPrints(wall, false)[0]
         wallPrint2.operations = [...wall.worldPlacementOperations2]
+        wallPrint2.operations[2] = {...wallPrint2.operations[2]}
         wallPrint2.operations[2].angle -= wall.zRotationAngle
         if (wall.aoiComplement < 0) {
           wallPrint2.operations.splice(3, 0, {
@@ -1028,17 +1039,25 @@ function wallPrints(wall, isLeft) {
     }
   }
   wallSegments.push(E.scale(endNotchDepth))
-  wallSegments = wallSegments.concat(latchPoints(E,N, false, -insetAngle))
-  wallSegments.push(E.scale(topLength - 2*(endNotchDepth + MAX_LATCH_WIDTH)))
-  wallSegments = wallSegments.concat(latchPoints(E,N.negate(), true))
+  if (SIMPLE_MODE) {
+    wallSegments.push(E.scale(topLength - 2*endNotchDepth))
+  } else {
+    wallSegments = wallSegments.concat(latchPoints(E,N, false, -insetAngle))
+    wallSegments.push(E.scale(topLength - 2*(endNotchDepth + MAX_LATCH_WIDTH)))
+    wallSegments = wallSegments.concat(latchPoints(E,N.negate(), true))
+  }
   wallSegments = wallSegments.concat([
     E.scale(endNotchDepth + WALL_MITER_KERF),
     N.scale(-CHANNEL_DEPTH),
     E.scale(-endNotchDepth - WALL_MITER_KERF),
   ])
-  wallSegments = wallSegments.concat(latchPoints(E.negate(),N.negate()))
-  wallSegments.push(E.scale(-bottomLength + 2*(endNotchDepth + MAX_LATCH_WIDTH)))
-  wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true, insetAngle))
+  if (SIMPLE_MODE) {
+    wallSegments.push(E.scale(-bottomLength + 2*endNotchDepth))
+  } else {
+    wallSegments = wallSegments.concat(latchPoints(E.negate(),N.negate()))
+    wallSegments.push(E.scale(-bottomLength + 2*(endNotchDepth + MAX_LATCH_WIDTH)))
+    wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true, insetAngle))
+  }
   wallSegments.push(E.scale(-endNotchDepth))
   if (wall.dihedralAngle > 0) {
     if (coverPrint3D) {
@@ -1064,7 +1083,7 @@ function wallPrints(wall, isLeft) {
       .addScaledVector(E, isLeft ? wall.lengthOffset1 : -wall.lengthOffset2)
 
   // CAT5 port
-  if (print.suffix == cat5partID) {
+  if (print.suffix == cat5partID && !SIMPLE_MODE) {
     let cat5BottomCenter = wallStart
         .addScaledVector(N, -CHANNEL_DEPTH/2)
     if (cat5PortMidway) {
@@ -1168,7 +1187,7 @@ function wallPrints(wall, isLeft) {
     supportOffset -= offsetNegative
     position = startV.addScaledVector(E, -supportOffset)
   }
-  if (position) {
+  if (position && !SIMPLE_MODE) {
     print.components.push({
       type: "ledSupport",
       position: [position.x, -position.y, WALL_THICKNESS],
@@ -1180,7 +1199,7 @@ function wallPrints(wall, isLeft) {
     })
   }
 
-  if (addNubs && !wall.isFoldWall) { // Nubs
+  if (addNubs && !wall.isFoldWall && !SIMPLE_MODE) { // Nubs
     let nub = wallSegments[0].add(offset)
         .addScaledVector(E, NUB_INSET_X + NOTCH_DEPTH)
         .addScaledVector(N, -NUB_INSET - NUB_WIDTH/2 + THICKNESS)
@@ -1195,7 +1214,7 @@ function wallPrints(wall, isLeft) {
   }
 
   // Embossing
-  if (!NO_EMBOSSING &&
+  if (!NO_EMBOSSING && !SIMPLE_MODE &&
     (isLeft || (wall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY))) {
     let V = wallStart.sub(extraOffset)
     print.components.push({

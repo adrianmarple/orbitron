@@ -148,7 +148,7 @@ async function closeRootServer() {
   })
 }
 
-MANUFACTURING_FOLDER = "Dropbox/LumatronManufacturing/" // Move to .env?
+MANUFACTURING_FOLDER = "LumatronManufacturing/" // Move to .env?
 MANUFACTURING_FOLDER = path.join(process.env.HOME, MANUFACTURING_FOLDER)
 
 addGETListener((response, request) => {
