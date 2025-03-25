@@ -2,7 +2,7 @@
 module.exports = async () => {
   setFor3DPrintedCovers()
 
-  cat5partID = "16L"
+  cat5partID = "3L"
   CENTER = new Vector(3, 3, 3)
   const SIZE = -4
 
@@ -23,6 +23,6 @@ module.exports = async () => {
   }
 
   zeroFoldAllEdges()
-  EulerianPath(16,1)
+  EulerianPath(17,1)
   center()
 }

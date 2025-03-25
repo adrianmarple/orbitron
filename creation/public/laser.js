@@ -1347,13 +1347,14 @@ async function generateManufacturingInfo() {
     window.ORIGAMI_KERF = TOP_ORIGAMI_KERF == null ? ORIGAMI_KERF : TOP_ORIGAMI_KERF
     for (let plain of plains) {
       covers.top.push(await createCoverSVG(plain))
-      let w = (maxX - minX) / 96
-      let h = (maxY - minY) / 96
-      if (coverPrint3D) {
-        w *= MM_TO_96DPI
-        h *= MM_TO_96DPI
+      let w = (maxX - minX)
+      let h = (maxY - minY)
+      if (!coverPrint3D) {
+        w /= 96
+        h /= 96
       }
-      console.log(`Top svg ${covers.top.length-1} is ${w.toFixed(2)}" by ${h.toFixed(2)}"`)
+      let unit = coverPrint3D ? 'mm' : '"'
+      console.log(`Top svg ${covers.top.length-1} is ${w.toFixed(2)}${unit} by ${h.toFixed(2)}${unit}`)
     }
     IS_BOTTOM = true
     window.KERF = BOTTOM_KERF
@@ -1366,11 +1367,21 @@ async function generateManufacturingInfo() {
         w *= MM_TO_96DPI
         h *= MM_TO_96DPI
       }
-      console.log(`Bottom svg ${covers.bottom.length-1} is ${w.toFixed(2)}" by ${h.toFixed(2)}"`)
+      // console.log(`Bottom svg ${covers.bottom.length-1} is ${w.toFixed(2)}" by ${h.toFixed(2)}"`)
     }
     if (covers.bottom.length[0]) {
       document.getElementById("cover").outerHTML = covers.bottom[0].svg
     }
+
+    let mins = new Vector(1000, 1000, 1000)
+    let maxes = new Vector(-1000, -1000, -1000)
+    for (let v of verticies) {
+      mins = mins.min(v.ogCoords)
+      maxes = maxes.max(v.ogCoords)
+    }
+    let dims = maxes.sub(mins).scale(PIXEL_DISTANCE / pixelDensity / 25.4)
+    console.log(`Overall dimensions approx ${dims.x.toFixed(1)}" x ${dims.y.toFixed(1)}" x ${dims.z.toFixed(1)}"`)
+
 
     createPrintInfo3D()
   }

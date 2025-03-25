@@ -976,6 +976,7 @@ function zeroFoldAllEdges() {
     }
   }
 
+  let edgesToZeroFold = []
   for (let edge of [...edges]) {
     let lengthThreshold = ZERO_FOLD_LENGTH_THRESHOLD * pixelDensity
     if (edge.verticies[0].plains.length > 1 || edge.verticies[1].plains.length > 1) {
@@ -983,7 +984,8 @@ function zeroFoldAllEdges() {
     }
     
     if (edge.length() > lengthThreshold) {
-      zeroFold(edge)
+      // zeroFold(edge)
+      edgesToZeroFold.push(edge)
       continue
     }
     
@@ -994,6 +996,20 @@ function zeroFoldAllEdges() {
           break
         }
       }
+    }
+  }
+  for (let edge of edgesToZeroFold) {
+    let shouldZeroFold = true
+    for (let plain0 of edge.verticies[0].plains) {
+      for (let plain1 of edge.verticies[1].plains) {
+        if (plain0 == plain1) {
+          shouldZeroFold = false
+          console.log(edge)
+        }
+      }
+    }
+    if (shouldZeroFold) {
+      zeroFold(edge)
     }
   }
 
