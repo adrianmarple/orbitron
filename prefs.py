@@ -135,6 +135,10 @@ def update(update, client_timestamp=0):
   f.write(json.dumps(timing_prefs, indent=2))
   f.close()
 
+  # Turn dimmer back on if not using timer and it's off
+  if current is not None and current["prefName"] == "OFF" and not get_pref("useTimer"):
+    advance_manual_fade()
+
   should_update_schedule = False
   for key in timing_prefs.keys():
     if key in update:

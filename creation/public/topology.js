@@ -1004,7 +1004,6 @@ function zeroFoldAllEdges() {
       for (let plain1 of edge.verticies[1].plains) {
         if (plain0 == plain1) {
           shouldZeroFold = false
-          console.log(edge)
         }
       }
     }

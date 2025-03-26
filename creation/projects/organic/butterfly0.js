@@ -1,8 +1,7 @@
 module.exports = async () => {
   setFor3DPrintedCovers()
-  cat5partID = "3"
 
-  await addFromSVG("organic/Butterfly wing.svg")
+  await addFromSVG("organic/ButterflyWingV0.svg")
   integerize()
 
   for (let v of verticies) {
@@ -19,8 +18,7 @@ module.exports = async () => {
     addEdge(indexMapping[edge.verticies[0].index], indexMapping[edge.verticies[1].index])
   }
 
-  // addTriangulation(16, 54, 3.5)
-  addTriangulation(15, 40, 3)
+  addTriangulation(21, 46, 3.5)
 
   origami(new Plain(ZERO, new Vector(1, 0, -1)))
 

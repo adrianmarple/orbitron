@@ -2,7 +2,8 @@
 module.exports = async () => {
   setFor3DPrintedCovers()
 
-  cat5partID = "3L"
+  cat5partID = "2L"
+  cat5PortMidway = true
   CENTER = new Vector(3, 3, 3)
   const SIZE = -4
 

@@ -19,7 +19,8 @@ module.exports = async () => {
     addEdge(indexMapping[edge.verticies[0].index], indexMapping[edge.verticies[1].index])
   }
 
-  addTriangulation(21, 46, 4)
+  // addTriangulation(21, 46, 4)
+  addTriangulation(15, 40, 3)
 
   // zeroFoldAllEdges()
   EulerianPath(0)
