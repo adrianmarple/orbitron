@@ -81,6 +81,10 @@ function bindOrb(socket, orbID) {
 
       let backup = jsonData.backup
       if (backup) {
+        let name = backup.nameOverride
+        if (name) {
+          delete(backup.nameOverride)
+        }
         backup = JSON.stringify(backup)
         let id = config.ALIASES[orbID] ?? orbID
         
@@ -89,7 +93,7 @@ function bindOrb(socket, orbID) {
         }
         let savedPrefFileNames = (await fs.promises.readdir(BACKUPS_DIR))
           .filter(name => name.startsWith(id))
-        if (savedPrefFileNames.length > 0) {
+        if (!backup.nameOverride && savedPrefFileNames.length > 0) {
           let lastFilePath = BACKUPS_DIR + savedPrefFileNames.last()
           let lastFileContents = await fs.promises.readFile(lastFilePath)
           if (backup == lastFileContents) {
@@ -97,12 +101,15 @@ function bindOrb(socket, orbID) {
           }
         }
         
-        function twoDigit(num) {
-          return String(num).padStart(2, '0')
+        if (!name) {
+          function twoDigit(num) {
+            return String(num).padStart(2, '0')
+          }
+          let d = new Date()
+          let dateString = `${d.getFullYear()}-${twoDigit(d.getMonth()+1)}-${twoDigit(d.getDate())}_${twoDigit(d.getHours())}-${twoDigit(d.getMinutes())}`
+          name = id + "_" + dateString
         }
-        let d = new Date()
-        let dateString = `${d.getFullYear()}-${twoDigit(d.getMonth()+1)}-${twoDigit(d.getDate())}_${twoDigit(d.getHours())}-${twoDigit(d.getMinutes())}`
-        let path = BACKUPS_DIR + id + "_" + dateString + '.bak'
+        let path = BACKUPS_DIR + name + '.bak'
         await fs.promises.writeFile(path, backup)
 
         for (let i = 0; i < savedPrefFileNames.length - 4; i++) {
@@ -250,6 +257,9 @@ addGETListener(async (response, orbID, _, queryParams) => {
       return true
     case "backup":
       response.end(await fs.promises.readFile(BACKUPS_DIR + command.fileName))
+      return true
+    case "deleteBackup":
+      response.end(await fs.promises.unlink(BACKUPS_DIR + command.fileName))
       return true
     default:
       return false

@@ -1355,12 +1355,16 @@ async function generateManufacturingInfo() {
       covers.top.push(await createCoverSVG(plain))
       let w = (maxX - minX)
       let h = (maxY - minY)
+      let unit = coverPrint3D ? 'mm' : '"'
+      let maxDim1 = coverPrint3D ? 250 : 48
+      let maxDim2 = coverPrint3D ? 250 : 48
       if (!coverPrint3D) {
         w /= 96
         h /= 96
       }
-      let unit = coverPrint3D ? 'mm' : '"'
-      console.log(`Top svg ${covers.top.length-1} is ${w.toFixed(2)}${unit} by ${h.toFixed(2)}${unit}`)
+      if (w > maxDim1 || h > maxDim1 || (w > maxDim2 && h > maxDim2)) {
+        console.log(`Warning: top cover ${covers.top.length-1} is ${w.toPrecision(3)}${unit} by ${h.toPrecision(3)}${unit}`)
+      }
     }
     IS_BOTTOM = true
     window.KERF = BOTTOM_KERF

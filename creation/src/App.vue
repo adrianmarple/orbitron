@@ -176,6 +176,12 @@ h1 {
   color: #333;
   cursor: pointer;
 }
+.button.disabled {
+  background-color: #ccc;
+  color: #666;
+  pointer-events: none;
+}
+
 .type-buttons {
   position: fixed;
   right:  24px;

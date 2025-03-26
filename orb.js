@@ -30,30 +30,33 @@ if (process.argv.includes('-f')) {
 }
 
 // Cloud save
-async function saveBackup() {
+async function backupLoop() {
   while (true) {
     // await delay(10000)
     await delay(timeUntilHour(0))
-
-    let savedPrefFileNames = await fs.promises.readdir("savedprefs")
-    let savedPrefs = {}
-    for (let fileName of savedPrefFileNames) {
-      savedPrefs[fileName] = (await fs.promises.readFile("savedprefs/" + fileName)).toString()
-    }
-    let timingprefs = (await fs.promises.readFile("timingprefs.json")).toString()
-    let backup = {
-      savedPrefs,
-      timingprefs,
-      config: (await fs.promises.readFile("config.js")).toString(),
-    }
-    if (timingprefs.match(/"useTimer"\:\s*false,/)) {
-      backup.prefs = (await fs.promises.readFile("prefs.json")).toString()
-    }
-    orbToRelaySocket.send(JSON.stringify({ backup }))
+    await saveBackup()
   }
 }
-saveBackup()
+backupLoop()
 
+async function saveBackup(nameOverride) {
+  let savedPrefFileNames = await fs.promises.readdir("savedprefs")
+  let savedPrefs = {}
+  for (let fileName of savedPrefFileNames) {
+    savedPrefs[fileName] = (await fs.promises.readFile("savedprefs/" + fileName)).toString()
+  }
+  let timingprefs = (await fs.promises.readFile("timingprefs.json")).toString()
+  let backup = {
+    nameOverride,
+    savedPrefs,
+    timingprefs,
+    config: (await fs.promises.readFile("config.js")).toString(),
+  }
+  if (timingprefs.match(/"useTimer"\:\s*false,/)) {
+    backup.prefs = (await fs.promises.readFile("prefs.json")).toString()
+  }
+  orbToRelaySocket.send(JSON.stringify({ backup }))
+}
 
 
 let orbToRelaySocket = null
@@ -179,6 +182,9 @@ function connectOrbToRelay(){
           }
         }
 
+        if (command.type == "manualBackup") {
+          await saveBackup(command.nameOverride)
+        }
         if (command.type == "restoreFromBackup") {
           let promises = []
           let backup = command.backup

@@ -73,13 +73,19 @@
   <div class="list">
     <div v-for="fileName in backupList" class="backup"
       :class="{ selected: selectedBackup == fileName }"
-      @click="selectedBackup = fileName">
+      @click="selectedBackup = fileName; deleteSelected = false">
       {{ fileName }}
+      <div class="button" @click.stop="selectedBackup = fileName; deleteSelected = true">Delete</div>
     </div>
   </div>
   <div class="row">
-    <div class="button" @click="restoreBackup">Restore Backup</div>
-    <div class="button" @click="viewing = 'config'">Cancel</div>
+    <div v-if="deleteSelected" class="button" @click="deleteBackup">Delete Backup</div>
+    <div v-else class="button" :class="{ disabled: !selectedBackup }" @click="restoreBackup">Restore Backup</div>
+    <div class="button" @click="viewing = 'config'; deleteSelected=false">Cancel</div>
+  </div>
+  <div class="row text-with-button">
+    <textarea v-model="manualBackupName"></textarea>
+    <div class="button" :class="{ disabled: !manualBackupName }" @click="manualBackup">Manual Backup</div>
   </div>
 </div>
 </template>
@@ -111,8 +117,11 @@ export default {
       qrCode: null,
       newAlias: "",
       editingAlias: false,
+
       backupList: [],
       selectedBackup: null,
+      deleteSelected: false,
+      manualBackupName: "",
 
       commandResponses: " ",
       command: "",
@@ -341,6 +350,24 @@ export default {
       await this.sendCommand({ type: "restoreFromBackup", backup }, this.orbID)
       this.viewing = 'config'
     },
+    async deleteBackup() {
+      await this.sendServerCommand({ type: "deleteBackup", fileName: this.selectedBackup })
+      this.backupList.remove(this.selectedBackup)
+      this.selectedBackup = null
+      this.deleteSelected = false
+    },
+    async manualBackup() {
+      if (this.manualBackupName == "") {
+        console.error("Can't name backup the empty string.")
+        return
+      }
+      if (this.backupList.includes(this.manualBackupName)) {
+        console.error(`Backup with name ${this.manualBackupName} already exists`)
+        return
+      }
+      await this.sendCommand({ type: "manualBackup", nameOverride: this.manualBackupName }, this.orbID)
+      this.backupList.push(this.manualBackupName + ".bak")
+    },
 
     async onCommandKeypress(event) {
       if (event.keyCode == 13) {
@@ -446,7 +473,7 @@ function insertLineInConfig(config, newLine, after) {
 
 <style>
 #backups .list {
-  height: calc(100vh - 180px);
+  height: calc(100vh - 240px);
   overflow-y: scroll;
   overflow-x: hidden;
 }
@@ -454,14 +481,31 @@ function insertLineInConfig(config, newLine, after) {
   display: flex;
   width: 100%;
   justify-content: space-around;
+  align-items: center;
 }
+#backups .text-with-button textarea {
+  font-size: 24px;
+  height: 32px;
+  width: 460px;
+}
+
 .backup {
   font-size: 2rem;
   cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .backup.selected {
   background: white;
   color: black;
+}
+
+.backup .button {
+  padding: 2px 6px;
+  font-size: 20px;
+  margin: 0 4px 0;
+  border-radius: 2px;
 }
 
 .main-text {
