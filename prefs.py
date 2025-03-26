@@ -313,7 +313,7 @@ def fade():
 
 def advance_manual_fade(): # Consider adding a delay before being callable again
   global manual_fade_point
-  steps = config.get("MANUAL_FADE_STEPS", [1, 0.5, 0.25, 0])
+  steps = config.get("MANUAL_FADE_STEPS", [1, 0.30, 0])
   defacto_fade = fade()
   
   closest_index = 0
