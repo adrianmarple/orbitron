@@ -1,7 +1,7 @@
 
 module.exports = () => {
   setFor3DPrintedCovers()
-  // SIMPLE_MODE = true
+  // RENDER_MODE = "simple"
 
   const topH = 4
 

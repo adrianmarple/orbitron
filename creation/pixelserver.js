@@ -464,8 +464,9 @@ async function generateModule(info, module) {
     case "embossing":
       let valign = module.valign || "center"
       let halign = module.halign || "center"
+      let thickness = module.thickness || 0.2
       moduleString += `
-      linear_extrude(0.2)
+      linear_extrude(${thickness})
       text("${module.text}", size=4, valign="${valign}", halign="${halign}");`
       break
     case "qtClip":

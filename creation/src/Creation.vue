@@ -9,7 +9,8 @@
   <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
   <div class="button" @click="downloadJSON">Download JSON</div>
   <div class="button" @click="genPrints">Generate Prints</div>
-  <div class="button" @click="genModel">Full 3D Model</div>
+  <div class="button" @click="genModel('simple')">Simple 3D Model</div>
+  <div class="button" @click="genModel('parts')">3D Model with part IDs</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
   <div class="button" @click="configure">Configure Default Orb</div>
 </div>
@@ -170,12 +171,15 @@ export default {
       this.$root.post(printInfo)
       console.log("Generating prints")
     },
-    async genModel() {
-      let mode = SIMPLE_MODE
-      SIMPLE_MODE = true
+    async genModel(renderMode) {
+      let oldMode = RENDER_MODE
+      RENDER_MODE = renderMode
       await generateManufacturingInfo()
       let printInfo = createFullModel()
-      SIMPLE_MODE = mode
+      if (renderMode == "parts") {
+        printInfo.prints[0].suffix = "_parts"
+      }
+      RENDER_MODE == oldMode
       printInfo.fullProjectName = fullProjectName
       this.$root.post(printInfo)
       console.log("Generating full")

@@ -419,14 +419,34 @@ async function createCoverSVG(plain) {
       }
 
       // Embossed id
-      if (!NO_EMBOSSING && !SIMPLE_MODE &&
-          !findEmbossing(print) && plains1.length == 1) {
-        let z = EXTRA_COVER_THICKNESS + (INNER_CHANNEL_THICKNESS ? INNER_CHANNEL_THICKNESS : THICKNESS)
-        print.components.push({
-          type: "embossing",
-          position: [v1.x, v1.y, z],
-          text: "...", // To be filled in later in the process
-        })
+      if (!findEmbossing(print)) {
+        if (RENDER_MODE == "standard" && !NO_EMBOSSING &&
+            !findEmbossing(print) && plains1.length == 1) {
+          let z = EXTRA_COVER_THICKNESS + (INNER_CHANNEL_THICKNESS ? INNER_CHANNEL_THICKNESS : THICKNESS)
+          let embossing = {
+            type: "embossing",
+            position: [v1.x, v1.y, z],
+            text: "...", // To be filled in later in the process
+          }
+          if (!IS_BOTTOM) {
+            embossing.operations = [{type: "mirror", normal: [1,0,0]}]
+            embossing.position[0] *= -1
+          }
+          print.components.push(embossing)
+        }
+        if (RENDER_MODE == "parts") {
+          let embossing = {
+            type: "embossing",
+            position: [v1.x, v1.y, -1],
+            thickness: 1,
+            text: "...", // To be filled in later in the process
+          }
+          if (IS_BOTTOM) {
+            embossing.operations = [{type: "mirror", normal: [1,0,0]}]
+            embossing.position[0] *= -1
+          }
+          print.components.push(embossing)
+        }
       }
 
     } // END for (let i = 0; i < dPath.length; i++)
@@ -485,14 +505,7 @@ async function createCoverSVG(plain) {
     }
   ]
 
-  if (SIMPLE_MODE) {
-    print.components.push({
-      type: "svg",
-      svg: borderSvg,
-      thickness: EXTRA_COVER_THICKNESS + THICKNESS,
-      operations: importCorrectionOperations,
-    })
-  } else {
+  if (RENDER_MODE == "standard") {
     print.components.push({
       type: "svg",
       svg,
@@ -529,7 +542,14 @@ async function createCoverSVG(plain) {
         }
       }
     }
-  } // !SIMPLE_MODE
+  } else { // RENDER_MODE != "standard"
+    print.components.push({
+      type: "svg",
+      svg: borderSvg,
+      thickness: EXTRA_COVER_THICKNESS + THICKNESS,
+      operations: importCorrectionOperations,
+    })
+  }
   print.svg = svg
 
   print.worldPlacementOperations = [
@@ -693,9 +713,9 @@ function createFullModel() {
   print.operations = [{ type: "rotate", axis: [1,0,0], angle: -Math.PI/2 }]
 
   for (let type of ["top", "bottom"]) {
-    for (let bottomPrint of covers[type]) {
-      bottomPrint.operations = bottomPrint.worldPlacementOperations
-      print.components.push(bottomPrint)
+    for (let coverPrint of covers[type]) {
+      coverPrint.operations = coverPrint.worldPlacementOperations
+      print.components.push(coverPrint)
     }
   }
 
@@ -769,6 +789,18 @@ function createPrintInfo3D() {
       edgeIndex = edge.dual.index
     }
 
+    for (let wall of edgeToWalls[edgeIndex]) {
+      if (completedWalls.includes(wall)) continue
+      wall.partID = partID
+      if (wall.isFoldWall) {
+        foldWallCreation(wall, printInfo)
+      } else {
+        printInfo.prints = [...printInfo.prints, ...wallPrints(wall, true)]
+      }
+      completedWalls.push(wall)
+      partID += 1
+    }
+
     for (let plain of vertex.plains) {
       if (completedPlains.includes(plain)) continue
 
@@ -786,28 +818,11 @@ function createPrintInfo3D() {
       embossing = findEmbossing(topPrint)
       if (embossing && !embossing.operations) {
         embossing.text = topPrint.suffix
-        embossing.operations = [
-          {type: "mirror", normal: [1,0,0]},
-          {type: "translate", position: embossing.position},
-        ]
-        embossing.position = null
       }
       topPrint.operations = [{type: "mirror", normal: [1,0,0]}]
       printInfo.prints.push(topPrint)
 
       completedPlains.push(plain)
-      partID += 1
-    }
-
-    for (let wall of edgeToWalls[edgeIndex]) {
-      if (completedWalls.includes(wall)) continue
-      wall.partID = partID
-      if (wall.isFoldWall) {
-        foldWallCreation(wall, printInfo)
-      } else {
-        printInfo.prints = [...printInfo.prints, ...wallPrints(wall, true)]
-      }
-      completedWalls.push(wall)
       partID += 1
     }
   }
@@ -1046,24 +1061,24 @@ function wallPrints(wall, isLeft) {
     }
   }
   wallSegments.push(E.scale(endNotchDepth))
-  if (SIMPLE_MODE) {
-    wallSegments.push(E.scale(topLength - 2*endNotchDepth))
-  } else {
+  if (RENDER_MODE == "standard") {
     wallSegments = wallSegments.concat(latchPoints(E,N, false, -insetAngle))
     wallSegments.push(E.scale(topLength - 2*(endNotchDepth + MAX_LATCH_WIDTH)))
     wallSegments = wallSegments.concat(latchPoints(E,N.negate(), true))
+  } else {
+    wallSegments.push(E.scale(topLength - 2*endNotchDepth))
   }
   wallSegments = wallSegments.concat([
     E.scale(endNotchDepth + WALL_MITER_KERF),
     N.scale(-CHANNEL_DEPTH),
     E.scale(-endNotchDepth - WALL_MITER_KERF),
   ])
-  if (SIMPLE_MODE) {
-    wallSegments.push(E.scale(-bottomLength + 2*endNotchDepth))
-  } else {
+  if (RENDER_MODE == "standard") {
     wallSegments = wallSegments.concat(latchPoints(E.negate(),N.negate()))
     wallSegments.push(E.scale(-bottomLength + 2*(endNotchDepth + MAX_LATCH_WIDTH)))
     wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true, insetAngle))
+  } else {
+    wallSegments.push(E.scale(-bottomLength + 2*endNotchDepth))
   }
   wallSegments.push(E.scale(-endNotchDepth))
   if (wall.dihedralAngle > 0) {
@@ -1090,7 +1105,7 @@ function wallPrints(wall, isLeft) {
       .addScaledVector(E, isLeft ? wall.lengthOffset1 : -wall.lengthOffset2)
 
   // CAT5 port
-  if (print.suffix == cat5partID && !SIMPLE_MODE) {
+  if (print.suffix == cat5partID && RENDER_MODE != "simple") {
     let cat5BottomCenter = wallStart
         .addScaledVector(N, -CHANNEL_DEPTH/2)
     if (cat5PortMidway) {
@@ -1194,7 +1209,7 @@ function wallPrints(wall, isLeft) {
     supportOffset -= offsetNegative
     position = startV.addScaledVector(E, -supportOffset)
   }
-  if (position && !SIMPLE_MODE) {
+  if (position && RENDER_MODE == "standard") {
     print.components.push({
       type: "ledSupport",
       position: [position.x, -position.y, WALL_THICKNESS],
@@ -1206,7 +1221,7 @@ function wallPrints(wall, isLeft) {
     })
   }
 
-  if (addNubs && !wall.isFoldWall && !SIMPLE_MODE) { // Nubs
+  if (addNubs && !wall.isFoldWall && RENDER_MODE == "standard") { // Nubs
     let nub = wallSegments[0].add(offset)
         .addScaledVector(E, NUB_INSET_X + NOTCH_DEPTH)
         .addScaledVector(N, -NUB_INSET - NUB_WIDTH/2 + THICKNESS)
@@ -1221,7 +1236,7 @@ function wallPrints(wall, isLeft) {
   }
 
   // Embossing
-  if (!NO_EMBOSSING && !SIMPLE_MODE &&
+  if (!NO_EMBOSSING && RENDER_MODE == "standard" &&
     (isLeft || (wall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY))) {
     let V = wallStart.sub(extraOffset)
     print.components.push({
@@ -1231,6 +1246,24 @@ function wallPrints(wall, isLeft) {
       halign: isLeft ? "left" : "right",
       text: print.suffix,
     })
+  }
+  if (RENDER_MODE == "parts") {
+    let V = wallStart.sub(extraOffset).addScaledVector(E, -2)
+    let embossing = {
+      type: "embossing",
+      operations: [
+        {type: "rotate", axis: [0,0,1], angle: rotationAngle},
+        {type: "mirror", normal: [1,0,0]},
+        {type: "translate", position: [V.x, -V.y, -1]},
+      ],
+      halign: isLeft ? "right" : "left",
+      thickness: 1,
+      text: print.suffix,
+    }
+    if (!wall.isFoldWall) {
+      embossing.operations.splice(1,1)
+    }
+    print.components.push(embossing)
   }
 
   let wallElem = document.getElementById("wall")

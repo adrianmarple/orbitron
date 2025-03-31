@@ -1,6 +1,6 @@
 module.exports = async () => {
   setFor3DPrintedCovers()
-  cat5partID = "3"
+  cat5partID = "1R"
 
   await addFromSVG("organic/Butterfly wing.svg")
   integerize()
