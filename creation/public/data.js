@@ -6,6 +6,13 @@ async function EulerianPath(currentVertex, pathOverride) {
   edgeCleanup()
   noncovergenceGuard = 1e4
   EulerianHelper(currentVertex, pathOverride)
+  let previousVertex = startVertex()
+  vertexPath = [previousVertex]
+  for (let edgeIndex of path) {
+    let vertex = edges[edgeIndex].otherVertex(previousVertex)
+    vertexPath.push(vertex)
+    previousVertex = vertex
+  }
 }
 
 async function EulerianHelper(currentVertex, pathOverride) {

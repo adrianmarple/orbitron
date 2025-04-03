@@ -690,6 +690,8 @@ function pointsToSVGString(points, basis, offset, flip) {
 // WALL CREATION
 // =======================================================================
 
+let ledWorldPositions = []
+
 function blankPrint() {
   return {
     type: "union",
@@ -708,6 +710,7 @@ function setLatestWallSvg(path, printInfo) {
 
 
 function createFullModel() {
+  ledWorldPositions = []
   let print = blankPrint()
   print.suffix = "_full"
   print.operations = [{ type: "rotate", axis: [1,0,0], angle: -Math.PI/2 }]
@@ -779,6 +782,7 @@ function createPrintInfo3D() {
   }
   completedPlains = []
   completedWalls = []
+  ledWorldPositions = []
   let vertex = startVertex()
   let partID = 1
   
@@ -816,7 +820,7 @@ function createPrintInfo3D() {
       let topPrint = covers.top[plainIndex]
       topPrint.suffix = partID + "t"
       embossing = findEmbossing(topPrint)
-      if (embossing && !embossing.operations) {
+      if (embossing) {
         embossing.text = topPrint.suffix
       }
       topPrint.operations = [{type: "mirror", normal: [1,0,0]}]
@@ -977,7 +981,6 @@ function foldWallCreation(foldWall, printInfo) {
     printInfo.prints.push(rightPrint)
   }
   else { // !PRINT_WALL_HALVES_SEPARATELY
-    // TODO: consider just automatically doing this for the case of 0 dihedral angle
     let print = {
       suffix: leftJoint.suffix,
       type: "union",
@@ -1022,6 +1025,9 @@ function wallPrints(wall, isLeft) {
   if (!edgeLength) {
     edgeLength = isLeft ? wall.edgeLength1 : wall.edgeLength2
   }
+  let lengthOffset = isLeft ? wall.lengthOffset1 : -wall.lengthOffset2
+  let vertex0 = wall[isLeft ? "leftVertex" : "rightVertex"]
+  let vertex1 = wall.vertex
 
   let print = blankPrint()
   print.suffix = wall.partID + ""
@@ -1050,6 +1056,15 @@ function wallPrints(wall, isLeft) {
   }
 
   let insetAngle = (wall.dihedralAngle ?? 0) / 2
+  for (let vertex of vertexPath) {
+    if (vertex == vertex0) {
+      insetAngle = 0 // Don't inset inner foldwall of from initial direction
+      break
+    }
+    if (vertex == vertex1) {
+      break // Reached middle vertex of foldwall first; keep inset
+    }
+  }
 
   let wallSegments = [UP.scale(CHANNEL_DEPTH/2 * dihedralRatio)]
   if (wall.dihedralAngle < 0) {
@@ -1102,7 +1117,7 @@ function wallPrints(wall, isLeft) {
       .addScaledVector(E, topLength)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let startV = wallStart
-      .addScaledVector(E, isLeft ? wall.lengthOffset1 : -wall.lengthOffset2)
+      .addScaledVector(E, lengthOffset)
 
   // CAT5 port
   if (print.suffix == cat5partID && RENDER_MODE != "simple") {
@@ -1186,39 +1201,56 @@ function wallPrints(wall, isLeft) {
 
 
   // LED supports
-  position = null
+  supportOffset = null
   if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       !wall.hasWallPort &&
       bottomLength > PIXEL_DISTANCE * 1.2) {
-    let supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
+    supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
     supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * PIXEL_DISTANCE / pixelDensity
-
+    while (supportOffset < lengthOffset) {
+      supportOffset += PIXEL_DISTANCE
+    }
     position = startV.addScaledVector(E, -supportOffset)
   }
   if (!isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       bottomLength > PIXEL_DISTANCE * 3 &&
       (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
-    let supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+    supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
     supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * PIXEL_DISTANCE / pixelDensity
 
     offsetNegative = supportOffset % PIXEL_DISTANCE
     // TODO better calculation for how much negative offset should be (based on angles)
-    while (offsetNegative < PIXEL_DISTANCE/2 + LED_SUPPORT_WIDTH/2) {
+    if (offsetNegative < PIXEL_DISTANCE/2 + LED_SUPPORT_WIDTH/2) {
       offsetNegative += PIXEL_DISTANCE
     }
     supportOffset -= offsetNegative
-    position = startV.addScaledVector(E, -supportOffset)
   }
-  if (position && RENDER_MODE == "standard") {
-    print.components.push({
-      type: "ledSupport",
-      position: [position.x, -position.y, WALL_THICKNESS],
-      width: LED_SUPPORT_WIDTH,
-      height: LED_SUPPORT_HEIGHT(),
-      thickness: LED_SUPPORT_THICKNESS,
-      gap: LED_SUPPORT_GAP,
-      rotationAngle: -rotationAngle,
-    })
+  if (supportOffset && RENDER_MODE == "standard") {
+    let v0 = vertex0.ogCoords
+    let v1 = vertex1.ogCoords
+    let e = v1.sub(v0).normalize()
+    let worldPosition = v0.addScaledVector(e, supportOffset * pixelDensity / PIXEL_DISTANCE)
+    
+    let shouldAddSupport = true
+    for (let wp of ledWorldPositions) {
+      if (wp.equals(worldPosition)) {
+        shouldAddSupport = false
+      }
+    }
+    if (shouldAddSupport) {
+      ledWorldPositions.push(worldPosition)
+      position = startV.addScaledVector(E, -supportOffset)
+      print.components.push({
+        type: "ledSupport",
+        position: [position.x, -position.y, WALL_THICKNESS],
+        width: LED_SUPPORT_WIDTH,
+        height: LED_SUPPORT_HEIGHT(),
+        thickness: LED_SUPPORT_THICKNESS,
+        gap: LED_SUPPORT_GAP,
+        rotationAngle: -rotationAngle,
+      })
+    }
+    // console.log(wall.partID, isLeft, supportOffset, lengthOffset)
   }
 
   if (addNubs && !wall.isFoldWall && RENDER_MODE == "standard") { // Nubs
