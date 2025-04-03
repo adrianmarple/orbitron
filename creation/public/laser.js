@@ -351,7 +351,11 @@ async function createCoverSVG(plain) {
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
         deadendPlain = deadendPlain.rotateAndScale(R, SCALE())
-        deadendPlain = deadendPlain.translate(e0.normalize().scale(ORIGAMI_KERF))
+        let kerf = ORIGAMI_KERF
+        if (RENDER_MODE == "parts") {
+          kerf -= 0.2
+        }
+        deadendPlain = deadendPlain.translate(e0.normalize().scale(kerf))
         let line1 = line.translate(n.scale(width))
         let p1 = deadendPlain.intersection(line1)
         let line2 = line.translate(n.scale(-width))
@@ -419,9 +423,8 @@ async function createCoverSVG(plain) {
       }
 
       // Embossed id
-      if (!findEmbossing(print)) {
-        if (RENDER_MODE == "standard" && !NO_EMBOSSING &&
-            !findEmbossing(print) && plains1.length == 1) {
+      if (!findEmbossing(print) && plains1.length == 1) {
+        if (RENDER_MODE == "standard" && !NO_EMBOSSING) {
           let z = EXTRA_COVER_THICKNESS + (INNER_CHANNEL_THICKNESS ? INNER_CHANNEL_THICKNESS : THICKNESS)
           let embossing = {
             type: "embossing",
@@ -1033,6 +1036,11 @@ function wallPrints(wall, isLeft) {
   print.suffix = wall.partID + ""
   let prints = [print]
 
+  if (RENDER_MODE == "parts" && epsilonEquals(miterAngle, 0)) {
+    topLength -= 0.5
+    bottomLength -= 0.5
+    edgeLength -= 0.5
+  }
 
   if (wall.isFoldWall) {
     print.suffix += isLeft ? "L" : "R"
