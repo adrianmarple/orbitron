@@ -285,13 +285,14 @@ function render() {
     let xy = center.project(projScale)
     if (showEdgeNumbers && !edge.isDupe) {
       let text = edge.index + ""
-      if (window.edgeToWalls && window.edgeToWalls[edge.index]) {
-        text += " ("
-        for (let wall of window.edgeToWalls[edge.index]) {
-          text += wall.partID + " "
-        }
-        text += ")"
-      }
+      text += " (" + Math.round(edge.length() / pixelDensity) + ")"
+      // if (window.edgeToWalls && window.edgeToWalls[edge.index]) {
+      //   text += " ("
+      //   for (let wall of window.edgeToWalls[edge.index]) {
+      //     text += wall.partID + " "
+      //   }
+      //   text += ")"
+      // }
       ctx.fillText(text, xy[0] - 2, xy[1] +4)
     }
   }

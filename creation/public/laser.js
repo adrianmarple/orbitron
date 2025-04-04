@@ -632,7 +632,7 @@ function singleSlotPath(wallLength, basis, offset, localOffset, print) {
 
   let trueNotchDepth = NOTCH_DEPTH
   if (2*NOTCH_DEPTH + MIN_NON_NOTCH_LENGTH > wallLength) {
-    trueNotchDepth =  (wallLength - MIN_NON_NOTCH_LENGTH)/2
+    trueNotchDepth = (wallLength - MIN_NON_NOTCH_LENGTH)/2
   }
 
   let w1 = KERF
@@ -1057,7 +1057,18 @@ function wallPrints(wall, isLeft) {
     E = E.negate()
   }
 
-  let endNotchDepth = NOTCH_DEPTH - WALL_KERF
+  let topEndNotchDepth = NOTCH_DEPTH
+  if (2*NOTCH_DEPTH + MIN_NON_NOTCH_LENGTH > topLength) {
+    topEndNotchDepth = (topLength - MIN_NON_NOTCH_LENGTH)/2
+  }
+  topEndNotchDepth -= WALL_KERF
+  let bottomEndNotchDepth = NOTCH_DEPTH
+  if (2*NOTCH_DEPTH + MIN_NON_NOTCH_LENGTH > bottomLength) {
+    bottomEndNotchDepth = (bottomLength - MIN_NON_NOTCH_LENGTH)/2
+  }
+  bottomEndNotchDepth -= WALL_KERF
+
+
   let extraOffset = ZERO
   if (wall.dihedralAngle < 0) {
     extraOffset = E.scale(-THICKNESS * Math.tan(wall.zRotationAngle))
@@ -1083,27 +1094,27 @@ function wallPrints(wall, isLeft) {
       wallSegments.push(N.scale(-THICKNESS))
     }
   }
-  wallSegments.push(E.scale(endNotchDepth))
+  wallSegments.push(E.scale(topEndNotchDepth))
   if (RENDER_MODE == "standard") {
     wallSegments = wallSegments.concat(latchPoints(E,N, false, -insetAngle))
-    wallSegments.push(E.scale(topLength - 2*(endNotchDepth + MAX_LATCH_WIDTH)))
+    wallSegments.push(E.scale(topLength - 2*(topEndNotchDepth + MAX_LATCH_WIDTH)))
     wallSegments = wallSegments.concat(latchPoints(E,N.negate(), true))
   } else {
-    wallSegments.push(E.scale(topLength - 2*endNotchDepth))
+    wallSegments.push(E.scale(topLength - 2*topEndNotchDepth))
   }
   wallSegments = wallSegments.concat([
-    E.scale(endNotchDepth + WALL_MITER_KERF),
+    E.scale(topEndNotchDepth + WALL_MITER_KERF),
     N.scale(-CHANNEL_DEPTH),
-    E.scale(-endNotchDepth - WALL_MITER_KERF),
+    E.scale(-bottomEndNotchDepth - WALL_MITER_KERF),
   ])
   if (RENDER_MODE == "standard") {
     wallSegments = wallSegments.concat(latchPoints(E.negate(),N.negate()))
-    wallSegments.push(E.scale(-bottomLength + 2*(endNotchDepth + MAX_LATCH_WIDTH)))
+    wallSegments.push(E.scale(-bottomLength + 2*(bottomEndNotchDepth + MAX_LATCH_WIDTH)))
     wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true, insetAngle))
   } else {
-    wallSegments.push(E.scale(-bottomLength + 2*endNotchDepth))
+    wallSegments.push(E.scale(-bottomLength + 2*bottomEndNotchDepth))
   }
-  wallSegments.push(E.scale(-endNotchDepth))
+  wallSegments.push(E.scale(-bottomEndNotchDepth))
   if (wall.dihedralAngle > 0) {
     if (coverPrint3D) {
       wallSegments.push(E.scale(-THICKNESS * Math.tan(wall.zRotationAngle)))
