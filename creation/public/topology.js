@@ -154,11 +154,11 @@ class Fold {
       this.plainToIndex[vertex.plains[0].index] = 1
       this.plainToIndex[vertex.plains[1].index] = 0
     }
-    if (n0.dot(e1) < 0) {
+    if (n0.dot(e1) < -0.001) {
       n0 = n0.negate()
       this.negations[0] = -1
     }
-    if (n1.dot(e0) < 0) {
+    if (n1.dot(e0) < -0.001) {
       n1 = n1.negate()
       this.negations[1] = -1
     }
@@ -235,7 +235,6 @@ class Fold {
       foldWallIndex = 1 - foldWallIndex
     }
     let coverType = IS_BOTTOM == (this.negations[index] == 1) ? "bottom" : "top"
-    
     let foldWall = this.foldWalls[foldWallIndex]
     foldWall["miterAngle" + type] = angle
     foldWall["edgeLength" + type] = edgeLength

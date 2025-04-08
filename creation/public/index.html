@@ -285,7 +285,8 @@ function render() {
     let xy = center.project(projScale)
     if (showEdgeNumbers && !edge.isDupe) {
       let text = edge.index + ""
-      text += " (" + Math.round(edge.length() / pixelDensity) + ")"
+      let len = Math.round(2*edge.length() / pixelDensity)/2
+      text += " (" + len + ")"
       // if (window.edgeToWalls && window.edgeToWalls[edge.index]) {
       //   text += " ("
       //   for (let wall of window.edgeToWalls[edge.index]) {

@@ -33,11 +33,11 @@ module.exports = async () => {
     let micWidth = 14.5
     let micClipHeight = 1 + THICKNESS + EXTRA_COVER_THICKNESS
 
-    printInfo.prints[0] = {
+    printInfo.prints[1] = {
       type: "union",
-      suffix: printInfo.prints[0].suffix,
+      suffix: printInfo.prints[1].suffix,
       components: [
-        printInfo.prints[0],
+        printInfo.prints[1],
         {
           type: "union",
           position: [-15,13,0],

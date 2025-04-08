@@ -731,9 +731,6 @@ function createFullModel() {
     for (let wall of edgeToWalls[edge.index]) {
       if (completedParts[wall.partID]) continue
       if (wall.isFoldWall) {
-        if (wall.aoiComplement < -0.0001) {
-          console.log(wall)
-        }
         let wallPrint1 = wallPrints(wall, true)[0]
         wallPrint1.operations = [...wall.worldPlacementOperations1]
         wallPrint1.operations[2] = {...wallPrint1.operations[2]}
@@ -1313,6 +1310,7 @@ function wallPrints(wall, isLeft) {
     }
     if (!wall.isFoldWall) {
       embossing.operations.splice(1,1)
+      embossing.halign = "left"
     }
     print.components.push(embossing)
   }

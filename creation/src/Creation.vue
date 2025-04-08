@@ -179,10 +179,10 @@ export default {
       if (renderMode == "parts") {
         printInfo.prints[0].suffix = "_parts"
       }
-      RENDER_MODE == oldMode
+      RENDER_MODE = oldMode
       printInfo.fullProjectName = fullProjectName
       this.$root.post(printInfo)
-      console.log("Generating full")
+      console.log("Generating " + renderMode)
       generateManufacturingInfo() // In potentially non-simple mode
     },
 

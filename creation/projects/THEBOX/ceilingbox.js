@@ -32,11 +32,11 @@ module.exports = async () => {
     let segmentClipHeight = 6 + THICKNESS + EXTRA_COVER_THICKNESS
     let piClipHeight = 2 + THICKNESS + EXTRA_COVER_THICKNESS
 
-    printInfo.prints[0] = {
+    printInfo.prints[1] = {
       type: "union",
-      suffix: printInfo.prints[0].suffix,
+      suffix: printInfo.prints[1].suffix,
       components: [
-        printInfo.prints[0],
+        printInfo.prints[1],
         {
           type: "union",
           position: [-5,15,0],
@@ -87,15 +87,15 @@ module.exports = async () => {
         },
       ]
     }
-    printInfo.prints[1] = {
+    printInfo.prints[2] = {
       type: "union",
-      suffix: printInfo.prints[1].suffix,
+      suffix: printInfo.prints[2].suffix,
       components: [
         {
           type: "difference",
           operations: [{type: "rotate", axis: [0,1,0], angle: Math.PI}],
           components: [
-            printInfo.prints[1],
+            printInfo.prints[2],
             cat5Holes,
           ]
         },
@@ -130,43 +130,6 @@ module.exports = async () => {
       ]
     }
 
-  // printInfo.prints[1] = {
-  //   type: "union",
-  //   suffix: printInfo.prints[1].suffix,
-  //   components: [
-  //     {
-  //       type: "difference",
-  //       components: [
-  //         printInfo.prints[1],
-  //         {
-  //           type: "union",
-  //           position: [0, -CAT5_HEIGHT/2, negativeThickness/2],
-  //           components: [
-  //             {
-  //               type: "cube",
-  //               position: [snapX, snapY, 0],
-  //               dimensions: [CAT5_SNAP_WIDTH, CAT5_SNAP_HEIGHT, negativeThickness + 1]
-  //             },
-  //             {
-  //               type: "cube",
-  //               position: [-snapX, snapY, 0],
-  //               dimensions: [CAT5_SNAP_WIDTH, CAT5_SNAP_HEIGHT, negativeThickness + 1]
-  //             },
-  //             {
-  //               type: "cube",
-  //               position: [0, CAT5_WIRES_HEIGHT/2, 0],
-  //               dimensions: [CAT5_WIRES_WIDTH, CAT5_WIRES_HEIGHT, negativeThickness + 1]
-  //             },
-  //           ]
-  //         }
-  //       ]
-  //     },
-  //     {
-  //       type: "qtClip",
-  //       position: [0, CAT5_WIRES_HEIGHT - CAT5_HEIGHT/2, -3]
-  //     }
-  //   ]
-  // }
   }
 
   EulerianPath(1)

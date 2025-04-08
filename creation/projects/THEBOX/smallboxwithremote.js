@@ -18,16 +18,16 @@ module.exports = async () => {
   THICKNESS = 2.6
   LATCH_TYPE = "hook"
 
-  addPolygon(4, [0,0,0], [34 - 2*BOTTOM_KERF, 84])
+  addPolygon(4, [0,0,0], [34 - 2*BOTTOM_KERF, 100])
 
   printPostProcessingFunction = printInfo => {
     let width = 10
     let clip_thickness = 4
-    let pcb_thickness1 = 1.8
-    let pcb_thickness2 = 1.6
+    let pcb_thickness = 1.6
     let inset = 0.2
     let notchHeight = 1
-    let piClipHeight = 5 + THICKNESS + EXTRA_COVER_THICKNESS
+    let piClipHeight = 4 + THICKNESS + EXTRA_COVER_THICKNESS
+    let relayClipHeight = 1 + THICKNESS + EXTRA_COVER_THICKNESS
 
     printInfo.prints[1] = {
       type: "union",
@@ -36,21 +36,41 @@ module.exports = async () => {
         printInfo.prints[1],
         {
           type: "union",
-          position: [-15,0,0],
+          position: [-15,12,0],
           rotationAngle: Math.PI/2,
           components: [
             {
               type: "pcbClip",
               position: [0, -30, 0],
               height: piClipHeight,
-              pcb_thickness: pcb_thickness2,
+              pcb_thickness: pcb_thickness,
               width, inset, clip_thickness, notchHeight,
             },
             {
               type: "pcbClip",
               rotationAngle: Math.PI,
               height: piClipHeight,
-              pcb_thickness: pcb_thickness2,
+              pcb_thickness: pcb_thickness,
+              width, inset, clip_thickness, notchHeight,
+            },
+          ]
+        },
+        {
+          type: "union",
+          position: [-10,-24,0],
+          components: [
+            {
+              type: "pcbClip",
+              position: [0, -12.9, 0],
+              height: relayClipHeight,
+              pcb_thickness: pcb_thickness,
+              width, inset, clip_thickness, notchHeight,
+            },
+            {
+              type: "pcbClip",
+              rotationAngle: Math.PI,
+              height: relayClipHeight,
+              pcb_thickness: pcb_thickness,
               width, inset, clip_thickness, notchHeight,
             },
           ]

@@ -31,11 +31,11 @@ module.exports = async () => {
     let segmentClipHeight = 6 + THICKNESS + EXTRA_COVER_THICKNESS
     let piClipHeight = 2 + THICKNESS + EXTRA_COVER_THICKNESS
 
-    printInfo.prints[0] = {
+    printInfo.prints[1] = {
       type: "union",
-      suffix: printInfo.prints[0].suffix,
+      suffix: printInfo.prints[1].suffix,
       components: [
-        printInfo.prints[0],
+        printInfo.prints[1],
         {
           type: "union",
           position: [-5,15,0],
@@ -86,15 +86,15 @@ module.exports = async () => {
         },
       ]
     }
-    printInfo.prints[1] = {
+    printInfo.prints[2] = {
       type: "union",
-      suffix: printInfo.prints[1].suffix,
+      suffix: printInfo.prints[2].suffix,
       components: [
         {
           type: "difference",
           operations: [{type: "rotate", axis: [0,1,0], angle: Math.PI}],
           components: [
-            printInfo.prints[1],
+            printInfo.prints[2],
             cat5Holes,
           ]
         },

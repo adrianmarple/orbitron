@@ -30,11 +30,11 @@ module.exports = async () => {
     let segmentClipHeight = 6 + THICKNESS + EXTRA_COVER_THICKNESS
     let piClipHeight = 2 + THICKNESS + EXTRA_COVER_THICKNESS
 
-    printInfo.prints[0] = {
+    printInfo.prints[1] = {
       type: "union",
-      suffix: printInfo.prints[0].suffix,
+      suffix: printInfo.prints[1].suffix,
       components: [
-        printInfo.prints[0],
+        printInfo.prints[1],
         {
           type: "union",
           position: [0, 13, 0],
@@ -90,11 +90,11 @@ module.exports = async () => {
     let qrIndentRadius = 6
     let qrIndentWidth = 54
     let qrIndentDepth = 1
-    printInfo.prints[1] = {
+    printInfo.prints[2] = {
       type: "difference",
-      suffix: printInfo.prints[1].suffix,
+      suffix: printInfo.prints[2].suffix,
       components: [
-        printInfo.prints[1],
+        printInfo.prints[2],
         {
           position: [0, -20, 0],
           code: `
