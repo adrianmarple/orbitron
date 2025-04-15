@@ -184,6 +184,14 @@ function generatePixelInfo() {
   }
   hasSeenLastEdge = false
 
+  singleSided = true
+  for (let edge of edges) {
+    if (edge.isDupe) {
+      singleSided == false
+      break
+    }
+  }
+
   let alpha = ledAtVertex ? 0 : rectifiedPixelDensity/2
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
@@ -198,8 +206,7 @@ function generatePixelInfo() {
       if (alpha > edgeLength - 0.005) {
         alpha -= edgeLength
         // Verticies with two edges can have non-integer lengths
-        // Currently assumes doubled edges
-        if (nextVertex.edges.length == 4) break 
+        if (nextVertex.edges.length == (singleSided ? 2 : 4)) break 
         if (ledAtVertex && epsilonEquals(alpha, 0, 0.01)) {
           alpha = 0
           break

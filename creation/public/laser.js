@@ -460,7 +460,7 @@ async function createCoverSVG(plain) {
       for (let i = 0; i < 4; i++) {
         center = center.add(dPath[i].ogCoords)
       }
-      center = center.scale(0.25 * pixelDensity / PIXEL_DISTANCE)
+      center = center.scale(0.25 / SCALE())
       let x = Math.round(center.x)
       let y = -Math.round(center.y)
       
@@ -1222,7 +1222,7 @@ function wallPrints(wall, isLeft) {
       !wall.hasWallPort &&
       bottomLength > PIXEL_DISTANCE * 1.2) {
     supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
-    supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * PIXEL_DISTANCE / pixelDensity
+    supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * SCALE()
     while (supportOffset < lengthOffset) {
       supportOffset += PIXEL_DISTANCE
     }
@@ -1232,7 +1232,7 @@ function wallPrints(wall, isLeft) {
       bottomLength > PIXEL_DISTANCE * 3 &&
       (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
     supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
-    supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * PIXEL_DISTANCE / pixelDensity
+    supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * SCALE()
 
     offsetNegative = supportOffset % PIXEL_DISTANCE
     // TODO better calculation for how much negative offset should be (based on angles)
@@ -1245,7 +1245,7 @@ function wallPrints(wall, isLeft) {
     let v0 = vertex0.ogCoords
     let v1 = vertex1.ogCoords
     let e = v1.sub(v0).normalize()
-    let worldPosition = v0.addScaledVector(e, supportOffset * pixelDensity / PIXEL_DISTANCE)
+    let worldPosition = v0.addScaledVector(e, supportOffset / SCALE())
     
     let shouldAddSupport = true
     for (let wp of ledWorldPositions) {
@@ -1471,7 +1471,7 @@ async function generateManufacturingInfo() {
       mins = mins.min(v.ogCoords)
       maxes = maxes.max(v.ogCoords)
     }
-    let dims = maxes.sub(mins).scale(PIXEL_DISTANCE / pixelDensity / 25.4)
+    let dims = maxes.sub(mins).scale(SCALE() / 25.4)
     console.log(`Overall dimensions approx ${dims.x.toFixed(1)}" x ${dims.y.toFixed(1)}" x ${dims.z.toFixed(1)}"`)
 
 

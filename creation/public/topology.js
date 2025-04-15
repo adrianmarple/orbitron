@@ -893,8 +893,9 @@ function origami(foldPlain) {
 function zeroFoldAllEdges() {
   plains.length = 0
 
-  twoEdgeVertecies = []
   oneEdgeVertecies = []
+  twoEdgeVertecies = []
+  threePlusEdgeVertecies = []
   for (let vertex of verticies) {
     vertex.plains = []
     if (vertex.edges.length == 1) {
@@ -905,6 +906,11 @@ function zeroFoldAllEdges() {
       twoEdgeVertecies.push(vertex)
       continue
     }
+    threePlusEdgeVertecies.push(vertex)
+    addSelfPlain(vertex)
+  }
+
+  function addSelfPlain(vertex) {
     let normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[1].toVector(vertex))
     if (normal.equals(ZERO)) {
       normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[2].toVector(vertex))
@@ -921,6 +927,17 @@ function zeroFoldAllEdges() {
       }
     }
     vertex.addPlain(new Plain(vertex.ogCoords, normal))
+  }
+
+  // Topology is line or circle. So just pick an arbitrary non-colindear 2 edge vertex and set its plain
+  if (threePlusEdgeVertecies.length == 0) {
+    for (let vertex of twoEdgeVertecies) {
+      if (!ZERO.equals(vertex.edges[0].toVector(vertex).cross(vertex.edges[1].toVector(vertex)))) {
+        addSelfPlain(vertex)
+        twoEdgeVertecies.remove(vertex)
+        break
+      }
+    }
   }
 
   let c = 0
