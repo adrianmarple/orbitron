@@ -1,6 +1,9 @@
 
 module.exports = () => {
   setFor3DPrintedCovers()
+  MAX_WALL_LENGTH = 150
+  cat5partID = "2"
+  cat5PortMidway = true
 
   pixelDensity = 0.25
 
@@ -23,9 +26,10 @@ module.exports = () => {
   let v5 = v4.addLine([5,0,0])
   v4.addLine([0,2,0])
   .addLine([2,0,0])
-  .addLine([0,-1,0])
   .addLine([0,0,1])
-  .addLine([4,0,0])
+  .addLine([2,0,0])
+  .addLine([0,-1,0])
+  .addLine([2,0,0])
   .addLine([0,-2,0])
   .addLine([0,0,-2])
   .addLine([-2,0,0])
@@ -107,6 +111,6 @@ module.exports = () => {
 
   zeroFoldAllEdges()
   // center()
-  EulerianPath(0)
+  EulerianPath(76)
 }
 

@@ -187,7 +187,7 @@ function generatePixelInfo() {
   singleSided = true
   for (let edge of edges) {
     if (edge.isDupe) {
-      singleSided == false
+      singleSided = false
       break
     }
   }

@@ -731,7 +731,7 @@ function createFullModel() {
     for (let wall of edgeToWalls[edge.index]) {
       if (completedParts[wall.partID]) continue
       if (wall.isFoldWall) {
-        let wallPrint1 = wallPrints(wall, true)[0]
+        let wallPrint1 = wallPrint(wall, true)
         wallPrint1.operations = [...wall.worldPlacementOperations1]
         wallPrint1.operations[2] = {...wallPrint1.operations[2]}
         wallPrint1.operations[2].angle += wall.zRotationAngle
@@ -745,7 +745,7 @@ function createFullModel() {
         }
         print.components.push(wallPrint1)
 
-        let wallPrint2 = wallPrints(wall, false)[0]
+        let wallPrint2 = wallPrint(wall, false)
         wallPrint2.operations = [...wall.worldPlacementOperations2]
         wallPrint2.operations[2] = {...wallPrint2.operations[2]}
         wallPrint2.operations[2].angle -= wall.zRotationAngle
@@ -758,9 +758,9 @@ function createFullModel() {
         }
         print.components.push(wallPrint2)
       } else {
-        let wallPrint = wallPrints(wall, true)[0]
-        wallPrint.operations = wall.worldPlacementOperations
-        print.components.push(wallPrint)
+        let wPrint = wallPrint(wall, true)
+        wPrint.operations = wall.worldPlacementOperations
+        print.components.push(wPrint)
       }
       completedParts[wall.partID] = true
     }
@@ -799,7 +799,7 @@ function createPrintInfo3D() {
       if (wall.isFoldWall) {
         foldWallCreation(wall, printInfo)
       } else {
-        printInfo.prints = [...printInfo.prints, ...wallPrints(wall, true)]
+        printInfo.prints = [...printInfo.prints, wallPrint(wall, true)]
       }
       completedWalls.push(wall)
       partID += 1
@@ -887,13 +887,8 @@ function foldWallCreation(foldWall, printInfo) {
     angle: Math.PI,
   }
 
-  let leftPrints = wallPrints(foldWall, true)
-  let rightPrints = wallPrints(foldWall, false)
-
-  let leftJoint = leftPrints.shift(leftPrints)
-  let rightJoint = rightPrints.shift(rightPrints)
-
-  printInfo.prints = [...printInfo.prints, ...leftPrints, ...rightPrints]
+  let leftJoint = wallPrint(foldWall, true)
+  let rightJoint = wallPrint(foldWall, false)
 
   if (epsilonEquals(foldWall.yRotationAngle, 0)) {
     printInfo.prints.push({
@@ -1010,7 +1005,7 @@ function foldWallCreation(foldWall, printInfo) {
 }
 
 
-function wallPrints(wall, isLeft) {
+function wallPrint(wall, isLeft) {
   let topLength = wall.length
   let bottomLength = wall.length
   if (!topLength) {
@@ -1031,7 +1026,6 @@ function wallPrints(wall, isLeft) {
 
   let print = blankPrint()
   print.suffix = wall.partID + ""
-  let prints = [print]
 
   if (RENDER_MODE == "parts" && epsilonEquals(miterAngle, 0)) {
     topLength -= 0.5
@@ -1126,6 +1120,14 @@ function wallPrints(wall, isLeft) {
       .addScaledVector(UP, yOffset)
 
   path += pathFromSegments(offset, wallSegments)
+  let wallElem = document.getElementById("wall")
+  wallElem.querySelector("path").setAttribute("d", path)
+  print.components.push({
+    type: "svg",
+    svg: wallElem.outerHTML,
+    thickness: WALL_THICKNESS,
+    position: [0, -WALL_PANEL_HEIGHT/2, 0],
+  })
 
   let wallStart = offset
       .add(extraOffset)
@@ -1135,46 +1137,6 @@ function wallPrints(wall, isLeft) {
   let startV = wallStart
       .addScaledVector(E, lengthOffset)
 
-  // CAT5 port
-  if (print.suffix == cat5partID && RENDER_MODE != "simple") {
-    let cat5BottomCenter = wallStart
-        .addScaledVector(N, -CHANNEL_DEPTH/2)
-    if (cat5PortMidway) {
-      cat5BottomCenter = cat5BottomCenter.addScaledVector(E, -topLength/2)
-    } else {
-      cat5BottomCenter = cat5BottomCenter.addScaledVector(E, -CAT5_WIDTH/2 - NOTCH_DEPTH - CAT5_ADDITONAL_OFFSET)
-    }
-
-    let cat5Start1 = cat5BottomCenter
-        .addScaledVector(E, CAT5_WIRES_WIDTH/2)
-    path += pathFromSegments(cat5Start1, [
-      E.scale(-CAT5_WIRES_WIDTH),
-      N.scale(CAT5_WIRES_HEIGHT),
-      E.scale(CAT5_WIRES_WIDTH),
-    ])
-    let cat5Start2 = cat5BottomCenter
-        .addScaledVector(E, -CAT5_SNAP_DISTANCE/2)
-        .addScaledVector(N, CAT5_HEIGHT - CAT5_SNAP_Y)
-    path += pathFromSegments(cat5Start2, [
-      E.scale(CAT5_SNAP_WIDTH),
-      N.scale(CAT5_SNAP_HEIGHT),
-      E.scale(-CAT5_SNAP_WIDTH),
-    ])
-    let cat5Start3 = cat5Start2
-        .addScaledVector(E, CAT5_SNAP_DISTANCE)
-    path += pathFromSegments(cat5Start3, [
-      E.scale(-CAT5_SNAP_WIDTH),
-      N.scale(CAT5_SNAP_HEIGHT),
-      E.scale(CAT5_SNAP_WIDTH),
-    ])
-
-    let qtPosition = cat5BottomCenter.addScaledVector(N, CAT5_WIRES_HEIGHT)
-    print.components.push({
-      type: "qtClip",
-      position: [qtPosition.x, -qtPosition.y, 0],
-      rotationAngle: -rotationAngle + Math.PI,
-    })
-  }
 
   // Power hole
   if (print.suffix == powerHolePartID) {
@@ -1315,17 +1277,71 @@ function wallPrints(wall, isLeft) {
     print.components.push(embossing)
   }
 
-  let wallElem = document.getElementById("wall")
-  wallElem.querySelector("path").setAttribute("d", path)
-  print.components.push({
-    type: "svg",
-    svg: wallElem.outerHTML,
-    thickness: WALL_THICKNESS,
-    position: [0, -WALL_PANEL_HEIGHT/2, 0],
+  // CAT5 port
+  if (print.suffix == cat5partID && RENDER_MODE != "simple") {
+    let cat5BottomCenter = wallStart
+        .addScaledVector(N, -CHANNEL_DEPTH/2)
+    if (cat5PortMidway) {
+      cat5BottomCenter = cat5BottomCenter.addScaledVector(E, -topLength/2)
+    } else {
+      cat5BottomCenter = cat5BottomCenter.addScaledVector(E, -CAT5_WIDTH/2 - NOTCH_DEPTH - CAT5_ADDITONAL_OFFSET)
+    }
 
-  })
+    port_path = ""
+    let cat5Start1 = cat5BottomCenter
+      .addScaledVector(E, CAT5_WIRES_WIDTH/2)
+      .addScaledVector(N, CAT5_WIRES_Y)
+    port_path += pathFromSegments(cat5Start1, [
+      E.scale(-CAT5_WIRES_WIDTH),
+      N.scale(CAT5_WIRES_HEIGHT),
+      E.scale(CAT5_WIRES_WIDTH),
+    ])
+    let cat5Start2 = cat5BottomCenter
+        .addScaledVector(E, -CAT5_SNAP_DISTANCE/2)
+        .addScaledVector(N, CAT5_HEIGHT - CAT5_SNAP_Y)
+    port_path += pathFromSegments(cat5Start2, [
+      E.scale(CAT5_SNAP_WIDTH),
+      N.scale(CAT5_SNAP_HEIGHT),
+      E.scale(-CAT5_SNAP_WIDTH),
+    ])
+    let cat5Start3 = cat5Start2
+        .addScaledVector(E, CAT5_SNAP_DISTANCE)
+    port_path += pathFromSegments(cat5Start3, [
+      E.scale(-CAT5_SNAP_WIDTH),
+      N.scale(CAT5_SNAP_HEIGHT),
+      E.scale(CAT5_SNAP_WIDTH),
+    ])
 
-  return prints
+    let qtPosition = cat5BottomCenter.addScaledVector(N, CAT5_WIRES_HEIGHT + CAT5_WIRES_Y)
+    print.components.push()
+
+    wallElem.querySelector("path").setAttribute("d", port_path)
+    print = {
+      type: "union",
+      suffix: print.suffix,
+      components: [
+        {
+          type: "difference",
+          components: [
+            print,
+            {
+              type: "svg",
+              svg: wallElem.outerHTML,
+              thickness: WALL_THICKNESS + 1,
+              position: [0, -WALL_PANEL_HEIGHT/2, 0],
+            }
+          ]
+        },
+        {
+          type: "qtClip",
+          position: [qtPosition.x, -qtPosition.y, 0],
+          rotationAngle: -rotationAngle + Math.PI,
+        }
+      ]
+    }
+  }
+
+  return print
 }
 
 function pathFromSegments(start, segments) {

@@ -586,7 +586,7 @@ function resetInidices() {
   }
 }
 
-function edgeCleanup() {
+function edgeCleanup(dontDoubleEdges) {
   // First check if there are any edges with two fold verticies so they can be split
   for (let edge of [...edges]) {
     if (edge.verticies[0].plains.length == 2 && edge.verticies[1].plains.length == 2) {
@@ -607,10 +607,12 @@ function edgeCleanup() {
     }
   }
 
-  for (let vertex of verticies) {
-    if (vertex.edges.length % 2 == 1) {
-      doubleEdges()
-      break
+  if (!dontDoubleEdges) {
+    for (let vertex of verticies) {
+      if (vertex.edges.length % 2 == 1) {
+        doubleEdges()
+        break
+      }
     }
   }
 }
@@ -627,8 +629,6 @@ function doubleEdges() {
     edge.dual = edgeCopy
     edges.push(edgeCopy)
   }
-
-  EDGES_DOUBLED = true
 }
 
 async function addFromSVG(src) {
@@ -891,6 +891,8 @@ function origami(foldPlain) {
 }
 
 function zeroFoldAllEdges() {
+  edgeCleanup(true)
+
   plains.length = 0
 
   oneEdgeVertecies = []
