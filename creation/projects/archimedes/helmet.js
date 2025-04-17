@@ -1,6 +1,5 @@
 // SKIP
 module.exports = () => {
-  pixelDensity = 0.4
   isWall = false
   centerOffset = false
   centerOnRender = false
@@ -86,5 +85,6 @@ module.exports = () => {
     vertex.ogCoords = vertex.coordinates.clone()
   }
 
+  scale(2.5)
   EulerianPath(start, [start.edges[1].index])
 }

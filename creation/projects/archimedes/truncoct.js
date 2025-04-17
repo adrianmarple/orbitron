@@ -1,6 +1,5 @@
 module.exports = () => {
   setFor3DPrintedCovers()
-  pixelDensity = 0.5
   cat5FoldWallIndex = 3
   NO_EMBOSSING = true
   BOTTOM_ORIGAMI_KERF = 0.2
@@ -16,7 +15,7 @@ module.exports = () => {
       minDist = Math.min(minDist, verticies[i].ogCoords.distanceTo(verticies[j].ogCoords))
     }
   }
-  scale(1/minDist, true)
+  scale(1/minDist)
 
   for (let i = 0; i < verticies.length; i++) {
     for (let j = i + 1; j < verticies.length; j++) {
@@ -30,7 +29,7 @@ module.exports = () => {
   let x = verticies[0].ogCoords.length()
   let s = 1 / (Math.tan(a/2) * x)
   let h = s*x / Math.cos(a/2)
-  scale(s, true)
+  scale(s)
 
   plains = []
   for (let vertex of verticies) {
@@ -72,7 +71,7 @@ module.exports = () => {
     printInfo.prints[2].suffix = "square_wall"
     printInfo.prints[3].suffix = "hex_wall"
 
-    h = verticies[0].ogCoords.length() * PIXEL_DISTANCE / pixelDensity
+    h = verticies[0].ogCoords.length() * PIXEL_DISTANCE
         - THICKNESS - EXTRA_COVER_THICKNESS - CHANNEL_DEPTH/2 - 36.3 + 0.1
     printInfo.prints.push({
       type: "difference",
@@ -102,5 +101,6 @@ module.exports = () => {
     })
   }
 
+  scale(2)
   EulerianPath(1,1)
 }

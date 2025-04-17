@@ -165,10 +165,9 @@ function generatePixelInfo() {
   if (resizeOnExport) {
     resizeScale = resize(true)
   }
-  let rectifiedPixelDensity = pixelDensity * resizeScale
   window.pixelToGraphSpace = {
     centerOffset,
-    rectifiedPixelDensity,
+    resizeScale,
   }
 
   let additionalNeighbors = []
@@ -192,7 +191,7 @@ function generatePixelInfo() {
     }
   }
 
-  let alpha = ledAtVertex ? 0 : rectifiedPixelDensity/2
+  let alpha = ledAtVertex ? 0 : resizeScale/2
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
     let nextVertex = edge.otherVertex(previousVertex)
@@ -201,7 +200,7 @@ function generatePixelInfo() {
     let e1 = v1.sub(v0)
     let e2 = v2.sub(v1)
     let edgeLength = e2.length()
-    for (; true; alpha += rectifiedPixelDensity) {
+    for (; true; alpha += resizeScale) {
       
       if (alpha > edgeLength - 0.005) {
         alpha -= edgeLength
@@ -211,12 +210,12 @@ function generatePixelInfo() {
           alpha = 0
           break
         }
-        if (!ledAtVertex && epsilonEquals(alpha, rectifiedPixelDensity/2, 0.01)) {
-          alpha = rectifiedPixelDensity/2
+        if (!ledAtVertex && epsilonEquals(alpha, resizeScale/2, 0.01)) {
+          alpha = resizeScale/2
           break
         }
 
-        console.log(edge, nextVertex.edges.length, alpha/resizeScale, edgeLength/resizeScale, pixelDensity)
+        console.log(edge, nextVertex.edges.length, alpha/resizeScale, edgeLength/resizeScale)
         console.error("Edge length not a integer multiple of pixel density")
         return
       }
@@ -256,10 +255,10 @@ function generatePixelInfo() {
         coords.push(newCoord)
       }
 
-      if (!ledAtVertex && epsilonEquals(rectifiedPixelDensity/2, alpha, 0.01)) {
+      if (!ledAtVertex && epsilonEquals(resizeScale/2, alpha, 0.01)) {
         vertexAdjacencies[previousVertex.index].push(dupeIndex)
       }
-      if (!ledAtVertex && epsilonEquals(edgeLength - rectifiedPixelDensity/2, alpha, 0.01)) {
+      if (!ledAtVertex && epsilonEquals(edgeLength - resizeScale/2, alpha, 0.01)) {
         vertexAdjacencies[nextVertex.index].push(dupeIndex)
       }
     }

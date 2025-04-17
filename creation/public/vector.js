@@ -243,21 +243,20 @@ function center(permanently) {
   }
   return offset
 }
-function resize(permanently) {
-  let attribute = permanently ? "ogCoords" : "coordinates"
+function resize() {
   let maxMagnitude = 0
   for (let vertex of verticies) {
-    let mag = vertex[attribute].length()
+    let mag = vertex.ogCoords.length()
     maxMagnitude = Math.max(maxMagnitude, mag)
   }
   let scalar = 1/maxMagnitude
-  scale(scalar, permanently)
+  scale(scalar)
   return scalar
 }
-function scale(scalar, permanently) {
-  let attribute = permanently ? "ogCoords" : "coordinates"
+function scale(scalar) {
   for (let vertex of verticies) {
-    vertex[attribute] = vertex[attribute].multiplyScalar(scalar)
+    vertex.ogCoords = vertex.ogCoords.multiplyScalar(scalar)
+    vertex.coordinates = vertex.coordinates.multiplyScalar(scalar)
   }
 }
 

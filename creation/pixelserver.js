@@ -369,6 +369,10 @@ async function generateGCode(info, print) {
 
   console.log("Generating .stl " + info.fullSuffix)
   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
+  if (!info.asciiStl) {
+    console.log("Converting .stl to binary")
+    await execute(`admesh -b ${stlFilePath} ${stlFilePath}`)
+  }
   if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
 
   console.log("Generating .bgcode " + info.fullSuffix)

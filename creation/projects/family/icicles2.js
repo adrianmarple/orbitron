@@ -5,8 +5,6 @@ module.exports = () => {
   cat5partID = "2"
   cat5PortMidway = true
 
-  pixelDensity = 0.25
-
   let v0 = addVertex(ZERO)
   let v1 = v0.addLine([0,-4,0])
   let v2 = v1.addLine([0,-1,0])
@@ -109,6 +107,7 @@ module.exports = () => {
   // .addLine([0,0,1])
   // .addLine([0,-7,0])
 
+  scale(4)
   zeroFoldAllEdges()
   // center()
   EulerianPath(76)

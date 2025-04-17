@@ -2,7 +2,6 @@
 
 addButton("test/letters", async () => {
   ledAtVertex = false
-  pixelDensity = 2
   // cat5PortMidway = true
   makeTwoSided()
   setLaserParams({
@@ -13,5 +12,6 @@ addButton("test/letters", async () => {
 
   await addFromSVG("test/neodymium.svg")
 
+  scale(0.5)
   EulerianPath(12, 1)
 })

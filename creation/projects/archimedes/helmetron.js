@@ -2,7 +2,6 @@
 module.exports = () => {
   setFor3DPrintedCovers()
   CHANNEL_DEPTH = 5
-  pixelDensity = 0.4
 
   // cat5FoldWallIndex = 5
 
@@ -100,13 +99,13 @@ module.exports = () => {
   }
 
   // Back to standard new archimedes shit
-  scale(1/2, true)
+  scale(1/2)
 
   let a = edges[0].verticies[0].ogCoords.angleTo(edges[0].verticies[1].ogCoords)
   let x = verticies[0].ogCoords.length()
   let s = 1 / (Math.tan(a/2) * x)
   let h = s*x / Math.cos(a/2)
-  scale(s, true)
+  scale(s)
 
   plains = []
   for (let vertex of verticies) {
@@ -135,5 +134,6 @@ module.exports = () => {
   }
   isWall = true
 
+  scale(2.5)
   EulerianPath(8, 1)
 }

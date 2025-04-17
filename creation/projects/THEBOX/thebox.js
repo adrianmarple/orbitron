@@ -1,7 +1,6 @@
 
 module.exports = async () => {
   setFor3DPrintedCovers()
-  pixelDensity = 0.1
   exteriorOnly = true
   cat5PortMidway = true
   cat5partID = "5"
@@ -9,7 +8,7 @@ module.exports = async () => {
   powerHoleWallIndex = 0
   
   NO_EMBOSSING = true
-  PIXEL_DISTANCE = pixelDensity
+  PIXEL_DISTANCE = 1
   WALL_THICKNESS = 2
   CHANNEL_WIDTH = 0
   INNER_CHANNEL_THICKNESS = null

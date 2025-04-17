@@ -1,6 +1,5 @@
 // SKIP
 module.exports = () => {
-  pixelDensity = 0.25
   minimalInnerBorder = true
 
   edgeCentersBlacklist = [
@@ -56,5 +55,6 @@ module.exports = () => {
 
   console.log(edges.length)
 
+  scale(4)
   EulerianPath(verticies[2], [2])
 }

@@ -31,7 +31,6 @@ function reset() {
   path = []
   vertexPath = []
   seed = initialSeed
-  pixelDensity = 1
   imageUrl = null
   centerOnRender = true
   centerOnExport = true
@@ -43,7 +42,6 @@ function reset() {
 
   CENTER = new Vector(0, 0, -3)
   ZERO_FOLD_LENGTH_THRESHOLD = 3.9
-  SCALE = () => PIXEL_DISTANCE / pixelDensity
 
   THICKNESS = 3.1
   WALL_THICKNESS = 2
@@ -103,8 +101,9 @@ function reset() {
   CAT5_SNAP_HEIGHT = 3.4
   CAT5_SNAP_Y = 6.6
   CAT5_WIRES_WIDTH = 12
-  CAT5_WIRES_HEIGHT = 6
-  CAT5_WIRES_Y = 0.6
+  // CAT5_WIRES_HEIGHT = 6.6
+  CAT5_WIRES_HEIGHT = 5.4
+  CAT5_WIRES_Y = 1.2
   CAT5_ADDITONAL_OFFSET = 0
 
   POWER_HOLE_RADIUS = 5.4
@@ -285,7 +284,7 @@ function render() {
     let xy = center.project(projScale)
     if (showEdgeNumbers && !edge.isDupe) {
       let text = edge.index + ""
-      let len = Math.round(2*edge.length() / pixelDensity)/2
+      let len = parseFloat(edge.length().toFixed(2))
       text += " (" + len + ")"
       // if (window.edgeToWalls && window.edgeToWalls[edge.index]) {
       //   text += " ("
@@ -301,7 +300,7 @@ function render() {
     ctx.font = "8px Arial"
     for (let coord of pixelInfo.coords) {
       let xy = new Vector(...coord)
-          .scale(1/pixelToGraphSpace.rectifiedPixelDensity)
+          .scale(1/pixelToGraphSpace.resizeScale)
           .project(projScale)
       ctx.fillText(pixelInfo.coords.indexOf(coord), xy[0] + 2, xy[1] - 2)
     }

@@ -47,7 +47,7 @@ async function createCoverSVG(plain) {
   }
   for (let vertex of verticies) {
     vertex.oogCoords = vertex.ogCoords
-    vertex.ogCoords = vertex.ogCoords.scale(SCALE()).applyMatrix(R)
+    vertex.ogCoords = vertex.ogCoords.scale(PIXEL_DISTANCE).applyMatrix(R)
   }
   
   let zOffset = 0
@@ -167,10 +167,12 @@ async function createCoverSVG(plain) {
       }
 
       let endCapOffset = CHANNEL_WIDTH * END_CAP_FACTOR * -0.5
+      let extraLEDSupportOffset = 0
       if (epsilonEquals(e0.length(), 0)) {
         a1 = Math.PI/2
         towardsEnd = e1.normalize().multiplyScalar(-1)
         v0 = v0.addScaledVector(towardsEnd, endCapOffset)
+        extraLEDSupportOffset = -endCapOffset + PIXEL_DISTANCE
         v1 = v0
         e1 = v2.sub(v1)
       }
@@ -257,7 +259,7 @@ async function createCoverSVG(plain) {
         let vertex = isOne ? vertex1 : vertex2
         let {deadendPlain, dihedralAngle, aoiComplement} =
             vertex.fold().getCoverInfo(plain, isOne)
-        deadendPlain = deadendPlain.rotateAndScale(R, SCALE())
+        deadendPlain = deadendPlain.rotateAndScale(R, PIXEL_DISTANCE)
 
         let outerV = isOne ? v2 : v1
         let wallStartPoint = outerV
@@ -305,9 +307,9 @@ async function createCoverSVG(plain) {
           lengthOffset: isOne ? lengthOffset2 : lengthOffset1,
           edgeLength,
           worldPlacementOperations,
+          extraLEDSupportOffset,
         })
         associateWallWithEdge(vertex.fold().getWall(plain, isOne), associatedEdge)
-
       }
 
       if (plains1.length == 2) {
@@ -327,6 +329,7 @@ async function createCoverSVG(plain) {
           worldPlacementOperations,
           leftVertex: vertex1,
           vertex: vertex2,
+          extraLEDSupportOffset,
         }, associatedEdge)
       }
 
@@ -338,8 +341,6 @@ async function createCoverSVG(plain) {
         print)
 
       // Border
-      let x1 = lengthOffset1 + NOTCH_DEPTH + KERF
-      let x2 = edgeLength + lengthOffset2 - NOTCH_DEPTH - KERF
       let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
       let borderLengthOffset = width / -Math.tan((Math.PI - a1)/2)
       
@@ -350,7 +351,7 @@ async function createCoverSVG(plain) {
         plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
-        deadendPlain = deadendPlain.rotateAndScale(R, SCALE())
+        deadendPlain = deadendPlain.rotateAndScale(R, PIXEL_DISTANCE)
         let kerf = ORIGAMI_KERF
         if (RENDER_MODE == "parts") {
           kerf -= 0.2
@@ -380,21 +381,7 @@ async function createCoverSVG(plain) {
           skew,
         })
       } else {
-        // if (isFinalEdge && IS_BOTTOM && CAT5_HEIGHT > CHANNEL_DEPTH) {
-        //   if (cat5PortMidway) {
-        //     x1 = (x1 + x2 - CAT5_WIDTH) / 2
-        //   }
-        //   x1 += CAT5_ADDITONAL_OFFSET
-        //   points = [
-        //     [borderLengthOffset, width],
-        //     [x1, width],
-        //     [x1, width - BORDER],
-        //     [x1 + CAT5_WIDTH, width - BORDER],
-        //     [x1 + CAT5_WIDTH, width],
-        //   ]
-        // } else {
-          points = [[borderLengthOffset, width]]
-        // }
+        points = [[borderLengthOffset, width]]
         borderString += pointsToSVGString(points, [e1, n], v1)
         borderPoints.push(v1
             .addScaledVector(e1, borderLengthOffset)
@@ -411,7 +398,7 @@ async function createCoverSVG(plain) {
         plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
         plainTranslationValue *= IS_BOTTOM ? 1 : -1
         let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
-        deadendPlain = deadendPlain.rotateAndScale(R, SCALE())
+        deadendPlain = deadendPlain.rotateAndScale(R, PIXEL_DISTANCE)
         deadendPlain = deadendPlain.translate(e0.normalize().scale(5)) // TODO calculate more properply
         let line1 = line.translate(n.scale(width))
         let p1 = deadendPlain.intersection(line1)
@@ -460,7 +447,7 @@ async function createCoverSVG(plain) {
       for (let i = 0; i < 4; i++) {
         center = center.add(dPath[i].ogCoords)
       }
-      center = center.scale(0.25 / SCALE())
+      center = center.scale(0.25 / PIXEL_DISTANCE)
       let x = Math.round(center.x)
       let y = -Math.round(center.y)
       
@@ -1120,14 +1107,6 @@ function wallPrint(wall, isLeft) {
       .addScaledVector(UP, yOffset)
 
   path += pathFromSegments(offset, wallSegments)
-  let wallElem = document.getElementById("wall")
-  wallElem.querySelector("path").setAttribute("d", path)
-  print.components.push({
-    type: "svg",
-    svg: wallElem.outerHTML,
-    thickness: WALL_THICKNESS,
-    position: [0, -WALL_PANEL_HEIGHT/2, 0],
-  })
 
   let wallStart = offset
       .add(extraOffset)
@@ -1136,7 +1115,6 @@ function wallPrint(wall, isLeft) {
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let startV = wallStart
       .addScaledVector(E, lengthOffset)
-
 
   // Power hole
   if (print.suffix == powerHolePartID) {
@@ -1147,6 +1125,15 @@ function wallPrint(wall, isLeft) {
       a ${r},${r} 0 1,0 ${r*2},0
       a ${r},${r} 0 1,0,${-r*2},0`
   }
+
+  let wallElem = document.getElementById("wall")
+  wallElem.querySelector("path").setAttribute("d", path)
+  print.components.push({
+    type: "svg",
+    svg: wallElem.outerHTML,
+    thickness: WALL_THICKNESS,
+    position: [0, -WALL_PANEL_HEIGHT/2, 0],
+  })
 
   // Wedges
   // End wedge
@@ -1183,31 +1170,29 @@ function wallPrint(wall, isLeft) {
   if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       !wall.hasWallPort &&
       bottomLength > PIXEL_DISTANCE * 1.2) {
-    supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 1.5 : 1)
-    supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * SCALE()
+    supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+    supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * PIXEL_DISTANCE
+    supportOffset += wall.extraLEDSupportOffset
     while (supportOffset < lengthOffset) {
       supportOffset += PIXEL_DISTANCE
     }
-    position = startV.addScaledVector(E, -supportOffset)
   }
   if (!isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       bottomLength > PIXEL_DISTANCE * 3 &&
       (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
     supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
-    supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * SCALE()
-
-    offsetNegative = supportOffset % PIXEL_DISTANCE
-    // TODO better calculation for how much negative offset should be (based on angles)
-    if (offsetNegative < PIXEL_DISTANCE/2 + LED_SUPPORT_WIDTH/2) {
-      offsetNegative += PIXEL_DISTANCE
+    supportOffset -= supportOffset % PIXEL_DISTANCE
+    supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * PIXEL_DISTANCE
+    while (supportOffset > edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH/2) {
+      supportOffset -= PIXEL_DISTANCE
     }
-    supportOffset -= offsetNegative
   }
-  if (supportOffset && RENDER_MODE == "standard") {
+
+  if (supportOffset != null && RENDER_MODE == "standard") {
     let v0 = vertex0.ogCoords
     let v1 = vertex1.ogCoords
     let e = v1.sub(v0).normalize()
-    let worldPosition = v0.addScaledVector(e, supportOffset / SCALE())
+    let worldPosition = v0.addScaledVector(e, supportOffset / PIXEL_DISTANCE)
     
     let shouldAddSupport = true
     for (let wp of ledWorldPositions) {
@@ -1228,7 +1213,6 @@ function wallPrint(wall, isLeft) {
         rotationAngle: -rotationAngle,
       })
     }
-    // console.log(wall.partID, isLeft, supportOffset, lengthOffset)
   }
 
   if (addNubs && !wall.isFoldWall && RENDER_MODE == "standard") { // Nubs
@@ -1403,19 +1387,25 @@ function latchPoints(E, N, reverse, insetAngle) {
 }
 
 function edgeOffset(vertex, prevVertex) {
-  if (vertex.edges.length != 4) return 0
+  let singleSided = true
+  for (let edge of vertex.edges) {
+    if (edge.isDupe) {
+      singleSided = false
+      break
+    }
+  }
+  if (vertex.edges.length != (singleSided ? 2 : 4)) return 0
 
   let nextVertex = null
   let offset = 0
   for (let edge of vertex.edges) {
     if (edge.isDupe) continue
-    let other = edge.otherVertex(vertex)
-    if (other == prevVertex) continue
-
-    nextVertex = other
-    offset = edge.length() % 1
+    nextVertex = edge.otherVertex(vertex)
+    if (nextVertex == prevVertex) continue
+    offset = 1 - edge.length()%1
+    break
   }
-  offset = (edgeOffset(nextVertex, vertex) + 1-offset) % 1
+  offset = (edgeOffset(nextVertex, vertex) + offset) % 1
   if (epsilonEquals(offset, 1)) {
     return 0
   } else {
@@ -1487,7 +1477,7 @@ async function generateManufacturingInfo() {
       mins = mins.min(v.ogCoords)
       maxes = maxes.max(v.ogCoords)
     }
-    let dims = maxes.sub(mins).scale(SCALE() / 25.4)
+    let dims = maxes.sub(mins).scale(PIXEL_DISTANCE / 25.4)
     console.log(`Overall dimensions approx ${dims.x.toFixed(1)}" x ${dims.y.toFixed(1)}" x ${dims.z.toFixed(1)}"`)
 
 

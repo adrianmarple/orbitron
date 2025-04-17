@@ -1,6 +1,5 @@
 // SKIP
 module.exports = () => {
-  pixelDensity = 0.5
   isWall = false
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],
@@ -21,5 +20,6 @@ module.exports = () => {
       }
     }
   }
+  scale(2)
   EulerianPath(verticies[0],[0])
 }

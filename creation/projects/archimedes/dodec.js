@@ -1,6 +1,5 @@
 module.exports = () => {
   setFor3DPrintedCovers()
-  pixelDensity = .5
 
   wallPostProcessingFunction = printInfo => {
     printInfo.prints = [printInfo.prints[1], printInfo.prints[5], printInfo.prints[4]]
@@ -22,7 +21,7 @@ module.exports = () => {
       minDist = Math.min(minDist, verticies[i].ogCoords.distanceTo(verticies[j].ogCoords))
     }
   }
-  scale(1/minDist, true)
+  scale(1/minDist)
 
   for (let i = 0; i < verticies.length; i++) {
     for (let j = i + 1; j < verticies.length; j++) {
@@ -36,7 +35,7 @@ module.exports = () => {
   let x = verticies[0].ogCoords.length()
   let s = 1 / (Math.tan(a/2) * x)
   let h = s*x / Math.cos(a/2)
-  scale(s, true)
+  scale(s)
 
   plains = []
   for (let vertex of verticies) {
@@ -65,5 +64,6 @@ module.exports = () => {
   }
   isWall = true
 
+  scale(2)
   EulerianPath(1,1)
 }

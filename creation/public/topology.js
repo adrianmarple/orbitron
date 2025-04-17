@@ -600,7 +600,7 @@ function edgeCleanup(dontDoubleEdges) {
     if (edge.verticies[0].plains.length == 2 || edge.verticies[1].plains.length == 2) {
       maxLength = MAX_FOLD_WALL_LENGTH
     }
-    let splitCount = Math.floor(edge.length() * SCALE() / MAX_WALL_LENGTH)
+    let splitCount = Math.floor(edge.length() * PIXEL_DISTANCE / MAX_WALL_LENGTH)
     let newLength = edge.length() / (splitCount + 1)
     for (let i = 0; i < splitCount; i++) {
       edge.split(-newLength)
@@ -996,7 +996,7 @@ function zeroFoldAllEdges() {
 
   let edgesToZeroFold = []
   for (let edge of [...edges]) {
-    let lengthThreshold = ZERO_FOLD_LENGTH_THRESHOLD * pixelDensity
+    let lengthThreshold = ZERO_FOLD_LENGTH_THRESHOLD
     if (edge.verticies[0].plains.length > 1 || edge.verticies[1].plains.length > 1) {
       lengthThreshold *= 2
     }

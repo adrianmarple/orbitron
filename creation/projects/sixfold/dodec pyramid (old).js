@@ -7,7 +7,6 @@ button.classList.add("button")
 button.addEventListener('click', function() {
   name = "dodecwall"
   reset()
-  pixelDensity = 0.25
   const Y_GAP = 2.4
   const X_GAP = 1.375
   isWall = true
@@ -23,5 +22,6 @@ button.addEventListener('click', function() {
   addDodecagon([1*X_GAP,Y_GAP,0])
   addDodecagon([0,2*Y_GAP,0])
   console.log(edges.length)
+  scale(4)
   path = EulerianPath([0], verticies[0])
 })

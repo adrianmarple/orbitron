@@ -1,7 +1,5 @@
 // SKIP
 module.exports = () => {
-  pixelDensity = 0.25
-
   for (let i = -6; i <= 6; i++) {
     for (let j = -6; j <= 6; j++) {
       let manhattan = Math.abs(i) + Math.abs(j)
@@ -19,6 +17,7 @@ module.exports = () => {
   console.log(edges.length)
 
   // WARNING: this produces a different path from what's on my wall!
+  scale(4)
   EulerianPath(verticies[1], [0])
 
   rotateZAll(Math.PI/2)

@@ -1,11 +1,5 @@
 // SKIP
 module.exports = async () => {
-  // setLaserParams({
-  //   PIXEL_DISTANCE: 10,
-  // })
-  // pixelDensity = 0.5
-  pixelDensity = 0.333333
-  // pixelDensity = 0.25
 
   // imageUrl = "signs/made2D (old).png"
   imageUrl = "signs/made2D.png"
@@ -19,5 +13,6 @@ module.exports = async () => {
 
   // await addSquaresFromPixels(true, {x:[10], y:[10]})
   await addSquaresFromPixels()
+  scale(3)
   EulerianPath(63, 1)
 }
