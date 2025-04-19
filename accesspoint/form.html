@@ -3,19 +3,23 @@
 <head>
   <title>Add Wifi Network</title>
   <link rel="stylesheet" href="/accesspoint/accesspoint.css">
+  <link rel="stylesheet" href="accesspoint.css">
 </head>
 
 <body>
   <form id="form" style="display: inline;">
     <div id="title">Add wifi network</div>
     SSID: <input type = "text" name = "ssid" />
-    Password: <input type = "password" name = "password" />
+    Password: <input type = "password" name = "password" id="password"/>
+    <div id="visibility-toggle" onclick="togglePasswordVisibility()">
+      <input type="checkbox">Show Password
+    </div>
     <input class="button" type = "submit" name = "submit" value = "Submit" />
   </form>
   <div id="feedback" style="display:none;">
     <p>SSID and Password submitted.</p>
     <p>WiFi will now restart to apply changes.</p>
-    <p>You will be redirected to your Orbitron page in about 10 seconds.</p>
+    <p>You will be redirected to your Orbitron page in about 15 seconds.</p>
     <p>Please wait...</p>
   </div>
   <div id="errorMessage" style="display:none;">
@@ -36,7 +40,7 @@
         })
         const data = await response.json()
         if(data.redirect){
-          await new Promise(r => setTimeout(r, 10000))
+          await new Promise(r => setTimeout(r, 15000))
           location.assign(data.redirect)
         }
       } catch (e) {
@@ -52,6 +56,18 @@
       feedback.style.display = "inline"
       sendData()
     })
+
+    const passwordElem = document.getElementById("password")
+    const checkboxElem = document.querySelector("#visibility-toggle input")
+    function togglePasswordVisibility() {
+      if (passwordElem.type === "password") {
+        passwordElem.type = "text"
+        checkboxElem.checked = true
+      } else {
+        passwordElem.type = "password"
+        checkboxElem.checked = false
+      }
+    }
   </script>
 </body>
 </html>

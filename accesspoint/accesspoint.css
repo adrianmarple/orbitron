@@ -39,10 +39,10 @@ input[type='password'], input[type='text'] {
   font-size: 3rem;
   border: 0.2rem solid black;
   margin-bottom: 2rem;
-} 
-input[type='radio'] {
-  width: 2rem;
-  height: 2rem;
+}
+input[type='checkbox'] {
+  width: 1.2rem;
+  height: 1.2rem;
   margin-left: 2rem;
 }
 
@@ -51,6 +51,12 @@ input[type='radio'] {
   flex-direction: row;
   width: 100%;
   justify-content: center;
+}
+
+#visibility-toggle {
+  font-size: 2rem;
+  user-select: none;
+  cursor: pointer;
 }
 
 .button {

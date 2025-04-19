@@ -172,7 +172,7 @@ async function createCoverSVG(plain) {
         a1 = Math.PI/2
         towardsEnd = e1.normalize().multiplyScalar(-1)
         v0 = v0.addScaledVector(towardsEnd, endCapOffset)
-        extraLEDSupportOffset = -endCapOffset + PIXEL_DISTANCE
+        extraLEDSupportOffset = endCapOffset + PIXEL_DISTANCE
         v1 = v0
         e1 = v2.sub(v1)
       }
