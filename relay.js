@@ -102,6 +102,10 @@ function bindOrb(socket, orbID) {
         }
         
         if (!name) {
+          if (id.startsWith("_")) { // Only save manual backups for special lumatrons
+            return
+          }
+
           function twoDigit(num) {
             return String(num).padStart(2, '0')
           }

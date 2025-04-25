@@ -10,7 +10,7 @@
   <div class="left side-box"></div>
   <div id="container-wrapper">
     <div id="container">
-      <div class="black-box">
+      <div class="black-box" style="opacity: .999;">
         <div class="filler" :class="{ hidden: mode != 'admin' }">
           <Admin ref="admin"></Admin>
         </div>
