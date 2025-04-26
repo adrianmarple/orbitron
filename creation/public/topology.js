@@ -193,6 +193,7 @@ class Fold {
       aoiComplement: this.aoiComplement,
       leftVertex: vertex1,
       rightVertex: vertex0,
+      extraLEDSupportOffset: 0,
     }]
     this.foldWalls.push({...this.foldWalls[0]})
     this.foldWalls[1].aoiComplement *= -1
@@ -222,7 +223,9 @@ class Fold {
   }
 
   addFoldWallInfo(params) {
-    let { plain, isOutgoing, wallLength, angle, lengthOffset, edgeLength, worldPlacementOperations } = params
+    let { plain, isOutgoing, wallLength, angle, lengthOffset, edgeLength,
+      worldPlacementOperations, extraLEDSupportOffset } = params
+
     let index = this.plainToIndex[plain.index]
     if (this.negations[index] == -1) {
       isOutgoing = !isOutgoing
@@ -241,6 +244,7 @@ class Fold {
     foldWall["lengthOffset" + type] = -lengthOffset
     foldWall[coverType + "Length" + type] = wallLength
     foldWall["worldPlacementOperations" + type] = worldPlacementOperations
+    foldWall.extraLEDSupportOffset = extraLEDSupportOffset // I think this should always be 0
   }
 }
 

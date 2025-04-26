@@ -496,18 +496,21 @@ async function createCoverSVG(plain) {
   ]
 
   if (RENDER_MODE == "standard") {
-    print.components.push({
-      type: "svg",
-      svg,
-      thickness: THICKNESS,
-      position: [0,0,EXTRA_COVER_THICKNESS],
+    print.components.push({ // OpenSCAD struggled to render sometimes without this union
+      type: "union",
       operations: importCorrectionOperations,
-    })
-    print.components.push({
-      type: "svg",
-      svg: borderSvg,
-      thickness: EXTRA_COVER_THICKNESS,
-      operations: importCorrectionOperations,
+      components: [{
+        type: "svg",
+        svg,
+        thickness: THICKNESS,
+        position: [0,0,EXTRA_COVER_THICKNESS],
+      },
+      {
+        type: "svg",
+        svg: borderSvg,
+        thickness: EXTRA_COVER_THICKNESS,
+      },
+      ]
     })
 
     if (INNER_CHANNEL_THICKNESS !== null) {
@@ -519,7 +522,7 @@ async function createCoverSVG(plain) {
           {
             type: "svg",
             svg: channelSvg,
-            thickness: THICKNESS - INNER_CHANNEL_THICKNESS,
+            thickness: THICKNESS - INNER_CHANNEL_THICKNESS + 0.1,
             position: [0,0,EXTRA_COVER_THICKNESS + INNER_CHANNEL_THICKNESS],
             operations: importCorrectionOperations,
           }
@@ -827,10 +830,10 @@ function createPrintInfo3D() {
   let hasReachedEnd
   for (let print of printInfo.prints) {
     hasReachedStart = hasReachedStart || print.suffix.startsWith(STARTING_PART_ID + "")
-    hasReachedEnd = hasReachedEnd || print.suffix.startsWith(ENDING_PART_ID + "")
     if (hasReachedStart && !hasReachedEnd) {
       prints.push(print)
     }
+    hasReachedEnd = hasReachedEnd || print.suffix.startsWith(ENDING_PART_ID + "")
   }
   printInfo.prints = prints
   if (window.printPostProcessingFunction) {
@@ -1170,10 +1173,14 @@ function wallPrint(wall, isLeft) {
   if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
       !wall.hasWallPort &&
       bottomLength > PIXEL_DISTANCE * 1.2) {
-    supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+    supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 1)
     supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * PIXEL_DISTANCE
     supportOffset += wall.extraLEDSupportOffset
-    while (supportOffset < lengthOffset) {
+    let threshold = lengthOffset - LED_SUPPORT_WIDTH/2
+    if (miterAngle < 0) {
+      threshold += Math.tan(miterAngle) * WALL_THICKNESS
+    }
+    while (supportOffset < threshold) {
       supportOffset += PIXEL_DISTANCE
     }
   }
