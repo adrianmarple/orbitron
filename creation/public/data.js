@@ -202,15 +202,15 @@ function generatePixelInfo() {
     let edgeLength = e2.length()
     for (; true; alpha += resizeScale) {
       
-      if (alpha > edgeLength - 0.005) {
+      if (alpha > edgeLength - resizeScale/20) {
         alpha -= edgeLength
         // Verticies with two edges can have non-integer lengths
         if (nextVertex.edges.length == (singleSided ? 2 : 4)) break 
-        if (ledAtVertex && epsilonEquals(alpha, 0, 0.01)) {
+        if (ledAtVertex && epsilonEquals(alpha, 0, resizeScale/10)) {
           alpha = 0
           break
         }
-        if (!ledAtVertex && epsilonEquals(alpha, resizeScale/2, 0.01)) {
+        if (!ledAtVertex && epsilonEquals(alpha, resizeScale/2, resizeScale/10)) {
           alpha = resizeScale/2
           break
         }
@@ -241,6 +241,7 @@ function generatePixelInfo() {
         }
       }
       if (alpha == 0 && epsilonEquals(e1.dot(e2), -e1.length() * edgeLength)) {
+        console.log(dupeIndex, e1.dot(e2) + e1.length() * edgeLength)
         // Skip LED when doubling back and dupe exists
         if (dupeIndex > -1) {
           // Previous pixel should necessarily be unique
