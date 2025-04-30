@@ -212,8 +212,29 @@ document.onkeydown = e => {
   if (e.which === 39 || e.which === 38) {
     pathIndex += 1
   }
-  if (e.which === 37 || e.which === 40) {
+  else if (e.which === 37 || e.which === 40) {
     pathIndex -= 1
+  }
+  else {
+    return
+  }
+  let edge = edges[path[pathIndex]]
+  if (!edge) return
+  
+  if (edge.isDupe) {
+    edge = edge.dual
+  }
+  let edgeIndex 
+  console.log("Edge # " + edge.index)
+
+  console.log("  associated walls: " + edgeToWalls[edge.index].map(wall => wall.partID))
+  if (pathIndex >= 0) {
+    let distanceFromBeginning = 0
+    for (let i = 0; i <= pathIndex; i++) {
+      distanceFromBeginning += edges[path[i]].length()
+    }
+    distanceFromBeginning = parseFloat(distanceFromBeginning.toFixed(2))
+    console.log("  distance from beginning: " + distanceFromBeginning)
   }
 }
 
