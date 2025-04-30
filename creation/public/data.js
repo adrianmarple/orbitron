@@ -255,10 +255,10 @@ function generatePixelInfo() {
         coords.push(newCoord)
       }
 
-      if (!ledAtVertex && epsilonEquals(resizeScale/2, alpha, 0.01)) {
+      if (!ledAtVertex && epsilonEquals(resizeScale/2, alpha, resizeScale/10)) { // First pixel of edge
         vertexAdjacencies[previousVertex.index].push(dupeIndex)
       }
-      if (!ledAtVertex && epsilonEquals(edgeLength - resizeScale/2, alpha, 0.01)) {
+      if (!ledAtVertex && epsilonEquals(edgeLength - resizeScale/2, alpha, resizeScale/10)) { // Last pixel of edge
         vertexAdjacencies[nextVertex.index].push(dupeIndex)
       }
     }
