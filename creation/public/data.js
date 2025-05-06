@@ -241,7 +241,6 @@ function generatePixelInfo() {
         }
       }
       if (alpha == 0 && epsilonEquals(e1.dot(e2), -e1.length() * edgeLength)) {
-        console.log(dupeIndex, e1.dot(e2) + e1.length() * edgeLength)
         // Skip LED when doubling back and dupe exists
         if (dupeIndex > -1) {
           // Previous pixel should necessarily be unique

@@ -107,6 +107,8 @@ function reset() {
   CAT5_ADDITONAL_OFFSET = 0
 
   POWER_HOLE_RADIUS = 5.4
+  POWER_HOLE_WIDTH = 14.0
+  POWER_HOLE_HEIGHT = 5.2
 
   CHANNEL_DEPTH = CAT5_HEIGHT
   
@@ -165,11 +167,6 @@ function setFor3DPrintedCovers() {
   TOP_ORIGAMI_KERF = 0 //-0.1
   BOTTOM_ORIGAMI_KERF = 0
   CHANNEL_LATCH_ANGLE = -8
-
-  // Experimental
-  // BORDER = 1
-  // THICKNESS = 2.6
-  // LATCH_TYPE = "hook"
 
   WALL_THICKNESS = 2.6
   PRINT_WALL_HALVES_SEPARATELY = true
@@ -230,7 +227,7 @@ document.onkeydown = e => {
   console.log("  associated walls: " + edgeToWalls[edge.index].map(wall => wall.partID))
   if (pathIndex >= 0) {
     let distanceFromBeginning = 0
-    for (let i = 0; i <= pathIndex; i++) {
+    for (let i = 0; i < pathIndex; i++) {
       distanceFromBeginning += edges[path[i]].length()
     }
     distanceFromBeginning = parseFloat(distanceFromBeginning.toFixed(2))

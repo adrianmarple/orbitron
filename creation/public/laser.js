@@ -727,7 +727,6 @@ function createFullModel() {
         wallPrint1.operations[2].angle += wall.zRotationAngle
         if (wall.aoiComplement < -0.0001) {
           let sign = Math.sign(Math.cos(wallPrint1.operations[2].angle)) // This is probably not right
-          console.log(sign)
           wallPrint1.operations.splice(3, 0, {
             type: "translate",
             position: [sign * Math.tan(wall.aoiComplement) * WALL_THICKNESS, 0, 0],
@@ -1049,7 +1048,8 @@ function wallPrint(wall, isLeft) {
   }
   bottomEndNotchDepth -= WALL_KERF
 
-
+  // TODO dihedralAngle I believe is not always non-negative, so this and other checks
+  // are unnecessary (plus extraOffset would always be zero and therefore removable)
   let extraOffset = ZERO
   if (wall.dihedralAngle < 0) {
     extraOffset = E.scale(-THICKNESS * Math.tan(wall.zRotationAngle))
@@ -1121,12 +1121,20 @@ function wallPrint(wall, isLeft) {
 
   // Power hole
   if (print.suffix == powerHolePartID) {
-    let r = POWER_HOLE_RADIUS
-    let powerCenter = wallStart.addScaledVector(E, -topLength/2 + r)
-    path += `
-      M${powerCenter.x} ${powerCenter.y}
-      a ${r},${r} 0 1,0 ${r*2},0
-      a ${r},${r} 0 1,0,${-r*2},0`
+    let powerHoleStart = wallStart.addScaledVector(E, -topLength/2 - POWER_HOLE_WIDTH/2)
+        .addScaledVector(N, POWER_HOLE_HEIGHT/2)
+    path += pathFromSegments(powerHoleStart, [
+      E.scale(POWER_HOLE_WIDTH),
+      N.scale(-POWER_HOLE_HEIGHT),
+      E.scale(-POWER_HOLE_WIDTH),
+      N.scale(POWER_HOLE_HEIGHT),
+    ])
+    // let r = POWER_HOLE_RADIUS
+    // let powerCenter = wallStart.addScaledVector(E, -topLength/2 + r)
+    // path += `
+    //   M${powerCenter.x} ${powerCenter.y}
+    //   a ${r},${r} 0 1,0 ${r*2},0
+    //   a ${r},${r} 0 1,0,${-r*2},0`
   }
 
   let wallElem = document.getElementById("wall")
@@ -1237,12 +1245,20 @@ function wallPrint(wall, isLeft) {
   }
 
   // Embossing
+  const MAX_EMBOSSING_WIDTH = 10
   if (!NO_EMBOSSING && RENDER_MODE == "standard" &&
     (isLeft || (wall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY))) {
-    let V = wallStart.sub(extraOffset)
+    // let V = wallStart.sub(extraOffset)
+    
+    let embossingOffset = extraOffset.length() + lengthOffset
+    if (embossingOffset + MAX_EMBOSSING_WIDTH + LED_SUPPORT_WIDTH/2 > supportOffset) {
+      embossingOffset = supportOffset + LED_SUPPORT_WIDTH/2 + 1
+    }
+    embossingOffset = Math.min(embossingOffset, lengthOffset + topLength - MAX_EMBOSSING_WIDTH)
+    let emboPos = startV.addScaledVector(E, -embossingOffset)
     print.components.push({
       type: "embossing",
-      position: [V.x, -V.y, WALL_THICKNESS],
+      position: [emboPos.x, -emboPos.y, WALL_THICKNESS],
       rotationAngle: -rotationAngle,
       halign: isLeft ? "left" : "right",
       text: print.suffix,
@@ -1393,7 +1409,11 @@ function latchPoints(E, N, reverse, insetAngle) {
   return points
 }
 
-function edgeOffset(vertex, prevVertex) {
+function edgeOffset(vertex, prevVertex, startVertex) {
+  if (!startVertex) {
+    startVertex = prevVertex
+  }
+
   let singleSided = true
   for (let edge of vertex.edges) {
     if (edge.isDupe) {
@@ -1401,6 +1421,7 @@ function edgeOffset(vertex, prevVertex) {
       break
     }
   }
+  if (vertex == startVertex) return 0
   if (vertex.edges.length != (singleSided ? 2 : 4)) return 0
 
   let nextVertex = null
@@ -1412,7 +1433,7 @@ function edgeOffset(vertex, prevVertex) {
     offset = 1 - edge.length()%1
     break
   }
-  offset = (edgeOffset(nextVertex, vertex) + offset) % 1
+  offset = (edgeOffset(nextVertex, vertex, startVertex) + offset) % 1
   if (epsilonEquals(offset, 1)) {
     return 0
   } else {
