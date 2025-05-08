@@ -1,8 +1,8 @@
-
+// SKIP
 module.exports = async () => {
   setFor3DPrintedCovers()
   exteriorOnly = true
-  cat5PortMidway = true
+  PORT_POSITION = "center"
   powerHoleWallIndex = 0
 
   PIXEL_DISTANCE = 1

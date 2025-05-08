@@ -4,7 +4,7 @@ module.exports = () => {
   BORDER = 10
   PRINT_WALL_HALVES_SEPARATELY = false
   // LED_SUPPORT_GAP = 1
-  cat5PortMidway = true
+  PORT_POSITION = "center"
   addNubs = false
   cat5partID = "3L"
 

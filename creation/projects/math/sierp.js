@@ -1,6 +1,6 @@
 // SKIP
 module.exports = () => {
-  cat5PortMidway = true
+  PORT_POSITION = "center"
   // NOTCH_DEPTH = 4
   // BORDER = 5
   // MAX_NOTCH_DISTANCE = 160

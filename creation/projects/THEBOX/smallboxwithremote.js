@@ -2,7 +2,6 @@
 module.exports = async () => {
   setFor3DPrintedCovers()
   exteriorOnly = true
-  cat5PortMidway = true
   cat5partID = "5"
   powerHolePartID = "3"
   powerHoleWallIndex = 0
@@ -16,8 +15,11 @@ module.exports = async () => {
   MAX_WALL_LENGTH = 200
   THICKNESS = 2.6
   LATCH_TYPE = "hook"
+  POWER_TYPE = "USBC"
+  PORT_TYPE = "USBC"
+  PORT_POSITION = "center"
 
-  addPolygon(4, [0,0,0], [34 - 2*BOTTOM_KERF, 100])
+  addPolygon(4, [0,0,0], [34 - 2*BOTTOM_KERF, 110])
 
   printPostProcessingFunction = printInfo => {
     let width = 10
@@ -27,6 +29,8 @@ module.exports = async () => {
     let notchHeight = 1
     let piClipHeight = 4 + THICKNESS + EXTRA_COVER_THICKNESS
     let relayClipHeight = 1 + THICKNESS + EXTRA_COVER_THICKNESS
+    let relayPCBThickness = 1.2
+    let connectorClipHeight = 4.2 + THICKNESS + EXTRA_COVER_THICKNESS
 
     printInfo.prints[1] = {
       type: "union",
@@ -35,7 +39,7 @@ module.exports = async () => {
         printInfo.prints[1],
         {
           type: "union",
-          position: [-15,12,0],
+          position: [-15,15,0],
           rotationAngle: Math.PI/2,
           components: [
             {
@@ -56,19 +60,39 @@ module.exports = async () => {
         },
         {
           type: "union",
-          position: [-10,-24,0],
+          position: [-10,-29,0],
           components: [
             {
               type: "pcbClip",
-              position: [0, -12.9, 0],
+              position: [0, -12.8, 0],
               height: relayClipHeight,
-              pcb_thickness: pcb_thickness,
+              pcb_thickness: relayPCBThickness,
               width, inset, clip_thickness, notchHeight,
             },
             {
               type: "pcbClip",
               rotationAngle: Math.PI,
               height: relayClipHeight,
+              pcb_thickness: relayPCBThickness,
+              width, inset, clip_thickness, notchHeight,
+            },
+          ]
+        },
+        {
+          type: "union",
+          position: [8,-26,0],
+          components: [
+            {
+              type: "pcbClip",
+              position: [0, -19.1, 0],
+              height: connectorClipHeight,
+              pcb_thickness: pcb_thickness,
+              width, inset, clip_thickness, notchHeight,
+            },
+            {
+              type: "pcbClip",
+              rotationAngle: Math.PI,
+              height: connectorClipHeight,
               pcb_thickness: pcb_thickness,
               width, inset, clip_thickness, notchHeight,
             },
@@ -76,25 +100,6 @@ module.exports = async () => {
         },
       ]
     }
-
-    // let qrIndentRadius = 6
-    // let qrIndentWidth = 54
-    // let qrIndentDepth = 1
-    // printInfo.prints[1] = {
-    //   type: "difference",
-    //   suffix: printInfo.prints[1].suffix,
-    //   components: [
-    //     printInfo.prints[1],
-    //     {
-    //       position: [0, -20, 0],
-    //       code: `
-    //       linear_extrude(height=${qrIndentDepth})
-    //       offset(r=${qrIndentRadius})
-    //       square(${qrIndentWidth - qrIndentRadius*2}, center=true);
-    //       `,
-    //     }
-    //   ]
-    // }
   }
 
   EulerianPath(1)

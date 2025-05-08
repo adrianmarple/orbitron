@@ -1,6 +1,6 @@
 // SKIP
 module.exports = () => {
-  cat5PortMidway = true
+  PORT_POSITION = "center"
   EXTRA_SCALE = 1.0025
 
   sortOverride = (edge, previousEdge, angle) => {

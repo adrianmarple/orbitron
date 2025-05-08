@@ -2,7 +2,7 @@
 module.exports = () => {
   setFor3DPrintedCovers()
   cat5partID = "2"
-  cat5PortMidway = true
+  PORT_POSITION = "center"
 
   const EDGE_LENGTH = 2
   // const EDGE_LENGTH = 3

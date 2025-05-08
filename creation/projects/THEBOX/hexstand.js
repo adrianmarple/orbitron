@@ -2,7 +2,7 @@
 module.exports = async () => {
   setFor3DPrintedCovers()
   exteriorOnly = true
-  cat5PortMidway = true
+  PORT_POSITION = "center"
   powerHolePartID = "2"
   powerHoleWallIndex = 0
 

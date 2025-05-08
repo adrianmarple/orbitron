@@ -37,7 +37,7 @@ function processDodec(dodecEdges, parity) {
 }
 
 module.exports = () => {
-  cat5PortMidway = true
+  PORT_POSITION = "center"
   startMidwayDownFinalEdge = true
   ledAtVertex = false
   CHANNEL_WIDTH = 12

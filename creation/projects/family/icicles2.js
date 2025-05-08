@@ -3,7 +3,7 @@ module.exports = () => {
   setFor3DPrintedCovers()
   MAX_WALL_LENGTH = 150
   cat5partID = "2"
-  cat5PortMidway = true
+  PORT_POSITION = "center"
 
   let v0 = addVertex(ZERO)
   let v1 = v0.addLine([0,-4,0])

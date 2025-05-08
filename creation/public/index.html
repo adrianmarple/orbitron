@@ -94,6 +94,8 @@ function reset() {
   NUB_INSET_X = 10
   NUB_MIN_WALL_LENGTH = (NUB_INSET_X + NOTCH_DEPTH) * 2  //15
 
+  PORT_TYPE = "USBC" // "CAT5"
+  PORT_POSITION = "start" // "center", "end"
   CAT5_HEIGHT = 15.1
   CAT5_WIDTH = 15.3
   CAT5_SNAP_DISTANCE = 13.6
@@ -104,11 +106,12 @@ function reset() {
   // CAT5_WIRES_HEIGHT = 6.6
   CAT5_WIRES_HEIGHT = 5.4
   CAT5_WIRES_Y = 1.2
-  CAT5_ADDITONAL_OFFSET = 0
 
-  POWER_HOLE_RADIUS = 5.4
-  POWER_HOLE_WIDTH = 14.0
-  POWER_HOLE_HEIGHT = 5.2
+  POWER_TYPE = "USBC" // "BARREL"
+  POWER_BARREL_RADIUS = 5.4
+  
+  USBC_WIDTH = 14.0
+  USBC_HEIGHT = 5.2
 
   CHANNEL_DEPTH = CAT5_HEIGHT
   
@@ -134,7 +137,6 @@ function reset() {
 
   coverPrint3D = false
   exteriorOnly = false
-  cat5PortMidway = false
   cat5PortAtEnd = false
   addNubs = true
   addExtraFoldWallWedge = true
