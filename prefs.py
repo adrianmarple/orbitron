@@ -73,6 +73,7 @@ timing_prefs = {
     },
   ],
   "weeklySchedule": [],
+  "dimmer": 1.0,
 }
 default_prefs["idlePattern"] = config.get("IDLE", default_prefs["idlePattern"])
 
@@ -275,16 +276,14 @@ previous = None
 current = None
 next = None
 
-manual_fade_point = 1
-
 def fade():
   if not get_pref("useTimer") or current is None:
-    return manual_fade_point
+    return get_pref("dimmer")
   now = _now()
   if now > end:
     update_schedule()
   if current["prefName"] == "OFF":
-    return manual_fade_point
+    return get_pref("dimmer")
 
   start_fade_duration = previous.get("fadeIn", 10) if previous["prefName"] == "OFF" else 0.2
   try:
@@ -309,10 +308,9 @@ def fade():
   fade = min(start_fade, end_fade)
   fade = min(fade, 1)
   fade = max(fade, 0)
-  return min(fade, manual_fade_point)
+  return min(fade, get_pref("dimmer"))
 
 def advance_manual_fade(): # Consider adding a delay before being callable again
-  global manual_fade_point
   steps = config.get("MANUAL_FADE_STEPS", [1, 0.30, 0])
   defacto_fade = fade()
   
@@ -325,7 +323,7 @@ def advance_manual_fade(): # Consider adding a delay before being callable again
       closest_index = i
 
   index = (closest_index + 1) % len(steps)
-  manual_fade_point = steps[index]
+  update({"dimmer": steps[index]})
 
 
 def update_schedule():
@@ -333,7 +331,7 @@ def update_schedule():
   if len(schedule) == 0:
     return
 
-  global start, end, previous, current, next, manual_fade_point
+  global start, end, previous, current, next
 
   now = _now()
   now_repeated = RepeatedTime(now)
@@ -353,9 +351,9 @@ def update_schedule():
   print("Pattern changed to '%s' at %s" % (current["prefName"], now.strftime("%Y-%m-%d %H:%M %A")), file=sys.stderr)
 
   if previous["prefName"] == "OFF":
-    manual_fade_point = 1
+    update({"dimmer": 1})
   if current["prefName"] == "OFF":
-    manual_fade_point = 0
+    update({"dimmer": 0})
 
 
   if current["prefName"] != "OFF":

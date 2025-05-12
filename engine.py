@@ -1010,7 +1010,6 @@ def broadcast_state():
     "include": config.get("INCLUDE", {}),
     "prefNames": prefs.pref_names,
     "currentPrefName": prefs.current_pref_name,
-    "manualFadePoint": prefs.manual_fade_point,
     "extraStartingRules": config.get("EXTRA_STARTING_RULES"),
   }
   price = config.get("PRICE")

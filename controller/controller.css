@@ -554,11 +554,12 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   justify-content: center;
 }
-.schedule .scrim .text {
+.floating-text {
   position: fixed;
   top: 12rem;
   width: 37rem;
   text-align: left;
+  z-index: 100;
 }
 .schedule::after {
   content: "";

@@ -52,4 +52,5 @@ module.exports={
   //     ]
   //   },
   // ],
+  // MAX_POWER_DRAW: 3,
 }

@@ -104,13 +104,12 @@
 
     <!-- TIMING MENU -->
     <div v-else-if="nav=='timing'" class="nav-page">
+      <div v-if="!prefs.useTimer" class="floating-text">
+        You can have this Lumatron change to any series of saved presets (or turn off completely) at the time of day of your choosing.
+      </div>
       <div class="column schedule">
         <div class="content">
-          <div v-if="!prefs.useTimer" class="scrim">
-            <div class="text">
-              You can have this Lumatron change to any series of saved presets (or turn off completely) at the time of day of your choosing.
-            </div>
-          </div>
+          <div v-if="!prefs.useTimer" class="scrim"></div>
           <div class="add-wrapper">
             <div class="padding"></div>
             <Icon image="add"
@@ -192,7 +191,7 @@
       <div class="horiz-box">
         <div class="button" style="font-size: 3rem; width: 38rem; height: 4rem; display: flex; justify-content: center;" @click="advanceManualFade">
           <div>Temporary Dimmer &ensp;</div>
-          <div style="text-align: left; width: 10rem;">({{Math.round(state.manualFadePoint * 100)}}%)</div>
+          <div style="text-align: left; width: 10rem;">({{Math.round(state.prefs.dimmer * 100)}}%)</div>
         </div>
       </div>
     </div>
