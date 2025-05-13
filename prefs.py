@@ -106,7 +106,9 @@ pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no fil
 pref_names = [filename.split(".")[0] for filename in pref_names]
 sort_pref_names()
 
-def update(update, client_timestamp=0):
+def update(update, client_timestamp=None):
+  if client_timestamp is None:
+    client_timestamp = time()
   if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
       client_timestamp = 0
 
@@ -142,6 +144,8 @@ def update(update, client_timestamp=0):
 
   should_update_schedule = False
   for key in timing_prefs.keys():
+    if key == "dimmer":
+      continue
     if key in update:
       should_update_schedule = True
       break
@@ -203,7 +207,7 @@ def load(name, clobber_prefs=True):
 
   if clobber_prefs:
     clear()
-    prefs.update(loaded_prefs) # Effitively a copy
+    prefs.update(loaded_prefs) # Effectively a copy
     current_prefs.update(loaded_prefs)
     current_prefs.update(timing_prefs)
     for key in default_prefs.keys():
