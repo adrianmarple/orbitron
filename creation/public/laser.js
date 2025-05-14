@@ -1145,32 +1145,6 @@ function wallPrint(wall, isLeft) {
     }
   }
 
-
-  // Port hole
-  let hasPort = print.suffix == cat5partID && RENDER_MODE != "simple"
-
-  if (hasPort && PORT_TYPE == "USBC") {
-    let portCenter = wallStart
-    if (PORT_POSITION == "start") {
-      portCenter = portCenter.addScaledVector(E, -USBC_WIDTH/2 - 1)
-    }
-    if (PORT_POSITION == "center") {
-      portCenter = portCenter.addScaledVector(E, -topLength/2)
-    }
-    if (PORT_POSITION == "end") {
-      portCenter = portCenter.addScaledVector(E,
-        -Math.min(topLength, bottomLength) + USBC_WIDTH/2 + 1)
-    }
-    let portStart = portCenter.addScaledVector(E, -USBC_WIDTH/2)
-    .addScaledVector(N, USBC_HEIGHT/2)
-    path += pathFromSegments(portStart, [
-      E.scale(USBC_WIDTH),
-      N.scale(-USBC_HEIGHT),
-      E.scale(-USBC_WIDTH),
-      N.scale(USBC_HEIGHT),
-    ])
-  }
-
   let wallElem = document.getElementById("wall")
   wallElem.querySelector("path").setAttribute("d", path)
   print.components.push({
@@ -1318,6 +1292,44 @@ function wallPrint(wall, isLeft) {
     print.components.push(embossing)
   }
 
+  // Port hole
+  let hasPort = print.suffix == cat5partID && RENDER_MODE != "simple"
+
+  if (hasPort && PORT_TYPE == "USBC") {
+    let portCenter = wallStart
+    if (PORT_POSITION == "start") {
+      portCenter = portCenter.addScaledVector(E, -USBC_WIDTH/2 - 1)
+    }
+    if (PORT_POSITION == "center") {
+      portCenter = portCenter.addScaledVector(E, -topLength/2)
+    }
+    if (PORT_POSITION == "end") {
+      portCenter = portCenter.addScaledVector(E,
+        -Math.min(topLength, bottomLength) + USBC_WIDTH/2 + 1)
+    }
+    let portStart = portCenter.addScaledVector(E, -USBC_WIDTH/2)
+    .addScaledVector(N, USBC_HEIGHT/2)
+    port_path = pathFromSegments(portStart, [
+      E.scale(USBC_WIDTH),
+      N.scale(-USBC_HEIGHT),
+      E.scale(-USBC_WIDTH),
+      N.scale(USBC_HEIGHT),
+    ])
+    wallElem.querySelector("path").setAttribute("d", port_path)
+    print = {
+      type: "difference",
+      suffix: print.suffix,
+      components: [
+        print,
+        {
+          type: "svg",
+          svg: wallElem.outerHTML,
+          thickness: WALL_THICKNESS + 1,
+          position: [0, -WALL_PANEL_HEIGHT/2, 0],
+        }
+      ]
+    }
+  }
   // Old CAT5 version of port
   if (hasPort && PORT_TYPE == "CAT5") {
     let portBottomCenter = wallStart.addScaledVector(N, -CHANNEL_DEPTH/2)
@@ -1358,7 +1370,6 @@ function wallPrint(wall, isLeft) {
     ])
 
     let qtPosition = portBottomCenter.addScaledVector(N, CAT5_WIRES_HEIGHT + CAT5_WIRES_Y)
-    print.components.push()
 
     wallElem.querySelector("path").setAttribute("d", port_path)
     print = {

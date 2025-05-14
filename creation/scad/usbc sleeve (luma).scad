@@ -1,4 +1,4 @@
-$fn=32;
+$fn=64;
 
 
 port_width = 9.2;
@@ -9,19 +9,19 @@ pcb_width = 9.1;
 pcb_thickness = 1;
 pcb_cover_length = 1;
 
-wall_thickness = 2; //1.8; //2;
+wall_thickness = 1.8;
 latch_overhang = 0.6;
 latch_height = 2;
 latch_gap = 0.5;
-latch_width = 1.2;
+latch_width = 1.1;
 
 sleeve_width = port_width + 1.2;
 sleeve_thickness = port_radius * 2 + 2;
 
 top_gap = 1;
-top_thickness = 2;
+top_thickness = 8.5;
 top_border = 3;
-top_width = port_width + top_border + 4;
+top_width = port_width + 2*top_border+1;
 top_radius = port_radius + top_border;
 
 
@@ -70,6 +70,8 @@ union() {
   translate([0, 0, port_length -top_thickness -top_gap + pcb_cover_length/2+1])
   cube([pcb_width, pcb_thickness, pcb_cover_length+2], center=true);
 
+  translate([0, 4, port_length -top_thickness -top_gap + pcb_cover_length/2])
+  cube([pcb_width, 8, pcb_cover_length], center=true);
 
   translate([0, 0, -top_thickness -top_gap])
   pillinder(port_width, port_radius, port_length);

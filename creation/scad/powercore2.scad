@@ -6,9 +6,9 @@ module column() {
     //translate([0,0,-82.3])
     difference() {
 //        cylinder(h=32 + 99.6 - 82.3, r=7.5);
-        cylinder(h=46 + 99.6 - 82.3, r=7.5);
+        cylinder(h=46 + 99.6 - 82.3, r=8.2);
         translate([0,0,-1])
-        cylinder(h=100, r=6);
+        cylinder(h=100, r=6.7);
     }
 }
 
@@ -85,7 +85,7 @@ union() {
 rotate([0,0,90])
 rotate([-90 + 26.5650512,0,0])
 translate([0,0,-82.3])
-cylinder(h=80, r=6.1);
+cylinder(h=80, r=6.8);
 
 
 //rotate([0,45,0])

@@ -62,17 +62,17 @@ module.exports = () => {
   printPostProcessingFunction = printInfo => {
     printInfo.prints = [
       printInfo.prints[0],
-      printInfo.prints[1].components[0],
-      printInfo.prints[4],
-      printInfo.prints[5],
+      printInfo.prints[1],
+      printInfo.prints[2],
+      printInfo.prints[3].components[0],
     ]
-    printInfo.prints[0].suffix = "bottom"
-    printInfo.prints[1].suffix = "top"
-    printInfo.prints[2].suffix = "square_wall"
-    printInfo.prints[3].suffix = "hex_wall"
+    printInfo.prints[0].suffix = "square_wall"
+    printInfo.prints[1].suffix = "hex_wall"
+    printInfo.prints[2].suffix = "bottom"
+    printInfo.prints[3].suffix = "top"
 
     h = verticies[0].ogCoords.length() * PIXEL_DISTANCE
-        - THICKNESS - EXTRA_COVER_THICKNESS - CHANNEL_DEPTH/2 - 36.3 + 0.1
+        - THICKNESS - EXTRA_COVER_THICKNESS - CHANNEL_DEPTH/2 - 45 + 4.7 + 0.1
     printInfo.prints.push({
       type: "difference",
       suffix: "top_with_column",
@@ -84,18 +84,18 @@ module.exports = () => {
             normal: [0,0,1],
           }],
           components: [
-            printInfo.prints[1],
+            printInfo.prints[3],
             {
               position: [0, 0, 0-h],
               code: `
-              cylinder(h=${h}, r=7.5, $fn=64);`
+              cylinder(h=${h}, r=8.2, $fn=64);`
             },
           ]
         },
         {
           position: [0, 0, -3],
           code: `
-          cylinder(h=${h+10}, r=6.1, $fn=64);`
+          cylinder(h=${h+10}, r=6.8, $fn=64);`
         },
       ]
     })
