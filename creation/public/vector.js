@@ -42,8 +42,8 @@ class Vector extends THREE.Vector3 {
     return 
   }
 
-  project(scale) {
-    const SCALE = 800 * scale
+  project(scale, zoom) {
+    const SCALE = 800 * scale * (zoom ?? 1)
     let z = this.z * scale + 15
     return [500 + this.x * SCALE / z, 500 - this.y * SCALE / z]
   }

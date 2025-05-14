@@ -236,6 +236,13 @@ document.onkeydown = e => {
     console.log("  distance from beginning: " + distanceFromBeginning)
   }
 }
+const ZOOM_SCALE = 0.01
+let zoom = 1
+document.onwheel = e => {
+  console.log(e)
+  zoom *= Math.exp(e.deltaY * ZOOM_SCALE)
+  console.log(zoom)
+}
 
 
 setInterval(render, 30)
@@ -269,8 +276,8 @@ function render() {
     return pathFactor + b.verticies[0].coordinates[2] - a.verticies[0].coordinates[2]
   })
   for (let edge of edgesCopy) {
-    let xy0 = edge.verticies[0].coordinates.project(projScale)
-    let xy1 = edge.verticies[1].coordinates.project(projScale)
+    let xy0 = edge.verticies[0].coordinates.project(projScale, zoom)
+    let xy1 = edge.verticies[1].coordinates.project(projScale, zoom)
     let z = edge.verticies[0].coordinates.z*projScale + 15
     ctx.beginPath()
 
@@ -283,7 +290,7 @@ function render() {
     } else {
       ctx.strokeStyle = `rgba(255,25,255,${alpha})`
     }
-    ctx.lineWidth = 100 / (z + 10)
+    ctx.lineWidth = zoom * 100 / (z + 10)
     ctx.moveTo(xy0[0], xy0[1])
     ctx.lineTo(xy1[0], xy1[1])
     ctx.closePath()
@@ -293,7 +300,7 @@ function render() {
   ctx.fillStyle = "#f06"
   ctx.font = "10px Arial"
   for (let vertex of verticies) {
-    let xy = vertex.coordinates.project(projScale)
+    let xy = vertex.coordinates.project(projScale, zoom)
     if (showVertexNumbers) {
       ctx.fillText(vertex.index, xy[0] + 4, xy[1] - 5)
     }
@@ -301,7 +308,7 @@ function render() {
   for (let edge of edges) {
     let center = edge.verticies[0].coordinates.add(edge.verticies[1].coordinates)
     center = center.scale(0.5)
-    let xy = center.project(projScale)
+    let xy = center.project(projScale, zoom)
     if (showEdgeNumbers && !edge.isDupe) {
       let text = edge.index + ""
       let len = parseFloat(edge.length().toFixed(2))
@@ -321,7 +328,7 @@ function render() {
     for (let coord of pixelInfo.coords) {
       let xy = new Vector(...coord)
           .scale(1/pixelToGraphSpace.resizeScale)
-          .project(projScale)
+          .project(projScale, zoom)
       ctx.fillText(pixelInfo.coords.indexOf(coord), xy[0] + 2, xy[1] - 2)
     }
   }
