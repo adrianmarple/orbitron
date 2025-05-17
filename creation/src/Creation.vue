@@ -55,6 +55,7 @@ export default {
     return {
       innerWidth,
       mode: "creation",
+      fullProjectName: "",
       coverMode: "bottom",
       coverIndex: 0,
       settings: [
