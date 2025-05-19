@@ -1,6 +1,7 @@
 $fn=32;
 width = 24;
-channel_width = 42.3;
+// channel_width = 42.3; // old (small) box without pcb
+channel_width = 40.4;
 latch_height = 2;
 overhang = 0.66;
 wall_thickness = 3;
