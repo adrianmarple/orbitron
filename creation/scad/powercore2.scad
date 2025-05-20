@@ -67,7 +67,7 @@ rotate(a=is_top ? 0 : 180, v=[1, 0, 0])
 union() {
 difference() {
     
-sphere(sphere_radius, $fn=256);
+sphere(sphere_radius, $fn=25);
 
 //rotate([0,45,0])
 union() {
@@ -108,8 +108,8 @@ if (!is_top)
 translate([7,15,-10])
 union() {
   translate([0,-30,0])
-  pcb_clip(5, 10, 0.2, 3.2, 4, 1.4);
+  pcb_clip(4.6, 10, 0.2, 3.8, 4, 1.2);
   rotate(a=180, v=[0,0,1])
-  pcb_clip(5, 10, 0.2, 3.2, 4, 1.4);
+  pcb_clip(4.6, 10, 0.2, 3.8, 4, 1.2);
 }
 };
