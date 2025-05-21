@@ -8,8 +8,7 @@ async function fixExternalWifi(){
       console.log("USB WIFI showing as DISK, changing USB mode")
       let vendor_product = (await execute("(usbreset || true) | grep -i disk")).split(" ").filter(function(data){ return data.includes(":") })[0].split(":")
       console.log(vendor_product)
-      console.log((await execute(`usb_modeswitch -R -K -v ${vendor_product[0]} -p ${vendor_product[1]}`)))
-      await delay(10 * 1000)
+      console.log((await execute(`usb_modeswitch -s 10 -K -v ${vendor_product[0]} -p ${vendor_product[1]} -V 0bda -P c820`)))
       if((await execute("usbreset || true")).toLowerCase().includes("disk")){
         repeat = true
         console.log("Failed to reset USB WIFI! Still showing as DISK.")
