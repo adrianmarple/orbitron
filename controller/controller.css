@@ -165,6 +165,64 @@ a > .fancy-box:hover, a.fancy-box:hover {
   margin-top: 15rem;
 }
 
+#help-modal {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem;
+  padding-top: 12rem;
+  box-sizing: border-box;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+#help-modal.visible {
+  pointer-events: all;
+  opacity: 1;
+}
+#help-modal .help-box {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-color);
+  border: .1rem solid white;
+  box-shadow: 0 0 0.8rem rgba(255,255,255, 0.8);
+  box-sizing: border-box;
+  padding: 2rem;
+  width: 100%;
+  font-size: 2rem;
+  height: 0;
+  transition: height 0.3s;
+}
+#help-modal.visible .help-box {
+  height: 25rem;
+}
+
+.help {
+  padding: 1rem;
+  margin: -0.4rem;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+}
+.help span {
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: .1rem solid white;
+  border-radius: 50%;
+  opacity: 0.6;
+  height: 100%;
+  width: 100%;
+}
+
 #consignment .nav-page {
   position: initial;
   border-top-width: 0;

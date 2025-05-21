@@ -37,6 +37,7 @@ var app = new Vue({
     loginCode: "",
     localFlags: {},
     hasSeenGlobalRules: false,
+    helpMessage: null,
     showConsignment: true,
     showSettings: false,
     showAboutPage: false,

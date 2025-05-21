@@ -1,3 +1,11 @@
+Vue.component('help', {
+  props: ['message'],
+  template: `
+    <span class="help" @click="$root.helpMessage = message">
+      <span>?</span>
+    </span>
+`})
+
 
 Vue.component('number', {
   props: ['title'],
@@ -30,7 +38,7 @@ Vue.component('boolean', {
 `})
 
 Vue.component('slider', {
-  props: ['title', 'min', 'max'],
+  props: ['title', 'min', 'max', 'help'],
   data() { return { value: 0 }},
   watch: {  
     "$root.prefs": function() { this.value = this.$root.prefs[this.name] },
@@ -46,7 +54,10 @@ Vue.component('slider', {
   template: `
 <div class="slider-container" v-if="!$root.exclude[name]">
   <div class="label horiz-box">
-    <div>{{title}}:</div>
+    <div style="display: flex">
+      {{title}}:
+      <help v-if="help" :message="help"/>
+    </div>
     <div>{{value}}</div>
   </div>
   <input type="range" :min="trueMin" :max="trueMax" class="slider"
@@ -58,7 +69,7 @@ Vue.component('slider', {
 `})
 
 Vue.component('color', {
-  props: ['title'],
+  props: ['title', 'help'],
   data() {
     return { value: "#000" }
   },
@@ -76,7 +87,10 @@ Vue.component('color', {
   template: `
 <span style="width: 100%;" v-if="!$root.exclude[name]">
 <div class="row filled" >
-<div v-if="title">{{title}}:</div>
+<div v-if="title" style="display: flex">
+  {{title}}:
+  <help v-if="help" :message="help"/>
+</div>
 <input type="color" v-model=value>
 </span>
 `})

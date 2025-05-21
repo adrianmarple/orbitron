@@ -16,6 +16,12 @@
 <div id=app :style="{ '--self-color': self.color }">
   <div id="background"></div>
 
+  <div :class="{visible: helpMessage}" id="help-modal" @click="helpMessage = null">
+    <div class="help-box">
+      <div>{{helpMessage}}</div>
+    </div>
+  </div>
+
   <div v-if="connectionStatus == 'CONNECTING'" id="loading">
     <canvas id="loading-ball" width="256" height="256"></canvas>
   </div>
@@ -169,7 +175,7 @@
           title="Cycle time (sec)" key="rainbowDuration"></number>
       
       <color v-if="prefs.idleColor == 'gradient'"
-          key="gradientStartColor" title="Start Color" ></color>
+          key="gradientStartColor" title="Start Color" help=""></color>
       <color v-if="prefs.idleColor == 'gradient'"
           key="gradientEndColor" title="End Color" ></color>
       <slider v-if="prefs.idleColor == 'gradient' && prefs.fadeToBlack" 
@@ -187,7 +193,7 @@
       :options="[['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']]"
       ></dropdown>
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
-          title="Blend" key="idleBlend"></slider>
+          title="Blend" key="idleBlend" help=""></slider>
       <slider title="Brightness" key="brightness"  :max="200"></slider>
       <div class="horiz-box">
         <div class="button" style="font-size: 3rem; width: 38rem; height: 4rem; display: flex; justify-content: center;" @click="advanceManualFade">
