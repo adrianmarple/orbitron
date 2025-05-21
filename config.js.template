@@ -3,6 +3,7 @@ module.exports={
   //ORB_AUDIO:"USB Audio Device, USB Audio",
   //ORB_AUDIO:"USB PnP Sound Device, USB Audio",
   //EXTERNAL_PIXEL_BOARD: true,
+  //EXTERNAL_WIFI: true,
   //STRAND_COUNT: 1,
   //PIXELS_PER_STRAND: 480,
   DEV_MODE: false,
