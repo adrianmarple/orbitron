@@ -11,39 +11,41 @@ let numTimesNetworkCheckFailed = 0
 let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 
-let accessPointConnectionInterval = null
-let hasAccessPointConnection = false
+let someoneConnectedToAccessPoint = false
+let forceExitAccessPointLoop = false
 
 async function startAccessPoint() {
   removeWifiProfile("OrbHotspot")
   await execute('nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Lumatron" ipv4.method shared ipv6.method shared')
   await execute('nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
+  forceExitAccessPointLoop = false
+  someoneConnectedToAccessPoint = false
+  accessPointLoop()
+}
 
-  let localIntervalRef = setInterval(async () => {
-    let connected = await checkConnection()
-    if (connected) {
-      clearInterval(localIntervalRef)
-      return
-    }
-    if((await execute("ifconfig")).includes("wlan0")){
-      let out = await execute("iw dev wlan0 station dump")
-      hasAccessPointConnection = out.includes("Station")
-    } else {
-      hasAccessPointConnection = false
-    }
-    if (hasAccessPointConnection) {
-      displayText("VISIT URL 10.42.0.1")
-    } else {
-      displayText("JOIN WIFI LUMATRON")
-    }
-  }, 500)
-  accessPointConnectionInterval = localIntervalRef
+async function accessPointLoop(){
+  let connected = await checkConnection()
+  if (connected || forceExitAccessPointLoop) {
+    return
+  }
+  if((await execute("ifconfig")).includes("wlan0")){
+    let out = await execute("iw dev wlan0 station dump")
+    someoneConnectedToAccessPoint = out.includes("Station")
+  } else {
+    someoneConnectedToAccessPoint = false
+  }
+  if (someoneConnectedToAccessPoint) {
+    displayText("VISIT URL 10.42.0.1")
+  } else {
+    displayText("JOIN WIFI LUMATRON")
+  }
+  setTimeout(accessPointLoop, 500)
 }
 
 async function stopAccessPoint(ssid, password) {
-  hasAccessPointConnection = false
-  clearInterval(accessPointConnectionInterval)
+  forceExitAccessPointLoop = true
+  someoneConnectedToAccessPoint = false
   removeWifiProfile("OrbHotspot")
   if(ssid){
     displayText(`ADDING SSID ${ssid}`)
@@ -95,7 +97,7 @@ async function networkCheck() {
     numTimesAccessPointStarted += 1
     await startAccessPoint()
     await delay(120e3)
-    while (hasAccessPointConnection) {
+    while (someoneConnectedToAccessPoint) {
       await delay(10e3)
     }
   }

@@ -46,6 +46,7 @@ console.error = function(){
 
 process.on('uncaughtException', function(err, origin) {
   console.error('Uncaught exception: ', err, origin)
+  process.exit(1)
 })
 
 
