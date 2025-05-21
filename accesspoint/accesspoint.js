@@ -26,8 +26,12 @@ async function startAccessPoint() {
       clearInterval(localIntervalRef)
       return
     }
-    let out = await execute("iw dev wlan0 station dump")
-    hasAccessPointConnection = out.includes("Station")
+    if((await execute("ifconfig")).includes("wlan0")){
+      let out = await execute("iw dev wlan0 station dump")
+      hasAccessPointConnection = out.includes("Station")
+    } else {
+      hasAccessPointConnection = false
+    }
     if (hasAccessPointConnection) {
       displayText("VISIT URL 10.42.0.1")
     } else {
