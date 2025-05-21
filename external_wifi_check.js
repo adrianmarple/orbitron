@@ -5,16 +5,16 @@ async function check_external_wifi(){
   console.log("Checking wifi hardware settings")
   if(config.EXTERNAL_WIFI){
     console.log("Checking for USB wifi showing as DISK")
-    let usbreset = (await execute("usbreset | grep -i disk")).trim()
-    if(usbreset.toLowerCase().includes("disk")){
+    if((await execute("usbreset")).toLowerCase().includes("disk")){
       console.log("USB WIFI showing as DISK, changing USB mode")
-      let vendor_product = usbreset.split(" ").filter(function(data){ return data.includes(":") })[0].split(":")
+      let vendor_product = (await execute("usbreset | grep -i disk")).split(" ").filter(function(data){ return data.includes(":") })[0].split(":")
       console.log(vendor_product)
       console.log((await execute(`usb_modeswitch -R -K -v ${vendor_product[0]} -p ${vendor_product[1]}`)))
-      let failed = (await execute("usbreset | grep -i disk")).toLowerCase().includes("disk")
+      let failed = (await execute("usbreset")).toLowerCase().includes("disk")
       if(failed){
         console.log("Failed to reset USB WIFI! Still showing as DISK.")
       } else {
+        console.log("Successfully reset USB WIFI")
         await delay(2000)
       }
     }
@@ -25,7 +25,7 @@ async function check_external_wifi(){
       console.log("Internal wifi is enabled")
       if(!blacklist_present){
         console.log("blacklist not present, copying and rebooting")
-        await execute("cp -f /home/pi/orbitron/external_wifi_blacklist.conf /etc/modprobe/")
+        await execute("cp -f /home/pi/orbitron/external_wifi_blacklist.conf /etc/modprobe.d/")
         await execute("reboot")
       } else {
         console.log("blacklist already present!")
@@ -36,7 +36,7 @@ async function check_external_wifi(){
   } else {
     if(blacklist_present){
       console.log("Wifi blacklist present, removing and rebooting.")
-      await execute("rm -f /etc/modprobe/external_wifi_blacklist.conf")
+      await execute("rm -f /etc/modprobe.d/external_wifi_blacklist.conf")
       await execute("reboot")
     }
   }
