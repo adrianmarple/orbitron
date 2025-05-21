@@ -1,6 +1,7 @@
 let { execute, config, delay } = require('./lib')
 
-async function checkExternalWifi(){
+async function fixExternalWifi(){
+  let repeat = false
   let blacklist_present = (await execute("ls /etc/modprobe.d/")).includes("external_wifi_blacklist.conf")
   if(config.EXTERNAL_WIFI){
     if((await execute("usbreset || true")).toLowerCase().includes("disk")){
@@ -8,9 +9,9 @@ async function checkExternalWifi(){
       let vendor_product = (await execute("(usbreset || true) | grep -i disk")).split(" ").filter(function(data){ return data.includes(":") })[0].split(":")
       console.log(vendor_product)
       console.log((await execute(`usb_modeswitch -R -K -v ${vendor_product[0]} -p ${vendor_product[1]}`)))
-      await delay(5000)
-      let failed = (await execute("usbreset || true")).toLowerCase().includes("disk")
-      if(failed){
+      await delay(10 * 1000)
+      if((await execute("usbreset || true")).toLowerCase().includes("disk")){
+        repeat = true
         console.log("Failed to reset USB WIFI! Still showing as DISK.")
       } else {
         console.log("Successfully reset USB WIFI")
@@ -21,9 +22,9 @@ async function checkExternalWifi(){
     let has_two_wifis = (await execute("ifconfig")).includes("wlan1")
     if(has_two_wifis){
       console.log("Internal wifi is enabled when it shouldn't be")
+      await execute("cp -f /home/pi/orbitron/external_wifi_blacklist.conf /etc/modprobe.d/")
       if(!blacklist_present){
         console.log("blacklist not present, copying and rebooting")
-        await execute("cp -f /home/pi/orbitron/external_wifi_blacklist.conf /etc/modprobe.d/")
         await execute("reboot")
       } else {
         console.log("blacklist already present!")
@@ -36,8 +37,11 @@ async function checkExternalWifi(){
       await execute("reboot")
     }
   }
+  if(repeat){
+    setTimeout(fixExternalWifi, 15 * 1000)
+  }
 }
 
 module.exports = {
-  checkExternalWifi
+  fixExternalWifi
 }

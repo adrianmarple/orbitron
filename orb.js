@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 let { checkConnection, delay, execute, config, processAdminCommand, PYTHON_EXECUTABLE, restartOrbitron} = require('./lib')
-let { checkExternalWifi } = require('./external_wifi_check.js')
+let { fixExternalWifi } = require('./external_wifi.js')
 const { pullAndRestart, timeUntilHour } = require('./gitupdate')
 const WebSocket = require('ws')
 const fs = require('fs')
@@ -605,8 +605,7 @@ function statusLogging() {
 statusLogging()
 setInterval(statusLogging, 10 * 60 * 1000)
 
-checkExternalWifi()
-setInterval(checkExternalWifi, 30 * 1000)
+fixExternalWifi()
 
 module.exports = {
   displayText,
