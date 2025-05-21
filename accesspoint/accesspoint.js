@@ -14,6 +14,11 @@ let someoneConnectedToAccessPoint = false
 let forceExitAccessPointLoop = false
 
 async function startAccessPoint() {
+  if(!(await execute("ifconfig")).includes("wlan0")){
+    console.log("No wifi devices, cannot start access point")
+    stopAccessPoint()
+    return
+  }
   removeWifiProfile("OrbHotspot")
   await execute('nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Lumatron" ipv4.method shared ipv6.method shared')
   await execute('nmcli connection up OrbHotspot')
@@ -28,12 +33,8 @@ async function accessPointLoop(){
   if (connected || forceExitAccessPointLoop) {
     return
   }
-  if((await execute("ifconfig")).includes("wlan0")){
-    let out = await execute("iw dev wlan0 station dump")
-    someoneConnectedToAccessPoint = out.includes("Station")
-  } else {
-    someoneConnectedToAccessPoint = false
-  }
+  let out = await execute("iw dev wlan0 station dump")
+  someoneConnectedToAccessPoint = out.includes("Station")
   if (someoneConnectedToAccessPoint) {
     displayText("VISIT URL 10.42.0.1")
   } else {
@@ -77,8 +78,7 @@ async function networkCheck() {
   let connected = await checkConnection()
   if(connected) {
     isFirstNetworkCheck = false
-    await delay(120e3)
-    networkCheck()
+    setTimeout(networkCheck, 120e3)
     return
   }
 
@@ -91,7 +91,7 @@ async function networkCheck() {
   connected = await checkConnection()
   if (connected) {
     numTimesNetworkRestartWorked += 1
-    await delay(120e3)
+    setTimeout(networkCheck, 120e3)
   } else {
     numTimesAccessPointStarted += 1
     await startAccessPoint()
@@ -99,8 +99,8 @@ async function networkCheck() {
     while (someoneConnectedToAccessPoint) {
       await delay(10e3)
     }
+    setTimeout(networkCheck, 1e3)
   }
-  networkCheck()
 }
 
 let wifiSetupServer = http.createServer(function (req, res) {
