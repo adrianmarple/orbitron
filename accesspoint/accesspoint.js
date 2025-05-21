@@ -4,7 +4,6 @@ const qs = require('querystring')
 const { checkConnection, execute, delay, config} = require('../lib')
 const { displayText } = require('../orb')
 const { respondWithFile } = require('../server')
-const { clearInterval } = require('timers')
 
 // ---Wifi Setup Code---
 let numTimesNetworkCheckFailed = 0
@@ -133,6 +132,4 @@ let wifiSetupServer = http.createServer(function (req, res) {
 wifiSetupServer.listen(80,() => {
   console.log("wifi setup Listening on port 80")
 })
-setTimeout(() => {
-  networkCheck()
-}, 5e3)
+setTimeout(networkCheck, 5e3)

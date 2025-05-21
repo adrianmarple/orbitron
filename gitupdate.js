@@ -58,6 +58,9 @@ async function pullAndRestart() {
     console.log("Already has latest code from git")
   } else if(output.indexOf("fatal") >= 0){
     console.log("Git pull failed: " + output)
+    console.log("Deleting empty git objects and retrying")
+    await execute("find .git/objects/ -type f -size 0 -delete")
+    pullAndRestart()
   } else if(output.indexOf("fast-forward") >= 0 || output.indexOf("files changed") >= 0){
     console.log("Has git updates, restarting!")
     restartOrbitron()
