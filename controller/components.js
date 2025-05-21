@@ -60,49 +60,24 @@ Vue.component('slider', {
 Vue.component('color', {
   props: ['title'],
   data() {
-    return { value: [0,0,0] }
+    return { value: "#000" }
   },
   mounted() {
-    this.updateFromPrefs()
+    this.value = this.$root.prefs[this.name]
   },
   computed: {
     name() { return this.$vnode.key },
   },
   watch: {
-    "$root.prefs": function() { this.updateFromPrefs() },
-    value: {
-      handler: function({red, green, blue}) {
-        this.$root.prefs[this.name] = "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1)
-      },
-      deep: true,
-    },
-  },
-  methods: {
-    updateFromPrefs() {
-      let hex = this.$root.prefs[this.name]
-      var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-      this.value = result ? {
-        red: parseInt(result[1], 16),
-        green: parseInt(result[2], 16),
-        blue: parseInt(result[3], 16)
-      } : [0,0,0]
+    value() {
+      this.$root.prefs[this.name] = this.value
     },
   },
   template: `
 <span style="width: 100%;" v-if="!$root.exclude[name]">
-<div v-if="title" class="horiz-box">{{title}}</div>
-<div class="color-component"
-  v-for="component in ['red','green','blue']">
-  <div class="label">
-    <div>{{component[0]}}:{{value[component]}}</div>
-  </div>
-  <div class="slider-container" :class="[component]">
-    <input type="range" min="0" max="255" class="slider""
-      v-model="value[component]"></input>
-    <div class="left" :style="{ background: component, width: (100 / 255.0 * value[component]) + '%'}"></div>
-    <div class="right" :style="{ width: (100 - 100 / 255.0 * value[component]) + '%'}"></div>
-  </div
-</div>
+<div class="row filled" >
+<div v-if="title">{{title}}:</div>
+<input type="color" v-model=value>
 </span>
 `})
 

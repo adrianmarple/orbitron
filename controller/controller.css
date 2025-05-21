@@ -437,53 +437,6 @@ input[type="range"]::-moz-range-thumb {
 }
 
 
-.color-component {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 2.5rem;
-  width: 100%;
-  border-bottom: 1.25rem solid var(--bg-color);
-  height: 3rem;
-}
-.color-component .label {
-  width: 23%;
-  background-color: var(--bg-color);
-  display: flex;
-  justify-content: flex-start;
-}
-.color-component .slider-container {
-  border: 1rem solid var(--bg-color);
-  border-left-width: 0;
-  border-right-width: 0;
-}
-.color-component .slider {
-  margin: 0 !important;
-}
-.color-component .left, .color-component .right {
-  bottom: 0.5rem;
-}
-
-.red input[type="range"]::-moz-range-thumb {
-  background-color: #f88;
-}
-.red input[type="range"]::-webkit-slider-thumb {
-  background-color: #f88;
-}
-.green input[type="range"]::-moz-range-thumb {
-  background-color: #8f8;
-}
-.green input[type="range"]::-webkit-slider-thumb {
-  background-color: #8f8;
-}
-.blue input[type="range"]::-moz-range-thumb {
-  background-color: #88f;
-}
-.blue input[type="range"]::-webkit-slider-thumb {
-  background-color: #88f;
-}
-
 .scrim {
   position: absolute;
   left: 0;
@@ -907,6 +860,10 @@ input[type="range"]::-moz-range-thumb {
 .column {
   display: flex;
   flex-direction: column;
+}
+
+.filled {
+  background-color: var(--bg-color);
 }
 
 .space-between {

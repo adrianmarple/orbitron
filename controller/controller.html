@@ -180,7 +180,8 @@
       <!-- <boolean v-if="prefs.idleColor == 'gradient' || prefs.idleColor == 'rainbow'"
           title="End color fades to black" key="fadeToBlack"></boolean> -->
 
-      <color v-if="prefs.idleColor == 'fixed'" key="fixedColor" ></color>
+      <color v-if="prefs.idleColor == 'fixed'"
+          key="fixedColor" title="Color"></color>
 
       <dropdown title="Style" key="idleColor"
       :options="[['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']]"
