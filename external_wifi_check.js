@@ -8,7 +8,7 @@ async function checkExternalWifi(){
       let vendor_product = (await execute("(usbreset || true) | grep -i disk")).split(" ").filter(function(data){ return data.includes(":") })[0].split(":")
       console.log(vendor_product)
       console.log((await execute(`usb_modeswitch -R -K -v ${vendor_product[0]} -p ${vendor_product[1]}`)))
-      await delay(2000)
+      await delay(5000)
       let failed = (await execute("usbreset || true")).toLowerCase().includes("disk")
       if(failed){
         console.log("Failed to reset USB WIFI! Still showing as DISK.")

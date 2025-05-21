@@ -606,7 +606,7 @@ statusLogging()
 setInterval(statusLogging, 10 * 60 * 1000)
 
 checkExternalWifi()
-setInterval(checkExternalWifi, 15 * 1000)
+setInterval(checkExternalWifi, 30 * 1000)
 
 module.exports = {
   displayText,
