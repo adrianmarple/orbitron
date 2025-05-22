@@ -218,6 +218,7 @@ var app = new Vue({
       let info = [
         ['static', 'Static'],
         ['fireflies', 'Fireflies'],
+        ['lightning', 'Lightning'],
         ['pulses', 'Ripples'],
         ['sin', 'Sine'],
         ['lightfield', 'Sparkles'],
