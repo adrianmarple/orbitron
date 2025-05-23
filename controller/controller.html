@@ -218,8 +218,10 @@
       <slider v-if="prefs.idlePattern == 'pulses'"
           title="Width" key="rippleWidth" :min="1" :max="50"></slider>
       
-      <vector v-if="prefs.idlePattern == 'sin'"
+      <vector v-if="prefs.idlePattern == 'sin' && !prefs.sinRadial"
           title="Direction" key="sinDirection" normalize="true"></vector>
+      <boolean v-if="prefs.idlePattern == 'sin'"
+          title="Radial" key="sinRadial"></boolean>
       <slider v-if="prefs.idlePattern == 'sin'"
           title="Min Value" key="sinMin" :min="-255" :max="255"></slider>
 

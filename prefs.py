@@ -45,6 +45,7 @@ default_prefs = {
   "rippleWidth": 9,
   "sinDirection": "1,0,0",
   "sinMin": 25,
+  "sinRadial": False,
   "disableBeatMode": False,
 
   # COLOR

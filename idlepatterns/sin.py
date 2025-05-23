@@ -17,8 +17,16 @@ class Sin(Idle):
   time_factor = 0
   previous_time = 0
 
+  def __init__(self):
+    Idle.__init__(self)
+    ds = np.sum(np.multiply(unique_coord_matrix, unique_coord_matrix), axis=0).T
+    self.distancesFromCenter = np.sqrt(ds)
+
   def init_values(self):
-    self.render_values = np.matmul(-self.direction() * self.period(), unique_coord_matrix)
+    if get_pref("sinRadial"):
+      self.render_values = self.distancesFromCenter * self.period()
+    else:
+      self.render_values = np.matmul(-self.direction() * self.period(), unique_coord_matrix)
     self.time_factor += (time() - self.previous_time) * 2*pi * self.speed()
     self.previous_time = time()
     self.render_values += self.time_factor
