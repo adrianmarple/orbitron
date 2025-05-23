@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import numpy as np
-from random import randrange, random
+from random import randrange, random, uniform
 from time import time
 
 import engine
-from engine import get_pref, SIZE, RAW_SIZE, FRAMERATE
+from engine import get_pref, SIZE, RAW_SIZE, FRAMERATE, bounding_box
 from idlepatterns import Idle
 
 class Pulses(Idle):
@@ -32,7 +32,8 @@ class Pulses(Idle):
 
     x = get_pref("idleDensity") / 50 / FRAMERATE
     if random() < x or not pulse_is_definitely_visible:
-      self.pulses.append(Pulse(self.base_duration*(1 + random()), (2*random()-1, 2*random()-1, 0)))
+      self.pulses.append(Pulse(self.base_duration*(1 + random()),
+        (uniform(*bounding_box[0]), uniform(*bounding_box[1]), uniform(*bounding_box[2]))))
 
 
     new_base_duration = 70 / get_pref("idleFrameRate")

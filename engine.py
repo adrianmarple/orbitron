@@ -96,6 +96,12 @@ INITIAL_POSITIONS = pixel_info.get("initialPositions", [None]*6)
 SOUTHERLY_INITIAL_POSITIONS = pixel_info.get("southerlyInitialPositions", [None]*6)
 antipodes = pixel_info.get("antipodes", None)
 
+bounding_box = [[0,0],[0,0],[0,0]]
+for coord in coords:
+  for dim in range(3):
+    bounding_box[dim][0] = min(bounding_box[dim][0], coord[dim])
+    bounding_box[dim][1] = max(bounding_box[dim][1], coord[dim])
+
 north_pole = pixel_info.get("northPole", None)
 if north_pole is None:
   pole_threshold = 1
