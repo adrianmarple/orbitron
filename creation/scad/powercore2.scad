@@ -1,6 +1,9 @@
 
 $fn=64;
-sphere_radius = 48;
+inner_diameter = 74;
+inner_radius = inner_diameter/2;
+shell_thickness = 6;
+sphere_radius = inner_radius + shell_thickness;
 column_penetration = 4.7;
 
 module column() {
@@ -100,12 +103,12 @@ union() {
 translate([-100,-100,is_top ? -100 : 0])
 cube([200, 200, 100]);
 
-cylinder(h=20, r=sphere_radius - 6, center=true);
+cylinder(h=20, r=inner_radius, center=true);
 
 }
 
 if (!is_top)
-translate([7,15,-10])
+translate([5,15,-10])
 union() {
   translate([0,-30,0])
   pcb_clip(4.6, 10, 0.2, 3.8, 4, 1.2);

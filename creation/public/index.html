@@ -236,10 +236,10 @@ document.onkeydown = e => {
     console.log("  distance from beginning: " + distanceFromBeginning)
   }
 }
-const ZOOM_SCALE = 0.01
+const ZOOM_SCALE = 0.001
 let zoom = 1
 document.onwheel = e => {
-  zoom *= Math.exp(e.deltaY * ZOOM_SCALE)
+  zoom *= Math.exp(-e.deltaY * ZOOM_SCALE)
 }
 
 

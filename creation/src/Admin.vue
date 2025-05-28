@@ -158,7 +158,6 @@ export default {
 
     this.masterKey = await (await fetch("http://localhost:8000/masterkey")).text()
     this.commits = await (await fetch("http://localhost:8000/commits")).json()
-    this.updateConfig()
 
     await this.getOrbInfo()
     // setInterval(async function() {
@@ -168,6 +167,7 @@ export default {
     //   }
     //   self.commits = await (await fetch("http://localhost:8000/commits")).json()
     // }, 5000)
+    await this.updateConfig()
     this.setOrb(this.orbID)
 
 
