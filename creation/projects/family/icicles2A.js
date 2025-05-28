@@ -67,7 +67,7 @@ module.exports = () => {
   .addLine([0,1,0])
   .addLine([0,0,1])
 
-  wallIcicleBase.addLine([0,3,0])
+  wallIcicleBase.addLine([0,4,0])
   // let wallGreeble1Start = wallIcicleBase.addLine([0,-2,0])
   // .addLine([0,-5,0])
   // wallGreeble1Start.addLine([0,0,1])
@@ -166,7 +166,7 @@ module.exports = () => {
   zeroFoldAllEdges()
   
   // Hack to make strip fit (no clue why the strip ended up a pixel short)
-  verticies[57].ogCoords = verticies[57].ogCoords.addScaledVector(UP, 0)
+  verticies[57].ogCoords = verticies[57].ogCoords.addScaledVector(UP, 1)
 
   EulerianPath(88)
 }
