@@ -166,7 +166,7 @@ module.exports = () => {
   zeroFoldAllEdges()
   
   // Hack to make strip fit (no clue why the strip ended up a pixel short)
-  verticies[57].ogCoords = verticies[57].ogCoords.addScaledVector(UP, 1)
+  verticies[57].ogCoords = verticies[57].ogCoords.addScaledVector(UP, 0)
 
   EulerianPath(88)
 }
