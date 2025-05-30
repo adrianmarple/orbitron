@@ -1,4 +1,4 @@
-// SKIP
+// SKI
 module.exports = async () => {
   setFor3DPrintedCovers()
   exteriorOnly = true
@@ -59,6 +59,26 @@ module.exports = async () => {
           code
         },
       ]
+    }
+
+    // Wordmark deboss
+    for (let index of [1,2]) {
+      printInfo.prints[index] = {
+        type: "difference",
+        suffix: printInfo.prints[index].suffix,
+        components: [
+          printInfo.prints[index],
+          {
+            position: [7, 0, 0],
+            code: `
+              linear_extrude(height=0.4)
+              rotate([0,0,-90])
+              mirror([1,0,0])
+              scale(0.1)
+              import("../../lumatron.svg", center=true, dpi=25.4);`
+          },
+        ]
+      }
     }
   }
 

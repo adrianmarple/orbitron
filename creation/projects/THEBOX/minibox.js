@@ -17,15 +17,29 @@ module.exports = async () => {
 
   addPolygon(4, [0,0,0], [32, 72.8])
 
-  printPostProcessingFunction = printInfo => {
-    let portHeight = 2.6
-    let portWidth = 8.7
+  let portHeight = 2.6
+  let portWidth = 8.7
+  let portZOffset = 5
 
-    let ovalHeight = portHeight + 3
-    let ovalWidth = portWidth + 5
-    let ovalThickness = 0.3
-    let ovalInset = 0.6
-    let position = [-16 - WALL_THICKNESS, 0, 0]
+  let ovalHeight = portHeight + 3
+  let ovalWidth = portWidth + 5
+  let ovalThickness = 0.3
+  let ovalInset = 0.6
+
+
+  let piAndPcbThickness = 1.6 + 1.4
+  let standoffHeight = 3.8
+  CHANNEL_DEPTH = (standoffHeight + piAndPcbThickness)*2 + portHeight - portZOffset
+  // let standoffHeight = CHANNEL_DEPTH / 2 - piAndPcbThickness - portHeight/2
+  let standoffRadius = 2.5
+  let nubHeight = piAndPcbThickness
+  let nubRadius = 1.33
+  let standoffX = 23/2
+  let standoffY = 58/2
+  let standoffOffsetY = (5 - 2) / 2
+
+  printPostProcessingFunction = printInfo => {
+    let position = [-16 - WALL_THICKNESS, portZOffset/2, 0]
 
 
     for (let index of [3,5]) {
@@ -58,15 +72,6 @@ module.exports = async () => {
     }
 
 
-    let piAndPcbThickness = 1.6 + 1.4
-    let standoffHeight = CHANNEL_DEPTH / 2 - piAndPcbThickness - portHeight/2
-    console.log(standoffHeight)
-    let standoffRadius = 2.5
-    let nubHeight = piAndPcbThickness
-    let nubRadius = 1.33
-    let standoffX = 23/2
-    let standoffY = 58/2
-    let standoffOffsetY = (5 - 2) / 2
 
     let code = `
     union() {
@@ -108,7 +113,7 @@ module.exports = async () => {
           {
             position: [7, 0, 0],
             code: `
-              linear_extrude(height=0.2)
+              linear_extrude(height=0.4)
               rotate([0,0,-90])
               mirror([1,0,0])
               scale(0.1)

@@ -1,4 +1,4 @@
-// SKI
+// SKIP
 module.exports = () => {
   setFor3DPrintedCovers()
   cat5partID = "2L"
