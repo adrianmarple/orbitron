@@ -5,6 +5,8 @@ module.exports = () => {
   cat5partID = "2"
   PORT_POSITION = "center"
 
+  useCorrectedVersion = 1
+
 
   let leftmostT = addVertex([13,-1,1]).addLine([2,0,0])
   let mainIcicleBase = leftmostT.addLine([2,0,0])
@@ -44,15 +46,12 @@ module.exports = () => {
 
   let upperButtressStart = upperOverflowStart.addLine([1,0,0])
   upperButtressStart.addLine([0,-2,0])
-  // .addLine([3,0,0])
   .addLine([2,0,0])
   .addLine([1,0,0])
   .addLine([0,1,0])
   .addLine([1,0,0])
 
   let mobiusJointStart = upperButtressStart.addLine([4,0,0])
-  // .addLine([2,0,0])
-  // .addLine([2,0,0])
   .addLine([0,-1,0])
   .addLine([0,-2,0])
   mobiusJointStart.addLine([-1,0,0])
@@ -68,20 +67,17 @@ module.exports = () => {
   .addLine([0,0,1])
 
   wallIcicleBase.addLine([0,4,0])
-  // let wallGreeble1Start = wallIcicleBase.addLine([0,-2,0])
-  // .addLine([0,-5,0])
-  // wallGreeble1Start.addLine([0,0,1])
-  // .addLine([-2,0,0])
-  // .addLine([0,-2,0])
-  // .addLine([1,0,0])
-  // .addLine([0,-3,0])
-  // .addLine([1,0,0])
-  // .addLine([0,0,-1])
 
-  // let wallGreeble2Start = wallGreeble1Start.addLine([0,-5,0])
-  // .addLine([0,-1,0])
-  let wallGreeble2Start = wallIcicleBase.addLine([0,-3,0])
-  .addLine([0,-4,0])
+  let wallGreeble2Start
+  if (useCorrectedVersion) {
+    console.log("Correction")
+    wallGreeble2Start = wallIcicleBase.addLine([0,-2,0])
+    .addLine([0,-5,0])
+  } else {
+    console.log("Old incorrect topology")
+    wallGreeble2Start = wallIcicleBase.addLine([0,-3,0])
+    .addLine([0,-4,0])
+  }
   wallGreeble2Start.addLine([0,0,1])
   .addLine([-1,0,0])
   .addLine([0,-3,0])
@@ -161,6 +157,20 @@ module.exports = () => {
   // v10.addLine([0,0,1])
   // .addLine([0,-5,0])
 
+  // Hack due to non-connection, but needing topology to remain basically the same
+  if (useCorrectedVersion) {
+    sortOverride = (edge, previousEdge, angle) => {
+      if ((previousEdge.index == 249 && edge.index == 340) ||
+          (previousEdge.index == 221 && edge.index == 215) ||
+          (previousEdge.index == 138 && edge.index == 41) ||
+          (previousEdge.index == 140 && epsilonEquals(angle, Math.PI))) {
+        return 1e6
+      }
+      else {
+        return potential(edge, previousEdge, angle)
+      }
+    }
+  }
 
   scale(4)
   zeroFoldAllEdges()
