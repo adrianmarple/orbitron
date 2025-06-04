@@ -30,18 +30,20 @@ difference() {
     }
   }
   
+  indicies = [1,2,5,8];
+
   translate([-11.5 - pitch/2,29 - 5,0])
   union() {
-    for (i=[0:9]) {
-      translate([0, -pitch*i, -1])
+    for (i=[0:len(indicies) - 1]) {
+      translate([0, -pitch * indicies[i], -1])
       cylinder(h=5, r=hole_radius);
     }
   }
   translate([-11.5 + pitch/2,29 - 5,0])
   union() {
     for (i=[0:9]) {
-      translate([0, -pitch*i, -1])
-      cylinder(h=5, r=hole_radius);
+//      translate([0, -pitch*i, -1])
+//      cylinder(h=5, r=hole_radius);
     }
   }
 }
