@@ -8,7 +8,7 @@ module.exports = async () => {
   WALL_THICKNESS = 2
   CHANNEL_WIDTH = 0
   INNER_CHANNEL_THICKNESS = null
-  BORDER = 2
+  BORDER = 1.6
   NOTCH_DEPTH = 3
 
   MAX_WALL_LENGTH = 200
@@ -17,24 +17,21 @@ module.exports = async () => {
   HOOK_OVERHANG = 0.5
 
   innerWidth = 32
-  innerLength = 73.2
+  innerLength = 73.4
+  endWallBuffer = 4
+  innerLength += 2*endWallBuffer
   addPolygon(4, [0,0,0], [innerWidth, innerLength])
 
   let portHeight = 3.2
   let portWidth = 9.3
   let portZOffset = 5.6
-  let portLength = 6.6 + 2;
+  let portLength = 6.6 + 2
 
-  let sleaveThickness = 2;
+  let topPortKerf = 0.4
+  let sleaveThickness = 2
 
-  let ovalHeight = portHeight + 3
-  let ovalWidth = portWidth + 5
-  let ovalThickness = 0.3
-  let ovalInset = 0.6
-
-
-  let piAndPcbThickness =  2.8 //3
-  let standoffHeight = 3.8 // TODO I think this can be made smaller
+  let piAndPcbThickness =  2.8 // TODO I think this can be made smaller (but remember to increase portZOffset)
+  let standoffHeight = 3.8 
   CHANNEL_DEPTH = (standoffHeight + piAndPcbThickness)*2 + portHeight - portZOffset
   let standoffRadius = 2.5
   let nubHeight = piAndPcbThickness
@@ -44,7 +41,7 @@ module.exports = async () => {
   let standoffOffsetY = (5 - 2) / 2
 
   printPostProcessingFunction = printInfo => {
-    let position = [-16 - WALL_THICKNESS, portZOffset/2, WALL_THICKNESS - portLength]
+    let position = [-16 - WALL_THICKNESS, portZOffset/2, WALL_THICKNESS - portLength + endWallBuffer]
 
 
     for (let index of [3,5]) {
@@ -66,7 +63,12 @@ module.exports = async () => {
                   translate([${-(portWidth - portHeight)/2}, 0, 0])
                   cylinder(h=${portLength}, r=${portHeight/2 + sleaveThickness});
                 };`
-              }
+              },
+              {
+                type: "cube",
+                position: [position[0], 0, endWallBuffer/2 + WALL_THICKNESS],
+                dimensions: [innerWidth, CHANNEL_DEPTH, endWallBuffer],
+              },
             ]
           },
           {
@@ -79,15 +81,6 @@ module.exports = async () => {
               cylinder(h=${portLength}, r=${portHeight/2});
             };`
           },
-          // {
-          //   position,
-          //   code: `
-          //   linear_extrude(height=${ovalInset})
-          //   difference() {
-          //     offset(r=${ovalHeight/2}) square([${ovalWidth - ovalHeight}, 0.001], center=true);
-          //     offset(r=${ovalHeight/2 - ovalThickness}) square([${ovalWidth - ovalHeight - 2*ovalThickness}, 0.001], center=true);
-          //   };`
-          // },
         ]
       }
     }
@@ -125,14 +118,15 @@ module.exports = async () => {
     }
 
     // Notches cut out of top for USB-C sleeves
+    let cylinderH = endWallBuffer + WALL_THICKNESS + BORDER + 0.2
     let notchCode = `
-    translate([0, 0, ${THICKNESS + (CHANNEL_DEPTH - portZOffset)/2}])
+    translate([0, 0, ${THICKNESS + (CHANNEL_DEPTH - portZOffset)/2 + topPortKerf}])
     rotate([-90,0,0])
     hull() {
       translate([${(portWidth - portHeight)/2}, 0, 0])
-      cylinder(h=${BORDER + 1}, r=${portHeight/2 + sleaveThickness});
+      cylinder(h=${cylinderH}, r=${portHeight/2 + sleaveThickness});
       translate([${-(portWidth - portHeight)/2}, 0, 0])
-      cylinder(h=${BORDER + 1}, r=${portHeight/2 + sleaveThickness});
+      cylinder(h=${cylinderH}, r=${portHeight/2 + sleaveThickness});
     };`
     printInfo.prints[2] = {
       type: "difference",
@@ -140,11 +134,11 @@ module.exports = async () => {
       components: [
         printInfo.prints[2],
         {
-          position: [0, innerLength/2 + WALL_THICKNESS, 0],
+          position: [0, innerLength/2 - endWallBuffer - 0.2, 0],
           code: notchCode,
         },
         {
-          position: [0, -innerLength/2 - WALL_THICKNESS - BORDER - 1, 0],
+          position: [0, -innerLength/2 + endWallBuffer + 0.2 - cylinderH, 0],
           code: notchCode,
         },
       ]
@@ -163,7 +157,7 @@ module.exports = async () => {
               linear_extrude(height=0.6)
               rotate([0,0,-90])
               mirror([1,0,0])
-              scale(0.1)
+              scale(0.11)
               import("../../lumatron.svg", center=true, dpi=25.4);`
           },
         ]
