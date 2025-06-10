@@ -1,6 +1,5 @@
 module.exports = () => {
   setFor3DPrintedCovers()
-  cat5FoldWallIndex = 3
   NO_EMBOSSING = true
   BOTTOM_ORIGAMI_KERF = 0.2
 

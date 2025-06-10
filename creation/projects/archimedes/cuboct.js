@@ -1,5 +1,6 @@
 module.exports = () => {
   setFor3DPrintedCovers()
+  NO_EMBOSSING = true
 
   wallPostProcessingFunction = printInfo => {
     printInfo.prints = [printInfo.prints[1], printInfo.prints[5], printInfo.prints[4]]
@@ -10,7 +11,7 @@ module.exports = () => {
   }
 
   isWall = false // To avoid non-coplanar errors
-  for (let permutation of [[PHI, 1, 0], [0, PHI, 1], [1, 0, PHI]]) {
+  for (let permutation of [[1, 1, 0], [0, 1, 1], [1, 0, 1]]) {
     addPlusMinusVertex(permutation)
   }
 
@@ -63,6 +64,54 @@ module.exports = () => {
   }
   isWall = true
 
+  doubleEdges()
   scale(2.5)
+
+  console.log(verticies[0].ogCoords.length() * PIXEL_DISTANCE +
+    CHANNEL_DEPTH/2 + THICKNESS + EXTRA_COVER_THICKNESS)
+
+
+  printPostProcessingFunction = printInfo => {
+    
+    printInfo.prints = [
+      printInfo.prints[0],
+      printInfo.prints[1],
+      printInfo.prints[2],
+      printInfo.prints[3],
+    ]
+    printInfo.prints[0].suffix = "square_wall"
+    printInfo.prints[1].suffix = "tri_wall"
+    printInfo.prints[2].suffix = "bottom"
+    printInfo.prints[3].suffix = "top"
+
+    h = 10
+    printInfo.prints.push({
+      type: "difference",
+      suffix: "bottom_with_column",
+      components: [
+        {
+          type: "union",
+          operations: [{
+            type: "mirror",
+            normal: [0,0,1],
+          }],
+          components: [
+            printInfo.prints[2].components[0],
+            {
+              position: [0, 0, 0-h],
+              code: `
+              cylinder(h=${h}, r=6, $fn=64);`
+            },
+          ]
+        },
+        {
+          position: [0, 0, -3],
+          code: `
+          cylinder(h=${h+10}, r=4.6, $fn=64);`
+        },
+      ]
+    })
+  }
+
   EulerianPath(1,1)
 }
