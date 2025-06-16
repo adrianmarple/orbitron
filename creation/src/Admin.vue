@@ -398,6 +398,8 @@ export default {
     async genBoxTop() {
       let qrUrl = 'https://my.lumatron.art/' + this.orbID
       // qrUrl += "?m" // For QR that mirrors x input, for one side of a two sided box
+      // qrUrl = "https://marplebot.com/link"
+      // qrUrl = "WIFI:S:Charizard_5G;T:WPA;P:fireblast;;"
       this.qrSize = (qrUrl.length <= 32 ? 25 : 29) * 20
       this.qrCode.update({
         width: this.qrSize,

@@ -271,6 +271,7 @@ addPOSTListener(async (response, body) => {
     await fs.promises.writeFile(gcodeFilePath, gcodeContents)
   }
   
+  return
   console.log("Uploading gcode")
   let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_qr.gcode"
   await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
