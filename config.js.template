@@ -54,4 +54,5 @@ module.exports={
   //   },
   // ],
   // MAX_POWER_DRAW: 3,
+  // NO_ACCESS_POINT: true,
 }

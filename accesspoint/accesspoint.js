@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const http = require('http')
 const qs = require('querystring')
-const { checkConnection, execute, delay, config} = require('../lib')
+const { checkConnection, execute, delay, config } = require('../lib')
 const { displayText } = require('../orb')
 const { respondWithFile } = require('../server')
 
@@ -129,7 +129,9 @@ let wifiSetupServer = http.createServer(function (req, res) {
   }
 })
 
-wifiSetupServer.listen(80,() => {
-  console.log("wifi setup Listening on port 80")
-})
-setTimeout(networkCheck, 5e3)
+if (!config.NO_ACCESS_POINT) {
+  wifiSetupServer.listen(80,() => {
+    console.log("wifi setup Listening on port 80")
+  })
+  setTimeout(networkCheck, 5e3)
+}
