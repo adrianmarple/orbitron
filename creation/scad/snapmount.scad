@@ -7,7 +7,7 @@ wall_thickness = 2.6;
 box_thickness = 6;
 bottom_thickness = 2;
 screw_hole_radius = 2.3;
-screw_hole_width = 6;
+screw_hole_width = 12;
 
 outer_x = channel_width/2 + 1.2;
 
