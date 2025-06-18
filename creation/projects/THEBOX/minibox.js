@@ -16,9 +16,9 @@ module.exports = async () => {
   LATCH_TYPE = "hook"
   HOOK_OVERHANG = 0.5
 
-  innerWidth = 32
-  innerLength = 73.4
-  endWallBuffer = 4
+  let innerWidth = 32
+  let innerLength = 73.4
+  let endWallBuffer = 4
   innerLength += 2*endWallBuffer
   addPolygon(4, [0,0,0], [innerWidth, innerLength])
 
@@ -144,6 +144,36 @@ module.exports = async () => {
       ]
     }
 
+    holder_thickness = 2
+    dims = [innerWidth + 1, 44, 8]
+    printInfo.prints.push({
+      type: "union",
+      suffix: printInfo.prints[2].suffix + "+cardholder",
+      operations: [{type: "rotate", axis: [0,1,0], angle: Math.PI}],
+      components: [
+        printInfo.prints[2],
+        {
+          position: [0, -innerLength/2 -0.5 + dims[1]/2, -dims[2]/2],
+          type: "difference",
+          components: [
+            {
+              type: "cube",
+              dimensions: dims
+            },
+            {
+              type: "cube",
+              position: [0, holder_thickness/2, holder_thickness/2],
+              dimensions: [
+                dims[0] - 2*holder_thickness,
+                dims[1] - holder_thickness,
+                dims[2] - holder_thickness,
+              ]
+            },
+          ]
+        },
+      ]
+    })
+
     // Wordmark deboss
     for (let index of [1,2]) {
       printInfo.prints[index] = {
@@ -163,6 +193,7 @@ module.exports = async () => {
         ]
       }
     }
+
   }
 
   EulerianPath(1)

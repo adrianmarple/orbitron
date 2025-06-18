@@ -1,10 +1,9 @@
-// SKIP
+// SKI
 module.exports = async () => {
   setFor3DPrintedCovers()
   exteriorOnly = true
   cat5partID = "5"
   powerHolePartID = "3"
-  powerHoleWallIndex = 0
   
   NO_EMBOSSING = true
   PIXEL_DISTANCE = 1
@@ -19,7 +18,7 @@ module.exports = async () => {
   PORT_TYPE = "USBC"
   PORT_POSITION = "center"
 
-  addPolygon(4, [0,0,0], [34 - 2*BOTTOM_KERF, 110])
+  addPolygon(4, [0,0,0], [34 - 2*BOTTOM_KERF, 100])
 
   printPostProcessingFunction = printInfo => {
     let width = 10
@@ -95,6 +94,36 @@ module.exports = async () => {
               height: connectorClipHeight,
               pcb_thickness: pcb_thickness,
               width, inset, clip_thickness, notchHeight,
+            },
+          ]
+        },
+      ]
+    }
+
+    holder_thickness = 2
+    dims = [33, 44, 8]
+    printInfo.prints[2] = {
+      type: "union",
+      suffix: printInfo.prints[2].suffix + "+cardholder",
+      operations: [{type: "rotate", axis: [0,1,0], angle: Math.PI}],
+      components: [
+        printInfo.prints[2],
+        {
+          position: [0, -49 + dims[1]/2, -dims[2]/2],
+          type: "difference",
+          components: [
+            {
+              type: "cube",
+              dimensions: dims
+            },
+            {
+              type: "cube",
+              position: [0, holder_thickness/2, holder_thickness/2],
+              dimensions: [
+                dims[0] - 2*holder_thickness,
+                dims[1] - holder_thickness,
+                dims[2] - holder_thickness,
+              ]
             },
           ]
         },
