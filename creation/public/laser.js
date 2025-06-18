@@ -628,18 +628,26 @@ function singleSlotPath(wallLength, basis, offset, localOffset, print) {
   let w1 = KERF
   let w2 = WALL_THICKNESS - KERF
   let xs = trueNotchDepth + KERF
-  let xt = wallLength - (trueNotchDepth + KERF)
 
-  let points = [
-    [xs, w1],
-    [xs, w2],
-    [xt, w2],
-    [xt, w1],
-  ]
-  
-  addLatch(xs, 1)
-  addLatch(xt, -1)
-  return path + "M" + pointsToSVGString(points, basis, offset).substring(1) + "Z "
+  let segmentCount = Math.ceil(wallLength / MAX_SLOT_SEGMENT_LENGTH)
+  let segmentLength = wallLength / segmentCount
+
+  for (let i = 0; i < segmentCount; i++) {
+    let xt = xs + segmentLength - 2*(trueNotchDepth + KERF)
+    let points = [
+      [xs, w1],
+      [xs, w2],
+      [xt, w2],
+      [xt, w1],
+    ]
+    
+    addLatch(xs, 1)
+    addLatch(xt, -1)
+    path += "M" + pointsToSVGString(points, basis, offset).substring(1) + "Z "
+
+    xs = xt + 2*(trueNotchDepth + KERF)
+  }
+  return path
 }
 
 function pointsToSVGString(points, basis, offset, flip) {
@@ -1048,6 +1056,13 @@ function wallPrint(wall, isLeft) {
   }
   bottomEndNotchDepth -= WALL_KERF
 
+
+  let bottomSegmentCount = Math.ceil(bottomLength / MAX_SLOT_SEGMENT_LENGTH)
+  let bottomSegmentLength = bottomLength / bottomSegmentCount
+  let topSegmentCount = Math.ceil(topLength / MAX_SLOT_SEGMENT_LENGTH)
+  let topSegmentLength = topLength / topSegmentCount
+  console.log(topLength, topSegmentLength)
+
   // TODO dihedralAngle I believe is not always non-negative, so this and other checks
   // are unnecessary (plus extraOffset would always be zero and therefore removable)
   let extraOffset = ZERO
@@ -1079,27 +1094,35 @@ function wallPrint(wall, isLeft) {
       wallSegments.push(N.scale(-THICKNESS))
     }
   }
-  wallSegments.push(E.scale(topEndNotchDepth))
   if (RENDER_MODE == "standard") {
-    wallSegments = wallSegments.concat(latchPoints(E,N, false, -insetAngle))
-    wallSegments.push(E.scale(topLength - 2*(topEndNotchDepth + MAX_LATCH_WIDTH)))
-    wallSegments = wallSegments.concat(latchPoints(E,N.negate(), true))
+    for (let i = 0; i < topSegmentCount; i++) {
+      let insetA = i == 0 ? -insetAngle : 0
+      wallSegments.push(E.scale(topEndNotchDepth))
+      wallSegments = wallSegments.concat(latchPoints(E,N, false, insetA))
+      wallSegments.push(E.scale(topSegmentLength - 2*(topEndNotchDepth + MAX_LATCH_WIDTH)))
+      wallSegments = wallSegments.concat(latchPoints(E,N.negate(), true))
+      wallSegments.push(E.scale(topEndNotchDepth))
+    }
   } else {
-    wallSegments.push(E.scale(topLength - 2*topEndNotchDepth))
+    wallSegments.push(E.scale(topLength))
   }
   wallSegments = wallSegments.concat([
-    E.scale(topEndNotchDepth + WALL_MITER_KERF),
+    E.scale(WALL_MITER_KERF),
     N.scale(-CHANNEL_DEPTH),
-    E.scale(-bottomEndNotchDepth - WALL_MITER_KERF),
+    E.scale(-WALL_MITER_KERF),
   ])
   if (RENDER_MODE == "standard") {
-    wallSegments = wallSegments.concat(latchPoints(E.negate(),N.negate()))
-    wallSegments.push(E.scale(-bottomLength + 2*(bottomEndNotchDepth + MAX_LATCH_WIDTH)))
-    wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true, insetAngle))
+    for (let i = 0; i < bottomSegmentCount; i++) {
+      let insetA = i == bottomSegmentCount-1 ? insetAngle : 0
+      wallSegments.push(E.scale(-bottomEndNotchDepth)),
+      wallSegments = wallSegments.concat(latchPoints(E.negate(),N.negate()))
+      wallSegments.push(E.scale(-bottomSegmentLength + 2*(bottomEndNotchDepth + MAX_LATCH_WIDTH)))
+      wallSegments = wallSegments.concat(latchPoints(E.negate(),N, true, insetA))
+      wallSegments.push(E.scale(-bottomEndNotchDepth))
+    }
   } else {
-    wallSegments.push(E.scale(-bottomLength + 2*bottomEndNotchDepth))
+    wallSegments.push(E.scale(-bottomLength))
   }
-  wallSegments.push(E.scale(-bottomEndNotchDepth))
   if (wall.dihedralAngle > 0) {
     if (coverPrint3D) {
       wallSegments.push(E.scale(-THICKNESS * Math.tan(wall.zRotationAngle)))
@@ -1238,19 +1261,6 @@ function wallPrint(wall, isLeft) {
     }
   }
 
-  if (addNubs && !wall.isFoldWall && RENDER_MODE == "standard") { // Nubs
-    let nub = wallSegments[0].add(offset)
-        .addScaledVector(E, NUB_INSET_X + NOTCH_DEPTH)
-        .addScaledVector(N, -NUB_INSET - NUB_WIDTH/2 + THICKNESS)
-        .add(extraOffset)
-    if (topLength >= NUB_MIN_WALL_LENGTH) print.components.push(makeNub(nub))
-    nub = nub.addScaledVector(E, topLength - 2*(NUB_INSET_X + NOTCH_DEPTH))
-    if (topLength >= NUB_MIN_WALL_LENGTH) print.components.push(makeNub(nub))
-    nub = nub.addScaledVector(N, -HEIGHT() + NUB_WIDTH + 2*NUB_INSET)
-    if (bottomLength >= NUB_MIN_WALL_LENGTH) print.components.push(makeNub(nub))
-    nub = nub.addScaledVector(E, -bottomLength + 2*(NUB_INSET_X + NOTCH_DEPTH))
-    if (bottomLength >= NUB_MIN_WALL_LENGTH) print.components.push(makeNub(nub))
-  }
 
   // Embossing
   const MAX_EMBOSSING_WIDTH = 10
@@ -1407,20 +1417,6 @@ function pathFromSegments(start, segments) {
   }
   path += " Z"
   return path
-}
-
-function makeNub(position) {
-  if (position.isVector) {
-    position = [position.x, position.y, WALL_THICKNESS]
-  } else {
-    position[2] = WALL_THICKNESS
-  }
-  return {
-    type: "nub",
-    width: NUB_WIDTH,
-    height: NUB_HEIGHT,
-    position,
-  }
 }
 
 function latchPoints(E, N, reverse, insetAngle) {

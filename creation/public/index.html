@@ -88,12 +88,6 @@ function reset() {
   LED_SUPPORT_THICKNESS = 1.6
   LED_SUPPORT_HEIGHT = () => CHANNEL_WIDTH - 0.2
 
-  NUB_WIDTH = 2
-  NUB_HEIGHT = 0.2
-  NUB_INSET = 0.2
-  NUB_INSET_X = 10
-  NUB_MIN_WALL_LENGTH = (NUB_INSET_X + NOTCH_DEPTH) * 2  //15
-
   PORT_TYPE = "USBC" // "CAT5"
   PORT_POSITION = "start" // "center", "end"
   CAT5_HEIGHT = 15.1
@@ -130,6 +124,7 @@ function reset() {
 
   MAX_FOLD_WALL_LENGTH = 100
   MAX_WALL_LENGTH = 200
+  MAX_SLOT_SEGMENT_LENGTH = 200
 
   NO_EMBOSSING = false
   NO_SUPPORTS = false
@@ -156,7 +151,7 @@ function setFor3DPrintedCovers() {
   addExtraFoldWallWedge = false
 
   ANTI_CORNER = 0.5
-  THICKNESS = 1.8 //1.6
+  THICKNESS = 1.8
   EXTRA_COVER_THICKNESS = 0.4
   INNER_CHANNEL_THICKNESS = 0.4
 
@@ -172,6 +167,11 @@ function setFor3DPrintedCovers() {
 
   WALL_THICKNESS = 2.6
   PRINT_WALL_HALVES_SEPARATELY = true
+
+  // EXPERIMENTAL!!
+  THICKNESS = 2.2
+  NOTCH_DEPTH = 4
+  MAX_SLOT_SEGMENT_LENGTH = 40
 }
 
 HEIGHT = () => CHANNEL_DEPTH + 2*THICKNESS
