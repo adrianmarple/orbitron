@@ -1061,7 +1061,6 @@ function wallPrint(wall, isLeft) {
   let bottomSegmentLength = bottomLength / bottomSegmentCount
   let topSegmentCount = Math.ceil(topLength / MAX_SLOT_SEGMENT_LENGTH)
   let topSegmentLength = topLength / topSegmentCount
-  console.log(topLength, topSegmentLength)
 
   // TODO dihedralAngle I believe is not always non-negative, so this and other checks
   // are unnecessary (plus extraOffset would always be zero and therefore removable)

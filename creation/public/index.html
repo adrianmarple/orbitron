@@ -169,9 +169,9 @@ function setFor3DPrintedCovers() {
   PRINT_WALL_HALVES_SEPARATELY = true
 
   // EXPERIMENTAL!!
-  THICKNESS = 2.2
-  NOTCH_DEPTH = 4
-  MAX_SLOT_SEGMENT_LENGTH = 40
+  // THICKNESS = 2.2
+  // NOTCH_DEPTH = 4
+  // MAX_SLOT_SEGMENT_LENGTH = 40
 }
 
 HEIGHT = () => CHANNEL_DEPTH + 2*THICKNESS
@@ -217,14 +217,14 @@ document.onkeydown = e => {
   else {
     return
   }
-  let edge = edges[path[pathIndex]]
+  let edge = edges[path[pathIndex-1]]
   if (!edge) return
   
   if (edge.isDupe) {
     edge = edge.dual
   }
   let edgeIndex 
-  console.log("Edge # " + edge.index)
+  console.log(`Edge # ${edge.index}, ${edge.dual.index}`)
 
   console.log("  associated walls: " + edgeToWalls[edge.index].map(wall => wall.partID))
   if (pathIndex >= 0) {

@@ -55,9 +55,10 @@ module.exports = () => {
   .addLine([0,-1,0])
   .addLine([0,-2,0])
   mobiusJointStart.addLine([-1,0,0])
+  .addLine([0,-1,0])
   .addLine([0,0,1])
   .addLine([2,0,0])
-  .addLine([0,-3,0])
+  .addLine([0,-2,0])
   .addLine([0,0,-1])
 
   let wallIcicleBase = mobiusJointStart.addLine([0,-2,0])
@@ -160,11 +161,15 @@ module.exports = () => {
   // Hack due to non-connection, but needing topology to remain basically the same
   if (useCorrectedVersion) {
     sortOverride = (edge, previousEdge, angle) => {
-      if ((previousEdge.index == 249 && edge.index == 340) ||
-          (previousEdge.index == 221 && edge.index == 215) ||
-          (previousEdge.index == 138 && edge.index == 41) ||
-          (previousEdge.index == 140 && epsilonEquals(angle, Math.PI))) {
-        return 1e6
+      if (previousEdge.index == 252) {
+        console.log(edge.index)
+      }
+      if ((previousEdge.index == 252 && edge.index == 253) ||
+          (previousEdge.index == 223 && edge.index == 216) ||
+          (previousEdge.index == 138 && edge.index == 47) ||
+          (previousEdge.index == 142 && edge.index == 346) ||
+          (previousEdge.index == 371 && edge.index == 260)) {
+        return -1e6
       }
       else {
         return potential(edge, previousEdge, angle)
