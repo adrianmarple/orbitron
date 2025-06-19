@@ -8,6 +8,7 @@ const process = require('process')
 const { spawn } = require('child_process')
 const pako = require('./thirdparty/pako.min.js')
 const os = require('os')
+const { v4: uuid } = require('uuid')
 const homedir = os.homedir()
 let orbEmulatorBroadcast = () => {}
 if(config.HAS_EMULATION){
@@ -410,6 +411,9 @@ function bindDataEvents(peer) {
     }
     peer.lastActivityTime = Date.now()
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
+    if (["prefs", "clearPrefs", "loadPrefs", "advanceManualFade"].includes(content.type)) {
+      shouldUpdateTetheree = true
+    }
   })
 
   peer.on('close', () => {
@@ -422,6 +426,58 @@ function bindDataEvents(peer) {
     }
   })
 }
+
+let tethereeSocket = null
+let tetherClientID = uuid()
+let shouldUpdateTetheree = true
+function tether(broadcastMessage) {
+  if (!config.TETHER_ORB_ID) return
+
+  if (!tethereeSocket || tethereeSocket.readyState === WebSocket.CLOSED) {
+    try {
+      createTether()
+    } catch(e) {
+      console.log(e)
+    }
+  } else if(shouldUpdateTetheree && tethereeSocket.readyState === WebSocket.OPEN) {
+    try {
+      shouldUpdateTetheree = false
+      tethereeSocket.send(JSON.stringify({
+        type: "prefs",
+        update: broadcastMessage.prefs,
+        timestamp: broadcastMessage.timestamp,
+      }))
+    } catch (error) {
+      console.error(error)
+      destroyTether()
+      createTether()
+    }
+  }
+}
+function createTether() {
+  if (!config.TETHER_ORB_ID) return
+
+  let protocolAndHost = "wss://my.lumatron.art"
+  tethereeSocket = new WebSocket(`${protocolAndHost}:7777/${config.TETHER_ORB_ID}/${tetherClientID}`)
+  tethereeSocket.onclose = _ => {
+    setTimeout(destroyTether)
+  }
+  tethereeSocket.onerror = event => {
+    console.error("ERROR",event)
+    setTimeout(destroyTether)
+  }
+}
+function destroyTether() {
+  if(tethereeSocket) {
+    try {
+      tethereeSocket.close()
+    } catch(e) {
+      console.log("Error closing relay socket",e)
+    }
+    tethereeSocket = null
+  }
+}
+createTether()
 
 function upkeep() {
   if(!gameState) return
@@ -488,6 +544,9 @@ function preciseTime(){
 }
 
 function broadcast(baseMessage) {
+  baseMessage.timestamp = preciseTime()
+  tether(baseMessage)
+
   broadcastCounter++
   baseMessage.notimeout = NO_TIMEOUT
   let noChange = JSON.stringify(baseMessage) == JSON.stringify(gameState)
@@ -496,7 +555,6 @@ function broadcast(baseMessage) {
     return
   }
   broadcastCounter = 0
-  baseMessage.timestamp = preciseTime()
   for (let id in connections) {
     baseMessage.self = parseInt(id)
     connections[id].send(JSON.stringify(baseMessage))
