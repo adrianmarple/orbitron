@@ -430,7 +430,7 @@ function bindDataEvents(peer) {
 let tethereeSocket = null
 let tetherClientID = uuid()
 let shouldUpdateTetheree = true
-let previousPrefName = ""
+let previousBroadcast = {}
 function tether(broadcastMessage) {
   if (!config.TETHER_ORB_ID) return
 
@@ -439,10 +439,11 @@ function tether(broadcastMessage) {
   delete update.schedule
   delete update.weeklySchedule
 
-  if (broadcastMessage.currentPrefName != previousPrefName) {
+  if (broadcastMessage.currentPrefName != previousBroadcast.currentPrefName ||
+      broadcastMessage.prefs.dimmer != previousBroadcast.prefs.dimmer) {
     shouldUpdateTetheree = true
   }
-  previousPrefName = broadcastMessage.currentPrefName
+  previousBroadcast = broadcastMessage.currentPrefName
 
   if (!tethereeSocket || tethereeSocket.readyState === WebSocket.CLOSED) {
     try {
