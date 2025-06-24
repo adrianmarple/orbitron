@@ -443,7 +443,7 @@ function tether(broadcastMessage) {
       broadcastMessage.prefs.dimmer != previousBroadcast.prefs.dimmer) {
     shouldUpdateTetheree = true
   }
-  previousBroadcast = broadcastMessage.currentPrefName
+  previousBroadcast = broadcastMessage
 
   if (!tethereeSocket || tethereeSocket.readyState === WebSocket.CLOSED) {
     try {
@@ -459,6 +459,7 @@ function tether(broadcastMessage) {
         update,
         timestamp: broadcastMessage.timestamp,
       }))
+      console.log("Sending tether update")
     } catch (error) {
       console.error(error)
       destroyTether()
