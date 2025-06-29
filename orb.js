@@ -410,6 +410,9 @@ function bindDataEvents(peer) {
       content.self = peer.pid
     }
     peer.lastActivityTime = Date.now()
+    if (config.LOG_INCOMING_MESSAGES && content.type != "ping") {
+      console.log(content)
+    }
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     if (["prefs", "clearPrefs", "loadPrefs", "advanceManualFade"].includes(content.type)) {
       shouldUpdateTetheree = true

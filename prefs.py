@@ -140,8 +140,14 @@ def update(update, client_timestamp=None):
   f.close()
 
   # Turn dimmer back on if not using timer and it's off
-  if current is not None and current["prefName"] == "OFF" and not get_pref("useTimer"):
-    advance_manual_fade()
+  if (current is not None and
+      current["prefName"] == "OFF" and
+      current_prefs["dimmer"] != 1 and
+      not get_pref("useTimer")):
+    converted_prefs["dimmer"] = 1
+    pref_to_client_timestamp[key] = client_timestamp
+    timing_prefs["dimmer"] = 1
+    current_prefs["dimmer"] = 1
 
   should_update_schedule = False
   for key in timing_prefs.keys():

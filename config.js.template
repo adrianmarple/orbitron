@@ -56,4 +56,5 @@ module.exports={
   // MAX_POWER_DRAW: 3,
   // NO_ACCESS_POINT: true,
   // TETHER_ORB_ID: "TEST",
+  // LOG_INCOMING_MESSAGES: true
 }
