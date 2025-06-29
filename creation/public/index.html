@@ -169,9 +169,11 @@ function setFor3DPrintedCovers() {
   PRINT_WALL_HALVES_SEPARATELY = true
 
   // EXPERIMENTAL!!
-  // THICKNESS = 2.2
-  // NOTCH_DEPTH = 4
-  // MAX_SLOT_SEGMENT_LENGTH = 40
+  THICKNESS = 2 // Remember to change snap mounts accordingly if I keep this
+  CHANNEL_LATCH_ANGLE = -7
+  NOTCH_DEPTH = 4
+  MAX_SLOT_SEGMENT_LENGTH = 30
+
 }
 
 HEIGHT = () => CHANNEL_DEPTH + 2*THICKNESS

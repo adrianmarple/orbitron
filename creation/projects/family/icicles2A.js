@@ -161,9 +161,6 @@ module.exports = () => {
   // Hack due to non-connection, but needing topology to remain basically the same
   if (useCorrectedVersion) {
     sortOverride = (edge, previousEdge, angle) => {
-      if (previousEdge.index == 252) {
-        console.log(edge.index)
-      }
       if ((previousEdge.index == 252 && edge.index == 253) ||
           (previousEdge.index == 223 && edge.index == 216) ||
           (previousEdge.index == 138 && edge.index == 47) ||

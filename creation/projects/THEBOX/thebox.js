@@ -5,7 +5,6 @@ module.exports = async () => {
   PORT_POSITION = "center"
   cat5partID = "5"
   powerHolePartID = "3"
-  powerHoleWallIndex = 0
   
   NO_EMBOSSING = true
   PIXEL_DISTANCE = 1
@@ -14,7 +13,9 @@ module.exports = async () => {
   INNER_CHANNEL_THICKNESS = null
 
   MAX_WALL_LENGTH = 200
+  MAX_SLOT_SEGMENT_LENGTH = 200
   THICKNESS = 2.6
+  NOTCH_DEPTH = 5
   LATCH_TYPE = "hook"
 
   addPolygon(4, [0,0,0], [72, 108])
