@@ -111,7 +111,7 @@ def update(update, client_timestamp=None):
   if client_timestamp is None:
     client_timestamp = time()
   if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
-      client_timestamp = 0
+    client_timestamp = 0
 
   if update.get("weeklyTimer", False) and len(current_prefs["weeklySchedule"]) == 0:
     update["weeklySchedule"] = []
@@ -120,6 +120,14 @@ def update(update, client_timestamp=None):
         new_event = json.loads(json.dumps(event))
         new_event["weekday"] = i
         update["weeklySchedule"].append(new_event)
+
+  # Turn dimmer back on if not using timer and it's off
+  if (current is not None and
+      current["prefName"] == "OFF" and
+      "useTimer" in update and
+      not update["useTimer"] and
+      get_pref("useTimer")):
+    update["dimmer"] = 1
 
   for key, value in update.items():
     converted_prefs[key] = None
@@ -138,16 +146,6 @@ def update(update, client_timestamp=None):
   f = open(timing_pref_path, "w")
   f.write(json.dumps(timing_prefs, indent=2))
   f.close()
-
-  # Turn dimmer back on if not using timer and it's off
-  if (current is not None and
-      current["prefName"] == "OFF" and
-      current_prefs["dimmer"] != 1 and
-      not get_pref("useTimer")):
-    converted_prefs["dimmer"] = 1
-    pref_to_client_timestamp[key] = client_timestamp
-    timing_prefs["dimmer"] = 1
-    current_prefs["dimmer"] = 1
 
   should_update_schedule = False
   for key in timing_prefs.keys():

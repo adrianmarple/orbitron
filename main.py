@@ -68,7 +68,7 @@ def consume_input():
         engine.game = None
         # Prefs stuff
       if message["type"] == "prefs":
-        prefs.update(message["update"], client_timestamp=message["timestamp"])
+        prefs.update(message["update"], client_timestamp=message.get("timestamp"))
       elif message["type"] == "clearPrefs":
         prefs.clear()
       elif message["type"] == "savePrefs":

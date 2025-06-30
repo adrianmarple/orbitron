@@ -23,6 +23,16 @@ module.exports = async () => {
     }
   }
 
+  sortOverride = (edge, previousEdge, angle) => {
+    if ((previousEdge.index == 157 && edge.index == 161) ||
+        (previousEdge.index == 7 && edge.index == 11)) {
+      return -1e6
+    }
+    else {
+      return potential(edge, previousEdge, angle)
+    }
+  }
+
   zeroFoldAllEdges()
   EulerianPath(17,1)
   center()
