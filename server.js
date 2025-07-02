@@ -84,15 +84,20 @@ async function serverHandler(request, response) {
       body += data
     })
     request.on('end', async function() {
+      console.log("POST request:")
+      console.log(request.header)
+      console.log(body)
       let handled = false
       for (const listener of postListeners) {
         handled = await listener(response, body)
         if(handled) break
       }
       if(!handled){
-        console.error("UNHANDLED SERVER POST: ", request.url)
-        response.writeHead(500)
-        response.end('unhandled post')
+        console.log("UNHANDLED SERVER POST: ", request.url)
+        if (!response.writableEnded) {
+          response.writeHead(500)
+          response.end('unhandled post')
+        }
       }
     })
     return

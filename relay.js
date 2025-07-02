@@ -357,24 +357,29 @@ addPOSTListener(async (response, body) => {
   try {
     // Ignore weird extra POST requests
     if (body.startsWith("0x")) return false
+    let payload
+    try {
+      payload = JSON.parse(body)
+    } catch(_) {
+      return false
+    }
+    if (payload.ref !== 'refs/heads/master')
+      return false
 
-    console.log("Receiving github webhook update.")
-    let payload = JSON.parse(body)
+    // TODO also check secret: config.WEBHOOK_SECRET
+    console.log("Receiving github webhook update:" + body)
     response.writeHead(200)
     response.end('post received')
 
-    // TODO also check secret: config.WEBHOOK_SECRET
-    if (payload.ref === 'refs/heads/master') {
-      for (let orbID in connectedOrbs) {
-        let socket = connectedOrbs[orbID]
-        socket.send("GIT_HAS_UPDATE")
-      }
-      pullAndRestart()
-      return true
+    for (let orbID in connectedOrbs) {
+      let socket = connectedOrbs[orbID]
+      socket.send("GIT_HAS_UPDATE")
     }
+    pullAndRestart()
+    return true
   } catch(e) {
-    console.error("POST data didn't parse as JSON", e)
-    console.error("POST body:", body)
+    console.log("POST data didn't parse as JSON", e)
+    console.log("POST body:", body)
     response.writeHead(500)
     response.end('error parsing json')
   }

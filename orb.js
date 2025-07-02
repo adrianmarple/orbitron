@@ -57,7 +57,8 @@ async function saveBackup(nameOverride) {
   if (timingprefs.match(/"useTimer"\:\s*false,/)) {
     backup.prefs = (await fs.promises.readFile("prefs.json")).toString()
   }
-  orbToRelaySocket.send(JSON.stringify({ backup }))
+  await orbToRelaySocket.send(JSON.stringify({ backup }))
+  console.log("Sent backup to server")
 }
 
 
@@ -464,9 +465,8 @@ function tether(broadcastMessage) {
       }))
       console.log("Sending tether update")
     } catch (error) {
-      console.error(error)
-      destroyTether()
-      createTether()
+      console.log(error)
+      recreateTether()
     }
   }
 }
@@ -476,22 +476,24 @@ function createTether() {
   let protocolAndHost = "wss://my.lumatron.art"
   tethereeSocket = new WebSocket(`${protocolAndHost}:7777/${config.TETHER_ORB_ID}/${tetherClientID}`)
   tethereeSocket.onclose = _ => {
-    setTimeout(destroyTether)
+    setTimeout(recreateTether)
   }
   tethereeSocket.onerror = event => {
-    console.error("ERROR",event)
-    setTimeout(destroyTether)
+    console.log("ERROR",event)
+    setTimeout(recreateTether)
   }
 }
-function destroyTether() {
+function recreateTether() {
   if(tethereeSocket) {
     try {
       tethereeSocket.close()
     } catch(e) {
-      console.log("Error closing relay socket",e)
+      console.log("Error closing relay socket", e)
+      return
     }
     tethereeSocket = null
   }
+  createTether()
 }
 createTether()
 
