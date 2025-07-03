@@ -1424,6 +1424,7 @@ function latchPoints(E, N, reverse, insetAngle) {
     case "wedge":
       let inset = 0
       if (insetAngle > 0) {
+        insetAngle = insetAngle * insetAngle / (WEDGE_INSET_REDUCTION_FACTOR + insetAngle)
         inset = Math.tan(insetAngle) * THICKNESS
       }
       points = [
