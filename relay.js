@@ -273,7 +273,7 @@ addGETListener(async (response, orbID, _, queryParams) => {
 // Admin commands for orbs
 addGETListener(async (response, orbID, filePath, queryParams) => {
   if(!orbID || !connectedOrbs[orbID]) return
-  
+
   let pathParts = filePath.split("/")
   if (pathParts.length < 3 || pathParts[2] != "admin") return false
   
@@ -369,7 +369,6 @@ addPOSTListener(async (response, body) => {
       return false
 
     // TODO also check secret: config.WEBHOOK_SECRET
-    console.log("Receiving github webhook update:" + body)
     response.writeHead(200)
     response.end('post received')
 
