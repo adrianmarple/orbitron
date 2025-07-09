@@ -48,6 +48,9 @@ default_prefs = {
   "sinRadial": False,
   "disableBeatMode": False,
 
+  "hourglassStart": "00:00",
+  "hourglassEnd": "23:59",
+
   # COLOR
   "idleColor": "gradient",
   "brightness": 100,

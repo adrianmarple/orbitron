@@ -225,6 +225,16 @@
       <slider v-if="prefs.idlePattern == 'sin'"
           title="Min Value" key="sinMin" :min="-255" :max="255"></slider>
 
+      <vector v-if="prefs.idlePattern == 'hourglass'" title="Direction" key="staticDirection"></vector>
+      <div v-if="prefs.idlePattern == 'hourglass'" class="horiz-box">
+        Start Time:
+        <input type="time" v-model="prefs.hourglassStart"></input>
+      </div>
+      <div v-if="prefs.idlePattern == 'hourglass'" class="horiz-box">
+        End Time:
+        <input type="time" v-model="prefs.hourglassEnd"></input>
+      </div>
+
       <slider v-if="!['weather', 'static', 'lightfield'].includes(prefs.idlePattern)" 
           title="Density" key="idleDensity"
           :min="10"></slider>

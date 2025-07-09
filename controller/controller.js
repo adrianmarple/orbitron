@@ -224,6 +224,15 @@ var app = new Vue({
         ['lightfield', 'Sparkles'],
         ['default', 'Default'],
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
+
+      let optionalPatterns = [
+        ['hourglass', 'Hourglass'],
+      ]
+      for (let optionalPattern of optionalPatterns) {
+        if (this.include[optionalPattern[0]]) {
+          info.push(optionalPattern)
+        }
+      }
       
       let extra = this.state.extraIdle
       if (extra) {

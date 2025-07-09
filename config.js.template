@@ -36,6 +36,7 @@ module.exports={
     // gameSettings: true,
     // weeklyTimer: true,
     // beatMode: true,
+    // hourglass: true,
   },
   // BEAT_PIN: 15, // board pin 10/GPIO pin 15
   // MANUAL_FADE_PIN: 24, // board pin 18/GPIO pin 24
