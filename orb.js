@@ -42,20 +42,26 @@ async function backupLoop() {
 backupLoop()
 
 async function saveBackup(nameOverride) {
-  let savedPrefFileNames = await fs.promises.readdir("savedprefs")
+  let savedPrefFileNames = []
+  try {
+    savedPrefFileNames = await fs.promises.readdir("savedprefs")
+  } catch(_) {}
   let savedPrefs = {}
   for (let fileName of savedPrefFileNames) {
     savedPrefs[fileName] = (await fs.promises.readFile("savedprefs/" + fileName)).toString()
   }
-  let timingprefs = (await fs.promises.readFile("timingprefs.json")).toString()
   let backup = {
     nameOverride,
     savedPrefs,
-    timingprefs,
     config: (await fs.promises.readFile("config.js")).toString(),
   }
-  if (timingprefs.match(/"useTimer"\:\s*false,/)) {
-    backup.prefs = (await fs.promises.readFile("prefs.json")).toString()
+  try {
+    backup.timingprefs = (await fs.promises.readFile("timingprefs.json")).toString()
+  } catch(_) {}
+  if (!backup.timingprefs || backup.timingprefs.match(/"useTimer"\:\s*false,/)) {
+    try {
+      backup.prefs = (await fs.promises.readFile("prefs.json")).toString()
+    } catch(_) {}
   }
   await orbToRelaySocket.send(JSON.stringify({ backup }))
   console.log("Sent backup to server")
@@ -192,7 +198,9 @@ function connectOrbToRelay(){
           let promises = []
           let backup = command.backup
           promises.push(fs.promises.writeFile("config.js", backup.config))
-          promises.push(fs.promises.writeFile("timingprefs.json", backup.timingprefs))
+          if (backup.timingprefs) {
+            promises.push(fs.promises.writeFile("timingprefs.json", backup.timingprefs))
+          }
           if (backup.prefs) {
             promises.push(fs.promises.writeFile("prefs.json", backup.prefs))
           }
