@@ -272,6 +272,8 @@ addGETListener(async (response, orbID, _, queryParams) => {
 
 // Admin commands for orbs
 addGETListener(async (response, orbID, filePath, queryParams) => {
+  if(!orbID || !connectedOrbs[orbID]) return
+  
   let pathParts = filePath.split("/")
   if (pathParts.length < 3 || pathParts[2] != "admin") return false
   
