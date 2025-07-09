@@ -84,9 +84,6 @@ async function serverHandler(request, response) {
       body += data
     })
     request.on('end', async function() {
-      console.log("POST request:")
-      console.log(request.header)
-      console.log(body)
       let handled = false
       for (const listener of postListeners) {
         handled = await listener(response, body)
