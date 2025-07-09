@@ -81,6 +81,7 @@ function delay(ms) {
 async function restartOrbitron(){
   if (config.DEV_MODE) return
 
+  console.log(new Error().stack) // Useful for debugging
   let pm2Running = (await execute("ps -ea")).trim().indexOf("pm2") >= 0
   if(pm2Running){
     execute("pm2 restart all")
