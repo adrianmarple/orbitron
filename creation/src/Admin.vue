@@ -275,6 +275,7 @@ export default {
     },
     async saveAlias() {
       this.editingAlias = false
+      this.newAlias = this.newAlias.toLowerCase()
       this.sendServerCommand({
         type: "alias",
         id: this.orbID,
