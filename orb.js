@@ -128,10 +128,18 @@ function connectOrbToRelay(){
           returnData = (await fs.promises.readFile("config.js")).toString()
         }
         if (command.type == "getprefs") {
-          returnData = (await fs.promises.readFile("prefs.json")).toString()
+          try {
+            returnData = (await fs.promises.readFile("prefs.json")).toString()
+          } catch (_) {
+            returnData = "NO pref.json FILE EXISTS"
+          }
         }
         if (command.type == "gettimingprefs") {
-          returnData = (await fs.promises.readFile("timingprefs.json")).toString()
+          try {
+            returnData = (await fs.promises.readFile("timingprefs.json")).toString()
+          } catch (_) {
+            returnData = "NO timingprefs.json FILE EXISTS"
+          }
         }
         if (command.type == "geterror") {
           if (config.DEV_MODE) {
