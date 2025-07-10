@@ -465,26 +465,15 @@ function tether(broadcastMessage) {
   }
   previousBroadcast = broadcastMessage
 
-  if (!tethereeSocket || tethereeSocket.readyState === WebSocket.CLOSED) {
-    try {
-      createTether()
-    } catch(e) {
-      console.log(e)
-    }
-  } else if(shouldUpdateTetheree && tethereeSocket.readyState === WebSocket.OPEN) {
-    try {
-      shouldUpdateTetheree = false
-      tethereeSocket.send(JSON.stringify({
-        type: "prefs",
-        update,
-        timestamp: broadcastMessage.timestamp,
-      }))
-      console.log("Sending tether update")
-    } catch (error) {
-      console.log(error)
-      recreateTether()
-    }
-  }
+  tryTetherAction(() => {
+    shouldUpdateTetheree = false
+    tethereeSocket.send(JSON.stringify({
+      type: "prefs",
+      update,
+      timestamp: broadcastMessage.timestamp,
+    }))
+    console.log("Sending tether update")
+  })
 }
 function createTether() {
   if (!config.TETHER_ORB_ID) return
@@ -511,7 +500,34 @@ function recreateTether() {
   }
   createTether()
 }
-createTether()
+function tryTetherAction(action) {
+  if (!tethereeSocket || tethereeSocket.readyState === WebSocket.CLOSED) {
+    try {
+      createTether()
+    } catch(e) {
+      console.log(e)
+    }
+  } else if(shouldUpdateTetheree && tethereeSocket.readyState === WebSocket.OPEN) {
+    try {
+      action()
+    } catch (error) {
+      console.log(error)
+      recreateTether()
+    }
+  }
+}
+
+if (config.TETHER_ORB_ID) {
+  createTether()
+  setInterval(() => {
+    tryTetherAction(() => {
+      tethereeSocket.send(JSON.stringify({
+        type: "ping",
+        timestamp: preciseTime(),
+      }))
+    })
+  }, 30000)
+}
 
 function upkeep() {
   if(!gameState) return
@@ -566,7 +582,7 @@ const counterThreshold = 35
 
 lastMessageTimestamp = 0
 lastMessageTimestampCount = 0
-function preciseTime(){
+function preciseTime() {
   let t = Date.now()
   if(t != lastMessageTimestamp){
     lastMessageTimestamp = t

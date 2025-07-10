@@ -70,7 +70,7 @@ rotate(a=is_top ? 0 : 180, v=[1, 0, 0])
 union() {
 difference() {
     
-sphere(sphere_radius, $fn=25);
+sphere(sphere_radius, $fn=25); // 25 for quick rendering, 256 for stl final quality
 
 //rotate([0,45,0])
 union() {
