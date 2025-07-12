@@ -7,6 +7,7 @@
 
 <title>Controller - Lumatron</title>
 <link rel="shortcut icon" href="/controller/images/ravenstear.png" />
+<link rel="manifest" href="/controller/manifest.json" />
 <link rel="stylesheet" href="/controller/controller.css">
 
 <script src="/thirdparty/vue.js" type="text/javascript"></script>
@@ -22,7 +23,25 @@
     </div>
   </div>
 
-  <div v-if="connectionStatus == 'CONNECTING'" id="loading">
+  <div v-if="!orbID" id="registration">
+
+    <div class="horiz-box"></div>
+    <div v-for="id in registeredIDs" class="orb" @click="openOrb(id)">
+      {{ id }}
+    </div>
+    <textarea v-model="newID"></textarea>
+    <div class="button" @click="registerID()">Register</div>
+
+    <div v-if="!isPWA" class="horiz-box instructions">
+      Instruction to install PWA (diff for iOS vs Android)
+    </div>
+
+    <div class="side-box left"></div>
+    <div class="middle"></div>
+    <div class="side-box right"></div>
+  </div>
+
+  <div v-else-if="connectionStatus == 'CONNECTING'" id="loading">
     <canvas id="loading-ball" width="256" height="256"></canvas>
   </div>
   <div v-else-if="mustLogin" id="login">

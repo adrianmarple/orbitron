@@ -120,6 +120,21 @@ a > .fancy-box:hover, a.fancy-box:hover {
   position: relative;
 }
 
+#registration {
+  padding: 5rem;
+  font-size: 2rem;
+  width: 100%;
+}
+#registration .orb {
+  border: 0.1rem solid white;
+  border-radius: 1rem;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+#registration .button {
+  width: fit-content;
+}
+
 #login {
   font-size: 3rem;
   background-color: black;
@@ -236,7 +251,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   height: 100%;
   bottom: 0;
 }
-#consignment .middle {
+#consignment .middle, #registration .middle {
   position: fixed;
   background-color: var(--bg-color);
   height: 100%;
@@ -404,6 +419,11 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
 .right.side-box {
   right: 0;
   background-image: linear-gradient(to left, rgba(8,8,8,0.9) 0, var(--bg-color) 100%);
+}
+
+#registration .side-box {
+  bottom: 0;
+  height: 100%;
 }
 
 .slider-container {

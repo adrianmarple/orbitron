@@ -108,11 +108,11 @@ cylinder(h=20, r=inner_radius, center=true);
 }
 
 if (!is_top)
-translate([5,15,-10])
+translate([5,15.1,-10])
 union() {
-  translate([0,-30,0])
-  pcb_clip(4.6, 10, 0.2, 3.8, 4, 1.2);
+  translate([0,-30.2,0])
+  pcb_clip(4.6, 10, 0.2, 4, 5, 1.4);
   rotate(a=180, v=[0,0,1])
-  pcb_clip(4.6, 10, 0.2, 3.8, 4, 1.2);
+  pcb_clip(4.6, 10, 0.2, 4, 5, 1.4);
 }
 };

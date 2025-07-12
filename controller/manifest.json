@@ -1,0 +1,15 @@
+{
+  "short_name": "Lumatron",
+  "name": "Lumatron Controller",
+  "icons": [
+    {
+      "src": "/controller/images/ravenstear.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#121212",
+  "background_color": "#121212"
+}

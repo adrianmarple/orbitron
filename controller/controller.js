@@ -1,8 +1,11 @@
 
 // To prevent zoom on iOS
 document.addEventListener("click", event => {
+  if (!event.target) return
   if (event.target.tagName === "INPUT") return
   if (event.target.tagName === "A") return
+
+  if (!event.target.parentNode) return
   if (event.target.parentNode.tagName === "A") return
 
   event.preventDefault()
@@ -32,8 +35,14 @@ const searchParams = new URLSearchParams(location.search)
 var app = new Vue({
   el: '#app',
   data: {
+    orbID: location.pathname.split('/')[1],
+    isPWA: window.matchMedia('(display-mode: standalone)').matches,
+    registeredIDs: [],
+    newID: "",
+
     ws: null,
     state: {},
+    
     loginCode: "",
     localFlags: {},
     hasSeenGlobalRules: false,
@@ -104,6 +113,23 @@ var app = new Vue({
         this.blurred = true
       }
     }
+
+    let rawRegisteredIDs = localStorage.getItem("registeredIDs")
+    if (rawRegisteredIDs) {
+      try {
+        this.registeredIDs = JSON.parse(rawRegisteredIDs)
+      } catch(e) {
+        console.error(e)
+      }
+    }
+    history.replaceState({ orbID: this.orbID }, "")
+    addEventListener("popstate", (event) => {
+      this.orbID = event.state.orbID
+      this.destroyWebsocket()
+      if (this.orbID) {
+        this.startWebsocket()
+      }
+    })
 
     onmousedown = this.handleStart
     ontouchstart = event => {
@@ -407,6 +433,25 @@ var app = new Vue({
       this.rem =  Math.min(1.35 * this.vh, 2 * this.vw)
       this.$forceUpdate()
     },
+
+    registerID() {
+      // TODO check with server that ID exists
+      this.registeredIDs.push(this.newID)
+      this.newID = ""
+      localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+    },
+    openOrb(orbID) {
+      history.pushState({ orbID }, "", orbID)
+      this.orbID = orbID
+      this.destroyWebsocket()
+      if (orbID) {
+        this.startWebsocket()
+      }
+    },
+    openRegistration() {
+      this.openOrb("")
+    },
+
     login() {
       this.send({type: "login", loginCode: this.loginCode})
     },
@@ -651,9 +696,8 @@ var app = new Vue({
       this.socketStatus = "DISCONNECTED"
     },
     startWebsocket() {
-      let self=this
-      if(self.ws) {
-        return // Already trying to establish a connection
+      if(this.ws || !this.orbID) {
+        return // Already trying to establish a connection or no orbID
       }
       let protocolAndHost
       if (location.hostname == "localhost" || location.hostname.startsWith("192.168")) {
@@ -662,7 +706,8 @@ var app = new Vue({
         protocolAndHost = "wss://" + location.hostname
       }
       this.socketStatus == 'CONNECTING'
-      this.ws = new WebSocket(`${protocolAndHost}:7777/${location.pathname.split('/')[1]}/${this.uuid}`)
+      this.ws = new WebSocket(`${protocolAndHost}:7777/${this.orbID}/${this.uuid}`)
+      let self=this
       this.ws.onmessage = event => {
         self.$set(self, 'socketStatus', 'CONNECTED')
         self.handleMessage(event.data)

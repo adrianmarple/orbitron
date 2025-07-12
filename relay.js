@@ -231,7 +231,8 @@ function bindClient(socket, orbID, clientID) {
     console.error("Error sending initial client message", e)
     socket.close()
   }
-}
+} // END web socket section
+
 
 // Admin commands for this relay
 addGETListener(async (response, orbID, _, queryParams) => {
@@ -291,6 +292,7 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
   return true
 })
 
+// Get zip of all logs
 addGETListener(async (response, orbID, filePath)=>{
   if(!orbID || !connectedOrbs[orbID] || !filePath.includes("/logs")) return
 
@@ -339,7 +341,13 @@ addGETListener(async (response, orbID, filePath)=>{
   return true
 })
 
+// Serve actual controller
 addGETListener(async (response, orbID, filePath)=>{
+  if (filePath == "") { // Home page is same as controller now
+    respondWithFile(response, "/controller/controller.html")
+    return true
+  }
+  
   if(!orbID || !connectedOrbs[orbID]) return
 
   let originalOrbID = filePath.split("/")[1].toLowerCase()
@@ -355,6 +363,7 @@ addGETListener(async (response, orbID, filePath)=>{
   return true
 })
 
+// Process notification of git update
 addPOSTListener(async (response, body) => {
   try {
     // Ignore weird extra POST requests
