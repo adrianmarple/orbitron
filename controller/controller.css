@@ -790,7 +790,7 @@ input[type="range"]::-moz-range-thumb {
   width: 5rem;
   right: 1rem;
 }
-#about-button {
+#about-button, #back-button {
   position: fixed;
   top: 1rem;
   cursor: pointer;
@@ -800,19 +800,17 @@ input[type="range"]::-moz-range-thumb {
   justify-content: center;
   align-items: center;
   color: white !important;
-  opacity: 0.6;
   text-decoration: none;
   filter: drop-shadow(0 0 1rem white);
   width: 6rem;
   height: 6rem;
 }
-#about-button img {
+#about-button img, #back-button img {
   width: 100%;
   position: absolute;
 }
-#about-button .qmark {
-  font-size: 2.5rem;
-  padding-bottom: 0.2rem;
+#about-button {
+  opacity: 0.6;
 }
 
 #label {
