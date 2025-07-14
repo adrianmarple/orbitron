@@ -23,10 +23,23 @@
     </div>
   </div>
 
-  <div v-if="!orbID" id="registration">
+  <div v-if="speedbumpCallback" id="speedbump" @click="clearSpeedbump">
+    <p>{{speedbumpMessage}}</p>
+    <p>Are you sure?</p>
+    <div class="button" @click="confirmSpeedbump">
+      Yes
+    </div>
+    <div class="button">
+      No
+    </div>
+  </div>
+
+  <div v-else-if="!orbID" id="registration">
 
     <div class="horiz-box"></div>
     <div v-for="id in registeredIDs" class="orb" @click="openOrb(id)">
+      <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
+
       {{ id }}
     </div>
     <textarea v-model="newID"></textarea>
@@ -64,17 +77,6 @@
     <div class="side-box left"></div>
     <div class="middle"></div>
     <div class="side-box right"></div>
-  </div>
-
-  <div v-else-if="speedbumpCallback" id="speedbump" @click="clearSpeedbump">
-    <p>{{speedbumpMessage}}</p>
-    <p>Are you sure?</p>
-    <div class="button" @click="confirmSpeedbump">
-      Yes
-    </div>
-    <div class="button">
-      No
-    </div>
   </div>
 
   <div v-else-if="!gameStarted" id="home">

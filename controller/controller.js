@@ -451,6 +451,15 @@ var app = new Vue({
     openRegistration() {
       this.openOrb("")
     },
+    deleteRegistration(id) {
+      let self = this
+      this.speedbumpMessage = `This will remove "${id}", you can always add it back.`
+      this.speedbumpCallback = () => {
+        self.registeredIDs.remove(id)
+        localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+      }
+      console.log("wtf")
+    },
 
     login() {
       this.send({type: "login", loginCode: this.loginCode})
@@ -706,7 +715,9 @@ var app = new Vue({
         protocolAndHost = "wss://" + location.hostname
       }
       this.socketStatus == 'CONNECTING'
+      console.log(this.orbID, this.ws)
       this.ws = new WebSocket(`${protocolAndHost}:7777/${this.orbID}/${this.uuid}`)
+      console.log(this.ws)
       let self=this
       this.ws.onmessage = event => {
         self.$set(self, 'socketStatus', 'CONNECTED')
