@@ -146,6 +146,11 @@ a > .fancy-box:hover, a.fancy-box:hover {
 #registration .button {
   width: fit-content;
 }
+#registration .error {
+  font-size: 2rem;
+  color: #d21;
+  height: 3rem;
+}
 
 #login {
   font-size: 3rem;

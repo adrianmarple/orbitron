@@ -39,6 +39,7 @@ var app = new Vue({
     isPWA: window.matchMedia('(display-mode: standalone)').matches,
     registeredIDs: [],
     newID: "",
+    registrationErrorMessage: "",
 
     ws: null,
     state: {},
@@ -124,11 +125,7 @@ var app = new Vue({
     }
     history.replaceState({ orbID: this.orbID }, "")
     addEventListener("popstate", (event) => {
-      this.orbID = event.state.orbID
-      this.destroyWebsocket()
-      if (this.orbID) {
-        this.startWebsocket()
-      }
+      this.openOrb(event.state.orbID)
     })
 
     onmousedown = this.handleStart
@@ -157,6 +154,9 @@ var app = new Vue({
   },
 
   watch: {
+    newID() {
+      this.newID = this.newID.toLowerCase().replace(/[^a-zA-Z0-9]/g, '')
+    },
     "state.settings": function(val, oldValue) {
       if (!oldValue) {
         this.settings = { ...val }
@@ -434,22 +434,41 @@ var app = new Vue({
       this.$forceUpdate()
     },
 
-    registerID() {
-      // TODO check with server that ID exists
+    async onRegistrationKeypress(event) {
+      this.registrationErrorMessage = ""
+      if (event.key == "Enter") {
+        this.registerID()
+      }
+    },
+    async registerID() {
+      if (this.registeredIDs.includes(this.newID)) {
+        this.registrationErrorMessage = "Id already registered."
+        return
+      }
+      let info = await (await fetch(`${location.origin}/${this.newID}/info`)).json()
+      if (!info) {
+        this.registrationErrorMessage = "That id has never connected to the server."
+        return
+      }
+
       this.registeredIDs.push(this.newID)
       this.newID = ""
       localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
     },
-    openOrb(orbID) {
-      history.pushState({ orbID }, "", orbID)
+    openOrb(orbID, saveToHistory) {
+      if (saveToHistory) {
+        history.pushState({ orbID }, "", orbID)
+      }
       this.orbID = orbID
       this.destroyWebsocket()
       if (orbID) {
         this.startWebsocket()
+      } else {
+        this.uuid = uuid()
       }
     },
     openRegistration() {
-      this.openOrb("")
+      this.openOrb("", true)
     },
     deleteRegistration(id) {
       let self = this

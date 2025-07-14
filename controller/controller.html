@@ -37,12 +37,13 @@
   <div v-else-if="!orbID" id="registration">
 
     <div class="horiz-box"></div>
-    <div v-for="id in registeredIDs" class="orb" @click="openOrb(id)">
+    <div v-for="id in registeredIDs" class="orb" @click="openOrb(id, true)">
       <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
 
       {{ id }}
     </div>
-    <textarea v-model="newID"></textarea>
+    <textarea v-model="newID" @keydown="onRegistrationKeypress"></textarea>
+    <div class="error">{{ registrationErrorMessage }}</div>
     <div class="button" @click="registerID()">Register</div>
 
     <div v-if="!isPWA" class="horiz-box instructions">

@@ -292,6 +292,29 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
   return true
 })
 
+// Get basic info on orb
+addGETListener(async (response, orbID, filePath)=>{
+  if (!filePath.includes("/info")) return
+
+  noCorsHeader(response, 'text/json')
+  // Check cached info instead in the future
+  if(!orbID || !connectedOrbs[orbID]) {
+    response.end(JSON.stringify(null))
+    return true
+  }
+
+  // TODO add info from config (sent by orb on connection and cached)
+  let info = {
+    orbID,
+    isCurrentlyConnected: connectedOrbs[orbID],
+  }
+  if (config.ALIASES[orbID]) {
+    info.alias = config.ALIASES[orbID]
+  }
+  response.end(JSON.stringify(info))
+  return true
+})
+
 // Get zip of all logs
 addGETListener(async (response, orbID, filePath)=>{
   if(!orbID || !connectedOrbs[orbID] || !filePath.includes("/logs")) return
@@ -347,7 +370,7 @@ addGETListener(async (response, orbID, filePath)=>{
     respondWithFile(response, "/controller/controller.html")
     return true
   }
-  
+
   if(!orbID || !connectedOrbs[orbID]) return
 
   let originalOrbID = filePath.split("/")[1].toLowerCase()
