@@ -338,7 +338,7 @@ function getClientConnection(clientID) {
 function createClientConnection(clientID, socket){
   if(!clientConnections[clientID]) {
     let clientConnection = new ClientConnection(clientID)
-    clientConnection.on("close", ()=>{
+    clientConnection.on("close", () => {
       delete clientConnections[clientID]
     })
     clientConnection.setSocket(socket)
@@ -402,6 +402,9 @@ class ClientConnection {
   close() {
     if(this.callbacks.close){
       this.callbacks.close.forEach((callback)=>callback())
+    }
+    if (this.socket) {  
+      this.socket.close()
     }
   }
 }
