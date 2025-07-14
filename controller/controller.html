@@ -42,12 +42,12 @@
 
       {{ id }}
     </div>
-    <textarea v-model="newID" @keydown="onRegistrationKeypress"></textarea>
     <div class="error">{{ registrationErrorMessage }}</div>
+    <textarea v-model="newID" @keydown="onRegistrationKeypress"></textarea>
     <div class="button" @click="registerID()">Register</div>
 
     <div v-if="!isPWA" class="horiz-box instructions">
-      Instruction to install PWA (diff for iOS vs Android)
+      Instructions to install PWA (diff for iOS vs Android)
     </div>
 
     <div class="side-box left"></div>

@@ -463,8 +463,6 @@ var app = new Vue({
       this.destroyWebsocket()
       if (orbID) {
         this.startWebsocket()
-      } else {
-        this.uuid = uuid()
       }
     },
     openRegistration() {
@@ -734,15 +732,14 @@ var app = new Vue({
         protocolAndHost = "wss://" + location.hostname
       }
       this.socketStatus == 'CONNECTING'
-      console.log(this.orbID, this.ws)
       this.ws = new WebSocket(`${protocolAndHost}:7777/${this.orbID}/${this.uuid}`)
-      console.log(this.ws)
       let self=this
       this.ws.onmessage = event => {
         self.$set(self, 'socketStatus', 'CONNECTED')
         self.handleMessage(event.data)
       }
       this.ws.onclose = event => {
+        console.log(event.target)
         setTimeout(function(){ self.destroyWebsocket(); })
       }
       this.ws.onerror = event => {
