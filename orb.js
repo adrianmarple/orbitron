@@ -447,6 +447,7 @@ function bindDataEvents(peer) {
   })
 }
 
+// TETHERED ORB
 let tethereeSocket = null
 let tetherClientID = uuid()
 let shouldUpdateTetheree = true
@@ -481,24 +482,23 @@ function createTether() {
   let protocolAndHost = "wss://my.lumatron.art"
   tethereeSocket = new WebSocket(`${protocolAndHost}:7777/${config.TETHER_ORB_ID}/${tetherClientID}`)
   tethereeSocket.onclose = _ => {
-    setTimeout(recreateTether)
+    tethereeSocket = null
   }
   tethereeSocket.onerror = event => {
-    console.log("ERROR",event)
-    setTimeout(recreateTether)
+    console.log("Tether socket error:",event)
+    setTimeout(destroyTether)
   }
 }
-function recreateTether() {
+function destroyTether() {
   if(tethereeSocket) {
     try {
       tethereeSocket.close()
     } catch(e) {
-      console.log("Error closing relay socket", e)
+      console.log("Error closing tether socket", e)
       return
     }
     tethereeSocket = null
   }
-  createTether()
 }
 function tryTetherAction(action) {
   if (!tethereeSocket || tethereeSocket.readyState === WebSocket.CLOSED) {
@@ -512,11 +512,9 @@ function tryTetherAction(action) {
       action()
     } catch (error) {
       console.log(error)
-      recreateTether()
     }
   }
 }
-
 if (config.TETHER_ORB_ID) {
   createTether()
   setInterval(() => {
@@ -526,8 +524,9 @@ if (config.TETHER_ORB_ID) {
         timestamp: preciseTime(),
       }))
     })
-  }, 30000)
+  }, 10000)
 }
+
 
 function upkeep() {
   if(!gameState) return
