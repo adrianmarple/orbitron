@@ -484,6 +484,27 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
   background-color: rgba(8,8,8, 0.5);
 }
 
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8rem;
+  height: 3.5rem;
+  padding: 0;
+  padding-block: 0;
+  padding-inline: 0;
+  inline-size: 8rem;
+  block-size: 3.5rem;
+  border-radius: 0.2rem;
+  border-radius: 0.2rem;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0.5rem;
+}
+input[type="color"]::-webkit-color-swatch {
+  border-width: 0.2rem;
+  border-radius: 0;
+}
+
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;

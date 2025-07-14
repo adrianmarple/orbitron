@@ -79,11 +79,6 @@ Vue.component('color', {
   computed: {
     name() { return this.$vnode.key },
   },
-  watch: {
-    value() {
-      this.$root.prefs[this.name] = this.value
-    },
-  },
   template: `
 <span style="width: 100%;" v-if="!$root.exclude[name]">
 <div class="row filled" >
@@ -91,7 +86,7 @@ Vue.component('color', {
   {{title}}:
   <help v-if="help" :message="help"/>
 </div>
-<input type="color" v-model=value>
+<input type="color" v-model="$root.prefs[name]">
 </span>
 `})
 

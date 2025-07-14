@@ -739,7 +739,6 @@ var app = new Vue({
         self.handleMessage(event.data)
       }
       this.ws.onclose = event => {
-        console.log(event.target)
         setTimeout(function(){ self.destroyWebsocket(); })
       }
       this.ws.onerror = event => {
