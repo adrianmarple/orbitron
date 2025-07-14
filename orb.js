@@ -403,9 +403,6 @@ class ClientConnection {
     if(this.callbacks.close){
       this.callbacks.close.forEach((callback)=>callback())
     }
-    if (this.socket) {  
-      this.socket.close()
-    }
   }
 }
 

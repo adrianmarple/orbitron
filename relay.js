@@ -166,6 +166,7 @@ function bindOrb(socket, orbID) {
 }
 
 function bindClient(socket, orbID, clientID) {
+  console.log("bind", orbID, clientID)
   orbID = orbID.toLowerCase()
   if(!connectedClients[orbID]){
     connectedClients[orbID] = {}
@@ -190,6 +191,7 @@ function bindClient(socket, orbID, clientID) {
         message: data,
       }
       data = JSON.stringify(data)
+      console.log("message", orbID, clientID)
       let orb = connectedOrbs[orbID]
       if(orb){
         orb.send(data)
