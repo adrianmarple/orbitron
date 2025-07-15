@@ -63,6 +63,7 @@ node_modules/
 
 # config files
 /backups/
+orbinfocache.json
 config.js
 *prefs.json
 .env

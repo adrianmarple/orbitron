@@ -41,7 +41,7 @@ function orbEmulatorBroadcast(message) {
 
 addGETListener((response, orbID, filePath)=>{
   if (filePath == '/pixels.json') {
-    respondWithFile(response, config.PIXELS)
+    respondWithFile(response, config.PIXELS_FILE)
     return true
   }
 })

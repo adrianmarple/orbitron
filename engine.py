@@ -57,16 +57,7 @@ base_settings = {
 READY_PULSE_DURATION = 0.75
 ZERO_2D = np.array((0, 0))
 
-file_name = config.get("PIXELS", "rhombicosidodecahedron")
-if file_name.endswith(".json"):
-  file_name = file_name[:-5]
-if file_name.startswith("/pixels/"):
-  file_name = file_name[8:]
-if "/" not in file_name:
-  file_name = file_name + "/" + file_name
-
-file_name = "/pixels/" + file_name + ".json"
-f = open(os.path.dirname(__file__) + file_name, "r")
+f = open(os.path.dirname(__file__) + config["PIXELS_FILE"], "r")
 pixel_info = json.loads(f.read())
 f.close()
 

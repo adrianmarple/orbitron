@@ -82,6 +82,22 @@ function connectOrbToRelay(){
     relayURL += `:7777/relay/${config.ORB_ID}`
     orbToRelaySocket = new WebSocket.WebSocket(relayURL)
     orbToRelaySocket.lastPingReceived = Date.now()
+
+    orbToRelaySocket.on("open", () => {
+      // Send over config w/o secret on socket connection
+      let configCopy = { ...config }
+      delete configCopy.ORB_KEY
+      let message = {
+        type: "info",
+        config: configCopy
+      }
+      try {
+        orbToRelaySocket.send(JSON.stringify(message))
+      } catch(e) {
+        console.log("Error sending config to relay", e, message)
+      }
+    })
+
     orbToRelaySocket.on('message', async (data, isBinary) => {
       displayText("")
       if(!isBinary){
@@ -105,7 +121,7 @@ function connectOrbToRelay(){
           let logfile = fs.readFileSync(`${homedir}/logs.zip`)
           orbToRelaySocket.send(logfile)
         } catch(error) {
-          console.error("Error sending logs", error)
+          console.log("Error sending logs", error)
         }
         return
       }
@@ -254,12 +270,12 @@ function connectOrbToRelay(){
     })
     orbToRelaySocket.on('error', (e) => {
       displayText("CONNECTION ERROR")
-      console.error("Orb to relay socket error", e)
+      console.log("Orb to relay socket error", e)
       orbToRelaySocket.close()
     })
   } catch(e) {
     displayText("CONNECTION ERROR")
-    console.error("Error connecting to relay:", e)
+    console.log("Error connecting to relay:", e)
     orbToRelaySocket = null
   }
 }
@@ -375,7 +391,7 @@ class ClientConnection {
         }
       }
     } catch(e) {
-      console.error("Error processing message", e)
+      console.log("Error processing message", e)
     }
   }
 
@@ -395,7 +411,7 @@ class ClientConnection {
     try {
       this.socket.send(JSON.stringify(message))
     } catch(e) {
-      console.error("Error sending to client", e, this.id)
+      console.log("Error sending to client", e, this.id)
     }
   }
 
@@ -656,7 +672,7 @@ python_process.stdout.on('data', data => {
           broadcast(JSON.parse(raw_json))
           orbEmulatorBroadcast(raw_json)
         } catch(e) {
-          console.error("broadcast error", e, raw_json)
+          console.log("broadcast error", e, raw_json)
         }
         raw_json = null
       }
@@ -668,7 +684,7 @@ python_process.stdout.on('data', data => {
         try {
           orbEmulatorBroadcast(pako.deflate(raw_pixels.slice(0, -1)))
         } catch(e) {
-          console.error("orbEmulatorBroadcast error", e, raw_pixels)
+          console.log("orbEmulatorBroadcast error", e, raw_pixels)
         }
         raw_pixels = null
       }
@@ -684,7 +700,7 @@ python_process.stderr.on('data', data => {
 });
 
 python_process.on('uncaughtException', function(err, origin) {
-  console.error('Caught python exception: ', err, origin);
+  console.log('Caught python exception: ', err, origin);
 });
 
 

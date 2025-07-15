@@ -12,6 +12,7 @@ const connectedOrbs = {}
 const logsRequested = {}
 const connectedClients = {}
 const awaitingMessages = {}
+let orbInfoCache = {}
 let BACKUPS_DIR = "./backups/"
 
 let server
@@ -56,13 +57,19 @@ let serverPingHandler = () => {
 }
 setInterval(serverPingHandler, 3000)  
 
+async function loadOrbInfoCache() {
+  try {
+    orbInfoCache = JSON.parse(await fs.promises.readFile("./orbinfocache.json", "utf8"))
+  } catch(_) {}
+}
+
 function bindOrb(socket, orbID) {
   orbID = orbID.toLowerCase()
   if(connectedOrbs[orbID]){
     try {
       connectedOrbs[orbID].close()
     } catch(e) {
-      console.error("Error closing existing orb socket",orbID, e)
+      console.log("Error closing existing orb socket",orbID, e)
     }
   }
   connectedOrbs[orbID] = socket
@@ -128,7 +135,7 @@ function bindOrb(socket, orbID) {
         fs.writeFileSync(`${homedir}/${orbID}_logs.zip`, data)
         console.log("Wrote logs for " + orbID)
       } catch(error) {
-        console.error("Error writing log file", error)
+        console.log("Error writing log file", error)
       }
       logsRequested[orbID] = false
       return
@@ -138,21 +145,28 @@ function bindOrb(socket, orbID) {
     }
     try {
       data = JSON.parse(data);
+
+      if (data.config) { // info dump to cache
+        orbInfoCache[orbID] = data
+        await fs.promises.writeFile("./orbinfocache.json", JSON.stringify(orbInfoCache), "utf8")
+        return
+      }
+
       let clientID = data.clientID;
       let client = connectedClients[orbID] && connectedClients[orbID][clientID]
-      if(client){
+      if(client) {
         while(client.messageCache.length > 0) {
           let message = client.messageCache.shift()
           try {
             socket.send(message)
           } catch(e) {
-            console.error("Error sending cached message to orb", orbID, clientID, e)
+            console.log("Error sending cached message to orb", orbID, clientID, e)
           }
         }
         client.send(data.message)
       }
     } catch(e) {
-      console.error("Orb to Client error:", orbID, clientID, e)
+      console.log("Orb to Client error:", orbID, e)
     }
 
   })
@@ -160,7 +174,7 @@ function bindOrb(socket, orbID) {
     delete connectedOrbs[orbID]
   })
   socket.on('error', (e) => {
-    console.error("Error in orb socket", orbID, e)
+    console.log("Error in orb socket", orbID, e)
     socket.close()
   })
 }
@@ -174,7 +188,7 @@ function bindClient(socket, orbID, clientID) {
     try {
       connectedClients[orbID][clientID].close()
     } catch(e) {
-      console.error("Error closing existing client", orbID, clientID, e)
+      console.log("Error closing existing client", orbID, clientID, e)
     }
   }
   connectedClients[orbID][clientID] = socket
@@ -200,7 +214,7 @@ function bindClient(socket, orbID, clientID) {
         }
       }
     } catch(e) {
-      console.error("Client to orb error:", orbID, clientID, e)
+      console.log("Client to orb error:", orbID, clientID, e)
     }
   })
   socket.on('close', () => {
@@ -214,7 +228,7 @@ function bindClient(socket, orbID, clientID) {
     delete connectedClients[orbID][clientID]
   })
   socket.on('error', (e) => {
-    console.error("Error on client socket", orbID, clientID, e)
+    console.log("Error on client socket", orbID, clientID, e)
     socket.close()
   })
   try {
@@ -228,7 +242,7 @@ function bindClient(socket, orbID, clientID) {
       orb.send(JSON.stringify(initial_message))
     }
   } catch(e) {
-    console.error("Error sending initial client message", e)
+    console.log("Error sending initial client message", e)
     socket.close()
   }
 } // END web socket section
@@ -297,16 +311,15 @@ addGETListener(async (response, orbID, filePath)=>{
   if (!filePath.includes("/info")) return
 
   noCorsHeader(response, 'text/json')
-  // Check cached info instead in the future
-  if(!orbID || !connectedOrbs[orbID]) {
+  if(!orbID || !orbInfoCache[orbID]) {
     response.end(JSON.stringify(null))
     return true
   }
 
-  // TODO add info from config (sent by orb on connection and cached)
   let info = {
     orbID,
-    isCurrentlyConnected: connectedOrbs[orbID],
+    topology: config.PIXELS,
+    isCurrentlyConnected: !!connectedOrbs[orbID],
   }
   if (config.ALIASES[orbID]) {
     info.alias = config.ALIASES[orbID]
@@ -351,7 +364,7 @@ addGETListener(async (response, orbID, filePath)=>{
     response.writeHead(200, { 'Content-Type': 'application/zip' })
     response.end(data, 'utf-8')
   } catch(error) {
-    console.error("Error sending log files for " + orbID, error)
+    console.log("Error sending log files for " + orbID, error)
     if(error.code == 'ENOENT'){
       response.writeHead(404)
       response.end(`Unable to find log files on server for ${orbID}`, 'utf-8')
@@ -417,3 +430,5 @@ addPOSTListener(async (response, body) => {
     response.end('error parsing json')
   }
 })
+
+loadOrbInfoCache()

@@ -38,6 +38,7 @@ var app = new Vue({
     orbID: location.pathname.split('/')[1],
     isPWA: window.matchMedia('(display-mode: standalone)').matches,
     registeredIDs: [],
+    idToBasicOrbInfo: {},
     newID: "",
     registrationErrorMessage: "",
 
@@ -119,6 +120,12 @@ var app = new Vue({
     if (rawRegisteredIDs) {
       try {
         this.registeredIDs = JSON.parse(rawRegisteredIDs)
+        for (let id of this.registeredIDs) {
+           fetch(`${location.origin}/${id}/info`).then(async data => {
+            this.idToBasicOrbInfo[id] = await data.json()
+            console.log(id, this.idToBasicOrbInfo[id])
+           })
+        }
       } catch(e) {
         console.error(e)
       }
@@ -446,6 +453,7 @@ var app = new Vue({
         return
       }
       let info = await (await fetch(`${location.origin}/${this.newID}/info`)).json()
+      console.log(info)
       if (!info) {
         this.registrationErrorMessage = "That id has never connected to the server."
         return
