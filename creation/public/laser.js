@@ -334,11 +334,13 @@ async function createCoverSVG(plain) {
       }
 
       // Slots
-      slotString += singleSlotPath(wallLength,
-        [e1, n],
-        v1,
-        [lengthOffset1, CHANNEL_WIDTH/2],
-        print)
+      if (RENDER_MODE == "standard") {
+        slotString += singleSlotPath(wallLength,
+          [e1, n],
+          v1,
+          [lengthOffset1, CHANNEL_WIDTH/2],
+          print)
+      }
 
       // Border
       let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
@@ -355,6 +357,9 @@ async function createCoverSVG(plain) {
         let kerf = ORIGAMI_KERF
         if (RENDER_MODE == "parts") {
           kerf -= 0.2
+        }
+        if (RENDER_MODE == "simple") {
+          kerf = 0
         }
         deadendPlain = deadendPlain.translate(e0.normalize().scale(kerf))
         let line1 = line.translate(n.scale(width))
@@ -467,7 +472,6 @@ async function createCoverSVG(plain) {
       totalBorderString += borderString
     }
     totalPathString += slotString
-
     channelString = "M" + channelString.substring(1) + "Z "
     totalChannelString += channelString
   } // END for (let dPath of paths)
@@ -661,7 +665,7 @@ function pointsToSVGString(points, basis, offset, flip) {
     }
   	let truePoint = basis[0].scale(point[0]).addScaledVector(basis[1], point[1])
   	truePoint = truePoint.add(offset)
-    if (!coverPrint3D) {
+    if (!coverPrint3D && RENDER_MODE != "simple") {
       truePoint = truePoint.scale(MM_TO_96DPI)
     }
     if (truePoint.x > 1e6 || truePoint.y > 1e6) {
@@ -716,10 +720,17 @@ function createFullModel() {
   print.suffix = "_full"
   print.operations = [{ type: "rotate", axis: [1,0,0], angle: -Math.PI/2 }]
 
-  for (let type of ["top", "bottom"]) {
+  for (let type of COVER_TYPES) {
     for (let coverPrint of covers[type]) {
       coverPrint.operations = coverPrint.worldPlacementOperations
       print.components.push(coverPrint)
+    }
+  }
+  if (RENDER_MODE == "simple") {
+    return {
+      type: "gcode",
+      prints: [print],
+      PROCESS_STOP: "stl",
     }
   }
 

@@ -217,6 +217,7 @@ async function fleshOutBody(body) {
   if (!fs.existsSync(tempDirPath)) {
     await fs.promises.mkdir(tempDirPath)
   }
+  body.dir = heirarchy[0]
   body.fileName = heirarchy.last()
   body.fullPath = filePath + body.fullProjectName
   body.tempPath = tempDirPath + "/" + body.fileName
@@ -371,8 +372,17 @@ async function generateGCode(info, print) {
   console.log("Generating .stl " + info.fullSuffix)
   await execute(`openscad -o "${stlFilePath}" "${scadFilePath}"`)
   if (!info.asciiStl) {
-    console.log("Converting .stl to binary")
-    await execute(`admesh -b ${stlFilePath} ${stlFilePath}`)
+    // console.log("Converting .stl to binary using admesh")
+    // await execute(`admesh -c ${stlFilePath} -b ${stlFilePath}`)
+    console.log("Simplifying mesh with blender")
+    console.log(await execute(`/Applications/Blender.app/Contents/MacOS/Blender --background --python simplifymesh.py -- ${stlFilePath} ${stlFilePath}`))
+  }
+
+  if (info.additionalSavePath && info.dir != "test") {
+    console.log("Copying to additional save path " + info.additionalSavePath)
+    await execute(`mkdir -p ${info.additionalSavePath}`)
+    await execute(`mkdir -p ${info.additionalSavePath}/${info.dir}`)
+    await execute(`cp ${stlFilePath} ${info.additionalSavePath}/${info.fullProjectName}.stl`)
   }
   if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
 

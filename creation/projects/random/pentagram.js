@@ -33,7 +33,7 @@ function addPolygram(sideCount, center, edgeLengths) {
   return newEdges
 }
 
-// SKIP
+// SKI
 module.exports = () => {
   sortOverride = (edge, previousEdge, angle) => {
     if(epsilonEquals(angle,Math.PI*4/5)){

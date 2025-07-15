@@ -180,11 +180,31 @@ export default {
       if (renderMode == "parts") {
         printInfo.prints[0].suffix = "_parts"
       }
+      if (renderMode == "simple") {
+        let oldDepth = CHANNEL_DEPTH
+        let oldThickness = THICKNESS
+        let oldBorder = BORDER
+        THICKNESS += CHANNEL_DEPTH
+        CHANNEL_DEPTH = -(THICKNESS + CHANNEL_DEPTH)/2
+        BORDER = 0
+        COVER_TYPES = ["top"]
+        await generateManufacturingInfo()
+        let corePrintInfo = createFullModel()
+        printInfo.prints[0].components = [
+          ...printInfo.prints[0].components,
+          ...corePrintInfo.prints[0].components
+        ]
+        CHANNEL_DEPTH = oldDepth
+        THICKNESS = oldThickness
+        BORDER = oldBorder
+        COVER_TYPES = ["top", "bottom"]
+        printInfo.additionalSavePath = "../stls"
+      }
       RENDER_MODE = oldMode
       printInfo.fullProjectName = fullProjectName
       this.$root.post(printInfo)
       console.log("Generating " + renderMode)
-      generateManufacturingInfo() // In potentially non-simple mode
+      generateManufacturingInfo() // Restore old svgs and such
     },
 
     configure() {

@@ -1,4 +1,4 @@
-// SKIP
+// SKI
 module.exports = () => {
   ledAtVertex = false
 
