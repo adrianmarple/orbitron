@@ -79,7 +79,7 @@ Icon?
 
 # 3d printing files
 *.gcode
-*.stl
+/creation/**/*.stl
 
 # sd card image
 *.img
