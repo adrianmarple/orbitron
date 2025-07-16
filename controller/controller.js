@@ -123,8 +123,6 @@ var app = new Vue({
     } else if (navigator.userAgent.indexOf("Safari") !== -1) {
       this.browser = "Safari";
     }
-    this.os = "Android"
-    this.browser = "Unknown"
 
     this.startWebsocket()
     setInterval(() => {
@@ -155,6 +153,7 @@ var app = new Vue({
             this.idToBasicOrbInfo[id] = await data.json()
            })
         }
+        // this.registeredIDs = ["test", "test", "test", "test", "test"]
       } catch(e) {
         console.error(e)
       }

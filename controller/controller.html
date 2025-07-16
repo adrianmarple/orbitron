@@ -44,15 +44,19 @@
     </div>
   </div>
 
-  <div v-else-if="!orbID" id="registration">
-
+  <div v-else-if="!orbID" id="registration" :class="{ small: registeredIDs.length > 3 }">
     <div class="horiz-box"></div>
-    <div v-for="id in registeredIDs" class="orb-wrapper" @click="openOrb(id, true)">
-      <div class="orb">
-        <stlviewer :file="(idToBasicOrbInfo[id] || {}).topology"></stlviewer>
-        <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
-  
-        <div class="bottom">id: {{ id }}</div>
+    <div id="orbs">
+      <div v-for="id in registeredIDs" class="orb-wrapper" @click="openOrb(id, true)">
+        <div class="orb">
+          <stlviewer :file="(idToBasicOrbInfo[id] || {}).topology"></stlviewer>
+          <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
+    
+          <div class="bottom">id: {{ id }}</div>
+        </div>
+      </div>
+      <div v-if="registeredIDs.length > 3 && registeredIDs.length % 2 == 1" class="orb-wrapper">
+        <div class="orb solid"></div>
       </div>
     </div>
     <div class="bottom-content">

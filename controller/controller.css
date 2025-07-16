@@ -134,10 +134,30 @@ a > .fancy-box:hover, a.fancy-box:hover {
   align-items: center;
   width: 41rem;
 }
+#registration #orbs {
+  display: grid;
+}
+
+#registration.small {
+  border-width: 2rem;
+}
+#registration.small #orbs {
+  grid-template-columns: 1fr 1fr;
+}
+#registration.small .orb {
+  width: 17rem;
+  height: 17rem;
+}
+#registration .orb.solid {
+  background-color: var(--bg-color);
+  cursor: default;
+  border-color: transparent;
+}
+
 #registration .orb-wrapper {
   border: 1.4rem solid var(--bg-color);
   border-radius: 2.5rem;
-  margin: -0.5rem;
+  margin: -0.75rem;
 }
 #registration .orb {
   border: 0.1rem solid white;
