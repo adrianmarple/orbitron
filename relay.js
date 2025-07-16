@@ -318,7 +318,7 @@ addGETListener(async (response, orbID, filePath)=>{
 
   let info = {
     orbID,
-    topology: config.PIXELS,
+    topology: orbInfoCache[orbID].config.PIXELS,
     isCurrentlyConnected: !!connectedOrbs[orbID],
   }
   if (config.ALIASES[orbID]) {

@@ -87,6 +87,7 @@ function connectOrbToRelay(){
       // Send over config w/o secret on socket connection
       let configCopy = { ...config }
       delete configCopy.ORB_KEY
+      delete configCopy.httpsOptions
       let message = {
         type: "info",
         config: configCopy
