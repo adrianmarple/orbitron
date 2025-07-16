@@ -10,9 +10,10 @@
   <div class="button" @click="downloadJSON">Download JSON</div>
   <div class="button" @click="genPrints">Generate Prints</div>
   <div class="button" @click="genModel('simple')">Simple 3D Model</div>
+  <div class="button" @click="genModel('simplest')">Ultra Simple 3D Model</div>
   <div class="button" @click="genModel('parts')">3D Model with part IDs</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
-  <div class="button" @click="configure">Configure Default Orb</div>
+  <!-- <div class="button" @click="configure">Configure Default Orb</div> -->
 </div>
 
 <div id="settings">
@@ -180,24 +181,27 @@ export default {
       if (renderMode == "parts") {
         printInfo.prints[0].suffix = "_parts"
       }
-      if (renderMode == "simple") {
+      if (renderMode == "simple" || renderMode == "simplest") {
         let oldDepth = CHANNEL_DEPTH
         let oldThickness = THICKNESS
         let oldBorder = BORDER
-        THICKNESS += CHANNEL_DEPTH
+        // THICKNESS += CHANNEL_DEPTH
+        THICKNESS += CHANNEL_DEPTH + THICKNESS
         CHANNEL_DEPTH = -(THICKNESS + CHANNEL_DEPTH)/2
         BORDER = 0
         COVER_TYPES = ["top"]
         await generateManufacturingInfo()
         let corePrintInfo = createFullModel()
         printInfo.prints[0].components = [
-          ...printInfo.prints[0].components,
+          ... (renderMode == "simple" ? printInfo.prints[0].components : []),
           ...corePrintInfo.prints[0].components
         ]
         CHANNEL_DEPTH = oldDepth
         THICKNESS = oldThickness
         BORDER = oldBorder
         COVER_TYPES = ["top", "bottom"]
+      }
+      if (renderMode == "simplest") {
         printInfo.additionalSavePath = "../stls"
       }
       RENDER_MODE = oldMode

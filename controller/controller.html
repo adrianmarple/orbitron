@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-
 <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
 <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
 
@@ -9,11 +8,22 @@
 <link rel="shortcut icon" href="/controller/images/ravenstear.png" />
 <link rel="manifest" href="/controller/manifest.json" />
 <link rel="stylesheet" href="/controller/controller.css">
-
 <script src="/thirdparty/vue.js" type="text/javascript"></script>
-
 </head>
+
 <body>
+  <script type="importmap">
+      {
+          "imports": {
+              "three": "https://cdn.jsdelivr.net/npm/three@0.166.0/build/three.module.js",
+              "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.0/examples/jsm/"
+          }
+      }
+  </script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/three@0.166.0/build/three.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.166.0/examples/jsm/loaders/STLLoader.js"></script> -->
+      
+  
 <div id=app :style="{ '--self-color': self.color }">
   <div id="background"></div>
 
@@ -38,9 +48,10 @@
 
     <div class="horiz-box"></div>
     <div v-for="id in registeredIDs" class="orb" @click="openOrb(id, true)">
+      <stlviewer :file="(idToBasicOrbInfo[id] || {}).topology"></stlviewer>
       <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
 
-      {{ id }}
+      <div class="bottom">id: {{ id }}</div>
     </div>
     <div class="error">{{ registrationErrorMessage }}</div>
     <textarea v-model="newID" @keydown="onRegistrationKeypress"></textarea>
@@ -471,7 +482,8 @@
 
 <script type="text/javascript" src="/controller/loadingball.js"></script>
 <script type="text/javascript" src="/games/configs.js"></script>
-<script type="text/javascript" src="/controller/components.js"></script>
+<script type="module" src="/controller/components.js"></script>
+<!-- <script type="text/javascript" src="/controller/controller.js"></script> -->
 <script type="text/javascript" src="/controller/controller.js"></script>
 </body>
 </html>

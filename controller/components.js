@@ -1,3 +1,7 @@
+
+import * as THREE from 'three'
+import { STLLoader } from 'three/addons/loaders/STLLoader.js'
+
 Vue.component('help', {
   props: ['message'],
   template: `
@@ -285,7 +289,73 @@ Vue.component('vector', {
 `})
 
 
+Vue.component('stlviewer', {
+  props: ['file'],
+  watch: {
+    file() {
+      this.load()
+    }
+  },
+  mounted() {
+    this.load()
+  },
+  methods: {
+    load() {
+      if (!this.file) return
+  
+      console.log(this.file)
+      this.$el.innerHTML = ""
 
+      // Create a scene, camera, and renderer
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000)
+      const renderer = new THREE.WebGLRenderer()
+      let boundingRect = this.$el.getBoundingClientRect()
+      renderer.setSize(boundingRect.width, boundingRect.height)
+      renderer.domElement.style.zIndex = -1
+      this.$el.appendChild(renderer.domElement)
+  
+      // Add a light sources
+      const sun = new THREE.DirectionalLight(0xffffff, 1.5)
+      sun.position.set(10, 10, 10).normalize()
+      const ambient = new THREE.AmbientLight(0xffffff, 0.4)
+      scene.add(sun)
+      scene.add(ambient)
+  
+      // Load the STL file
+      const loader = new STLLoader();
+      let mesh = null;
+      loader.load("stls/" + this.file + ".stl", function (geometry) {
+        geometry.center()
+        geometry.computeBoundingSphere()
+        const r = geometry.boundingSphere.radius
+        geometry.scale(1/r, 1/r, 1/r)
+        
+        const material = new THREE.MeshStandardMaterial({ color: 0xffffff })
+        mesh = new THREE.Mesh(geometry, material)
+        scene.add(mesh)
+      }, undefined, function (error) {
+          console.error('An error happened while loading the STL file.', error)
+      })
+  
+      // Position the camera
+      camera.position.z = 1.6
+  
+      // Animate the scene
+      function animate() {
+        requestAnimationFrame(animate)
+        if (mesh) {
+          mesh.rotation.y += 0.007
+        }
+        renderer.render(scene, camera)
+      }
+      animate();
+    }
+  },
+  template: `
+<template>
+  <div class="stl-wrapper" style="width: 100%; height: 100%"></div>
+</template>`})
 
 Vue.component('Icon', {
   props: ['image', 'w', 'h', 'selected'],

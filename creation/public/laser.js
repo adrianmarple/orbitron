@@ -358,7 +358,7 @@ async function createCoverSVG(plain) {
         if (RENDER_MODE == "parts") {
           kerf -= 0.2
         }
-        if (RENDER_MODE == "simple") {
+        else if (RENDER_MODE != "standard") {
           kerf = 0
         }
         deadendPlain = deadendPlain.translate(e0.normalize().scale(kerf))
@@ -726,7 +726,7 @@ function createFullModel() {
       print.components.push(coverPrint)
     }
   }
-  if (RENDER_MODE == "simple") {
+  if (RENDER_MODE == "simple" || RENDER_MODE == "simplest") {
     return {
       type: "gcode",
       prints: [print],

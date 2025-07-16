@@ -29,9 +29,9 @@ body, #app, .main {
   color: white;
 }
 
-/* #app {
-  overflow:hidden;
-} */
+#app {
+  position: fixed;
+}
 
 a {
   text-decoration: none;
@@ -124,14 +124,19 @@ a > .fancy-box:hover, a.fancy-box:hover {
   padding: 5rem;
   font-size: 2rem;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 #registration .orb {
   border: 0.1rem solid white;
   border-radius: 1rem;
-  padding: 1rem;
   margin: 1rem 0;
   position: relative;
   cursor: pointer;
+  width: 30rem;
+  height: 30rem;
+  overflow: hidden;
 }
 #registration .orb .clear {
   width: 3rem;
@@ -143,6 +148,11 @@ a > .fancy-box:hover, a.fancy-box:hover {
   right: 0.5rem;
   cursor: pointer;
 }
+#registration .orb .bottom {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+}
 #registration .button {
   width: fit-content;
 }
@@ -151,6 +161,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   color: #d21;
   height: 3rem;
 }
+
 
 #login {
   font-size: 3rem;

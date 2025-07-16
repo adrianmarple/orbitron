@@ -123,7 +123,6 @@ var app = new Vue({
         for (let id of this.registeredIDs) {
            fetch(`${location.origin}/${id}/info`).then(async data => {
             this.idToBasicOrbInfo[id] = await data.json()
-            console.log(id, this.idToBasicOrbInfo[id])
            })
         }
       } catch(e) {

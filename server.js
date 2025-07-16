@@ -22,34 +22,37 @@ function getContentType(filePath){
   switch (extname) {
     case '.js':
       contentType = 'text/javascript'
-      break;
+      break
     case '.css':
       contentType = 'text/css'
-      break;
+      break
     case '.json':
       contentType = 'application/json'
-      break;
+      break
     case '.png':
       contentType = 'image/png'
-      break;
+      break
     case '.jpg':
       contentType = 'image/jpg'
-      break;
+      break
     case '.svg':
       contentType = 'image/svg+xml'
-      break;
+      break
     case '.ico':
       contentType = 'image/x-icon'
-      break;
+      break
     case '.wav':
       contentType = 'audio/wav'
-      break;
+      break
     case '.zip':
       contentType = 'application/zip'
-      break;
+      break
     case '.oft':
       contentType = 'font/otf'
-      break;
+      break
+    case '.stl':
+      contentType = 'model/stl'
+      break
   }
   //console.log(filePath, extname, contentType)
   return contentType
