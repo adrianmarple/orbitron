@@ -309,16 +309,17 @@ Vue.component('stlviewer', {
       // Create a scene, camera, and renderer
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000)
-      const renderer = new THREE.WebGLRenderer()
+      const renderer = new THREE.WebGLRenderer({alpha: true})
+      renderer.setClearColor(0x333333, 0.5)
       let boundingRect = this.$el.getBoundingClientRect()
       renderer.setSize(boundingRect.width, boundingRect.height)
       renderer.domElement.style.zIndex = -1
       this.$el.appendChild(renderer.domElement)
   
       // Add a light sources
-      const sun = new THREE.DirectionalLight(0xffffff, 1.5)
+      const sun = new THREE.DirectionalLight(0xffffff, 1.8)
       sun.position.set(10, 10, 10).normalize()
-      const ambient = new THREE.AmbientLight(0xffffff, 0.4)
+      const ambient = new THREE.AmbientLight(0xffffff, 0.7)
       scene.add(sun)
       scene.add(ambient)
   

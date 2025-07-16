@@ -35,6 +35,9 @@ const searchParams = new URLSearchParams(location.search)
 var app = new Vue({
   el: '#app',
   data: {
+    os: "Unknown",
+    browser: "Unknown",
+
     orbID: location.pathname.split('/')[1],
     isPWA: window.matchMedia('(display-mode: standalone)').matches,
     registeredIDs: [],
@@ -96,6 +99,33 @@ var app = new Vue({
   },
 
   created() {
+    console.log(navigator.userAgent)
+    if (navigator.userAgent.indexOf("Win") !== -1) {
+      this.os = "Windows";
+    } else if (navigator.userAgent.indexOf("Mac") !== -1) {
+      this.os = "MacOS";
+    } else if (navigator.userAgent.indexOf("X11") !== -1 || navigator.userAgent.indexOf("Linux") !== -1) {
+      this.os = "Linux";
+    } else if (navigator.userAgent.indexOf("Android") !== -1) {
+      this.os = "Android";
+    } else if (navigator.userAgent.indexOf("like Mac") !== -1) {
+      this.os = "iOS";
+    }
+
+    if (navigator.userAgent.indexOf("OP") !== -1) {
+      this.browser = "Opera";
+    } else if (navigator.userAgent.indexOf("Chrome") !== -1) {
+      this.browser = "Chrome";
+    } else if (navigator.userAgent.indexOf("MSIE") !== -1 || navigator.userAgent.indexOf("rv:") !== -1) {
+      this.browser = "IE";
+    } else if (navigator.userAgent.indexOf("Firefox") !== -1) {
+      this.browser = "Firefox";
+    } else if (navigator.userAgent.indexOf("Safari") !== -1) {
+      this.browser = "Safari";
+    }
+    this.os = "Android"
+    this.browser = "Unknown"
+
     this.startWebsocket()
     setInterval(() => {
       if(this.connectionStatus == "CONNECTED"){
