@@ -326,10 +326,20 @@ Vue.component('stlviewer', {
       const loader = new STLLoader();
       let mesh = null;
       loader.load("stls/" + this.file + ".stl", function (geometry) {
-        geometry.center()
+        let vertices = geometry.attributes.position.array
+        let centroid = new THREE.Vector3(0,0,0)
+        for (let i = 0; i < geometry.attributes.position.count; i++) {
+          centroid.add(new THREE.Vector3(vertices[3*i], vertices[3*i + 1], vertices[3*i + 2]))
+        }
+        centroid.divideScalar(geometry.attributes.position.count)
+        geometry.translate(centroid.negate())
+        
+
         geometry.computeBoundingSphere()
+        // geometry.center()
         const r = geometry.boundingSphere.radius
         geometry.scale(1/r, 1/r, 1/r)
+        geometry.rotateX(-Math.PI / 2)
         
         const material = new THREE.MeshStandardMaterial({ color: 0xffffff })
         mesh = new THREE.Mesh(geometry, material)
@@ -339,7 +349,7 @@ Vue.component('stlviewer', {
       })
   
       // Position the camera
-      camera.position.z = 1.6
+      camera.position.z = 2
   
       // Animate the scene
       function animate() {
