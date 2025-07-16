@@ -356,6 +356,7 @@ Vue.component('stlviewer', {
         requestAnimationFrame(animate)
         if (mesh) {
           mesh.rotation.y += 0.007
+          mesh.rotation.z = Math.sin(Date.now() / 5000) * 0.1
         }
         renderer.render(scene, camera)
       }

@@ -31,6 +31,7 @@ body, #app, .main {
 
 #app {
   position: fixed;
+  overflow-y: scroll;
 }
 
 a {
@@ -99,7 +100,7 @@ a, a:visited {
     background-color .5s cubic-bezier(.08,.59,.29,.99);
 }
 a > .fancy-box:hover, a.fancy-box:hover {
-  background-color: rgba(0,0,0,0.7);
+  background-color: rgba(160, 40, 40, 0.7);
   color: white;
 }
 .fancy-box img {
@@ -124,6 +125,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   padding: 5rem;
   font-size: 2rem;
   width: 100%;
+  height: fit-content;
   display: flex;
   flex-direction: column;
   align-items: center;
