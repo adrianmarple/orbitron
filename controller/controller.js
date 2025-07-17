@@ -719,33 +719,6 @@ var app = new Vue({
       }
     },
 
-    confirmSpeedbump() {
-      if (Date.now() - this.speedbumpTimestamp < 100) return
-      this.speedbumpCallback()
-    },
-    clearSpeedbump() {
-      if (Date.now() - this.speedbumpTimestamp < 100) return
-      this.speedbumpCallback = null
-      this.speedbumpMessage = ""
-    },
-
-    runLoadingAnimation() {
-      let self = this
-      self.loadingDotCount = 1
-      let interval = setInterval(() => {
-        if (self.self.isReady) {
-          clearInterval(interval)
-          return
-        }
-        self.send({ type: 'ready' })
-        self.loadingDotCount += 1
-        if (self.loadingDotCount > 5) {
-          self.loadingDotCount = 1
-        }
-        self.$forceUpdate()
-      }, 500)
-    },
-
     destroyWebsocket() {
       if(this.ws) {
         try {
@@ -797,6 +770,33 @@ var app = new Vue({
       self.dontSendUpdates = true
       await self.$forceUpdate()
       self.dontSendUpdates = false
+    },
+
+    confirmSpeedbump() {
+      if (Date.now() - this.speedbumpTimestamp < 100) return
+      this.speedbumpCallback()
+    },
+    clearSpeedbump() {
+      if (Date.now() - this.speedbumpTimestamp < 100) return
+      this.speedbumpCallback = null
+      this.speedbumpMessage = ""
+    },
+
+    runLoadingAnimation() {
+      let self = this
+      self.loadingDotCount = 1
+      let interval = setInterval(() => {
+        if (self.self.isReady) {
+          clearInterval(interval)
+          return
+        }
+        self.send({ type: 'ready' })
+        self.loadingDotCount += 1
+        if (self.loadingDotCount > 5) {
+          self.loadingDotCount = 1
+        }
+        self.$forceUpdate()
+      }, 500)
     },
 
     handleStart(location) {

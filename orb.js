@@ -496,10 +496,9 @@ function tether(broadcastMessage) {
 function createTether() {
   if (!config.TETHER_ORB_ID) return
 
-  let protocolAndHost = "wss://my.lumatron.art"
-  tethereeSocket = new WebSocket(`${protocolAndHost}:7777/${config.TETHER_ORB_ID}/${tetherClientID}`)
+  tethereeSocket = new WebSocket(`wss://my.lumatron.art:7777/${config.TETHER_ORB_ID}/${tetherClientID}`)
   tethereeSocket.onclose = _ => {
-    tethereeSocket = null
+    setTimeout(destroyTether)
   }
   tethereeSocket.onerror = event => {
     console.log("Tether socket error:",event)
@@ -512,7 +511,6 @@ function destroyTether() {
       tethereeSocket.close()
     } catch(e) {
       console.log("Error closing tether socket", e)
-      return
     }
     tethereeSocket = null
   }
@@ -529,6 +527,8 @@ function tryTetherAction(action) {
       action()
     } catch (error) {
       console.log(error)
+      destroyTether()
+      createTether()
     }
   }
 }
@@ -541,7 +541,10 @@ if (config.TETHER_ORB_ID) {
         timestamp: preciseTime(),
       }))
     })
-  }, 10000)
+  }, 10 * 1000)
+  setInterval(() => {
+    shouldUpdateTetheree = true
+  }, 10 * 60 * 1000)
 }
 
 
