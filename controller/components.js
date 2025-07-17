@@ -324,9 +324,10 @@ Vue.component('stlviewer', {
       scene.add(ambient)
   
       // Load the STL file
-      const loader = new STLLoader();
-      let mesh = null;
-      loader.load("stls/" + this.file + ".stl", function (geometry) {
+      const loader = new STLLoader()
+      let mesh = null
+
+      function loadGeometry(geometry) {
         let vertices = geometry.attributes.position.array
         let centroid = new THREE.Vector3(0,0,0)
         for (let i = 0; i < geometry.attributes.position.count; i++) {
@@ -335,9 +336,7 @@ Vue.component('stlviewer', {
         centroid.divideScalar(geometry.attributes.position.count)
         geometry.translate(centroid.negate())
         
-
         geometry.computeBoundingSphere()
-        // geometry.center()
         const r = geometry.boundingSphere.radius
         geometry.scale(1/r, 1/r, 1/r)
         geometry.rotateX(-Math.PI / 2)
@@ -345,12 +344,17 @@ Vue.component('stlviewer', {
         const material = new THREE.MeshStandardMaterial({ color: 0xffffff })
         mesh = new THREE.Mesh(geometry, material)
         scene.add(mesh)
-      }, undefined, function (error) {
+      }
+
+      loader.load("stls/" + this.file + ".stl", loadGeometry, undefined, _ => {
+        // Assume stl file just doesn't exist
+        loader.load("stls/default.stl", loadGeometry, undefined, error => {
           console.error('An error happened while loading the STL file.', error)
+        })
       })
   
       // Position the camera
-      camera.position.z = 2
+      camera.position.z = 2.1
   
       // Animate the scene
       function animate() {
@@ -389,7 +393,7 @@ Vue.component('Icon', {
             :width="w"
             :height="h"
             :mask="'url(#' + image + ')'"
-            fill="var(--bg-color)">
+            fill="#080808">
       </rect>
 
       <image :x="(w-imageWidth)/2" :y="(h-imageWidth)/2" :width="imageWidth" :height="imageWidth"
