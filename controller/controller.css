@@ -145,8 +145,8 @@ a > .fancy-box:hover, a.fancy-box:hover {
   grid-template-columns: 1fr 1fr;
 }
 #registration.small .orb {
-  width: 17rem;
-  height: 17rem;
+  width: 17.5rem;
+  height: 17.5rem;
 }
 #registration .orb.solid {
   background-color: #080808;
@@ -167,6 +167,10 @@ a > .fancy-box:hover, a.fancy-box:hover {
   width: 30rem;
   height: 30rem;
   overflow: hidden;
+  cursor: default;
+}
+#registration .orb-wrapper.connected .orb {
+  cursor: pointer;
 }
 #registration .orb .clear {
   width: 3rem;

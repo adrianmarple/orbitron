@@ -100,22 +100,21 @@ var app = new Vue({
   },
 
   async created() {
-    console.log(navigator.userAgent)
     if (navigator.userAgent.indexOf("Win") !== -1) {
       this.os = "Windows";
-    } else if (navigator.userAgent.indexOf("Mac") !== -1) {
-      this.os = "MacOS";
     } else if (navigator.userAgent.indexOf("X11") !== -1 || navigator.userAgent.indexOf("Linux") !== -1) {
       this.os = "Linux";
     } else if (navigator.userAgent.indexOf("Android") !== -1) {
       this.os = "Android";
     } else if (navigator.userAgent.indexOf("like Mac") !== -1) {
       this.os = "iOS";
+    } else if (navigator.userAgent.indexOf("Mac") !== -1) {
+      this.os = "MacOS";
     }
 
     if (navigator.userAgent.indexOf("OP") !== -1) {
       this.browser = "Opera";
-    } else if (navigator.userAgent.indexOf("Chrome") !== -1) {
+    } else if (navigator.userAgent.indexOf("CriOS") !== -1 || navigator.userAgent.indexOf("Chrome") !== -1) {
       this.browser = "Chrome";
     } else if (navigator.userAgent.indexOf("MSIE") !== -1 || navigator.userAgent.indexOf("rv:") !== -1) {
       this.browser = "IE";
@@ -512,6 +511,9 @@ var app = new Vue({
       this.newID = ""
     },
     openOrb(orbID, saveToHistory) {
+      if (this.idToBasicOrbInfo[orbID] && !this.idToBasicOrbInfo[orbID].isCurrentlyConnected) {
+        return
+      }
       if (saveToHistory) {
         history.pushState({ orbID }, "", orbID)
       }

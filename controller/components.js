@@ -290,20 +290,19 @@ Vue.component('vector', {
 
 
 Vue.component('stlviewer', {
-  props: ['file'],
+  props: ['info'],
   watch: {
-    file() {
+    "info.topology": function() {
       this.load()
-    }
+    },
   },
   mounted() {
     this.load()
   },
   methods: {
     load() {
-      if (!this.file) return
+      if (!this.info.topology) return
   
-      console.log(this.file)
       this.$el.innerHTML = ""
 
       // Create a scene, camera, and renderer
@@ -343,10 +342,11 @@ Vue.component('stlviewer', {
         
         const material = new THREE.MeshStandardMaterial({ color: 0xffffff })
         mesh = new THREE.Mesh(geometry, material)
+        mesh.rotation.y = Math.random() * Math.PI * 2
         scene.add(mesh)
       }
 
-      loader.load("stls/" + this.file + ".stl", loadGeometry, undefined, _ => {
+      loader.load("stls/" + this.info.topology + ".stl", loadGeometry, undefined, _ => {
         // Assume stl file just doesn't exist
         loader.load("stls/default.stl", loadGeometry, undefined, error => {
           console.error('An error happened while loading the STL file.', error)
@@ -357,12 +357,14 @@ Vue.component('stlviewer', {
       camera.position.z = 2.1
   
       // Animate the scene
+      let self = this
       function animate() {
         requestAnimationFrame(animate)
-        if (mesh) {
+        if (mesh && self.info.isCurrentlyConnected) {
           mesh.rotation.y += 0.007
           mesh.rotation.z = Math.sin(Date.now() / 5000) * 0.1
         }
+        renderer.setClearColor(0x333333, self.info.isCurrentlyConnected ? 0.5 : 0.9)
         renderer.render(scene, camera)
       }
       animate();
