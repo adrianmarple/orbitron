@@ -1,4 +1,4 @@
-// SKIP
+// SKI
 module.exports = () => {
   setFor3DPrintedCovers()
   cat5FoldWallIndex = 5

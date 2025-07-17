@@ -1,4 +1,4 @@
-// SKI
+// SKIP
 module.exports = () => {
   ledAtVertex = false
 
@@ -9,6 +9,5 @@ module.exports = () => {
     v0 = v1
   }
 
-
-  EulerianPath(17)
+  EulerianPath(0)
 }
