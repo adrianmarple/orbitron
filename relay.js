@@ -45,6 +45,7 @@ wsServer.on('connection', (socket, request) => {
   if(meta[1] == "relay") { // socket from orb to server
     let orbID = meta[2]
     orbToIP[orbID] = ipFromRequest(request)
+    console.log(orbToIP[orbID])
     socket.classification = "WS orb to server"
     bindOrb(socket, orbID)
   } else { // client socket connecting to server
