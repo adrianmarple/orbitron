@@ -98,7 +98,7 @@ var app = new Vue({
     nav: "timing",
   },
 
-  created() {
+  async created() {
     console.log(navigator.userAgent)
     if (navigator.userAgent.indexOf("Win") !== -1) {
       this.os = "Windows";
@@ -144,24 +144,6 @@ var app = new Vue({
       }
     }
 
-    let rawRegisteredIDs = localStorage.getItem("registeredIDs")
-    if (rawRegisteredIDs) {
-      try {
-        this.registeredIDs = JSON.parse(rawRegisteredIDs)
-        for (let id of this.registeredIDs) {
-           fetch(`${location.origin}/${id}/info`).then(async data => {
-            this.idToBasicOrbInfo[id] = await data.json()
-           })
-        }
-        // this.registeredIDs = ["test", "test", "test", "test", "test"]
-      } catch(e) {
-        console.error(e)
-      }
-    }
-    history.replaceState({ orbID: this.orbID }, "")
-    addEventListener("popstate", (event) => {
-      this.openOrb(event.state.orbID)
-    })
 
     onmousedown = this.handleStart
     ontouchstart = event => {
@@ -186,6 +168,28 @@ var app = new Vue({
     }
 
     this.nav = this.navBarItems[0]
+
+    history.replaceState({ orbID: this.orbID }, "")
+    addEventListener("popstate", (event) => {
+      this.openOrb(event.state.orbID)
+    })
+
+    try {
+      let rawRegisteredIDs = localStorage.getItem("registeredIDs")
+      if (rawRegisteredIDs) {
+        this.registeredIDs = JSON.parse(rawRegisteredIDs)
+      } else {
+        this.registeredIDs = await (await fetch(`${location.origin}/localorbs`)).json()
+        localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+      }
+      for (let id of this.registeredIDs) {
+         fetch(`${location.origin}/${id}/info`).then(async data => {
+          this.idToBasicOrbInfo[id] = await data.json()
+         })
+      }
+    } catch(e) {
+      console.error(e)
+    }
   },
 
   watch: {

@@ -9,11 +9,13 @@ const homedir = require('os').homedir()
 const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 
 const connectedOrbs = {}
+const orbToIP = {}
 const logsRequested = {}
 const connectedClients = {}
 const awaitingMessages = {}
 let orbInfoCache = {}
 let BACKUPS_DIR = "./backups/"
+
 
 let server
 if (config.DEV_MODE) {
@@ -27,6 +29,10 @@ function serverHandler(request, response) {
   response.end()
 }
 
+function ipFromRequest(request) {
+  return request.headers['x-forwarded-for'] || request.connection.remoteAddress
+}
+
 
 server.listen(7777, "0.0.0.0", function() {
   console.log('WebSocket Server is listening on port 7777')
@@ -38,6 +44,7 @@ wsServer.on('connection', (socket, request) => {
   let meta = url.split("/")
   if(meta[1] == "relay") { // socket from orb to server
     let orbID = meta[2]
+    orbToIP[orbID] = ipFromRequest(request)
     socket.classification = "WS orb to server"
     bindOrb(socket, orbID)
   } else { // client socket connecting to server
@@ -303,6 +310,24 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
   })
   noCorsHeader(response, 'text/json')
   response.end(reply)
+  return true
+})
+
+
+// Get all orbs on same IP
+addGETListener(async (response, _, filePath, __, request)=>{
+  if (filePath != "/localorbs") return
+
+  const clientIP = ipFromRequest(request)
+  noCorsHeader(response, 'text/json')
+  let localOrbs = []
+  for (let orbID in connectedOrbs) {
+    if (orbToIP[orbID] == clientIP) {
+      localOrbs.push(orbID)
+    }
+  }
+
+  response.end(JSON.stringify(localOrbs))
   return true
 })
 

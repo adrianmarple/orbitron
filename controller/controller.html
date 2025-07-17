@@ -52,7 +52,7 @@
           <stlviewer :file="(idToBasicOrbInfo[id] || {}).topology"></stlviewer>
           <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
     
-          <div class="bottom">id: {{ id }}</div>
+          <div class="bottom">{{ (idToBasicOrbInfo[id] || {}).alias || id }}</div>
         </div>
       </div>
       <div v-if="registeredIDs.length > 3 && registeredIDs.length % 2 == 1" class="orb-wrapper">

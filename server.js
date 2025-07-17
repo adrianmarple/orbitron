@@ -120,7 +120,7 @@ async function serverHandler(request, response) {
   orbID = orbID.toLowerCase()
   orbID = config.reverseAliases[orbID] ?? orbID
   for (const listener of getListeners) {
-    handled = await listener(response, orbID, filePath, queryParams)
+    handled = await listener(response, orbID, filePath, queryParams, request)
     if(handled) break
   }
   if(!handled){
