@@ -41,6 +41,7 @@ var app = new Vue({
     orbID: location.pathname.split('/')[1],
     isPWA: window.matchMedia('(display-mode: standalone)').matches,
     registeredIDs: [],
+    excludedIDs: [],
     idToBasicOrbInfo: {},
     newID: "",
     registrationErrorMessage: "",
@@ -176,12 +177,23 @@ var app = new Vue({
 
     try {
       let rawRegisteredIDs = localStorage.getItem("registeredIDs")
+      let rawExcludedIDs = localStorage.getItem("excludedIDs")
       if (rawRegisteredIDs) {
         this.registeredIDs = JSON.parse(rawRegisteredIDs)
-      } else {
-        this.registeredIDs = await (await fetch(`${location.origin}/localorbs`)).json()
-        localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
       }
+      if (rawExcludedIDs) {
+        this.excludedIDs = JSON.parse(rawExcludedIDs)
+      }
+
+      let localOrbs = await (await fetch(`${location.origin}/localorbs`)).json()
+      for (let orbID of localOrbs) {
+        if (!this.registeredIDs.includes(orbID)) {
+          this.registeredIDs.push(orbID)
+        }
+      }
+      this.registeredIDs = this.registeredIDs.filter(id => !this.excludedIDs.includes(id))
+      localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+      
       for (let id of this.registeredIDs) {
          fetch(`${location.origin}/${id}/info`).then(async data => {
           this.idToBasicOrbInfo[id] = await data.json()
@@ -485,15 +497,19 @@ var app = new Vue({
         return
       }
       let info = await (await fetch(`${location.origin}/${this.newID}/info`)).json()
-      console.log(info)
       if (!info) {
         this.registrationErrorMessage = "That id has never connected to the server."
         return
       }
 
+      this.idToBasicOrbInfo[this.newID] = info
       this.registeredIDs.push(this.newID)
-      this.newID = ""
       localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+      if (this.excludedIDs.includes(this.newID)) {
+        this.excludedIDs.remove(this.newID)
+        localStorage.setItem("excludedIDs", JSON.stringify(this.excludedIDs))
+      }
+      this.newID = ""
     },
     openOrb(orbID, saveToHistory) {
       if (saveToHistory) {
@@ -514,6 +530,8 @@ var app = new Vue({
       this.speedbumpCallback = () => {
         self.registeredIDs.remove(id)
         localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+        this.excludedIDs.push(id)
+        localStorage.setItem("excludedIDs", JSON.stringify(this.excludedIDs))
       }
       console.log("wtf")
     },

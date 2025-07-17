@@ -43,7 +43,7 @@ wsServer.on('connection', (socket, request) => {
   //console.log('WS connection request made to', request.url)
   let meta = url.split("/")
   if(meta[1] == "relay") { // socket from orb to server
-    let orbID = meta[2]
+    let orbID = meta[2].toLowerCase()
     orbToIP[orbID] = ipFromRequest(request)
     socket.classification = "WS orb to server"
     bindOrb(socket, orbID)
@@ -71,7 +71,6 @@ async function loadOrbInfoCache() {
 }
 
 function bindOrb(socket, orbID) {
-  orbID = orbID.toLowerCase()
   if(connectedOrbs[orbID]){
     try {
       connectedOrbs[orbID].close()
@@ -318,17 +317,14 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
 addGETListener(async (response, _, filePath, __, request)=>{
   if (filePath != "/localorbs") return
 
-  console.log(orbToIP)
   const clientIP = ipFromRequest(request)
-  console.log(clientIP)
   noCorsHeader(response, 'text/json')
   let localOrbs = []
-  for (let orbID in connectedOrbs) {
+  for (let orbID in orbToIP) {
     if (orbToIP[orbID] == clientIP) {
       localOrbs.push(orbID)
     }
   }
-  console.log(localOrbs)
 
   response.end(JSON.stringify(localOrbs))
   return true
