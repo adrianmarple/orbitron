@@ -98,6 +98,9 @@ var app = new Vue({
     vw: innerWidth / 100.0,
     vh: innerHeight / 100.0,
     nav: "timing",
+
+    overscrollTop: 0,
+    overscrollBottom: 0,
   },
 
   async created() {
@@ -540,6 +543,14 @@ var app = new Vue({
         localStorage.setItem("excludedIDs", JSON.stringify(this.excludedIDs))
       }
       console.log("wtf")
+    },
+
+    checkOverscroll(event) {
+      let elem = event.target
+      elem = document.querySelector("#app")
+      console.log(elem.scrollTop, elem.clientHeight)
+      this.overscrollBottom = elem.scrollTop - elem.scrollHeight + elem.clientHeight + 50
+      this.overscrollTop = -elem.scrollTop + 50
     },
 
     login() {

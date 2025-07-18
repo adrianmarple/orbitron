@@ -118,6 +118,20 @@ a > .fancy-box:hover, a.fancy-box:hover {
   box-sizing: border-box;
 }
 
+.overscroll {
+  background-color: #080808;
+  position: fixed;
+  left: 0;
+  margin-left: calc(50vw - 20.5rem);
+  width: 41rem;
+}
+.overscroll.top {
+  top: 0;
+}
+.overscroll.bottom {
+  bottom: 0;
+}
+
 .main {
   overscroll-behavior-y: contain;
   overflow-y: hidden;

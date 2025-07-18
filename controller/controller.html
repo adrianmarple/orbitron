@@ -24,7 +24,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.166.0/examples/jsm/loaders/STLLoader.js"></script> -->
       
   
-<div id=app :style="{ '--self-color': self.color }">
+<div id=app :style="{ '--self-color': self.color }" @scroll="checkOverscroll">
   <div id="background"></div>
 
   <div :class="{visible: helpMessage}" id="help-modal" @click="helpMessage = null">
@@ -61,6 +61,7 @@
       </div>
     </div>
     <div class="horiz-box"></div>
+    <div class="horiz-box"></div>
     <div v-if="manuallingRegistering" class="bottom-content">
       <div class="error">{{ registrationErrorMessage }}</div>
       <textarea v-model="newID" @keydown="onRegistrationKeypress" placeholder="ID to manually add"></textarea>
@@ -69,6 +70,7 @@
     <div v-else class="horiz-box" @click="manuallingRegistering = true">
       <img src="/controller/images/add_box_white.svg" class="add">
     </div>
+    <div class="horiz-box"></div>
 
     <div v-if="!isPWA" class="horiz-box instructions">
       <div v-if="os == 'iOS' || os == 'Android'">
@@ -98,6 +100,8 @@
     <div class="side-box left"></div>
     <div class="side-box right"></div>
     <div class="bottom-fill"></div>
+    <div class="overscroll top" :style="{height: overscrollTop + 'px'}"></div>
+    <div class="overscroll bottom" :style="{height: overscrollBottom + 'px'}"></div>
   </div>
 
   <div v-else-if="connectionStatus == 'CONNECTING'" id="loading">
