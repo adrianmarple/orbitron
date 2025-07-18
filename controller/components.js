@@ -291,6 +291,11 @@ Vue.component('vector', {
 
 Vue.component('stlviewer', {
   props: ['info'],
+  data() {
+    return {
+      renderer: null,
+    }
+  },
   watch: {
     "info.topology": function() {
       this.load()
@@ -298,8 +303,16 @@ Vue.component('stlviewer', {
   },
   mounted() {
     this.load()
+    window.addEventListener('resize', this.resize);
+  },
+  unmounted() {
+    window.removeEventListener('resize', this.resize);
   },
   methods: {
+    resize() {
+      let boundingRect = this.$el.getBoundingClientRect()
+      this.renderer.setSize(boundingRect.width, boundingRect.height)
+    },
     load() {
       if (!this.info.topology) return
   
@@ -309,9 +322,9 @@ Vue.component('stlviewer', {
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000)
       const renderer = new THREE.WebGLRenderer({alpha: true})
+      this.renderer = renderer
       renderer.setClearColor(0x333333, 0.5)
-      let boundingRect = this.$el.getBoundingClientRect()
-      renderer.setSize(boundingRect.width, boundingRect.height)
+      this.resize()
       renderer.domElement.style.zIndex = -1
       this.$el.appendChild(renderer.domElement)
   

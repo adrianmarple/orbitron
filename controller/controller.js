@@ -43,6 +43,7 @@ var app = new Vue({
     registeredIDs: [],
     excludedIDs: [],
     idToBasicOrbInfo: {},
+    manuallingRegistering: false,
     newID: "",
     registrationErrorMessage: "",
 
@@ -492,7 +493,7 @@ var app = new Vue({
     },
     async registerID() {
       if (this.registeredIDs.includes(this.newID)) {
-        this.registrationErrorMessage = "Id already registered."
+        this.registrationErrorMessage = "Id already added."
         return
       }
       let info = await (await fetch(`${location.origin}/${this.newID}/info`)).json()
@@ -509,11 +510,14 @@ var app = new Vue({
         localStorage.setItem("excludedIDs", JSON.stringify(this.excludedIDs))
       }
       this.newID = ""
+      this.manuallingRegistering = false
+      this.registrationErrorMessage = ""
     },
     openOrb(orbID, saveToHistory) {
       if (this.idToBasicOrbInfo[orbID] && !this.idToBasicOrbInfo[orbID].isCurrentlyConnected) {
         return
       }
+      this.manuallingRegistering = false
       if (saveToHistory) {
         history.pushState({ orbID }, "", orbID)
       }

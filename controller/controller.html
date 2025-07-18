@@ -60,10 +60,14 @@
         <div class="orb solid"></div>
       </div>
     </div>
-    <div class="bottom-content">
+    <div class="horiz-box"></div>
+    <div v-if="manuallingRegistering" class="bottom-content">
       <div class="error">{{ registrationErrorMessage }}</div>
-      <textarea v-model="newID" @keydown="onRegistrationKeypress"></textarea>
-      <div class="button" @click="registerID()">Register</div>
+      <textarea v-model="newID" @keydown="onRegistrationKeypress" placeholder="ID to manually add"></textarea>
+      <div class="button" @click="registerID()">Add</div>
+    </div>
+    <div v-else class="horiz-box" @click="manuallingRegistering = true">
+      <img src="/controller/images/add_box_white.svg" class="add">
     </div>
 
     <div v-if="!isPWA" class="horiz-box instructions">

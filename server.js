@@ -59,6 +59,7 @@ function getContentType(filePath){
 }
 
 function respondWithFile(response, filePath){
+  filePath = decodeURI(filePath)
   filePath = `${__dirname}${filePath}`
   let contentType = getContentType(filePath)
   fs.readFile(filePath, async function(error, content) {

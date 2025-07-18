@@ -40,7 +40,10 @@ a {
 a, a:visited {
   color: inherit;
 }
-
+textarea {
+  font-size: 4rem;
+  height: 5rem;
+}
 
 @keyframes animatedBackground {
   from { background-position: 0 0; }
@@ -203,6 +206,19 @@ a > .fancy-box:hover, a.fancy-box:hover {
   color: #d21;
   height: 3rem;
 }
+#registration textarea {
+  width: 25rem;
+  height: 2.5rem;
+  font-size: 2rem;
+}
+#registration .add {
+  width: 5rem;
+  height: 5rem;
+}
+#registration .button {
+  font-size: 3rem;
+}
+
 #registration .instructions {
   display: flex;
   flex-direction: column;
@@ -860,11 +876,8 @@ input[type="range"]::-moz-range-thumb {
   padding-top: 1rem;
 }
 #save-bottom-stuff textarea {
-  font-size: 4rem;
-  height: 5rem;
   width: 25rem;
   margin-right: 1rem;
-  font-family: Arial, Helvetica, sans-serif;
 }
 #save-bottom-stuff .button {
   margin-top: 0;
