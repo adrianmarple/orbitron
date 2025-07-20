@@ -46,6 +46,35 @@
 
   <div v-else-if="!orbID" id="registration" :class="{ small: registeredIDs.length > 3 }">
     <div class="horiz-box"></div>
+
+    <div v-if="registeredIDs.length == 0" class="horiz-box instructions">
+      <div>
+      <h3>No pieces found on the same wifi.</h3>
+      <div>
+        If you're trying to connect to a Lumatron that is connected to the internet aleady,
+        either switch to the same wifi or add it manually using its ID.
+      </div>
+      <div>
+        If the Lumatron is not yet connected to the internet, you can connect via the following steps:
+      </div>
+      <div>
+        <span class="light yellow flashing">.</span>
+        Join the wifi named <b>Lumatron</b>
+      </div>
+      <div>
+        <span class="light blue">.</span>
+        Once on that wifi, the visit url <a href="http://10.42.0.1">http://10.42.0.1</a>
+      </div>
+      <div>
+        <span class="light blue flashing">.</span>
+        Enter the wifi name (SSID) and password in the page that loads
+      </div>
+      <div>
+        <span class="light green">.</span>
+        Refresh the page once the first pixel turns off
+      </div>
+      </div>
+    </div>
     
     <div id="orbs">
       <div v-for="id in registeredIDs" class="orb-wrapper" @click="openOrb(id, true)"
@@ -65,15 +94,18 @@
     <div class="horiz-box"></div>
     <div v-if="manuallingRegistering" class="bottom-content">
       <div class="error">{{ registrationErrorMessage }}</div>
-      <textarea v-model="newID" @keydown="onRegistrationKeypress" placeholder="ID to manually add"></textarea>
+      <textarea v-model="newID"
+        @keydown="onRegistrationKeypress"
+        ref="manualRegistration"
+        placeholder="ID to manually add"></textarea>
       <div class="button" @click="registerID()">Add</div>
     </div>
-    <div v-else class="horiz-box" @click="manuallingRegistering = true">
+    <div v-else class="horiz-box" @click="showAddOrb()">
       <img src="/controller/images/add_box_white.svg" class="add">
     </div>
     <div class="horiz-box"></div>
 
-    <div v-if="!isPWA" class="horiz-box instructions">
+    <div v-if="!isPWA && registeredIDs.length > 0" class="horiz-box instructions">
       <div v-if="os == 'iOS' || os == 'Android'">
         <h3>Want this as an App on your homescreen?</h3>
       </div>

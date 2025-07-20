@@ -240,8 +240,11 @@ def update_first_pixel():
     color = np.array([1, 1, 1]) * 0.5
     flashing = True
   elif current_text.startswith("JOIN WIFI"):
-    color = np.array([0, 0, 1])
+    color = np.array([1, 1, 0])
+    flashing = True
   elif current_text.startswith("VISIT URL"):
+    color = np.array([0, 0, 1])
+  elif current_text.startswith("ADD SSID"):
     color = np.array([0, 0, 1])
     flashing = True
   elif current_text.startswith("ADDING SSID"):

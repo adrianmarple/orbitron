@@ -300,6 +300,9 @@ Vue.component('stlviewer', {
     "info.topology": function() {
       this.load()
     },
+    "$root.registeredIDs": function() {
+      this.resize()
+    },
   },
   mounted() {
     this.load()

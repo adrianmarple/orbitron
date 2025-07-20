@@ -520,6 +520,12 @@ var app = new Vue({
       this.$forceUpdate()
     },
 
+    showAddOrb() {
+      this.manuallingRegistering = true
+      this.$nextTick(() => {
+        this.$refs.manualRegistration.focus();
+      });
+    },
     async onRegistrationKeypress(event) {
       this.registrationErrorMessage = ""
       if (event.key == "Enter") {

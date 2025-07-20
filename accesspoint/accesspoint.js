@@ -107,9 +107,9 @@ let wifiSetupServer = http.createServer(function (req, res) {
   if (req.method === 'GET') {
     let filepath = req.url
     if (filepath == "/" || filepath.includes("form")) {
+      displayText("ADD SSID")
       respondWithFile(res, "/accesspoint/form.html")
     } else {
-      console.log(filepath)
       respondWithFile(res, filepath)
     }
   } else if (req.method === 'POST') {
