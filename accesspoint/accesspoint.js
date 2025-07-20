@@ -68,7 +68,7 @@ async function removeWifiProfile(connectionName){
 
 async function submitSSID(formData) {
   let ssid = formData.ssid.replace(/'/g, "\\'")
-  console.log("Adding SSID: ", ssid)
+  console.log("ADDING SSID: ", ssid)
   let password = formData.password.replace(/'/g, "\\'").trim()
   await stopAccessPoint(ssid, password)
 }

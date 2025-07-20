@@ -205,6 +205,11 @@ def update():
       game.ontimeout()
     game.render()
 
+    if display is None:
+      update_first_pixel()
+    else:
+      update_text_display()
+
     raw_pixels = np.minimum(raw_pixels, 255)
     raw_pixels = np.maximum(raw_pixels, 0)
 
@@ -218,15 +223,41 @@ def update():
 
     raw_pixels *= 0
 
-    # Text display update tick
-    if display is not None:
-      update_text_display()
 
   except Exception:
     print(traceback.format_exc(), file=sys.stderr)
 
 
-# ================================ Text display =========================================
+# ================================ Text/status display =========================================
+
+def update_first_pixel():
+  color = [0,0,0]
+  flashing = False
+  if current_text == "$LOADING":
+    color = np.array([1, 1, 1]) * 0.5
+    flashing = True
+  elif current_text == "CONNECTING":
+    color = np.array([1, 1, 1]) * 0.5
+    flashing = True
+  elif current_text.startswith("JOIN WIFI"):
+    color = np.array([0, 0, 1])
+  elif current_text.startswith("VISIT URL"):
+    color = np.array([0, 0, 1])
+    flashing = True
+  elif current_text.startswith("ADDING SSID"):
+    color = np.array([0, 1, 0])
+  elif current_text == "CONNECTION ERROR":
+    color = np.array([1, 0, 0])
+    flashing = True
+  elif current_text == "CHECKING FOR INTERNET":
+    color = np.array([1, 1, 0])
+  else:
+    return
+
+  if flashing:
+    color *= (sin(time()) + 1) / 2
+  color_pixel(0, color)
+
 
 previous_text = ""
 current_text = ""
@@ -1002,12 +1033,8 @@ def broadcast_state():
     "prefs": prefs.current_prefs,
     "prefTimestamps": prefs.pref_to_client_timestamp,
     "currentText": current_text,
-    "extraIdle": config.get("IDLE"),
-    "exclude": config.get("EXCLUDE", {}),
-    "include": config.get("INCLUDE", {}),
     "prefNames": prefs.pref_names,
     "currentPrefName": prefs.current_pref_name,
-    "extraStartingRules": config.get("EXTRA_STARTING_RULES"),
   }
   price = config.get("PRICE")
   if price is not None:

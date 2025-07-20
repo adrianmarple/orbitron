@@ -339,11 +339,16 @@ addGETListener(async (response, orbID, filePath)=>{
     response.end(JSON.stringify(null))
     return true
   }
-
+  localConfig = orbInfoCache[orbID].config
   let info = {
     orbID,
-    topology: orbInfoCache[orbID].config.PIXELS,
+    topology: localConfig.PIXELS,
     isCurrentlyConnected: !!connectedOrbs[orbID],
+    extraIdle: localConfig.IDLE,
+    extraStartingRules: localConfig.EXTRA_STARTING_RULES,
+    include: localConfig.INCLUDE || {},
+    exclude: localConfig.EXCLUDE || {},
+    dimmerStates: localConfig.MANUAL_FADE_STEPS,
   }
   if (config.ALIASES[orbID]) {
     info.alias = config.ALIASES[orbID]

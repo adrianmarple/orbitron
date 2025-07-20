@@ -46,6 +46,7 @@
 
   <div v-else-if="!orbID" id="registration" :class="{ small: registeredIDs.length > 3 }">
     <div class="horiz-box"></div>
+    
     <div id="orbs">
       <div v-for="id in registeredIDs" class="orb-wrapper" @click="openOrb(id, true)"
       :class="{ connected: (idToBasicOrbInfo[id] || {}).isCurrentlyConnected }">
@@ -268,8 +269,7 @@
       <slider title="Brightness" key="brightness"  :max="200"></slider>
       <div class="horiz-box">
         <div class="button" style="font-size: 3rem; width: 38rem; height: 4rem; display: flex; justify-content: center;" @click="advanceManualFade">
-          <div>Temporary Dimmer &ensp;</div>
-          <div style="text-align: left; width: 10rem;">({{Math.round(state.prefs.dimmer * 100)}}%)</div>
+          {{ dimmerString }}
         </div>
       </div>
     </div>

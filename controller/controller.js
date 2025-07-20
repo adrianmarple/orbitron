@@ -104,6 +104,8 @@ var app = new Vue({
   },
 
   async created() {
+    let self = this
+
     if (navigator.userAgent.indexOf("Win") !== -1) {
       this.os = "Windows";
     } else if (navigator.userAgent.indexOf("X11") !== -1 || navigator.userAgent.indexOf("Linux") !== -1) {
@@ -137,7 +139,6 @@ var app = new Vue({
     onfocus = () => {
       this.blurred = false
       if (!this.ws) {
-        let self=this
         setTimeout(function(){self.startWebsocket();},10)
       }
     }
@@ -178,6 +179,12 @@ var app = new Vue({
       this.openOrb(event.state.orbID)
     })
 
+    if (this.orbID) {
+      fetch(`${location.origin}/${this.orbID}/info`).then(async data => {
+        self.$set(self.idToBasicOrbInfo, self.orbID, await data.json())
+      })
+    }
+
     try {
       let rawRegisteredIDs = localStorage.getItem("registeredIDs")
       let rawExcludedIDs = localStorage.getItem("excludedIDs")
@@ -198,9 +205,9 @@ var app = new Vue({
       localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
       
       for (let id of this.registeredIDs) {
-         fetch(`${location.origin}/${id}/info`).then(async data => {
-          this.idToBasicOrbInfo[id] = await data.json()
-         })
+        fetch(`${location.origin}/${id}/info`).then(async data => {
+          self.$set(self.idToBasicOrbInfo, id, await data.json())
+        })
       }
     } catch(e) {
       console.error(e)
@@ -290,9 +297,34 @@ var app = new Vue({
       return this.state.mustLogin
     },
 
+    orbInfo() {
+      return this.idToBasicOrbInfo[this.orbID] || {}
+    },
+
     navBarItems() {
       return ['colors', 'pattern', 'save', 'timing', 'games']
         .filter(name => !this.exclude[name])
+    },
+
+    dimmerString() {
+      let dimmerStates = this.orbInfo.dimmerStates || [1, 0.3, 0]
+      let nextDimmerIndex = 0
+      let closestDistance = 1
+      for (let i = 0; i < dimmerStates.length; i++) {
+        let distance = Math.abs(this.state.prefs.dimmer - dimmerStates[i])
+        if (distance < closestDistance) {
+          closestDistance = distance
+          nextDimmerIndex = (i + 1) % dimmerStates.length
+        }
+      }
+      let nextDimmerState = dimmerStates[nextDimmerIndex]
+      if (nextDimmerState == 0) {
+        return "Off"
+      } else if (nextDimmerState == 1) {
+        return "On"
+      } else {
+        return `Dim (${Math.round(nextDimmerState * 100)}%)`
+      }
     },
     patternDropdownInfo() {
       let info = [
@@ -314,7 +346,7 @@ var app = new Vue({
         }
       }
       
-      let extra = this.state.extraIdle
+      let extra = this.orbInfo.extraIdle
       if (extra) {
         let extraDisplayName = extra[0].toUpperCase() + extra.slice(1)
         info.unshift([extra, extraDisplayName])
@@ -339,10 +371,10 @@ var app = new Vue({
     },
 
     exclude() {
-      return this.state.exclude || {}
+      return this.orbInfo.exclude || {}
     },
     include() {
-      return this.state.include || {}
+      return this.orbInfo.include || {}
     },
     gameStarted() {
       return this.state.game != "idle"
@@ -458,8 +490,8 @@ var app = new Vue({
         startingRules = []
       } else {
         startingRules = GLOBAL_RULES
-        if (this.state.extraStartingRules) {
-          startingRules = [...this.state.extraStartingRules, ...startingRules]
+        if (this.orbInfo.extraStartingRules) {
+          startingRules = [...this.orbInfo.extraStartingRules, ...startingRules]
         }
       }
       if (!this.gameInfo || !this.gameInfo.rules) {
@@ -505,7 +537,7 @@ var app = new Vue({
         return
       }
 
-      this.idToBasicOrbInfo[this.newID] = info
+      this.$set(this.idToBasicOrbInfo, this.newID, info)
       this.registeredIDs.push(this.newID)
       localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
       if (this.excludedIDs.includes(this.newID)) {
@@ -548,9 +580,8 @@ var app = new Vue({
     checkOverscroll(event) {
       let elem = event.target
       elem = document.querySelector("#app")
-      console.log(elem.scrollTop, elem.clientHeight)
-      this.overscrollBottom = elem.scrollTop - elem.scrollHeight + elem.clientHeight + 6*this.rem
-      this.overscrollTop = -elem.scrollTop + 6*this.rem
+      this.overscrollBottom = Math.max(0, elem.scrollTop - elem.scrollHeight + elem.clientHeight + 10*this.rem)
+      this.overscrollTop = Math.max(0, -elem.scrollTop + 8*this.rem)
     },
 
     login() {
