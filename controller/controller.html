@@ -47,32 +47,35 @@
   <div v-else-if="!orbID" id="registration" :class="{ small: registeredIDs.length > 3 }">
     <div class="horiz-box"></div>
 
-    <div v-if="registeredIDs.length == 0" class="horiz-box instructions">
-      <div>
-      <h3>No pieces found on the same wifi.</h3>
-      <div>
-        If you're trying to connect to a Lumatron that is connected to the internet aleady,
-        either switch to the same wifi or add it manually using its ID.
+    <div v-if="registeredIDs.length == 0" class="instructions">
+      <div class="horiz-box">
+        <h3>No pieces found on the same wifi.</h3>
+        <div>
+          If you have a new Lumatron that is not yet connected to the internet, you can connect via the following steps:
+        </div>
+        <div>
+          <span class="light yellow flashing">.</span>
+          Join the wifi named <b>Lumatron</b>
+        </div>
+        <div>
+          <span class="light blue">.</span>
+          Once on that wifi, the visit url <a href="http://10.42.0.1">http://10.42.0.1</a>
+        </div>
+        <div>
+          <span class="light blue flashing">.</span>
+          Enter the wifi name (SSID) and password in the page that loads
+        </div>
+        <div>
+          <span class="light green">.</span>
+          Refresh the page once the first pixel turns off
+        </div>
       </div>
-      <div>
-        If the Lumatron is not yet connected to the internet, you can connect via the following steps:
-      </div>
-      <div>
-        <span class="light yellow flashing">.</span>
-        Join the wifi named <b>Lumatron</b>
-      </div>
-      <div>
-        <span class="light blue">.</span>
-        Once on that wifi, the visit url <a href="http://10.42.0.1">http://10.42.0.1</a>
-      </div>
-      <div>
-        <span class="light blue flashing">.</span>
-        Enter the wifi name (SSID) and password in the page that loads
-      </div>
-      <div>
-        <span class="light green">.</span>
-        Refresh the page once the first pixel turns off
-      </div>
+      <div class="fancy-divider"></div>
+      <div class="horiz-box">
+        <div>
+          If you're trying to connect to a Lumatron that is connected to the internet aleady,
+          either switch to the same wifi or add it manually using its ID.
+        </div>
       </div>
     </div>
     

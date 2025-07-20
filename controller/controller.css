@@ -113,8 +113,8 @@ a > .fancy-box:hover, a.fancy-box:hover {
 
 .fancy-divider {
   width: 100%;
-  height: 2px;
-  border: 10px solid #080808; 
+  height: 2.2rem;
+  border: 1rem solid #080808; 
   box-sizing: border-box;
 }
 
@@ -272,6 +272,10 @@ a > .fancy-box:hover, a.fancy-box:hover {
 }
 
 #registration .instructions {
+  display: flex;
+  flex-direction: column;
+}
+#registration .instructions .horiz-box {
   display: flex;
   flex-direction: column;
 }
