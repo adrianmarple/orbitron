@@ -549,8 +549,8 @@ var app = new Vue({
       let elem = event.target
       elem = document.querySelector("#app")
       console.log(elem.scrollTop, elem.clientHeight)
-      this.overscrollBottom = elem.scrollTop - elem.scrollHeight + elem.clientHeight + 50
-      this.overscrollTop = -elem.scrollTop + 50
+      this.overscrollBottom = elem.scrollTop - elem.scrollHeight + elem.clientHeight + 6*this.rem
+      this.overscrollTop = -elem.scrollTop + 6*this.rem
     },
 
     login() {

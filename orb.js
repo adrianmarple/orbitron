@@ -166,10 +166,17 @@ function connectOrbToRelay(){
           }
         }
         if (command.type == "getlog") {
-          if (config.DEV_MODE) {
-            returnData = "no pm2 running"
-          } else {
-            returnData = (await fs.promises.readFile("/root/.pm2/logs/startscript-out.log")).toString()
+          let daysAgo = command.daysAgo || 0
+          let suffix = ""
+          if (daysAgo > 0) {
+            let day = new Date()
+            day.setDate(day.getDate() - daysAgo)
+            suffix = "__" + day.toJSON().slice(0, 10) + "_00-00-00"
+          }
+          try {
+            returnData = (await fs.promises.readFile(`/root/.pm2/logs/startscript-out${suffix}.log`)).toString()
+          } catch(_) {
+            returnData = "Log file does not exist"
           }
         }
         if (command.type == "ip") {

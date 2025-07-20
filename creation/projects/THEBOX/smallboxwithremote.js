@@ -1,4 +1,4 @@
-// SKI
+// SKIP
 module.exports = async () => {
   setFor3DPrintedCovers()
   exteriorOnly = true

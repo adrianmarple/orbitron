@@ -64,7 +64,15 @@
 <textarea v-if="viewing=='config'" class="main-text" v-model="config"></textarea>
 <textarea v-if="viewing=='prefs'" class="main-text" v-model="prefs"></textarea>
 <textarea v-if="viewing=='timing'" class="main-text" v-model="timingprefs"></textarea>
-<textarea v-if="viewing=='log'" class="main-text" v-model="log" readonly></textarea>
+<div v-if="viewing=='log'" class="main-text">
+  <textarea v-if="viewing=='log'" class="main-text" v-model="log" readonly></textarea>
+  <div class="row" style="display: flex; justify-content: center;">
+    <div class="back button" @click="logDaysAgo += 1; updateLog()">Back</div>
+    <div style="font-size: 2rem; margin: 0.5rem 2rem;">{{ logDaysAgo }}</div>
+    <div class="back button" @click="logDaysAgo -= 1; updateLog()" :class="{disabled: logDaysAgo <= 0}">Forward</div>
+    <div class="back button" @click="logDaysAgo = 0; updateLog()">FF</div>
+  </div>
+</div>
 <div v-if="viewing=='command'" class="main-text">
   <textarea class="main-text" v-model="commandResponses" readonly></textarea>
   <textarea class="command-prompt" v-model="command" @keypress="onCommandKeypress"></textarea>
@@ -113,6 +121,7 @@ export default {
       prefs: "",
       timingprefs: "",
       log: "",
+      logDaysAgo: 0,
       viewing: "config",
       qrCode: null,
       newAlias: "",
@@ -238,6 +247,7 @@ export default {
       this.newAlias = ""
       this.commandResponses = " "
       this.config = this.idToConfig[this.orbID]
+      this.logDaysAgo = 0
       await this.setViewing("config")
     },
     async setOrbKey() {
@@ -336,7 +346,8 @@ export default {
       this.timingprefs = this.idToTimingPrefs[this.orbID]
     },
     async updateLog() {
-      this.idToLog[this.orbID] = await this.sendCommand({type: "getlog"}, this.orbID)
+      this.idToLog[this.orbID] = await this.sendCommand(
+        {type: "getlog", daysAgo:  this.logDaysAgo}, this.orbID)
       this.log = this.idToLog[this.orbID]
     },
 

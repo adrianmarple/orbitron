@@ -124,6 +124,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   left: 0;
   margin-left: calc(50vw - 20.5rem);
   width: 41rem;
+  z-index: -1;
 }
 .overscroll.top {
   top: 0;
@@ -156,7 +157,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
 }
 
 #registration.small {
-  border-width: 2rem;
+  border-width: 5.5rem 2rem;
 }
 #registration.small #orbs {
   grid-template-columns: 1fr 1fr;
