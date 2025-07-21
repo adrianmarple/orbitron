@@ -6,7 +6,7 @@ module.exports = () => {
   // LED_SUPPORT_GAP = 1
   PORT_POSITION = "center"
   addNubs = false
-  cat5partID = "3L"
+  portPartID = "3L"
 
   let xCount = 93
   let xWiggle = xCount * PIXEL_DISTANCE - CHANNEL_WIDTH - 2*WALL_THICKNESS - 1524

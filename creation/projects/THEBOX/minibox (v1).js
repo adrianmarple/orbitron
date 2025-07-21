@@ -2,7 +2,7 @@
 module.exports = async () => {
   setFor3DPrintedCovers()
   exteriorOnly = true
-  cat5partID = "5"
+  portPartID = "5"
   powerHolePartID = "3"
   
   NO_EMBOSSING = true

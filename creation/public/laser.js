@@ -807,7 +807,7 @@ function createPrintInfo3D() {
       if (wall.isFoldWall) {
         foldWallCreation(wall, printInfo)
       } else {
-        printInfo.prints = [...printInfo.prints, wallPrint(wall, true)]
+        printInfo.prints.push(wallPrint(wall, true))
       }
       completedWalls.push(wall)
       partID += 1
@@ -862,17 +862,17 @@ function createPrintInfo3D() {
 }
 
 function findEmbossing(print) {
-  if (print.type == "embossing") {
+  findSubprint("embossing", print)
+}
+function findSubprint(type, print) {
+  if (print.type == type) {
     return print
   }
-  if (print.type == "difference") {
-    return findEmbossing(print.components[0])
-  }
-  if (print.type == "union") {
+  if (print.type == "union" || print.type == "difference") {
     for (let component of print.components) {
-      let embo = findEmbossing(component)
-      if (embo) {
-        return embo
+      let subprint = findSubprint(type, component)
+      if (subprint) {
+        return subprint
       }
     }
   }
@@ -891,27 +891,37 @@ function foldWallCreation(foldWall, printInfo) {
   }
   let flipOver = {
     type: "rotate",
-    axis: [0,1,0],
-    angle: Math.PI,
+    vector: [0, Math.PI, 0],
   }
 
   let leftJoint = wallPrint(foldWall, true)
   let rightJoint = wallPrint(foldWall, false)
 
+  let leftPort = portPartID == leftJoint.suffix
+  let rightPort = portPartID == rightJoint.suffix
+
   if (epsilonEquals(foldWall.yRotationAngle, 0)) {
-    printInfo.prints.push({
+    let foldPrint = {
       suffix: leftJoint.suffix,
       type: "union",
       components: [
         leftJoint,
         rightJoint,
       ]
-    })
+    }
+    if (leftPort || rightPort) {
+      foldPrint.operations = [flipOver]
+      let support = findSubprint("ledSupport", foldPrint)
+      if (support) {
+        support.void = true
+      }
+    }
+    printInfo.prints.push(foldPrint)
     return
   }
   if (PRINT_WALL_HALVES_SEPARATELY) {
     // Left (female) side
-    printInfo.prints.push({
+    let leftPrint = {
       suffix: leftJoint.suffix,
       type: "difference",
       components: [
@@ -933,7 +943,11 @@ function foldWallCreation(foldWall, printInfo) {
           ],  
         },
       ]
-    })
+    }
+    if (leftPort) {
+      leftPrint.operations = [flipOver]
+    }
+    printInfo.prints.push(leftPrint)
     
     // Right (male) side
     let rightPrint = {
@@ -980,6 +994,12 @@ function foldWallCreation(foldWall, printInfo) {
       rightPrint.operations = [flipOver]
       rightPrint.components[0].operations = [translation]
       rightPrint.components[1].operations.unshift(translation)
+      if (rightPort) {
+        console.error("PORT on already flipped right side.")
+      }
+    }
+    if (rightPort) {
+      rightPrint.operations = [flipOver]
     }
     printInfo.prints.push(rightPrint)
   }
@@ -1008,6 +1028,9 @@ function foldWallCreation(foldWall, printInfo) {
       print.components[0].operations = [translation]
       print.components[1].operations.unshift(translation)
     }
+    if (leftPort || rightPort) {
+      console.log("WARNING! Untested port configuration")
+    }
     printInfo.prints.push(print)
   }
 }
@@ -1032,6 +1055,7 @@ function wallPrint(wall, isLeft) {
   let vertex0 = wall[isLeft ? "leftVertex" : "rightVertex"]
   let vertex1 = wall.vertex
 
+
   let print = blankPrint()
   print.suffix = wall.partID + ""
 
@@ -1044,6 +1068,7 @@ function wallPrint(wall, isLeft) {
   if (wall.isFoldWall) {
     print.suffix += isLeft ? "L" : "R"
   }
+  let hasPort = print.suffix == portPartID && RENDER_MODE != "simple"
 
   let path = ""
   
@@ -1219,7 +1244,7 @@ function wallPrint(wall, isLeft) {
 
   // LED supports
   supportOffset = null
-  if (isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
+  if (isLeft && !NO_SUPPORTS && print.suffix != portPartID &&
       !wall.hasWallPort &&
       bottomLength > PIXEL_DISTANCE * 1.2) {
     supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 1)
@@ -1233,7 +1258,7 @@ function wallPrint(wall, isLeft) {
       supportOffset += PIXEL_DISTANCE
     }
   }
-  if (!isLeft && !NO_SUPPORTS && print.suffix != cat5partID &&
+  if (!isLeft && !NO_SUPPORTS && print.suffix != portPartID &&
       bottomLength > PIXEL_DISTANCE * 3 &&
       (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
     supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
@@ -1271,13 +1296,13 @@ function wallPrint(wall, isLeft) {
     }
   }
 
-
   // Embossing
   const MAX_EMBOSSING_WIDTH = 10
-  if (!NO_EMBOSSING && RENDER_MODE == "standard" &&
+  if (!NO_EMBOSSING &&
+    !(hasPort && PORT_TYPE == "USBC_INTEGRATED") &&
+    RENDER_MODE == "standard" &&
     (isLeft || (wall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY))) {
-    // let V = wallStart.sub(extraOffset)
-    
+
     let embossingOffset = extraOffset.length() + lengthOffset
     if (embossingOffset + MAX_EMBOSSING_WIDTH + LED_SUPPORT_WIDTH/2 > supportOffset) {
       embossingOffset = supportOffset + LED_SUPPORT_WIDTH/2 + 1
@@ -1312,10 +1337,9 @@ function wallPrint(wall, isLeft) {
     print.components.push(embossing)
   }
 
-  // Port hole
-  let hasPort = print.suffix == cat5partID && RENDER_MODE != "simple"
 
-  if (hasPort && PORT_TYPE == "USBC") {
+  // Port hole
+  if (hasPort && PORT_TYPE.indexOf("USBC") == 0) {
     let portCenter = wallStart
     if (PORT_POSITION == "start") {
       portCenter = portCenter.addScaledVector(E, -USBC_WIDTH/2 - 1)
@@ -1327,29 +1351,98 @@ function wallPrint(wall, isLeft) {
       portCenter = portCenter.addScaledVector(E,
         -Math.min(topLength, bottomLength) + USBC_WIDTH/2 + 1)
     }
-    let portStart = portCenter.addScaledVector(E, -USBC_WIDTH/2)
-    .addScaledVector(N, USBC_HEIGHT/2)
-    port_path = pathFromSegments(portStart, [
-      E.scale(USBC_WIDTH),
-      N.scale(-USBC_HEIGHT),
-      E.scale(-USBC_WIDTH),
-      N.scale(USBC_HEIGHT),
-    ])
-    wallElem.querySelector("path").setAttribute("d", port_path)
-    print = {
-      type: "difference",
-      suffix: print.suffix,
-      components: [
-        print,
-        {
-          type: "svg",
-          svg: wallElem.outerHTML,
-          thickness: WALL_THICKNESS + 1,
-          position: [0, -WALL_PANEL_HEIGHT/2, 0],
-        }
-      ]
+
+    if (PORT_TYPE == "USBC") {
+      let portStart = portCenter.addScaledVector(E, -USBC_WIDTH/2)
+      .addScaledVector(N, USBC_HEIGHT/2)
+      port_path = pathFromSegments(portStart, [
+        E.scale(USBC_WIDTH),
+        N.scale(-USBC_HEIGHT),
+        E.scale(-USBC_WIDTH),
+        N.scale(USBC_HEIGHT),
+      ])
+      wallElem.querySelector("path").setAttribute("d", port_path)
+      print = {
+        type: "difference",
+        suffix: print.suffix,
+        components: [
+          print,
+          {
+            type: "svg",
+            svg: wallElem.outerHTML,
+            thickness: WALL_THICKNESS + 1,
+            position: [0, -WALL_PANEL_HEIGHT/2, 0],
+          }
+        ]
+      }
+    }
+    if (PORT_TYPE == "USBC_INTEGRATED") {
+      portCenter.y = -portCenter.y
+
+      let port_width = 9.2
+      let port_length = 10.6
+      let port_radius = 1.6
+
+      // let pcb_width = 9.1
+      let pcb_thickness = 1
+      let pcb_cover_length = 1
+
+      let top_gap = 0.4
+      let top_thickness = 8.2
+      let top_border = 3
+      let top_width = port_width + 2*top_border+1
+      let top_radius = port_radius + top_border
+
+      print = {
+        type: "difference",
+        suffix: print.suffix,
+        components: [
+          {
+            type: "union",
+            components: [
+              print,
+              {
+                position: portCenter.toArray(),
+                rotationAngle: -wall.dihedralAngle/2,
+                code: `
+translate([0,0,${-top_thickness}])
+pillinder(${top_width}, ${top_radius}, ${top_thickness});`
+              },
+              {
+                type: "prefix",
+                code: `
+module pillinder(width, radius, height) {
+  hull() {
+    translate([width/2 - radius, 0, 0])
+    cylinder(h=height, r=radius, $fn=64);
+    translate([-width/2 + radius, 0, 0])
+    cylinder(h=height, r=radius, $fn=64);
+  }
+}`
+              }
+            ]
+          },
+          {
+            position: portCenter.toArray(),
+            rotationAngle: -wall.dihedralAngle/2,
+            code: `
+difference() {
+  translate([0, 0, ${-top_thickness}])
+  pillinder(${port_width}, ${port_radius}, ${port_length + top_gap});
+
+  translate([0, ${(pcb_thickness + port_radius)/2}, ${port_length -top_thickness -top_gap + pcb_cover_length/2+1}])
+  cube([${port_width}, ${port_radius}, ${pcb_cover_length+2}], center=true);
+}`
+          }
+        ]
+      }
+      
+      if (!wall.isFoldWall && RENDER_MODE == "standard") {
+        print.operations = [{type: "rotation", vector: [Math.PI, 0, 0]}]
+      }
     }
   }
+
   // Old CAT5 version of port
   if (hasPort && PORT_TYPE == "CAT5") {
     let portBottomCenter = wallStart.addScaledVector(N, -CHANNEL_DEPTH/2)

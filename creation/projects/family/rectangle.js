@@ -1,7 +1,7 @@
 // SKIP
 module.exports = () => {
   setFor3DPrintedCovers()
-  cat5partID = "2L"
+  portPartID = "2L"
   ZERO_FOLD_LENGTH_THRESHOLD = 19
   MAX_WALL_LENGTH = 150
   NO_SUPPORTS = true

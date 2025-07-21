@@ -305,6 +305,7 @@ async function generateGCode(info, print) {
   } else {
     info.fullSuffix = info.suffix + print.index
   }
+  info.prefixCode = ""
 
   let scadFilePath = `${info.tempPath}_${info.fullSuffix}.scad`
   let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}_${info.fullSuffix}.stl`.replace(" ", "_")
@@ -365,6 +366,7 @@ async function generateGCode(info, print) {
   }
 `
   scadFileContents += await generateModule(info, print)
+  scadFileContents = info.prefixCode + scadFileContents
 
   console.log("Making .scad " + info.fullSuffix)
   await fs.promises.writeFile(scadFilePath, scadFileContents)
@@ -397,6 +399,8 @@ async function generateGCode(info, print) {
 }
 
 async function generateModule(info, module) {
+  if (module.void) return ""
+
   let moduleString = ""
   if (module.operations) {
     for (let operation of module.operations.reverse()) {
@@ -406,8 +410,13 @@ async function generateModule(info, module) {
           translate([${operation.position}])`
           break
         case "rotate":
-          moduleString += `
-          rotate(a=${operation.angle * 180/Math.PI}, v=[${operation.axis}])`
+          if (operation.angle) {
+            moduleString += `
+            rotate(a=${operation.angle * 180/Math.PI}, v=[${operation.axis}])`
+          } else if (operation.vector) {
+            moduleString += `
+            rotate([${operation.vector[0] * 180/Math.PI}, ${operation.vector[1] * 180/Math.PI}, ${operation.vector[2] * 180/Math.PI}])`
+          }
           break
         case "scale":
           moduleString += `
@@ -495,6 +504,9 @@ async function generateModule(info, module) {
     case "innerwallbit":
       moduleString += `
       innerwall_bit(${module.thickness}, ${module.isFemale});`
+      break
+    case "prefix":
+      info.prefixCode += module.code
       break
     default:
       moduleString += "\n" + module.code

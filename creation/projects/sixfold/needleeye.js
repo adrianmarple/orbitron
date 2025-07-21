@@ -1,7 +1,7 @@
 // SKIP
 module.exports = () => {
   setFor3DPrintedCovers()
-  cat5partID = "2"
+  portPartID = "2"
   PORT_POSITION = "center"
 
   const EDGE_LENGTH = 2

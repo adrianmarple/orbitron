@@ -2,7 +2,7 @@
 module.exports = () => {
   setFor3DPrintedCovers()
   MAX_WALL_LENGTH = 150
-  cat5partID = "2"
+  portPartID = "2"
   PORT_POSITION = "center"
 
   useCorrectedVersion = 1
