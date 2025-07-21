@@ -1,10 +1,10 @@
 # Run via:
 # /Applications/Blender.app/Contents/MacOS/Blender --background --python cubecloud.py
 
-import bpy
+import bpy # type: ignore
 import random
 import math
-from mathutils import Vector, Euler
+from mathutils import Vector, Euler # type: ignore
 
 # Settings
 num_cubes = 100

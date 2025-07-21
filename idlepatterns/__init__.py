@@ -18,7 +18,7 @@ from prefs import get_pref
 name_to_idle_game = {}
 
 if config.get("BEAT_PIN"):
-  import RPi.GPIO as GPIO
+  import RPi.GPIO as GPIO # type: ignore
   GPIO.setwarnings(False)
   GPIO.setup(config["BEAT_PIN"], GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 

@@ -1,6 +1,6 @@
 # code initially generated via chatGPT
 
-import bpy
+import bpy # type: ignore
 import sys
 import os
 

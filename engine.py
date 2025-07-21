@@ -272,7 +272,7 @@ if display_type == "Seg14x4":
   try:
     import board
     i2c = board.I2C()
-    from adafruit_ht16k33.segments import Seg14x4
+    from adafruit_ht16k33.segments import Seg14x4 # type: ignore
     display = Seg14x4(i2c)
   except Exception:
     print("Error initializing TEXT_DISPLAY %s" % display_type, file=sys.stderr)
@@ -1048,7 +1048,7 @@ def broadcast_state():
 # ================================ Core loop =========================================
 
 if config.get("MANUAL_FADE_PIN"):
-  import RPi.GPIO as GPIO
+  import RPi.GPIO as GPIO # type: ignore
   GPIO.setwarnings(False)
   GPIO.setup(config["MANUAL_FADE_PIN"], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
