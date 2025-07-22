@@ -5,11 +5,15 @@
 <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
 <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
 
-<title>Controller - Lumatron</title>
+<title>404 - Lumatron</title>
 <link rel="shortcut icon" href="/controller/images/ravenstear.png" />
 <style>
+:root {
+  font-size: min(1.35vh, 2vw);
+}
+
 html, body {
-  background-color: #121212;
+  background-color: #080808;
   margin: 0;
   font-family: Avenir, Helvetica, Arial, sans-serif;
 }
@@ -21,10 +25,41 @@ html, body {
   min-height: 100vh;
   max-width: 700px;
   font-size: 1.2rem;
+  padding: 10rem 5rem;
+  box-sizing: border-box;
 }
 
 a:link, a:visited, a:hover, a:active {
   color: white;
+}
+
+#about-button, #back-button {
+  position: fixed;
+  user-select: none;
+  top: 1rem;
+  cursor: pointer;
+  left: 1rem;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white !important;
+  text-decoration: none;
+  filter: drop-shadow(0 0 1rem white);
+  width: 6rem;
+  height: 6rem;
+  opacity: 0.6;
+}
+#about-button img {
+  width: 100%;
+  position: absolute;
+}
+
+h1 {
+  font-size: 4rem;
+}
+h3 {
+  font-size: 2.4rem;
 }
 </style>
 
@@ -32,27 +67,12 @@ a:link, a:visited, a:hover, a:active {
 <body>
 
 <div id="main">
-  <div id="background"></div>
-
-  <p>Do the following instructions to connect this device to the internet
-    (they should generally be reflected by the first pixel and
-    update after each state has been accomplished):</p>
-  <ul>
-    <li>Join the wifi named <b>Lumatron</b>.</li>
-    <li>Once on the wifi, the visit url <a href="http://10.42.0.1">http://10.42.0.1</a>.</li>
-    <li>Enter the wifi name (SSID) and password in the page that loads.</li>
-    <li>Refresh the page. (You may also need to power cycle the box)</li>
-  </ul>
-
-  <p>If you've already successfully connected this device, but are getting this page anyway,
-    contact <a href="mailto:adrian@marplebot.com">adrian@marplebot.com</a>.
-    <em>(Be sure to check that the device is on and the url is correct first though)</em></p>
-</div>
+  <h1>404 file not found</h1>
+  <h3>Go to <a href="/">homepage</a></h3>
 
 <a href="https://lumatron.art" target="_blank" id="about-button" @click="console.log('test')">
   <img src="/controller/images/ravenstear.svg">
 </a>
-
 
 </body>
 </html>

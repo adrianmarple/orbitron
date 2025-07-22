@@ -407,13 +407,23 @@ addGETListener(async (response, orbID, filePath)=>{
 })
 
 // Serve actual controller
-addGETListener(async (response, orbID, filePath)=>{
+// Important that this goes last
+addGETListener(async (response, orbID, filePath) => {
+  if(filePath.includes(".")) return
+
   if (filePath == "") { // Home page is same as controller now
     respondWithFile(response, "/controller/controller.html")
     return true
   }
-
-  if(!orbID || !connectedOrbs[orbID]) return
+  if (!connectedOrbs[orbID]) {
+    console.log(orbID)
+    // Redirect to home page
+    response.writeHead(302 , {
+        'Location' : '/'
+    })
+    response.end()
+    return true
+  }
 
   let originalOrbID = filePath.split("/")[1].toLowerCase()
   if (config.ALIASES[originalOrbID]) {
