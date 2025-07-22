@@ -75,7 +75,7 @@
 </div>
 <div v-if="viewing=='command'" class="main-text">
   <textarea class="main-text" v-model="commandResponses" readonly></textarea>
-  <textarea class="command-prompt" v-model="command" @keypress="onCommandKeypress"></textarea>
+  <textarea class="command-prompt" v-model="command" @keydown="onCommandKeydown"></textarea>
 </div>
 <div v-if="viewing=='backups'" id="backups">
   <div class="list">
@@ -134,6 +134,7 @@ export default {
 
       commandResponses: " ",
       command: "",
+      commandHistory: [],
     }
   },
   async created() {
@@ -169,16 +170,15 @@ export default {
     this.commits = await (await fetch("http://localhost:8000/commits")).json()
 
     await this.getOrbInfo()
-    // setInterval(async function() {
-    //   self.getOrbInfo()
-    //   if (self.viewing == "log") {
-    //     self.updateLog()
-    //   }
-    //   self.commits = await (await fetch("http://localhost:8000/commits")).json()
-    // }, 5000)
+    setInterval(async function() {
+      self.getOrbInfo()
+      self.updateViewing()
+      self.commits = await (await fetch("http://localhost:8000/commits")).json()
+    }, 5000)
     await this.updateConfig()
     this.setOrb(this.orbID)
 
+    this.viewing = localStorage.getItem("adminviewing") || this.viewing
 
     this.qrCode = new QRCodeStyling({
       width: 25 * 20,
@@ -194,7 +194,10 @@ export default {
   watch: {
     orbID() {
       localStorage.setItem("orbID", this.orbID)
-    }
+    },
+    viewing() {
+      localStorage.setItem("adminviewing", this.viewing)
+    },
   },
   computed: {
     async orbKey() {
@@ -223,18 +226,7 @@ export default {
     },
     async setViewing(type) {
       this.viewing = type
-      if (type == "log") {
-        await this.updateLog()
-      }
-      if (type == "config") {
-        await this.updateConfig()
-      }
-      if (type == "prefs") {
-        await this.updatePrefs()
-      }
-      if (type == "timing") {
-        await this.updateTimingPrefs()
-      }
+      this.updateViewing()
     },
     async setOrb(orbID) {
       this.orbID = orbID
@@ -246,9 +238,12 @@ export default {
       }
       this.newAlias = ""
       this.commandResponses = " "
+      this.log = ""
+      this.prefs = ""
+      this.timingprefs = ""
       this.config = this.idToConfig[this.orbID]
       this.logDaysAgo = 0
-      await this.setViewing("config")
+      this.updateViewing()
     },
     async setOrbKey() {
       let orbID = readFromConfig(this.config, 'ORB_ID')
@@ -333,6 +328,17 @@ export default {
         }
       } catch {}
     },
+    async updateViewing() {
+      if (this.viewing == 'config') {
+        await this.updateConfig()
+      } else if (this.viewing == 'log') {
+        await this.updateLog()
+      } else if (this.viewing == 'prefs') {
+        await this.updatePrefs()
+      } else if (this.viewing == 'timing') {
+        await this.updateTimingPrefs()
+      }
+    },
     async updateConfig() {
       this.idToConfig[this.orbID] = await this.sendCommand({type: "getconfig"}, this.orbID)
       this.config = this.idToConfig[this.orbID]
@@ -381,14 +387,28 @@ export default {
       this.backupList.push(this.manualBackupName + ".bak")
     },
 
-    async onCommandKeypress(event) {
-      if (event.keyCode == 13) {
+    async onCommandKeydown(event) {
+      console.log(event.key)
+      if (event.key == "Enter") {
+        this.commandHistory.unshift(this.command)
         let response = await this.sendCommand({ type: "run", command: this.command }, this.orbID)
         this.commandResponses += "% " + this.command + response
         this.command = ""
+        this.historyIndex = -1
+      }
+      if (event.key == "ArrowUp" && this.historyIndex < this.commandHistory.length) {
+        this.historyIndex += 1
+        this.command = this.commandHistory[this.historyIndex]
+      }
+      if (event.key == "ArrowDown" && this.historyIndex >= 0) {
+        this.historyIndex -= 1
+        if (this.historyIndex >= 0) {
+          this.command = this.commandHistory[this.historyIndex]
+        } else {
+          this.command = ""
+        }
       }
     },
-
     sendServerCommand(command) {
       return this.sendCommand(command, this.serverOrbID, true)
     },
