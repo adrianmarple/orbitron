@@ -199,11 +199,7 @@ var app = new Vue({
       console.error(e)
     }
 
-    let localOrbInterval = setInterval(() => {
-      if (this.registeredIDs.length > 0) {
-        clearInterval(localOrbInterval)
-        return
-      }
+    setInterval(() => {
       self.updateLocalOrbs()
     }, 5000)
   },
@@ -526,9 +522,6 @@ var app = new Vue({
       localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
       
       for (let id of this.registeredIDs) {
-        if (this.idToBasicOrbInfo[id]) {
-          continue
-        }
         fetch(`${location.origin}/${id}/info`).then(async data => {
           self.$set(self.idToBasicOrbInfo, id, await data.json())
         })
