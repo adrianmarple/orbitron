@@ -1,7 +1,9 @@
 module.exports = () => {
   setFor3DPrintedCovers()
   NO_EMBOSSING = true
-  BOTTOM_ORIGAMI_KERF = 0.2
+  BOTTOM_ORIGAMI_KERF = 0.1
+  CHANNEL_LATCH_ANGLE = -6
+
 
   isWall = false // To avoid non-coplanar errors
   for (let permutation of permutations([2/3, 1/3, 0])) {
@@ -63,7 +65,7 @@ module.exports = () => {
       printInfo.prints[0],
       printInfo.prints[1],
       printInfo.prints[2],
-      printInfo.prints[3].components[0],
+      printInfo.prints[3],
     ]
     printInfo.prints[0].suffix = "square_wall"
     printInfo.prints[1].suffix = "hex_wall"
