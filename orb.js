@@ -451,8 +451,19 @@ function bindDataEvents(peer) {
       content.self = peer.pid
     }
     peer.lastActivityTime = Date.now()
-    if (config.LOG_INCOMING_MESSAGES && content.type != "ping") {
-      console.log(content)
+    if (config.LOG_INCOMING_MESSAGES) {
+      let path = config.LOG_INCOMING_MESSAGES.split(".")
+      let logContent = content
+      for (let field of path) {
+        if (logContent[field]) {
+          logContent = logContent[field]
+        } else {
+          logContent = null
+        }
+      }
+      if (logContent) {
+        console.log(logContent)
+      }
     }
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     if (["prefs", "clearPrefs", "loadPrefs", "advanceManualFade"].includes(content.type)) {
