@@ -231,34 +231,35 @@ def update():
 # ================================ Text/status display =========================================
 
 def update_first_pixel():
-  color = [0,0,0]
+  color = np.array((0,0,0))
   flashing = False
   if current_text == "$LOADING":
-    color = np.array([1, 1, 1]) * 0.5
+    color = np.array(np.array((100, 100, 100)))
     flashing = True
   elif current_text == "CONNECTING":
-    color = np.array([1, 1, 1]) * 0.5
+    color = np.array(np.array((100, 100, 100)))
     flashing = True
   elif current_text.startswith("JOIN WIFI"):
-    color = np.array([1, 1, 0])
+    color = np.array((255, 255, 0))
     flashing = True
   elif current_text.startswith("VISIT URL"):
-    color = np.array([0, 0, 1])
+    color = np.array((0, 0, 255))
+    color = np.array([0.0, 0, 1])
   elif current_text.startswith("ADD SSID"):
-    color = np.array([0, 0, 1])
+    color = np.array((0, 0, 255))
     flashing = True
   elif current_text.startswith("ADDING SSID"):
-    color = np.array([0, 1, 0])
+    color = np.array((0, 255, 0))
   elif current_text == "CONNECTION ERROR":
-    color = np.array([1, 0, 0])
+    color = np.array((255, 0, 0))
     flashing = True
   elif current_text == "CHECKING FOR INTERNET":
-    color = np.array([1, 1, 0])
+    color = np.array((255, 255, 0))
   else:
     return
 
   if flashing:
-    color *= (sin(time()) + 1) / 2
+    color = color * ((sin(time()) + 1) / 2) # Can't use *= here for some reason
   color_pixel(0, color)
 
 

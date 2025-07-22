@@ -416,7 +416,6 @@ addGETListener(async (response, orbID, filePath) => {
     return true
   }
   if (!connectedOrbs[orbID]) {
-    console.log(orbID)
     // Redirect to home page
     response.writeHead(302 , {
         'Location' : '/'

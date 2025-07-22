@@ -346,16 +346,25 @@ export default {
       }
     },
     async updateConfig() {
+      let previousValue = this.idToConfig[this.orbID]
       this.idToConfig[this.orbID] = await this.sendCommand({type: "getconfig"}, this.orbID)
-      this.config = this.idToConfig[this.orbID]
+      if (previousValue != this.idToConfig[this.orbID]) {
+        this.config = this.idToConfig[this.orbID]
+      }
     },
     async updatePrefs() {
+      let previousValue = this.idToPrefs[this.orbID]
       this.idToPrefs[this.orbID] = await this.sendCommand({type: "getprefs"}, this.orbID)
-      this.prefs = this.idToPrefs[this.orbID]
+      if (previousValue != this.idToPrefs[this.orbID]) {
+        this.prefs = this.idToPrefs[this.orbID]
+      }
     },
     async updateTimingPrefs() {
+      let previousValue = this.idToTimingPrefs[this.orbID]
       this.idToTimingPrefs[this.orbID] = await this.sendCommand({type: "gettimingprefs"}, this.orbID)
-      this.timingprefs = this.idToTimingPrefs[this.orbID]
+      if (previousValue != this.idToTimingPrefs[this.orbID]) {
+        this.timingprefs = this.idToTimingPrefs[this.orbID]
+      }
     },
     async updateLog() {
       this.idToLog[this.orbID] = await this.sendCommand(
@@ -394,7 +403,6 @@ export default {
     },
 
     async onCommandKeydown(event) {
-      console.log(event.key)
       if (event.key == "Enter") {
         this.commandHistory.unshift(this.command)
         let response = await this.sendCommand({ type: "run", command: this.command }, this.orbID)
