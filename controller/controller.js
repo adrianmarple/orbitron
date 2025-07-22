@@ -194,24 +194,18 @@ var app = new Vue({
       if (rawExcludedIDs) {
         this.excludedIDs = JSON.parse(rawExcludedIDs)
       }
-
-      let localOrbs = await (await fetch(`${location.origin}/localorbs`)).json()
-      for (let orbID of localOrbs) {
-        if (!this.registeredIDs.includes(orbID)) {
-          this.registeredIDs.push(orbID)
-        }
-      }
-      this.registeredIDs = this.registeredIDs.filter(id => !this.excludedIDs.includes(id))
-      localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
-      
-      for (let id of this.registeredIDs) {
-        fetch(`${location.origin}/${id}/info`).then(async data => {
-          self.$set(self.idToBasicOrbInfo, id, await data.json())
-        })
-      }
+      this.updateLocalOrbs()
     } catch(e) {
       console.error(e)
     }
+
+    let localOrbInterval = setInterval(() => {
+      if (this.registeredIDs.length > 0) {
+        clearInterval(localOrbInterval)
+        return
+      }
+      self.updateLocalOrbs()
+    }, 5000)
   },
 
   watch: {
@@ -520,6 +514,26 @@ var app = new Vue({
       this.$forceUpdate()
     },
 
+    async updateLocalOrbs() {
+      let self = this
+      let localOrbs = await (await fetch(`${location.origin}/localorbs`)).json()
+      for (let orbID of localOrbs) {
+        if (!this.registeredIDs.includes(orbID)) {
+          this.registeredIDs.push(orbID)
+        }
+      }
+      this.registeredIDs = this.registeredIDs.filter(id => !this.excludedIDs.includes(id))
+      localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+      
+      for (let id of this.registeredIDs) {
+        if (this.idToBasicOrbInfo[id]) {
+          continue
+        }
+        fetch(`${location.origin}/${id}/info`).then(async data => {
+          self.$set(self.idToBasicOrbInfo, id, await data.json())
+        })
+      }
+    },
     showAddOrb() {
       this.manuallingRegistering = true
       this.$nextTick(() => {

@@ -462,7 +462,7 @@ function bindDataEvents(peer) {
         }
       }
       if (logContent) {
-        console.log(logContent)
+        console.log(config.LOG_INCOMING_MESSAGES, logContent)
       }
     }
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
