@@ -383,11 +383,8 @@ function generatePixelInfo() {
   dataPostProcessingFunction(info)
 
   // Undo centering and resizing
-  for (let vertex of verticies) {
-    vertex.ogCoords = vertex.ogCoords
-        .scale(1/resizeScale)
-        .sub(centerOffset)
-  }
+  scale(1/resizeScale)
+  translateAll(centerOffset.negate(), true)
 
   window.pixelInfo = info // For rendering pixel numbers
   return info

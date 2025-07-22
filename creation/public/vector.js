@@ -221,9 +221,10 @@ function fromMagAngle(mag, angle) { //angle is in deg
 
 // Operations on all verticies
 
-function translateAll(vector) {
+function translateAll(vector, permanently) {
+  let attribute = permanently ? "ogCoords" : "coordinates"
   for (let vertex of verticies) {
-    vertex.coordinates = vertex.coordinates.add(vector)
+    vertex[attribute] = vertex[attribute].add(vector)
   }
 }
 function center(permanently) {

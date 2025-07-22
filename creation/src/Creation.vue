@@ -76,6 +76,12 @@ export default {
         },
       ],
       buttons: [],
+
+      // Rendering
+      zoom: 1,
+      previousXY: null,
+      isDragging: false,
+      pathIndex: -1,
     }
   },
   created() {
@@ -86,6 +92,20 @@ export default {
       window[setting.name] = setting.value
     }
     this.fetchButtons()
+
+    let eventTypes = ['onmousedown', 'onmousemove', 'onmouseup', 'onkeydown', 'onwheel']
+    for (let eventType of eventTypes) {
+      document[eventType] = (e) => {
+        if (this.$root.mode == 'creation') {
+          this[eventType](e)
+        } else {
+          this.isDragging = false
+          this.previousXY = null
+        }
+
+      }
+    }
+    setInterval(this.render, 30)
   },
   computed: {
     width() {
@@ -215,6 +235,155 @@ export default {
       this.$root.$refs.admin.configureDefault(this.fullProjectName)
       this.$root.toggleMode()
     },
+
+    onmousedown(e) {
+      this.isDragging = true
+      this.previousXY = [e.clientX, e.clientY]
+    },
+    onmousemove(e) {
+      if (!this.isDragging || !this.previousXY) return
+      const ROTATION_SCALE = 0.01
+
+      let newXY = [e.clientX, e.clientY]
+      let deltaX = newXY[0] - this.previousXY[0]
+      let deltaY = newXY[1] - this.previousXY[1]
+      rotateXAll(-ROTATION_SCALE * deltaY)
+      rotateYAll(-ROTATION_SCALE * deltaX)
+      this.previousXY = newXY
+    },
+    onmouseup() {
+      this.isDragging = false
+      this.previousXY = null
+    },
+    onkeydown(e) {
+      if (e.which === 39 || e.which === 38) {
+        this.pathIndex += 1
+      }
+      else if (e.which === 37 || e.which === 40) {
+        this.pathIndex -= 1
+      }
+      else {
+        return
+      }
+      let edge = edges[path[this.pathIndex-1]]
+      if (!edge) return
+      
+      if (edge.isDupe) {
+        edge = edge.dual
+      }
+
+      console.log(`Edge # ${edge.index}, ${edge.dual.index}`)
+
+      console.log("  associated walls: " + edgeToWalls[edge.index].map(wall => wall.partID))
+      if (this.pathIndex >= 0) {
+        let distanceFromBeginning = 0
+        for (let i = 0; i < this.pathIndex; i++) {
+          distanceFromBeginning += edges[path[i]].length()
+        }
+        distanceFromBeginning = parseFloat(distanceFromBeginning.toFixed(2))
+        console.log("  distance from beginning: " + distanceFromBeginning)
+      }
+    },
+    onwheel(e) {
+      this.zoom *= Math.exp(-e.deltaY * 0.001)
+    },
+
+    render() {
+      let c = document.querySelector("canvas")
+      if (!c) return
+      let ctx = c.getContext("2d")
+      ctx.clearRect(0, 0, 1000, 1000)
+
+      let subPath = null
+      if (path) {
+        subPath = path.slice(0, this.pathIndex)
+      }
+
+      let maxMagnitude = 0
+      for (let vertex of verticies) {
+        let point = vertex.coordinates
+        maxMagnitude = Math.max(maxMagnitude, point.length())
+      }
+      let projScale = 8 / (0.6 + maxMagnitude)
+
+      let edgesCopy = edges.slice()
+      edgesCopy.sort((a, b) => {
+        let pathFactor = 0
+        if (path) {
+          pathFactor = subPath.includes(a.index) ? 0.1 : 0
+          pathFactor += a.isDupe ? 0.01 : 0
+          pathFactor -= subPath.includes(b.index) ? 0.1 : 0
+          pathFactor -= b.isDupe ? 0.01 : 0
+        }
+        return pathFactor + b.verticies[0].coordinates[2] - a.verticies[0].coordinates[2]
+      })
+      for (let edge of edgesCopy) {
+        let xy0 = edge.verticies[0].coordinates.project(projScale, this.zoom)
+        let xy1 = edge.verticies[1].coordinates.project(projScale, this.zoom)
+        let z = edge.verticies[0].coordinates.z*projScale + 15
+        ctx.beginPath()
+
+        let alpha = 4/z
+        if (subPath && subPath.includes(edge.index)) {
+          ctx.strokeStyle = `rgba(255,255,255,${alpha * 2})`
+          if (edge.isDupe) {
+            ctx.strokeStyle = `rgba(215,255,255,${alpha * 1.2})`
+          }
+        } else {
+          ctx.strokeStyle = `rgba(255,25,255,${alpha})`
+        }
+        ctx.lineWidth = this.zoom * 100 / (z + 10)
+        ctx.moveTo(xy0[0], xy0[1])
+        ctx.lineTo(xy1[0], xy1[1])
+        ctx.closePath()
+        ctx.stroke()
+      }
+
+      ctx.fillStyle = "#f06"
+      ctx.font = "10px Arial"
+      for (let vertex of verticies) {
+        let xy = vertex.coordinates.project(projScale, this.zoom)
+        if (showVertexNumbers) {
+          ctx.fillText(vertex.index, xy[0] + 4, xy[1] - 5)
+        }
+      }
+      for (let edge of edges) {
+        let center = edge.verticies[0].coordinates.add(edge.verticies[1].coordinates)
+        center = center.scale(0.5)
+        let xy = center.project(projScale, this.zoom)
+        if (showEdgeNumbers && !edge.isDupe) {
+          let text = edge.index + ""
+          let len = parseFloat(edge.length().toFixed(2))
+          text += " (" + len + ")"
+          // if (window.edgeToWalls && window.edgeToWalls[edge.index]) {
+          //   text += " ("
+          //   for (let wall of window.edgeToWalls[edge.index]) {
+          //     text += wall.partID + " "
+          //   }
+          //   text += ")"
+          // }
+          ctx.fillText(text, xy[0] - 2, xy[1] +4)
+        }
+      }
+      if (window.pixelInfo && showPixelNumbers) {
+        ctx.font = "8px Arial"
+        for (let coord of pixelInfo.coords) {
+          let xy = new Vector(...coord)
+              .scale(1/pixelToGraphSpace.resizeScale)
+              .project(projScale, this.zoom)
+          ctx.fillText(pixelInfo.coords.indexOf(coord), xy[0] + 2, xy[1] - 2)
+        }
+      }
+
+      let cover = document.getElementById("cover")
+      if (cover) {
+        cover.style.display = window.showLaserSVG && isWall ? "block" : "none"
+      }
+      let wallElem = document.getElementById("wall")
+      if (wallElem) {
+        wallElem.style.display = window.showWallSVG && isWall ? "block" : "none"
+      }
+    }
   },
 }
 </script>
