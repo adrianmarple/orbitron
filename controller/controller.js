@@ -37,9 +37,10 @@ var app = new Vue({
   data: {
     os: "Unknown",
     browser: "Unknown",
+    isIframe: location != parent.location,
 
-    orbID: location.pathname.split('/')[1],
     isPWA: window.matchMedia('(display-mode: standalone)').matches,
+    orbID: location.pathname.split('/')[1],
     registeredIDs: [],
     excludedIDs: [],
     idToBasicOrbInfo: {},

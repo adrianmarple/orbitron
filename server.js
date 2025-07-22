@@ -66,7 +66,7 @@ function respondWithFile(response, filePath){
     if (error) {
       if(error.code == 'ENOENT'){
         response.writeHead(404, { 'Content-Type': 'text/html' })
-        response.end(await fs.promises.readFile("controller/instructions.html"), 'utf-8')
+        response.end(await fs.promises.readFile("controller/404.html"), 'utf-8')
       }
       else {
         response.writeHead(500)
