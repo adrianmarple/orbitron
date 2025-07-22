@@ -126,6 +126,7 @@ export default {
       qrCode: null,
       newAlias: "",
       editingAlias: false,
+      infoInterval: null,
 
       backupList: [],
       selectedBackup: null,
@@ -170,10 +171,12 @@ export default {
     this.commits = await (await fetch("http://localhost:8000/commits")).json()
 
     await this.getOrbInfo()
-    setInterval(async function() {
-      self.getOrbInfo()
-      self.updateViewing()
-      self.commits = await (await fetch("http://localhost:8000/commits")).json()
+    this.infoInterval = setInterval(async function() {
+      if (document.hasFocus() && self.$root.mode == 'admin') {
+        self.getOrbInfo()
+        self.updateViewing()
+        self.commits = await (await fetch("http://localhost:8000/commits")).json()
+      }
     }, 5000)
     await this.updateConfig()
     this.setOrb(this.orbID)
@@ -190,6 +193,9 @@ export default {
       cornersSquareOptions: { type: "extra-rounded" },
       qrOptions: { errorCorrectionLevel: "L" },
     })
+  },
+  unmounted() {
+    clearInterval(this.infoInterval)
   },
   watch: {
     orbID() {

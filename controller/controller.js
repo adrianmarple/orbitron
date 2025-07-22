@@ -201,7 +201,9 @@ var app = new Vue({
     }
 
     setInterval(() => {
-      self.updateLocalOrbs()
+      if (document.hasFocus()) {
+        self.updateLocalOrbs()
+      }
     }, 5000)
   },
 
