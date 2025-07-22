@@ -568,7 +568,8 @@ var app = new Vue({
       }
       this.manuallingRegistering = false
       if (saveToHistory) {
-        history.pushState({ orbID }, "", orbID)
+        console.log(orbID)
+        history.pushState({ orbID }, "", orbID || "/")
       }
       this.orbID = orbID
       this.destroyWebsocket()

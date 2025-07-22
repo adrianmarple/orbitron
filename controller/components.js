@@ -324,7 +324,7 @@ Vue.component('stlviewer', {
       // Create a scene, camera, and renderer
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000)
-      const renderer = new THREE.WebGLRenderer({alpha: true})
+      const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true })
       this.renderer = renderer
       renderer.setClearColor(0x333333, 0.5)
       this.resize()
