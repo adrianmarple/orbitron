@@ -197,6 +197,13 @@ a > .fancy-box:hover, a.fancy-box:hover {
   to {text-shadow: 0 0 1rem blue,  0 0 1rem blue,  0 0 0.5rem blue; opacity: 1; }
 }
 
+#registration a {
+  text-decoration: underline;
+}
+#registration a, #registration a:visited {
+  color: white;
+}
+
 #registration #orbs {
   display: grid;
 }
