@@ -347,9 +347,13 @@ export default {
     },
     async updateConfig() {
       let previousValue = this.idToConfig[this.orbID]
-      this.idToConfig[this.orbID] = await this.sendCommand({type: "getconfig"}, this.orbID)
-      if (previousValue != this.idToConfig[this.orbID]) {
-        this.config = this.idToConfig[this.orbID]
+      let newConfig = await this.sendCommand({type: "getconfig"}, this.orbID)
+      if (newConfig.indexOf("module.exports") == -1) {
+        return
+      }
+      if (previousValue != newConfig) {
+        this.idToConfig[this.orbID] = newConfig
+        this.config = newConfig
       }
     },
     async updatePrefs() {
