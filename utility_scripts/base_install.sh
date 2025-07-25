@@ -25,6 +25,6 @@ deactivate
 cd ~/orbitron
 npm install
 
-cp config.js.template config.js
+# cp config.js.template config.js
 
 echo "BASE INSTALL DONE!"
