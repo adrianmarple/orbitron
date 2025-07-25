@@ -40,9 +40,9 @@ async function accessPointLoop(){
   if (!someoneConnectedToAccessPoint) {
     displayText("JOIN WIFI LUMATRON")
   } else if (Date.now() - accessedFormTime > 5 * 60 * 1000) {
-    displayText("ADD SSID")
-  } else {
     displayText("VISIT URL 10.42.0.1")
+  } else {
+    displayText("ADD SSID")
   }
   setTimeout(accessPointLoop, 500)
 }
