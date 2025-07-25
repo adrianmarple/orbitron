@@ -244,7 +244,6 @@ def update_first_pixel():
     flashing = True
   elif current_text.startswith("VISIT URL"):
     color = np.array((0, 0, 255))
-    color = np.array([0.0, 0, 1])
   elif current_text.startswith("ADD SSID"):
     color = np.array((0, 0, 255))
     flashing = True
