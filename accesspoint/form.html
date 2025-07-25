@@ -18,8 +18,8 @@
   </form>
   <div id="feedback" style="display:none;">
     <p>SSID and Password submitted.</p>
-    <p>WiFi will now restart to apply changes.</p>
-    <p>You will be redirected to your Orbitron page in about 15 seconds.</p>
+    <p>Lumatron will now restart to apply changes.</p>
+    <p>You will be redirected to your Orbitron page in about 10 seconds.</p>
     <p>Please wait...</p>
   </div>
   <div id="errorMessage" style="display:none;">
@@ -40,7 +40,7 @@
         })
         const data = await response.json()
         if(data.redirect){
-          await new Promise(r => setTimeout(r, 15000))
+          await new Promise(r => setTimeout(r, 10000))
           location.assign(data.redirect)
         }
       } catch (e) {

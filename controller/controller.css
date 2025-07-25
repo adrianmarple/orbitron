@@ -158,24 +158,32 @@ a > .fancy-box:hover, a.fancy-box:hover {
   position: relative;
   bottom: 0.2rem;
 }
-.light.yellow {
-  color: yellow;
-  text-shadow: 0 0 1rem yellow,  0 0 0.5rem yellow;
+.light.magenta {
+  color: magenta;
+  text-shadow: 0 0 1rem magenta,  0 0 0.5rem magenta;
 }
-.light.yellow.flashing {
-  animation: yellowlight 1s linear infinite alternate;
+.light.magenta.flashing {
+  animation: magentalight 1s linear infinite alternate;
 }
-@keyframes yellowlight {
-  from {text-shadow: 0 0 0 yellow,  0 0 0.5rem yellow; opacity: 0; }
-  to {text-shadow: 0 0 1rem yellow,  0 0 0.5rem yellow; opacity: 1; }
+@keyframes magentalight {
+  from {text-shadow: 0 0 0 magenta,  0 0 0.5rem magenta; opacity: 0; }
+  to {text-shadow: 0 0 1rem magenta,  0 0 0.5rem magenta; opacity: 1; }
 }
 .light.red {
   color: red;
   text-shadow: 0 0 1rem red,  0 0 0.5rem red;
 }
+.light.yellow {
+  color: yellow;
+  text-shadow: 0 0 1rem yellow,  0 0 0.5rem yellow;
+}
 .light.green {
   color: green;
   text-shadow: 0 0 1rem green,  0 0 0.5rem green;
+}
+.light.cyan {
+  color: cyan;
+  text-shadow: 0 0 1rem cyan,  0 0 0.5rem cyan;
 }
 .light.blue {
   color: blue;

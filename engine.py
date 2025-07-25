@@ -240,13 +240,13 @@ def update_first_pixel():
     color = np.array(np.array((100, 100, 100)))
     flashing = True
   elif current_text.startswith("JOIN WIFI"):
-    color = np.array((255, 255, 0))
+    color = np.array((255, 0, 255))
     flashing = True
   elif current_text.startswith("VISIT URL"):
     color = np.array((0, 0, 255))
-  elif current_text.startswith("ADD SSID"):
-    color = np.array((0, 0, 255))
     flashing = True
+  elif current_text.startswith("ADD SSID"):
+    color = np.array((0, 255, 255))
   elif current_text.startswith("ADDING SSID"):
     color = np.array((0, 255, 0))
   elif current_text == "CONNECTION ERROR":
@@ -258,7 +258,7 @@ def update_first_pixel():
     return
 
   if flashing:
-    color = color * ((sin(time() / pi) + 1) / 2) # Can't use *= here for some reason
+    color = color * ((sin(time() * pi) + 1) / 2) # Can't use *= here for some reason
   color_pixel(0, color)
 
 
