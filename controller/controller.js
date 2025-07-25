@@ -584,7 +584,8 @@ var app = new Vue({
     },
     deleteRegistration(id) {
       let self = this
-      this.speedbumpMessage = `This will remove "${id}", you can always add it back.`
+      let name = (this.idToBasicOrbInfo[id] || {}).alias || id
+      this.speedbumpMessage = `This will remove "${name}", you can always add it back.`
       this.speedbumpCallback = () => {
         self.registeredIDs.remove(id)
         localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
