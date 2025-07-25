@@ -259,7 +259,7 @@ def update_first_pixel():
     return
 
   if flashing:
-    color = color * ((sin(time()) + 1) / 2) # Can't use *= here for some reason
+    color = color * ((sin(time() / pi) + 1) / 2) # Can't use *= here for some reason
   color_pixel(0, color)
 
 
