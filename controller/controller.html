@@ -59,7 +59,9 @@
         </div>
         <div>
           <span class="light blue">.</span>
-          Once on that wifi, the visit url <a href="http://10.42.0.1">http://10.42.0.1</a>
+          Once on that wifi, the visit url
+          <a v-if="os == 'iOS' || os == 'MacOS'" href="http://lumatron.setup">http://lumatron.setup</a>
+          <a v-else href="http://10.42.0.1">http://10.42.0.1</a>
         </div>
         <div>
           <span class="light blue flashing">.</span>
@@ -75,6 +77,13 @@
         <div>
           If you're trying to connect to a Lumatron that is connected to the internet aleady,
           either switch to the same wifi or add it manually using its ID.
+        </div>
+      </div>
+      <div class="fancy-divider"></div>
+      <div class="horiz-box">
+        <div>
+          If you have any troubleshooting questions or otherwise need to contact me,
+          email me at <a href="mailto:adrian@marplebot.com">adrian@marplebot.com</a>.
         </div>
       </div>
     </div>
