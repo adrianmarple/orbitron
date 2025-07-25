@@ -10,6 +10,7 @@ let numTimesNetworkCheckFailed = 0
 let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 
+let accessedFormTime = 0
 let someoneConnectedToAccessPoint = false
 let forceExitAccessPointLoop = false
 
@@ -35,10 +36,13 @@ async function accessPointLoop(){
   }
   let out = await execute("iw dev wlan0 station dump")
   someoneConnectedToAccessPoint = out.includes("Station")
-  if (someoneConnectedToAccessPoint) {
-    displayText("VISIT URL 10.42.0.1")
-  } else {
+
+  if (!someoneConnectedToAccessPoint) {
     displayText("JOIN WIFI LUMATRON")
+  } else if (Date.now() - accessedFormTime > 5 * 60 * 1000) {
+    displayText("ADD SSID")
+  } else {
+    displayText("VISIT URL 10.42.0.1")
   }
   setTimeout(accessPointLoop, 500)
 }
@@ -107,7 +111,7 @@ let wifiSetupServer = http.createServer(function (req, res) {
   if (req.method === 'GET') {
     let filepath = req.url
     if (filepath == "/" || filepath.includes("form")) {
-      displayText("ADD SSID")
+      accessedFormTime = Date.now()
       respondWithFile(res, "/accesspoint/form.html")
     } else {
       respondWithFile(res, filepath)
