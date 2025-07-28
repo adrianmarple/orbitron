@@ -257,6 +257,20 @@ a > .fancy-box:hover, a.fancy-box:hover {
   bottom: 0.5rem;
   left: 0.5rem;
 }
+#registration .orb .power {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  padding: 0.5rem;
+  width: 4rem;
+  height: 4rem;
+  background-color: black;
+}
+#registration .orb .power img {
+  width: 100%;
+  height: 100%;
+  filter: invert(100%);
+}
 
 #registration .bottom-content {
   display: flex;

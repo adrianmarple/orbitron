@@ -323,7 +323,7 @@ def fade():
   return min(fade, get_pref("dimmer"))
 
 def advance_manual_fade(): # Consider adding a delay before being callable again
-  steps = config.get("MANUAL_FADE_STEPS", [1, 0.30, 0])
+  steps = config.get("MANUAL_FADE_STEPS", [1, 0])
   defacto_fade = fade()
   
   closest_index = 0

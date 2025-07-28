@@ -75,7 +75,7 @@
       <div class="horiz-box">
         <div>
           If you're trying to connect to a Lumatron that is connected to the internet aleady,
-          either switch to the same wifi or add it manually using its ID.
+          either switch to the same wifi or add it manually using its ID below.
         </div>
       </div>
       <div class="fancy-divider"></div>
@@ -95,6 +95,14 @@
           <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
     
           <div class="bottom">{{ (idToBasicOrbInfo[id] || {}).alias || id }}</div>
+          <div v-if="(idToBasicOrbInfo[id] || {}).isCurrentlyConnected"
+              class="power button"
+              @click.stop="advanceManualFade(id)">
+            <img src="/controller/images/power.svg"
+            :style="{filter: `invert(100%)
+              drop-shadow(0 0 1.2rem rgba(255,255,255, ${Math.sqrt(dimmer(id))}))
+              drop-shadow(0 0 0.5rem rgba(255,255,255, ${Math.sqrt(dimmer(id))}))`}">
+          </div>
         </div>
       </div>
       <div v-if="registeredIDs.length > 3 && registeredIDs.length % 2 == 1" class="orb-wrapper">
@@ -310,11 +318,11 @@
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
           title="Blend" key="idleBlend" help=""></slider>
       <slider title="Brightness" key="brightness"  :max="200"></slider>
-      <div class="horiz-box">
+      <!-- <div class="horiz-box">
         <div class="button" style="font-size: 3rem; width: 38rem; height: 4rem; display: flex; justify-content: center;" @click="advanceManualFade">
           {{ dimmerString }}
         </div>
-      </div>
+      </div> -->
     </div>
 
     <!-- PATTERN MENU -->

@@ -614,6 +614,7 @@ let connectionQueue = []
 // Communications with python script
 
 gameState = null
+gameStateString = ""
 broadcastCounter = 0
 const counterThreshold = 35
 
@@ -636,11 +637,15 @@ function broadcast(baseMessage) {
 
   broadcastCounter++
   baseMessage.notimeout = NO_TIMEOUT
-  let noChange = JSON.stringify(baseMessage) == JSON.stringify(gameState)
-  gameState = baseMessage
+  let newGameState = {...baseMessage}
+  delete newGameState.timestamp
+  let newGameStateString = JSON.stringify(newGameState)
+  let noChange = newGameStateString == gameStateString
   if(noChange && broadcastCounter % counterThreshold != 0){
     return
   }
+  gameState = newGameState
+  gameStateString = newGameStateString
   broadcastCounter = 0
   for (let id in connections) {
     baseMessage.self = parseInt(id)

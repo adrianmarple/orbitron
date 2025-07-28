@@ -313,6 +313,7 @@ Vue.component('stlviewer', {
   },
   methods: {
     resize() {
+      if (!this.renderer) return
       let boundingRect = this.$el.getBoundingClientRect()
       this.renderer.setSize(boundingRect.width, boundingRect.height)
     },
