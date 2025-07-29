@@ -24,7 +24,6 @@ module.exports={
   // DEFAULT_TEXT_DISPLAY: "$LOADING",
   REQUIRES_LOGIN: false,
   EXCLUDE: {
-    // games: true,
     // colors: true,
     // timing: true,
     // pattern: true,
@@ -33,6 +32,7 @@ module.exports={
     // leaveButton: true,
   },
   INCLUDE: {
+    // games: true,
     // gameSettings: true,
     // weeklyTimer: true,
     // beatMode: true,

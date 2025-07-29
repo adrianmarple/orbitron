@@ -323,8 +323,12 @@ var app = new Vue({
     },
 
     navBarItems() {
-      return ['colors', 'pattern', 'save', 'timing', 'games']
+      let items = ['colors', 'pattern', 'save', 'timing']
         .filter(name => !this.exclude[name])
+      if (this.include.games) {
+        items.push('games')
+      }
+      return items
     },
 
     dimmerString() {
