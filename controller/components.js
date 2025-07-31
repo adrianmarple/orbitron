@@ -75,22 +75,63 @@ Vue.component('slider', {
 Vue.component('color', {
   props: ['title', 'help'],
   data() {
-    return { value: "#000" }
+    return {
+      value: "#000",
+      vector: {red:0, blue:0, green:0},
+    }
   },
   mounted() {
     this.value = this.$root.prefs[this.name]
+    this.updateFromPrefs()
   },
   computed: {
     name() { return this.$vnode.key },
   },
+  watch: {
+    "$root.prefs": function() { this.updateFromPrefs() },
+    vector: {
+      handler: function({red, green, blue}) {
+        this.$root.prefs[this.name] = "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1)
+      },
+      deep: true,
+    },
+  },
+  methods: {
+    updateFromPrefs() {
+      let hex = this.$root.prefs[this.name]
+      var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+      this.vector = result ? {
+        red: parseInt(result[1], 16),
+        green: parseInt(result[2], 16),
+        blue: parseInt(result[3], 16)
+      } : [0,0,0]
+    },
+  },
   template: `
 <span style="width: 100%;" v-if="!$root.exclude[name]">
+<span v-if="$root.browser == 'Firefox'">
+<div v-if="title" class="horiz-box">{{title}}</div>
+<div class="color-component"
+  v-for="component in ['red','green','blue']">
+  <div class="label">
+    <div>{{component[0]}}:{{vector[component]}}</div>
+  </div>
+  <div class="slider-container" :class="[component]">
+    <input type="range" min="0" max="255" class="slider""
+      v-model="vector[component]"></input>
+    <div class="left" :style="{ background: component, width: (100 / 255.0 * vector[component]) + '%'}"></div>
+    <div class="right" :style="{ width: (100 - 100 / 255.0 * vector[component]) + '%'}"></div>
+  </div
+</div>
+</span>
+<span v-else>
 <div class="row filled" >
 <div v-if="title" style="display: flex">
   {{title}}:
   <help v-if="help" :message="help"/>
 </div>
 <input type="color" v-model="$root.prefs[name]">
+</span>
 </span>
 `})
 

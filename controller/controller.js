@@ -122,13 +122,14 @@ var app = new Vue({
       this.browser = "Opera";
     } else if (navigator.userAgent.indexOf("CriOS") !== -1 || navigator.userAgent.indexOf("Chrome") !== -1) {
       this.browser = "Chrome";
-    } else if (navigator.userAgent.indexOf("MSIE") !== -1 || navigator.userAgent.indexOf("rv:") !== -1) {
-      this.browser = "IE";
     } else if (navigator.userAgent.indexOf("Firefox") !== -1) {
       this.browser = "Firefox";
+    } else if (navigator.userAgent.indexOf("MSIE") !== -1) {
+      this.browser = "IE";
     } else if (navigator.userAgent.indexOf("Safari") !== -1) {
       this.browser = "Safari";
     }
+    console.log(navigator.userAgent, this.browser)
 
     this.startWebsocket()
     setInterval(() => {
