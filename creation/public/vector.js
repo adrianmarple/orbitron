@@ -38,9 +38,6 @@ class Vector extends THREE.Vector3 {
     return this.equals(v, epsilon) || this.equals(v.negate(), epsilon)
   }
 
-  magintude() {
-    return 
-  }
 
   project(scale, zoom) {
     const SCALE = 800 * scale * (zoom ?? 1)

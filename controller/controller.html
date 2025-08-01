@@ -347,7 +347,8 @@
       <slider v-if="prefs.idlePattern == 'sin'"
           title="Min Value" key="sinMin" :min="-255" :max="255"></slider>
 
-      <vector v-if="prefs.idlePattern == 'hourglass'" title="Direction" key="staticDirection"></vector>
+      <vector v-if="prefs.idlePattern == 'hourglass'" title="Direction" key="staticDirection"
+        :size="0.9"></vector>
       <div v-if="prefs.idlePattern == 'hourglass'" class="horiz-box">
         Start Time:
         <input type="time" v-model="prefs.hourglassStart"></input>

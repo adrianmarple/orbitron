@@ -129,7 +129,6 @@ var app = new Vue({
     } else if (navigator.userAgent.indexOf("Safari") !== -1) {
       this.browser = "Safari";
     }
-    console.log(navigator.userAgent, this.browser)
 
     this.startWebsocket()
     setInterval(() => {

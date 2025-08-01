@@ -13,6 +13,7 @@ module.exports={
   //CERT_LOCATION: "",
   //KEY_LOCATION: "",
   // PIXELS: "diamond",
+  // IS_FLAT: true,
   AUTO_GAME: false,
   DEFAULT_GAME: "snektron",
   CONTINUOUS_INTEGRATION: false,

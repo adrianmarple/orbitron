@@ -63,8 +63,12 @@ async function saveBackup(nameOverride) {
       backup.prefs = (await fs.promises.readFile("prefs.json")).toString()
     } catch(_) {}
   }
-  await orbToRelaySocket.send(JSON.stringify({ backup }))
-  console.log("Sent backup to server")
+  try {
+    await orbToRelaySocket.send(JSON.stringify({ backup }))
+    console.log("Sent backup to server")
+  } catch(e) {
+    console.log("Error sending backup to server:", e)
+  }
 }
 
 

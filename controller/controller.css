@@ -754,6 +754,11 @@ input[type="range"]::-moz-range-thumb {
   background-color: #080808;
 }
 
+.vector-wrapper .stl-wrapper {
+  border: 0.5rem solid transparent;
+  box-sizing: border-box;
+}
+
 .vector {
   width: 30rem;
   height: 30rem;
@@ -761,7 +766,6 @@ input[type="range"]::-moz-range-thumb {
   padding-right: 0;
   box-sizing: border-box;
   border: 0.5rem solid transparent;
-  /* border: 0.5rem solid white; */
   position: relative;
 }
 .vector .shaft {

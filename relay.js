@@ -343,6 +343,7 @@ addGETListener(async (response, orbID, filePath)=>{
   let info = {
     orbID,
     topology: localConfig.PIXELS,
+    isFlat: localConfig.IS_FLAT,
     isCurrentlyConnected: !!connectedOrbs[orbID],
     extraIdle: localConfig.IDLE,
     extraStartingRules: localConfig.EXTRA_STARTING_RULES,
