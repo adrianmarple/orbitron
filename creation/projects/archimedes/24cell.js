@@ -52,7 +52,6 @@ module.exports = () => {
       }
     }
   }
-  console.log(minDist)
 
   for (let i = 0; i < verticies4D.length; i++) {
     for (let j = i + 1; j < verticies4D.length; j++) {
@@ -62,14 +61,106 @@ module.exports = () => {
     }
   }
 
-  // TODO prune graph to (symmetric) Hamiltonian cycle
-  // TODO resize so cycle has integer length
+  // TODO connect vertex and edge antipodes
+  for (let v1 of verticies) {
+    for (let v2 of verticies) {
+      if (v1.ogCoords.negate().equals(v2.ogCoords)) {
+        v1.antipode = v2
+      }
+    }
+  }
+  for (let e1 of edges) {
+    for (let e2 of edges) {
+      if (e1.verticies[0].antipode == e2.verticies[0] &&
+          e1.verticies[1].antipode == e2.verticies[1]) {
+        e1.antipode = e2
+      }
+      if (e1.verticies[0].antipode == e2.verticies[1] &&
+          e1.verticies[1].antipode == e2.verticies[0]) {
+        e1.antipode = e2
+      }
+    }
+  }
 
-  // zeroFoldAllEdges()
-  // EulerianPath(verticies[0],[0])
+  let hamiltonianEdges = [edges[0].antipode, edges[0]]
+  let previousVertex = edges[0].verticies[1]
+  let hamiltonianVerticies = [...edges[0].verticies]
+  let excludedEdges = []
+
+  let count = 0
+
+  let finalVertex = edges[0].verticies[0].antipode
+
+  function hamiltonianHelper() {
+    count += 1
+    if (count > 1000000) {
+      return true
+    }
+    let currentVertex = hamiltonianVerticies[hamiltonianVerticies.length - 1]
+    
+    let previousEdge = hamiltonianEdges[hamiltonianEdges.length - 1]
+    currentVertex.edges.sort((e1, e2) => {
+      a1 = previousEdge.toVector(previousVertex).angleTo(e1.toVector(previousVertex))
+      a2 = previousEdge.toVector(previousVertex).angleTo(e2.toVector(previousVertex))
+      return a1 - a2
+    })
+    for (let edge of currentVertex.edges) {
+      if (excludedEdges.includes(edge)) {
+        continue
+      }
+      let nextVertex = edge.otherVertex(currentVertex)
+      if (nextVertex == finalVertex) {
+        if (hamiltonianVerticies.length == verticies.length/2) {
+          hamiltonianEdges.push(edge)
+          hamiltonianEdges.push(edge.antipode)
+          return true
+        } else {
+          continue
+        }
+      }
+      hamiltonianEdges.push(edge)
+      hamiltonianEdges.push(edge.antipode)
+      hamiltonianVerticies.push(nextVertex)
+      for (let edge of currentVertex.edges) {
+        excludedEdges.push(edge.antipode)
+        excludedEdges.push(edge)
+      }
+      if (hamiltonianHelper()) {
+        return true
+      }
+      for (let _ of currentVertex.edges) {
+        excludedEdges.pop()
+        excludedEdges.pop()
+      }
+      hamiltonianVerticies.pop()
+      hamiltonianEdges.pop()
+      hamiltonianEdges.pop()
+    }
+    return false
+  }
+  hamiltonianHelper()
+  // TODO cache result?
+  console.log(hamiltonianVerticies.map(v => v.index))
+  console.log(hamiltonianEdges.map(e => e.verticies[0].index + ", " + e.verticies[1].index))
+  for (let edge of [...edges].reverse()) {
+    if (!hamiltonianEdges.includes(edge)) {
+      removeEdge(edge)
+    }
+  }
+
+  let totalLength = 0
+  for (let edge of edges) {
+    totalLength += edge.length()
+  }
+  scale(150 / totalLength)
+
+
+  zeroFoldAllEdges()
+  EulerianPath(0)
 }
 
 
+// TODO add this to vector.js
 class Vector4 extends THREE.Vector4 {
   isVector = true
 

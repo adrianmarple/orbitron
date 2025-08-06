@@ -33,6 +33,9 @@ body, #app, .main {
   overflow-y: scroll;
   touch-action: pan-y;
 }
+#app.isIframe {
+  overflow-y: hidden;
+}
 
 a {
   text-decoration: none;

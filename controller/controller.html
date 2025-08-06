@@ -24,7 +24,10 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.166.0/examples/jsm/loaders/STLLoader.js"></script> -->
       
   
-<div id=app :style="{ '--self-color': self.color }" @scroll="checkOverscroll">
+<div id=app
+  :style="{ '--self-color': self.color }"
+  :class="{ isIframe }"
+  @scroll="checkOverscroll">
   <div id="background"></div>
 
   <div :class="{visible: helpMessage}" id="help-modal" @click="helpMessage = null">
