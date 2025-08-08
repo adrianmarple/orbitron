@@ -12,16 +12,16 @@
 
 # Getting Pi Hardware Set Up
 
-- Download SD card image from dropbox ([64bit](https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/Orbitron.img.zip?rlkey=cfcn58lnl0pesi8mir0tjp9s4&dl=0)) ([32bit](https://www.dropbox.com/scl/fi/ne9wkzyzw1fwcz2slw6lc/orbitron-32bit.zip?rlkey=ficqr8w6p3yw4oba0fclzr9kx&dl=0))
+- Download [SD card image](https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/lumatron.zip) from dropbox
 - Burn to SD card using `dd` or Balena Etcher (https://etcher.balena.io/)
 - Using `dd`
-  - Update `/dev/disk2` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
-  - `diskutil unmountDisk /dev/disk2` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
+  - Update `/dev/disk4` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
+  - `diskutil unmountDisk /dev/disk4` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
   - go to Download directory or wherever the SD image download is
-  - `sudo dd if=Orbitron.img of=/dev/disk2 status=progress`
+  - `sudo dd if=lumatron.img of=/dev/disk4 status=progress`
   - On MacOS use `gdd` instead
     - Install with `brew install coreutils`
-    - `sudo gdd if=Orbitron.img of=/dev/disk2 status=progress`
+    - `sudo gdd if=lumatron.img of=/dev/disk4 status=progress`
 
 # Making a new Game
 
@@ -40,11 +40,11 @@ See [the games folder README](games)
 ## Saving
 - Just use normal git commands within directory `~/orbitron`
 - If you edit outside the version controlled directory create a new SD card image
-- Update `/dev/disk2` below with the correct drive as determined from `diskutil list` or `lsblk`
-- `sudo dd if=/dev/disk2 of=Orbitron.img bs=8M count=820 status=progress`
+- Update `/dev/disk4` below with the correct drive as determined from `diskutil list` or `lsblk`
+- `sudo dd if=/dev/disk4 of=lumatron.img bs=8M count=820 status=progress`
 - On MacOS use `gdd` instead
   - Install with `brew install coreutils`
-  - `sudo gdd if=/dev/disk2 of=Orbitron.img bs=8M count=820 status=progress`
+  - `sudo gdd if=/dev/disk4 of=lumatron.img bs=8M count=820 status=progress`
 
 ## Adding WiFi network to Pi for auto connect
 - Connect to unsecure Wifi with SSID "Super Orbitron"

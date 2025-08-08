@@ -4,8 +4,16 @@ startMidwayDownFinalEdge = false
 noncovergenceGuard = 1e4
 async function EulerianPath(currentVertex, pathOverride) {
   edgeCleanup()
-  noncovergenceGuard = 1e4
-  EulerianHelper(currentVertex, pathOverride)
+  noncovergenceGuard = 1e3
+  if (verticies.length <= 1) return
+  if (typeof currentVertex == 'number') {
+    path = [currentVertex]
+    currentVertex = edges[currentVertex].verticies[pathOverride || 0]
+  }
+  else if (pathOverride) {
+    path = pathOverride
+  }
+  EulerianHelper(currentVertex)
   let previousVertex = startVertex()
   vertexPath = [previousVertex]
   for (let edgeIndex of path) {
@@ -15,15 +23,7 @@ async function EulerianPath(currentVertex, pathOverride) {
   }
 }
 
-async function EulerianHelper(currentVertex, pathOverride) {
-  if (verticies.length <= 1) return
-  if (typeof currentVertex == 'number') {
-    path = [currentVertex]
-    currentVertex = edges[currentVertex].verticies[pathOverride || 0]
-  }
-  else if (pathOverride) {
-    path = pathOverride
-  }
+async function EulerianHelper(currentVertex) {
   noncovergenceGuard -= 1
   if (noncovergenceGuard < 0) {
     path.length = 0

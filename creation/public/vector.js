@@ -86,6 +86,69 @@ for (let method of methodsToValuize) {
   }
 }
 
+
+class Vector4 extends THREE.Vector4 {
+  isVector = true
+
+  toArray() {
+    return [this.x, this.y, this.z, this.w]
+  }
+
+  swizzle(permutation) {
+    return new Vector4(
+      this.getComponent(permutation[0]),
+      this.getComponent(permutation[1]),
+      this.getComponent(permutation[2]),
+      this.getComponent(permutation[3]))
+  }
+
+  isValid() {
+    return this.x < 1e6 && this.x > -1e6 &&
+      this.y < 1e6 && this.y > -1e6 &&
+      this.z < 1e6 && this.z > -1e6 &&
+      this.w < 1e6 && this.w > -1e6
+  }
+
+  distanceTo(v) {
+    return this.sub(v).length()
+  }
+
+  applyMatrix(m) {
+    return this.applyMatrix3(m)
+  }
+  scale(s) {
+    return this.multiplyScalar(s)
+  }
+  proj(v) {
+    return this.projectOnVector(v)
+  }
+  orthoProj(v) {
+    return this.sub(this.proj(v))
+  }
+  equals(v, epsilon=0.001) {
+    return epsilonEquals(this.distanceTo(v), 0, epsilon)
+  }
+  plusMinusEquals(v, epsilon=0.001) {
+    return this.equals(v, epsilon) || this.equals(v.negate(), epsilon)
+  }
+
+  project(wOffset) {
+    let w = this.w + wOffset
+    return new Vector(this.x/w, this.y/w, this.z/w)
+  }
+}
+// Reference for THREE.js Vector4: https://threejs.org/docs/#api/en/math/Vector4
+methodsToValuize = [
+  "add", "addScaledVector", "applyMatrix4", "divideScalar", "lerp",
+  "min", "max", "multiplyScalar", "negate", "normalize", "projectOnVector", "sub",
+]
+for (let method of methodsToValuize) {
+  Vector4.prototype[method] = function(...args) {
+    return THREE.Vector4.prototype[method].apply(this.clone(), args)
+  }
+}
+
+
 // https://threejs.org/docs/?q=matri#api/en/math/Matrix3
 class Matrix extends THREE.Matrix3 {
   clone() {

@@ -205,9 +205,8 @@ export default {
         let oldDepth = CHANNEL_DEPTH
         let oldThickness = THICKNESS
         let oldBorder = BORDER
-        // THICKNESS += CHANNEL_DEPTH
-        THICKNESS += CHANNEL_DEPTH + THICKNESS
-        CHANNEL_DEPTH = -(THICKNESS + CHANNEL_DEPTH)/2
+        CHANNEL_DEPTH = -CHANNEL_DEPTH - 2*THICKNESS
+        THICKNESS += oldDepth + THICKNESS
         BORDER = 0
         COVER_TYPES = ["top"]
         await generateManufacturingInfo()

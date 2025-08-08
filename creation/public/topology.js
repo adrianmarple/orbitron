@@ -894,7 +894,7 @@ function origami(foldPlain) {
   return newPlain
 }
 
-function zeroFoldAllEdges() {
+function zeroFoldAllEdges(linearStartingVertex) {
   edgeCleanup(true)
 
   plains.length = 0
@@ -935,8 +935,13 @@ function zeroFoldAllEdges() {
     vertex.addPlain(new Plain(vertex.ogCoords, normal))
   }
 
-  // Topology is line or circle. So just pick an arbitrary non-colindear 2 edge vertex and set its plain
-  if (threePlusEdgeVertecies.length == 0) {
+  // Topology is line or circle. So just pick an arbitrary non-colinear 2 edge vertex and set its plain
+  if (linearStartingVertex) {
+    let vertex = verticies[linearStartingVertex]
+    addSelfPlain(vertex)
+    twoEdgeVertecies.remove(vertex)
+  }
+  else if (threePlusEdgeVertecies.length == 0) {
     for (let vertex of twoEdgeVertecies) {
       if (!ZERO.equals(vertex.edges[0].toVector(vertex).cross(vertex.edges[1].toVector(vertex)))) {
         addSelfPlain(vertex)
@@ -976,7 +981,7 @@ function zeroFoldAllEdges() {
       if (normal.equals(ZERO) || plain0.normal.plusMinusEquals(normal)) {
         continue
       }
-      let mirror = new Plain(vertex.ogCoords, e0.normalize().add(e1.normalize()))
+      let mirror = new Plain(vertex.ogCoords, e0.normalize().sub(e1.normalize()))
       vertex.addPlain(plain0.mirror(mirror))
       if (twoEdgeVertecies.includes(v1)) {
         twoEdgeVertecies.remove(v1)
