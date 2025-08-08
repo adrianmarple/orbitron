@@ -421,7 +421,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: .1rem solid white;
+  border: .25rem solid white;
   border-radius: 50%;
   opacity: 0.6;
   height: 100%;
@@ -1654,6 +1654,9 @@ a:active {
   outline: none;
   /* height: 3rem; */
   line-height: 3rem;
+}
+.nav-page > .dropdown-container > .custom-select {
+  width: 22rem;
 }
 
 .custom-select .selection {

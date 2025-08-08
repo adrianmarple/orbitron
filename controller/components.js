@@ -25,7 +25,7 @@ Vue.component('number', {
 `})
 
 Vue.component('boolean', {
-  props: ['title'],
+  props: ['title', 'help'],
   computed: {
     name() { return this.$vnode.key },
   },
@@ -37,7 +37,12 @@ Vue.component('boolean', {
       <div class="checkmark"></div>
     </div>
   </div>
-  <span>{{title}}</span>
+  <span>
+    <div style="display: flex">
+      {{title}}
+      <help v-if="help" :message="help"/>
+    </div>
+  </span>
 </div>
 `})
 
@@ -136,7 +141,7 @@ Vue.component('color', {
 `})
 
 Vue.component('dropdown', {
-  props: ['title', 'options', 'path'],
+  props: ['title', 'options', 'path', 'help'],
   data() {
     return { open: false }
   },
@@ -223,12 +228,15 @@ Vue.component('dropdown', {
       return value
     },
   },
-  // Not that the actual dropdown html is in controller.html with id select-items
+  // Note that the actual dropdown html is in controller.html with id select-items
   template: `
 <div class="dropdown-container horiz-box" v-if="!$root.exclude[name]"
   :class="{ 'top-padded': title }"
   style="align-items: center">
-  <div v-if="title" style="margin-right: 2rem">{{title}}:</div>
+  <div style="display: flex;">
+    <div v-if="title">{{title}}:</div>
+    <help v-if="help" :message="help"/>
+  </div>
   <div class="custom-select" @blur="close">
     <div class="selection" @click="opened">
       {{ toDisplay(selection) }}
@@ -237,23 +245,25 @@ Vue.component('dropdown', {
 </div>`})
 
 Vue.component('vector', {
-  props: ['title', 'size'],
+  props: ['title', 'size', 'help'],
   template: `
 <vector2 v-if='$root.orbInfo.isFlat'
     :title='title'
+    :help='help'
     :normalize='true'
     :size="size"
     :name="$vnode.key">
 </vector2>
 <vector3 v-else
     :title='title'
+    :help='help'
     :size="size"
     :name="$vnode.key">
 </vector3>`
 })
 
 Vue.component('vector2', {
-  props: ['title', 'normalize', 'size', 'name'],
+  props: ['title', 'normalize', 'size', 'name', 'help'],
   data() {
     return {
       isMoving: false,
@@ -329,7 +339,10 @@ Vue.component('vector2', {
 <div class="vector-wrapper">
   <div class="side"></div>
   <div>
-    <div class="horiz-box row" style="margin-bottom:0;">{{title}}:</div>
+    <div class="horiz-box" style="margin-bottom:0; justify-content: left;">
+      {{title}}:
+      <help v-if="help" :message="help"/>
+    </div>
     <div class="vector" v-if="!$root.exclude[name]"
         :style="{ width: (halfWidth*2) + 'rem', height: (halfWidth*2) + 'rem', padding: halfWidth + 'rem' }"
         @mousedown="startMove"
@@ -351,7 +364,7 @@ Vue.component('vector2', {
 
 
 Vue.component('vector3', {
-  props: ['title', 'size', 'name'],
+  props: ['title', 'size', 'name', 'help'],
   data() {
     return {
       renderer: null,
@@ -550,7 +563,10 @@ Vue.component('vector3', {
 <div class="vector-wrapper">
   <div class="side"></div>
   <span>
-    <div class="horiz-box row" style="margin-bottom:0;">{{title}}:</div>
+    <div class="horiz-box" style="margin-bottom:0; justify-content: left;">
+      {{title}}:
+      <help v-if="help" :message="help"/>
+    </div>
     <div class="stl-wrapper"
         :style="{ width: (halfWidth*2) + 'rem', height: (halfWidth*2) + 'rem' }"
         @mousedown="startMove"

@@ -357,9 +357,9 @@ var app = new Vue({
         ['fireflies', 'Fireflies'],
         ['lightning', 'Lightning'],
         ['pulses', 'Ripples'],
-        ['sin', 'Sine'],
+        ['sin', 'Waves'],
         ['lightfield', 'Sparkles'],
-        ['default', 'Default'],
+        ['default', 'Fire (default)'],
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
 
       let optionalPatterns = [
@@ -811,7 +811,7 @@ var app = new Vue({
         this.send({ type: "loadPrefs", name })
       } else {
         let self = this
-        this.speedbumpMessage = "This will permanently clobber any unsaved settings."
+        this.speedbumpMessage = "This will permanently override any unsaved settings."
         this.speedbumpCallback = () => {
           self.send({ type: "loadPrefs", name })
         }

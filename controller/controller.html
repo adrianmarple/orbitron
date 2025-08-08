@@ -296,17 +296,23 @@
     <!-- COLORS MENU -->
     <div v-else-if="nav=='colors'" class="nav-page">
       <slider v-if="prefs.idleColor == 'rainbow'" 
-          title="Rainbow gradient" key="rainbowFade" ></slider>
+          title="Rainbow gradient" key="rainbowFade"
+          help="How much rainbow is shown all at once. Zero means it is always a solid color that cycles through the rainbow over time."></slider>
       <number v-if="prefs.idleColor == 'rainbow'"
           title="Cycle time (sec)" key="rainbowDuration"></number>
       
       <color v-if="prefs.idleColor == 'gradient'"
-          key="gradientStartColor" title="Start Color" help=""></color>
+          key="gradientStartColor" title="Color 1"
+          help="One of the two colors to make a color gradient (different based on each pattern).
+          Depending on the pattern this is associated with brighter LEDs."></color>
       <color v-if="prefs.idleColor == 'gradient'"
-          key="gradientEndColor" title="End Color" ></color>
+          key="gradientEndColor" title="Color 2"
+          help="One of the two colors to make a color gradient (different based on each pattern).
+          Depending on the pattern this is associated with darker LEDs."></color>
       <slider v-if="prefs.idleColor == 'gradient' && prefs.fadeToBlack" 
-          title="Threshold" key="gradientThreshold"
-          :min="1"></slider>
+          title="Color blend" key="gradientThreshold"
+          :min="1"
+          help="Lower numbers means more color 1; higher numbers, more color 2."></slider>
       
       
       <!-- <boolean v-if="prefs.idleColor == 'gradient' || prefs.idleColor == 'rainbow'"
@@ -315,11 +321,12 @@
       <color v-if="prefs.idleColor == 'fixed'"
           key="fixedColor" title="Color"></color>
 
-      <dropdown title="Style" key="idleColor"
+      <dropdown title="Color Style" key="idleColor"
       :options="[['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']]"
       ></dropdown>
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
-          title="Blend" key="idleBlend" help=""></slider>
+          title="Blur over time" key="idleBlend"
+          help="How much each frame is blended with the previous one."></slider>
       <slider title="Brightness" key="brightness"  :max="200"></slider>
       <!-- <div class="horiz-box">
         <div class="button" style="font-size: 3rem; width: 38rem; height: 4rem; display: flex; justify-content: center;" @click="advanceManualFade">
@@ -338,7 +345,10 @@
           title="Rotate Direction" key="staticRotation"></boolean>
 
       <vector v-if="prefs.idlePattern == 'fireflies'"
-          title="Bias" key="patternBias"></vector>
+          title="Bias" key="patternBias"
+          help='Direction that the "fireflies" tend to go.'></vector>
+      <boolean v-if="prefs.idlePattern == 'fireflies'"
+          title="Use bias" key="useBias"></boolean>
       
       <slider v-if="prefs.idlePattern == 'pulses'"
           title="Width" key="rippleWidth" :min="1" :max="50"></slider>
@@ -346,9 +356,12 @@
       <vector v-if="prefs.idlePattern == 'sin' && !prefs.sinRadial"
           title="Direction" key="sinDirection" normalize="true"></vector>
       <boolean v-if="prefs.idlePattern == 'sin'"
-          title="Radial" key="sinRadial"></boolean>
+          title="Radial" key="sinRadial"
+          help="If radial is set, waves originate from the center and move outward."></boolean>
       <slider v-if="prefs.idlePattern == 'sin'"
-          title="Min Value" key="sinMin" :min="-255" :max="255"></slider>
+          title="Dimmest value" key="sinMin" :min="-255" :max="255"
+          help="The wave always peaks at a value of 255. This detemines how low the trough of the wave goes.
+          Negative values get rendered as black, but will still effect the rest of the non-peak colors."></slider>
 
       <vector v-if="prefs.idlePattern == 'hourglass'" title="Direction" key="staticDirection"
         :size="0.9"></vector>
@@ -371,6 +384,9 @@
           title="Disable Beat Mode" key="disableBeatMode"></boolean>
       <dropdown title="Pattern" key="idlePattern"
           :options="patternDropdownInfo"
+          help="Lumatron pieces can have many different patterns.
+          This lets you change them. Remember that you can always save a pattern and
+          all its related settings and colors in the save tab."
       ></dropdown>
     </div>
 
