@@ -120,7 +120,16 @@
         @keydown="onRegistrationKeypress"
         ref="manualRegistration"
         placeholder="ID to manually add"></textarea>
-      <div class="button" @click="registerID()">Add</div>
+      <div class="button" @click="registerID()" :class="{disabled: !newID}">Add</div>
+      <div class="horiz-box medium"></div>
+      <div v-if="excludedIDs.length > 0" class="center-column">
+        Previously removed pieces:
+        <div v-for="id in excludedIDs"
+            class="button"
+            @click="newID = id; registerID()">
+          Restore "{{id}}"
+        </div>
+      </div>
     </div>
     <div v-else class="horiz-box" @click="showAddOrb()">
       <img src="/controller/images/add_box_white.svg" class="add">

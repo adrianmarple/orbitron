@@ -88,6 +88,13 @@ textarea {
   justify-content: center;
 }
 
+.center-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
 .xtall {
   min-height: 16rem;
 }
@@ -284,7 +291,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
 #registration .error {
   font-size: 2rem;
   color: #d21;
-  height: 3rem;
+  height: 6rem;
 }
 #registration textarea {
   width: 25rem;
@@ -317,6 +324,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   margin-right: 1rem;
   margin-bottom: -0.5rem;
 }
+
 
 #registration .bottom-fill {
   background-color: #080808;

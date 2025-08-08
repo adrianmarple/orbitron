@@ -619,8 +619,10 @@ var app = new Vue({
       this.speedbumpCallback = () => {
         self.registeredIDs.remove(id)
         localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
-        this.excludedIDs.push(id)
+        self.excludedIDs.push(id)
         localStorage.setItem("excludedIDs", JSON.stringify(this.excludedIDs))
+        self.registrationErrorMessage = ""
+        setTimeout(self.checkOverscroll, 1)
       }
     },
 
@@ -630,8 +632,7 @@ var app = new Vue({
       return state.prefs.dimmer
     },
 
-    checkOverscroll(event) {
-      let elem = event.target
+    checkOverscroll() {
       elem = document.querySelector("#app")
       this.overscrollBottom = Math.max(0, elem.scrollTop - elem.scrollHeight + elem.clientHeight + 10*this.rem)
       this.overscrollTop = Math.max(0, -elem.scrollTop + 8*this.rem)
