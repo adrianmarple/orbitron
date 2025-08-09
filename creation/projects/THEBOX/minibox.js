@@ -12,6 +12,7 @@ module.exports = async () => {
   NOTCH_DEPTH = 3
 
   MAX_WALL_LENGTH = 200
+  MAX_SLOT_SEGMENT_LENGTH = 200
   THICKNESS = 2.6
   LATCH_TYPE = "hook"
   HOOK_OVERHANG = 0.5
@@ -38,7 +39,7 @@ module.exports = async () => {
   let nubRadius = 1.33
   let standoffX = 23/2
   let standoffY = 58/2
-  let standoffOffsetY = (5 - 2) / 2
+  let standoffOffsetY = 0
 
   printPostProcessingFunction = printInfo => {
     let position = [-16 - WALL_THICKNESS, portZOffset/2, WALL_THICKNESS - portLength + endWallBuffer]

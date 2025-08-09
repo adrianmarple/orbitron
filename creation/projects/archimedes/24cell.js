@@ -165,6 +165,7 @@ module.exports = () => {
   scale(150 / totalLength)
 
 
+  // zeroFoldAllEdges(18)
   zeroFoldAllEdges()
   // TODO doubleEdges()
   EulerianPath(0)
