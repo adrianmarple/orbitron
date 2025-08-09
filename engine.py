@@ -231,6 +231,9 @@ def update():
 # ================================ Text/status display =========================================
 
 def update_first_pixel():
+  if prefs.fade() == 0:
+    return
+
   color = np.array((0,0,0))
   flashing = False
   if current_text == "$LOADING":
