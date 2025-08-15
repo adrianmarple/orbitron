@@ -363,7 +363,8 @@
           title="Width" key="rippleWidth" :min="1" :max="50"></slider>
       
       <vector v-if="prefs.idlePattern == 'sin' && !prefs.sinRadial"
-          title="Direction" key="sinDirection" normalize="true"></vector>
+          title="Direction" key="sinDirection" normalize="true"
+          :size="0.85"></vector>
       <boolean v-if="prefs.idlePattern == 'sin'"
           title="Radial" key="sinRadial"
           help="If radial is set, waves originate from the center and move outward."></boolean>
@@ -414,10 +415,31 @@
     <div class="side-box left"></div>
     <div class="side-box right"></div>
 
+    <div class="power-wrapper">
+      <div class="power-border">
+        <div class="power button"
+              @click.stop="advanceManualFade()">
+          <img src="/controller/images/power.svg"
+          :style="{filter: `invert(100%)
+            drop-shadow(0 0 1.2rem rgba(255,255,255, ${Math.sqrt(dimmer())}))
+            drop-shadow(0 0 0.5rem rgba(255,255,255, ${Math.sqrt(dimmer())}))`}">
+        </div>
+      </div>
+    </div>
+
     <div class="nav-bar">
-      <Icon v-for="image in navBarItems"
+      <Icon v-for="(image,i) in navBarItems"
+        v-if="i < navBarItems.length/2"
         :image="image"
-        :w="innerWidth / navBarItems.length" :h="10*rem"
+        :w="(innerWidth - 10*rem) / navBarItems.length" :h="10*rem"
+        :selected="nav == image"
+        @click="nav=image" >
+      </Icon>
+      <div class="filler"></div>
+      <Icon v-for="(image,i) in navBarItems"
+        v-if="i >= navBarItems.length/2"
+        :image="image"
+        :w="(innerWidth - 10*rem) / navBarItems.length" :h="10*rem"
         :selected="nav == image"
         @click="nav=image" >
       </Icon>

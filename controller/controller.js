@@ -627,6 +627,7 @@ var app = new Vue({
     },
 
     dimmer(id) {
+      id = id ?? this.orbID
       let state = this.idToState[id]
       if (!state) return 0
       return state.prefs.dimmer
@@ -712,6 +713,7 @@ var app = new Vue({
       this.send({type: "ping"}, orbID)
     },
     advanceManualFade(orbID) {
+      console.log(orbID)
       this.send({type: "advanceManualFade"}, orbID)
     },
     // Game related commands
