@@ -79,7 +79,9 @@ function bindOrb(socket, orbID) {
     }
   }
   connectedOrbs[orbID] = socket
+  socket.lastActivityTime = Date.now()
   socket.on('message', async (data, isBinary) => {
+    socket.lastActivityTime = Date.now()
     if (data == "PING") return
 
     try {
@@ -184,6 +186,15 @@ function bindOrb(socket, orbID) {
     socket.close()
   })
 }
+
+function orbUpkeep() {
+  for (let socket of Object.values(connectedOrbs)) {
+    if (Date.now() - socket.lastActivityTime > 10*1000) {
+      socket.close()
+    }
+  }
+}
+setInterval(orbUpkeep, 1000)
 
 function bindClient(socket, orbID, clientID) {
   orbID = orbID.toLowerCase()

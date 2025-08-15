@@ -12,10 +12,8 @@ holder_length = 2;
 
 pcb_thickness = 1.6;
 
-long = false;
-
-pcb_width = long ? 14 : 13;
-pcb_length = long ? 5.4 : 2.2;
+pcb_width = 14;
+pcb_length = (5.4 + 2.2)/2;
 
 th = 1; 
 

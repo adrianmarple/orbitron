@@ -18,7 +18,7 @@ module.exports = async () => {
   HOOK_OVERHANG = 0.5
 
   let innerWidth = 32
-  let innerLength = 73.4
+  let innerLength = 74
   let endWallBuffer = 4
   innerLength += 2*endWallBuffer
   addPolygon(4, [0,0,0], [innerWidth, innerLength])

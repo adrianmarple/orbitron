@@ -351,7 +351,7 @@ if(!config.IS_RELAY || config.HAS_EMULATION){
 function orbPingHandler() {
   if(orbToRelaySocket && orbToRelaySocket.readyState === WebSocket.OPEN){
     orbToRelaySocket.send("PING")
-    if(Date.now() - orbToRelaySocket.lastPingReceived > 60 * 1000){
+    if(Date.now() - orbToRelaySocket.lastPingReceived > 30 * 1000){
       orbToRelaySocket.close()
     }
   }
@@ -756,8 +756,8 @@ function statusLogging() {
     //lastMessageTimestampCount,
   })
 }
-statusLogging()
-setInterval(statusLogging, 10 * 60 * 1000)
+// statusLogging()
+// setInterval(statusLogging, 10 * 60 * 1000)
 
 fixExternalWifi()
 
