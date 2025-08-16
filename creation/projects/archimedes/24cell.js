@@ -40,7 +40,7 @@ module.exports = () => {
 
   let indexMap = {}
   for (let i = 0; i < verticies4D.length; i++) {
-    let v = addVertex(verticies4D[i].project(1.4))
+    let v = addVertex(verticies4D[i].project(1.5))
     indexMap[i] = v.index
   }
 
@@ -151,7 +151,6 @@ module.exports = () => {
   }
 
 
-  console.log(hamiltonianEdges.map(e => e.verticies[0].index + ", " + e.verticies[1].index))
   for (let edge of [...edges].reverse()) {
     if (!hamiltonianEdges.includes(edge)) {
       removeEdge(edge)
@@ -162,11 +161,16 @@ module.exports = () => {
   for (let edge of edges) {
     totalLength += edge.length()
   }
-  scale(150 / totalLength)
+  console.log(200 / totalLength)
+  scale(200 / totalLength)
 
+  splitEdge(17, edges[17].length() * 0.3)
+  splitEdge(21, edges[21].length() * 0.3)
 
-  // zeroFoldAllEdges(18)
+  splitEdge(23, -edges[23].length() * 0.35)
+  splitEdge(22, -edges[22].length() * 0.35)
+
   zeroFoldAllEdges()
-  // TODO doubleEdges()
+  //TODO doubleEdges()
   EulerianPath(0)
 }

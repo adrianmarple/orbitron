@@ -154,7 +154,6 @@ function setFor3DPrintedCovers() {
   addExtraFoldWallWedge = false
 
   ANTI_CORNER = 0.5
-  THICKNESS = 1.8
   EXTRA_COVER_THICKNESS = 0.4
   INNER_CHANNEL_THICKNESS = 0.4
 
@@ -166,21 +165,18 @@ function setFor3DPrintedCovers() {
   NOTCH_KERF = 0
   TOP_ORIGAMI_KERF = 0 //-0.1
   BOTTOM_ORIGAMI_KERF = 0
-  CHANNEL_LATCH_ANGLE = -8
 
   WALL_THICKNESS = 2.6
   PRINT_WALL_HALVES_SEPARATELY = true
 
-  // EXPERIMENTAL!!
-  THICKNESS = 2 // Remember to change snap mounts accordingly if I keep this
-  CHANNEL_LATCH_ANGLE = -7
-  NOTCH_DEPTH = 4
-  MAX_SLOT_SEGMENT_LENGTH = 30
-  // TODO 
+  THICKNESS = 2 
   CHANNEL_LATCH_ANGLE = -6.7
   NOTCH_DEPTH = 4.5
   MAX_SLOT_SEGMENT_LENGTH = 40
   PORT_TYPE = "USBC_INTEGRATED"
+
+  // EXPERIMENTAL!!
+
 }
 
 Array.prototype.remove = function(elem) {

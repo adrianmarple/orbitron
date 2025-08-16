@@ -919,7 +919,7 @@ function foldWallCreation(foldWall, printInfo) {
     printInfo.prints.push(foldPrint)
     return
   }
-  if (PRINT_WALL_HALVES_SEPARATELY) {
+  if (PRINT_WALL_HALVES_SEPARATELY || foldWall.yRotationAngle < 0) {
     // Left (female) side
     let leftPrint = {
       suffix: leftJoint.suffix,
@@ -957,17 +957,6 @@ function foldWallCreation(foldWall, printInfo) {
         rightJoint,
         {
           type: "difference",
-          operations: [
-            {
-              type: "translate",
-              position: [0,0, INNER_WALL_EXTERIOR_THICKNESS + INNER_WALL_KERF],
-            },
-            {
-              type: "rotate",
-              axis: [0,1,0],
-              angle: foldWall.yRotationAngle * 2,
-            },
-          ],
           components: [
             {
               type: "innerwallbit",
@@ -979,11 +968,30 @@ function foldWallCreation(foldWall, printInfo) {
                   axis: [0,0,1],
                   angle: Math.PI/2 - foldWall.zRotationAngle,
                 },
-              ],  
+                {
+                  type: "translate",
+                  position: [0,0, INNER_WALL_EXTERIOR_THICKNESS + INNER_WALL_KERF],
+                },
+                {
+                  type: "rotate",
+                  axis: [0,1,0],
+                  angle: foldWall.yRotationAngle * 2,
+                },
+              ],
             },
             {
               type: "cube",
-              position: [50, 0, 0],
+              operations: [
+                {
+                  type: "translate",
+                  position: [50, 0, 0],
+                },
+                  {
+                  type: "rotate",
+                  axis: [0,1,0],
+                  angle: foldWall.yRotationAngle,
+                }
+              ],
               dimensions: [100, 100, 100],
             }
           ]
@@ -993,7 +1001,8 @@ function foldWallCreation(foldWall, printInfo) {
     if (foldWall.yRotationAngle < 0) {
       rightPrint.operations = [flipOver]
       rightPrint.components[0].operations = [translation]
-      rightPrint.components[1].operations.unshift(translation)
+      rightPrint.components[1].components[0].operations.unshift(translation)
+      rightPrint.components[1].components[1].operations.unshift(translation)
       if (rightPort) {
         console.error("PORT on already flipped right side.")
       }
@@ -1007,11 +1016,11 @@ function foldWallCreation(foldWall, printInfo) {
     let print = {
       suffix: leftJoint.suffix,
       type: "union",
-      operations: [{
-        type: "rotate",
-        axis: [1, 0, 0],
-        angle: Math.PI/2,
-      }],
+      // operations: [{
+      //   type: "rotate",
+      //   axis: [1, 0, 0],
+      //   angle: Math.PI/2,
+      // }],
       components: [
         leftJoint,
         {
@@ -1260,7 +1269,7 @@ function wallPrint(wall, isLeft) {
   }
   if (!isLeft && !NO_SUPPORTS && print.suffix != portPartID &&
       bottomLength > PIXEL_DISTANCE * 3 &&
-      (wall.yRotationAngle >= 0 || !PRINT_WALL_HALVES_SEPARATELY)) {
+      wall.yRotationAngle >= 0) {
     supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
     supportOffset -= supportOffset % PIXEL_DISTANCE
     supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * PIXEL_DISTANCE
