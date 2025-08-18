@@ -1016,11 +1016,6 @@ function foldWallCreation(foldWall, printInfo) {
     let print = {
       suffix: leftJoint.suffix,
       type: "union",
-      // operations: [{
-      //   type: "rotate",
-      //   axis: [1, 0, 0],
-      //   angle: Math.PI/2,
-      // }],
       components: [
         leftJoint,
         {

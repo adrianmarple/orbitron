@@ -157,7 +157,6 @@ a > .fancy-box:hover, a.fancy-box:hover {
   flex-direction: column;
   align-items: center;
   width: 41rem;
-  z-index: 1;
 }
 .light {
   font-size: 7rem;

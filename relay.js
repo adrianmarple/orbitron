@@ -361,6 +361,7 @@ addGETListener(async (response, orbID, filePath)=>{
     include: localConfig.INCLUDE || {},
     exclude: localConfig.EXCLUDE || {},
     dimmerStates: localConfig.MANUAL_FADE_STEPS,
+    name: config.ALIASES[orbID] ?? orbID,
   }
   if (config.ALIASES[orbID]) {
     info.alias = config.ALIASES[orbID]

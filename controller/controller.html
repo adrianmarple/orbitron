@@ -92,13 +92,13 @@
     
     <div id="orbs">
       <div v-for="id in registeredIDs" class="orb-wrapper" @click="openOrb(id, true)"
-      :class="{ connected: (idToBasicOrbInfo[id] || {}).isCurrentlyConnected }">
+      :class="{ connected: orbInfo(id).isCurrentlyConnected }">
         <div class="orb">
-          <stlviewer :info="idToBasicOrbInfo[id] || {}"></stlviewer>
+          <stlviewer :info="orbInfo(id)"></stlviewer>
           <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
     
-          <div class="bottom">{{ (idToBasicOrbInfo[id] || {}).alias || id }}</div>
-          <div v-if="(idToBasicOrbInfo[id] || {}).isCurrentlyConnected"
+          <div class="bottom">{{ orbInfo(id).name }}</div>
+          <div v-if="orbInfo(id).isCurrentlyConnected"
               class="power button"
               @click.stop="advanceManualFade(id)">
             <img src="/controller/images/power.svg"
@@ -124,10 +124,10 @@
       <div class="horiz-box medium"></div>
       <div v-if="excludedIDs.length > 0" class="center-column">
         Previously removed pieces:
-        <div v-for="id in excludedIDs"
+        <div v-for="id in [...excludedIDs].reverse()"
             class="button"
             @click="newID = id; registerID()">
-          Restore "{{id}}"
+          Restore "{{ excludedNameMap[id] ?? id }}"
         </div>
       </div>
     </div>

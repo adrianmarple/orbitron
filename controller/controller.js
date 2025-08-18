@@ -43,6 +43,7 @@ var app = new Vue({
     orbID: location.pathname.split('/')[1],
     registeredIDs: [],
     excludedIDs: [],
+    excludedNameMap: {},
     idToBasicOrbInfo: {},
     manuallingRegistering: false,
     newID: "",
@@ -207,11 +208,15 @@ var app = new Vue({
     try {
       let rawRegisteredIDs = localStorage.getItem("registeredIDs")
       let rawExcludedIDs = localStorage.getItem("excludedIDs")
+      let rawExcludedNameMap = localStorage.getItem("excludedNameMap")
       if (rawRegisteredIDs) {
         this.registeredIDs = JSON.parse(rawRegisteredIDs)
       }
       if (rawExcludedIDs) {
         this.excludedIDs = JSON.parse(rawExcludedIDs)
+      }
+      if (rawExcludedNameMap) {
+        this.excludedNameMap = JSON.parse(rawExcludedNameMap)
       }
       this.updateLocalOrbs()
     } catch(e) {
@@ -611,19 +616,27 @@ var app = new Vue({
     },
     openRegistration() {
       this.openOrb("", true)
+      this.overscrollBottom = 0
+      this.overscrollTop = 0
     },
     deleteRegistration(id) {
       let self = this
-      let name = (this.idToBasicOrbInfo[id] || {}).alias || id
-      this.speedbumpMessage = `This will remove "${name}", you can always add it back.`
+      this.speedbumpMessage = `This will remove "${this.orbInfo(id).name}", you can always add it back.`
       this.speedbumpCallback = () => {
         self.registeredIDs.remove(id)
-        localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+        localStorage.setItem("registeredIDs", JSON.stringify(self.registeredIDs))
         self.excludedIDs.push(id)
-        localStorage.setItem("excludedIDs", JSON.stringify(this.excludedIDs))
+        localStorage.setItem("excludedIDs", JSON.stringify(self.excludedIDs))
+        self.excludedNameMap[id] = self.orbInfo(id).name
+        console.log(JSON.stringify(self.excludedNameMap))
+        localStorage.setItem("excludedNameMap", JSON.stringify(self.excludedNameMap))
         self.registrationErrorMessage = ""
         setTimeout(self.checkOverscroll, 1)
       }
+    },
+
+    orbInfo(id) {
+      return this.idToBasicOrbInfo[id] ?? {name: id}
     },
 
     dimmer(id) {
