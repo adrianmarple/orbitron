@@ -90,7 +90,9 @@
       </div>
     </div>
 
-    <div v-if="loadingOrb" id="loading-orb"></div>
+    <div v-if="loadingOrb" id="loading-orb">
+      <canvas id="loading-ball" width="256" height="256"></canvas>
+    </div>
     
     <div id="orbs">
       <div v-for="id in registeredIDs" class="orb-wrapper" @click="openOrb(id, true)"

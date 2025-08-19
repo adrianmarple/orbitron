@@ -153,8 +153,15 @@ a > .fancy-box:hover, a.fancy-box:hover {
   top: 0;
   bottom: 0;
   z-index: 10;
-  opacity: 0.5;
+  opacity: 0.8;
   background-color: black;
+  display: flex;
+  justify-content: center;
+}
+#loading-orb canvas {
+  width: 15rem;
+  height: 15rem;
+  margin-top: 15rem;
 }
 
 #registration {

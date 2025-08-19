@@ -1,25 +1,22 @@
+var LoadingBall = (function() {
 
-var TAU = Math.PI * 2
-var PHI = 2 / (Math.sqrt(5) - 1)
-var h = 1 / PHI
-var ZERO = {x: 0, y: 0, z: 0}
-var Y_AXIS = {x: 0, y: 1, z: 0}
-var SIZE = 3
-var Z_OFFSET = 10
+let TAU = Math.PI * 2
+let PHI = 2 / (Math.sqrt(5) - 1)
+let h = 1 / PHI
+let ZERO = {x: 0, y: 0, z: 0}
+let SIZE = 3
+let Z_OFFSET = 10
 
-var ROTATION_SPEED = 0.08 // In hertz
-var EXPANSION_SPEED_RATIO = 3
+let ROTATION_SPEED = 0.1 // In hertz
+let EXPANSION_SPEED_RATIO = 3
 
-var cyclePosition = 0
-
-var points = []
-
-var icosahedron = getAllFaces(dodecahedralPoints(), icosahedralPoints())
-var dodecahedron = getAllFaces(icosahedralPoints(), dodecahedralPoints())
+let icosahedron = getAllFaces(dodecahedralPoints(), icosahedralPoints())
+let dodecahedron = getAllFaces(icosahedralPoints(), dodecahedralPoints())
+console.log(dodecahedron)
 
 
-var canvas, ctx
-var canvasSize
+let canvas, ctx
+let canvasSize
 
 
 setInterval(() => {
@@ -31,21 +28,12 @@ setInterval(() => {
   render()
 }, 30)
 
-function renderPoints(points) {
-  ctx.clearRect(0, 0, canvasSize, canvasSize)
-  for (var i in points) {
-    var location = project(points[i])
-    ctx.beginPath()
-    ctx.arc(location.x, location.y, 2, 0, 2*Math.PI)
-    ctx.stroke()
-  }
-}
 
 function render() {
-  var angle = TAU * ROTATION_SPEED * Date.now() / 1000
-  var cos = Math.cos(angle * EXPANSION_SPEED_RATIO)
+  let angle = TAU * ROTATION_SPEED * Date.now() / 1000
+  let cos = Math.cos(angle * EXPANSION_SPEED_RATIO)
 
-  var polyhedron
+  let polyhedron
   if (cos > 0) {
     polyhedron = icosahedron
   } else {
@@ -53,53 +41,69 @@ function render() {
   }
 
   ctx.clearRect(0, 0, canvasSize, canvasSize)
-  for (var i in polyhedron) {
-    polyhedron[i].rotatedCenter = rotateY(polyhedron[i].center, angle)
+  for (let face of polyhedron) {
+    face.rotatedCenter = rotateY(face.center, angle)
   }
 
   polyhedron.sort((face1, face2) => {
     return face2.rotatedCenter.z - face1.rotatedCenter.z
   })
 
-  for (var i in polyhedron) {
-    renderFace(polyhedron[i], angle)
+  for (let face of polyhedron) {
+    renderFace(face, angle)
   }
 }
 
 function renderFace(face, angle) {
   ctx.beginPath()
-  var expansionAngle = angle * EXPANSION_SPEED_RATIO
-  var faceCenterAngle = Math.acos(face.center.x, face.center.z)
+  let expansionAngle = angle * EXPANSION_SPEED_RATIO
+  let faceCenterAngle = Math.acos(face.center.x, face.center.z)
   if (face.center.z < 0) {
     faceCenterAngle = TAU - faceCenterAngle
   }
 
-  // var colorPhase = ((1.123 * angle - faceCenterAngle) / TAU) % 1
-  var colorPhase = ((angle - faceCenterAngle) / TAU) % 1
-  var sin = Math.sin(expansionAngle)
-  var cos = Math.cos(expansionAngle)
-  var facePhase = sin * sin
+  let colorPhase = ((angle - faceCenterAngle) / TAU) % 1
+  let sin = Math.sin(expansionAngle)
+  let cos = Math.cos(expansionAngle)
+  let facePhase = sin * sin
   if (cos > 0) {
-    var c = 0.7565 * facePhase
-    ctx.fillStyle = "hsla(" + (colorPhase * 360) + ", 100%, 75%, " + (1 - facePhase) + ")"
+    let hue = 300 + 60*(Math.sin(colorPhase * TAU))
+    ctx.fillStyle = `hsla(${hue}, 100%, 65%, ${(1 - facePhase)*0.3})`
+    ctx.strokeStyle = `hsla(${hue}, 100%, 75%, 1)`
   } else {
-    var c = 0.262 * facePhase
-    ctx.fillStyle = "rgba(200, 200, 200, " + (1 - facePhase) + ")"
+    ctx.fillStyle = `rgba(255, 255, 255, ${(1 - facePhase)*0.3})`
+    ctx.strokeStyle = "white"
   }
-  var faceAngle = facePhase * TAU / (2 * face.vertices.length)
-  ctx.strokeStyle = "black"
+  ctx.lineWidth = 2.5
+  // let c
+  // if (cos > 0) {
+  //   c = 0.7565 * facePhase
+  //   ctx.fillStyle = "hsla(" + (colorPhase * 360) + ", 100%, 75%, " + (1 - facePhase) + ")"
+  // } else {
+  //   c = 0.262 * facePhase
+  //   ctx.fillStyle = "rgba(200, 200, 200, " + (1 - facePhase) + ")"
+  // }
+  // ctx.strokeStyle = "black"
 
-  var modifiedPoint = add(face.vertices[face.vertices.length - 1], scale(face.center, c))
+  let c
+  if (cos > 0) {
+    c = 0.7565 * facePhase
+  } else {
+    c = 0.262 * facePhase
+  }
+
+  let faceAngle = facePhase * TAU / (2 * face.vertices.length)
+  let modifiedPoint = add(face.vertices[face.vertices.length - 1], scale(face.center, c))
   modifiedPoint = rotate(modifiedPoint, face.center, faceAngle)
-  var firstCoordinate = pointToCoordinates(modifiedPoint, angle)
+  let firstCoordinate = pointToCoordinates(modifiedPoint, angle)
   ctx.moveTo(firstCoordinate.x, firstCoordinate.y)
 
-  var minX = -1e6
-  var maxX = 1e6
-  for (var j in face.vertices) {
+  let minX = -1e6
+  let maxX = 1e6
+  for (let j in face.vertices) {
     modifiedPoint = add(face.vertices[j], scale(face.center, c))
     modifiedPoint = rotate(modifiedPoint, face.center, faceAngle)
-    var coordinate = pointToCoordinates(modifiedPoint, angle)
+    let coordinate = pointToCoordinates(modifiedPoint, angle)
     ctx.lineTo(coordinate.x, coordinate.y)
     minX = Math.min(minX, coordinate.x)
     maxX = Math.min(maxX, coordinate.x)
@@ -114,7 +118,7 @@ function pointToCoordinates(point, angle) {
 
 
 function icosahedralPoints() {
-  var points = []
+  let points = []
   mergePoints(points, plusMinusPoints(normalize({x: 0, y: 1, z: PHI})))
   mergePoints(points, plusMinusPoints(normalize({x: 1, y: PHI, z: 0})))
   mergePoints(points, plusMinusPoints(normalize({x: PHI, y: 0, z: 1})))
@@ -122,7 +126,7 @@ function icosahedralPoints() {
 }
 
 function dodecahedralPoints() {
-  var points = []
+  let points = []
   mergePoints(points, plusMinusPoints(normalize({x: 1, y: 1, z: 1})))
   mergePoints(points, plusMinusPoints(normalize({x: 0, y: 1+h, z: 1-h*h})))
   mergePoints(points, plusMinusPoints(normalize({x: 1+h, y: 1-h*h, z: 0})))
@@ -131,11 +135,11 @@ function dodecahedralPoints() {
 }
 
 function mergePoints(points, pointsToAdd) {
-  for (var i in pointsToAdd) {
-    var pointToAdd = pointsToAdd[i]
-    var isNewPoint = true
-    for (var j in points) {
-      var point = points[j]
+  for (let i in pointsToAdd) {
+    let pointToAdd = pointsToAdd[i]
+    let isNewPoint = true
+    for (let j in points) {
+      let point = points[j]
       if (squareDistance(point, pointToAdd) < 0.1) {
         isNewPoint = false
         break
@@ -161,20 +165,20 @@ function plusMinusPoints(point) {
 }
 
 function getAllFaces(faceCenters, vertices) {
-  var faceToVertexSqDist = minSquareDistance(faceCenters[0], vertices)
-  var edgeSqDist = minSquareDistance(vertices[0], vertices)
-  var edgeDist = Math.sqrt(edgeSqDist)
+  let faceToVertexSqDist = minSquareDistance(faceCenters[0], vertices)
+  let edgeSqDist = minSquareDistance(vertices[0], vertices)
+  let edgeDist = Math.sqrt(edgeSqDist)
 
-  var faces = []
-  for (var i in faceCenters) {
-    var faceCenter = faceCenters[i]
-    var face = {
+  let faces = []
+  for (let i in faceCenters) {
+    let faceCenter = faceCenters[i]
+    let face = {
       center: faceCenter,
     }
-    var faceVertices = []
-    for (var j in vertices) {
-      var vertex = vertices[j]
-      var sqDist = squareDistance(faceCenter, vertex)
+    let faceVertices = []
+    for (let j in vertices) {
+      let vertex = vertices[j]
+      let sqDist = squareDistance(faceCenter, vertex)
       // Avoid absolute value since sqDist shouldn't be less than faceToVertexSqDist.
       if (sqDist - faceToVertexSqDist < 0.01) {
         faceVertices.push(vertex)
@@ -182,13 +186,13 @@ function getAllFaces(faceCenters, vertices) {
     }
 
     face.vertices = [faceVertices.shift()]
-    var lastVertex = face.vertices[0]
+    let lastVertex = face.vertices[0]
     while (faceVertices.length) {
       if (faceVertices.length == 0) {
         break
       }
-      var vertex = faceVertices.shift()
-      var sqDist = squareDistance(lastVertex, vertex)
+      let vertex = faceVertices.shift()
+      let sqDist = squareDistance(lastVertex, vertex)
       // Avoid absolute value since sqDist shouldn't be less than edgeSqDist.
       if (sqDist - edgeSqDist < 0.01) {
         face.vertices.push(vertex)
@@ -198,7 +202,7 @@ function getAllFaces(faceCenters, vertices) {
       }
     }
 
-    for (var j in face.vertices) {
+    for (let j in face.vertices) {
       face.vertices[j] = scale(face.vertices[j], 1 / edgeDist)
     }
 
@@ -209,9 +213,9 @@ function getAllFaces(faceCenters, vertices) {
 }
 
 function minSquareDistance(point, otherPoints) {
-  var bestSqDist = 1e6
-  for (var i in otherPoints) {
-    var otherPoint = otherPoints[i]
+  let bestSqDist = 1e6
+  for (let i in otherPoints) {
+    let otherPoint = otherPoints[i]
     sqDist = squareDistance(point, otherPoint)
     if (sqDist > 0.01) { // Omit a repeat of point.
       bestSqDist = Math.min(sqDist, bestSqDist)
@@ -222,8 +226,8 @@ function minSquareDistance(point, otherPoints) {
 
 
 function rotatePoints(points, axis, angle) {
-  var rotatedPoints = []
-  for (var i in points) {
+  let rotatedPoints = []
+  for (let i in points) {
     rotatedPoints.push(rotate(points[i], axis, angle))
   }
   return rotatedPoints
@@ -231,8 +235,8 @@ function rotatePoints(points, axis, angle) {
 
 function rotate(point, axis, angle) {
   // Assume axis is of unit length.
-  var c = Math.cos(angle)
-  var s = Math.sin(angle)
+  let c = Math.cos(angle)
+  let s = Math.sin(angle)
   return {
     x: (        c + axis.x*axis.x*(1 - c)) * point.x +
        ( axis.z*s + axis.x*axis.y*(1 - c)) * point.y +
@@ -246,8 +250,8 @@ function rotate(point, axis, angle) {
   }
 }
 function rotateY(point, angle) {
-  var c = Math.cos(angle)
-  var s = Math.sin(angle)
+  let c = Math.cos(angle)
+  let s = Math.sin(angle)
   return {
     x: c * point.x - s * point.z,
     y: point.y,
@@ -279,7 +283,7 @@ function project(point) {
 }
 
 function normalize(point) {
-  var magnitude = Math.sqrt(squareDistance(point, ZERO))
+  let magnitude = Math.sqrt(squareDistance(point, ZERO))
   return {
     x: point.x / magnitude,
     y: point.y / magnitude,
@@ -292,3 +296,4 @@ function squareDistance(p1, p2) {
          (p1.y - p2.y) * (p1.y - p2.y) +
          (p1.z - p2.z) * (p1.z - p2.z)
 }
+})();
