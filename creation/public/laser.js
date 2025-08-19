@@ -861,6 +861,7 @@ function createPrintInfo3D() {
   return printInfo
 }
 
+
 function findEmbossing(print) {
   findSubprint("embossing", print)
 }
@@ -878,6 +879,43 @@ function findSubprint(type, print) {
   }
   return null
 }
+function findSubprints(type, print, list) {
+  if (!list) {
+    list = []
+  }
+  if (print.type == type) {
+    list.push(print)
+    return list
+  }
+  if (print.type == "union" || print.type == "difference") {
+    for (let component of print.components) {
+      findSubprints(type, component, list)
+    }
+  }
+  return list
+}
+
+function cleanAndFlip(print) {
+  cleanForFlip(print)
+  flipPrint(print)
+}
+function cleanForFlip(print) {
+  let embos = findSubprints("embossing", print)
+  for (let embo of embos) {
+    embo.void = true
+  }
+  let supports = findSubprints("ledSupport", print)
+  for (let support of supports) {
+    support.void = true
+  }
+}
+function flipPrint(print) {
+  print.operations = print.operations ?? []
+  print.operations.push({
+    type: "rotate",
+    vector: [0, Math.PI, 0],
+  })
+}
 
 function foldWallCreation(foldWall, printInfo) {
   if (!printInfo) return
@@ -888,10 +926,6 @@ function foldWallCreation(foldWall, printInfo) {
   let translation = {
     type: "translate",
     position: [0, 0, -WALL_THICKNESS],
-  }
-  let flipOver = {
-    type: "rotate",
-    vector: [0, Math.PI, 0],
   }
 
   let leftJoint = wallPrint(foldWall, true)
@@ -910,16 +944,12 @@ function foldWallCreation(foldWall, printInfo) {
       ]
     }
     if (leftPort || rightPort) {
-      foldPrint.operations = [flipOver]
-      let support = findSubprint("ledSupport", foldPrint)
-      if (support) {
-        support.void = true
-      }
+      cleanAndFlip(foldPrint)
     }
     printInfo.prints.push(foldPrint)
     return
   }
-  if (PRINT_WALL_HALVES_SEPARATELY || foldWall.yRotationAngle < 0) {
+  if (PRINT_WALL_HALVES_SEPARATELY) {
     // Left (female) side
     let leftPrint = {
       suffix: leftJoint.suffix,
@@ -945,7 +975,7 @@ function foldWallCreation(foldWall, printInfo) {
       ]
     }
     if (leftPort) {
-      leftPrint.operations = [flipOver]
+      cleanAndFlip(leftPort)
     }
     printInfo.prints.push(leftPrint)
     
@@ -999,7 +1029,7 @@ function foldWallCreation(foldWall, printInfo) {
       ]
     }
     if (foldWall.yRotationAngle < 0) {
-      rightPrint.operations = [flipOver]
+      cleanAndFlip(rightPrint)
       rightPrint.components[0].operations = [translation]
       rightPrint.components[1].components[0].operations.unshift(translation)
       rightPrint.components[1].components[1].operations.unshift(translation)
@@ -1008,7 +1038,7 @@ function foldWallCreation(foldWall, printInfo) {
       }
     }
     if (rightPort) {
-      rightPrint.operations = [flipOver]
+      cleanAndFlip(rightPrint)
     }
     printInfo.prints.push(rightPrint)
   }
@@ -1031,6 +1061,8 @@ function foldWallCreation(foldWall, printInfo) {
     if (foldWall.yRotationAngle < 0) {
       print.components[0].operations = [translation]
       print.components[1].operations.unshift(translation)
+      cleanForFlip(leftJoint)
+      flipPrint(print)
     }
     if (leftPort || rightPort) {
       console.log("WARNING! Untested port configuration")
@@ -1102,13 +1134,6 @@ function wallPrint(wall, isLeft) {
   let topSegmentCount = Math.ceil(topLength / MAX_SLOT_SEGMENT_LENGTH)
   let topSegmentLength = topLength / topSegmentCount
 
-  // TODO dihedralAngle I believe is not always non-negative, so this and other checks
-  // are unnecessary (plus extraOffset would always be zero and therefore removable)
-  let extraOffset = ZERO
-  if (wall.dihedralAngle < 0) {
-    extraOffset = E.scale(-THICKNESS * Math.tan(wall.zRotationAngle))
-  }
-
   let insetAngle = (wall.dihedralAngle ?? 0) / 2
   for (let vertex of vertexPath) {
     if (vertex == vertex0) {
@@ -1178,7 +1203,6 @@ function wallPrint(wall, isLeft) {
   path += pathFromSegments(offset, wallSegments)
 
   let wallStart = offset
-      .add(extraOffset)
       .addScaledVector(UP, CHANNEL_DEPTH/2 * dihedralRatio)
       .addScaledVector(E, topLength)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
@@ -1219,7 +1243,6 @@ function wallPrint(wall, isLeft) {
   // Wedges
   // End wedge
   let position = wallSegments[0].add(offset)
-      .add(extraOffset)
       .addScaledVector(E, topLength + WALL_MITER_KERF)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let wedge = {
@@ -1249,7 +1272,6 @@ function wallPrint(wall, isLeft) {
   // LED supports
   supportOffset = null
   if (isLeft && !NO_SUPPORTS && print.suffix != portPartID &&
-      !wall.hasWallPort &&
       bottomLength > PIXEL_DISTANCE * 1.2) {
     supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 1)
     supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * PIXEL_DISTANCE
@@ -1263,12 +1285,12 @@ function wallPrint(wall, isLeft) {
     }
   }
   if (!isLeft && !NO_SUPPORTS && print.suffix != portPartID &&
-      bottomLength > PIXEL_DISTANCE * 3 &&
-      wall.yRotationAngle >= 0) {
+      bottomLength > PIXEL_DISTANCE * 3) {
     supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
     supportOffset -= supportOffset % PIXEL_DISTANCE
     supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * PIXEL_DISTANCE
-    while (supportOffset > edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH/2) {
+    let threshold = edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH
+    while (supportOffset > threshold) {
       supportOffset -= PIXEL_DISTANCE
     }
   }
@@ -1304,10 +1326,9 @@ function wallPrint(wall, isLeft) {
   const MAX_EMBOSSING_WIDTH = 10
   if (!NO_EMBOSSING &&
     !(hasPort && PORT_TYPE == "USBC_INTEGRATED") &&
-    RENDER_MODE == "standard" &&
-    (isLeft || (wall.yRotationAngle > 0 && PRINT_WALL_HALVES_SEPARATELY))) {
+    RENDER_MODE == "standard") {
 
-    let embossingOffset = extraOffset.length() + lengthOffset
+    let embossingOffset = lengthOffset
     if (embossingOffset + MAX_EMBOSSING_WIDTH + LED_SUPPORT_WIDTH/2 > supportOffset) {
       embossingOffset = supportOffset + LED_SUPPORT_WIDTH/2 + 1
     }
@@ -1322,7 +1343,7 @@ function wallPrint(wall, isLeft) {
     })
   }
   if (RENDER_MODE == "parts") {
-    let V = wallStart.sub(extraOffset).addScaledVector(E, -2)
+    let V = wallStart.addScaledVector(E, -2)
     let embossing = {
       type: "embossing",
       operations: [
