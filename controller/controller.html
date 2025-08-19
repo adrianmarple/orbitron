@@ -89,16 +89,18 @@
         </div>
       </div>
     </div>
+
+    <div v-if="loadingOrb" id="loading-orb"></div>
     
     <div id="orbs">
       <div v-for="id in registeredIDs" class="orb-wrapper" @click="openOrb(id, true)"
-      :class="{ connected: orbInfo(id).isCurrentlyConnected }">
+      :class="{ connected: isConnected(id) }">
         <div class="orb">
-          <stlviewer :info="orbInfo(id)"></stlviewer>
+          <stlviewer :info="getOrb(id)"></stlviewer>
           <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
     
-          <div class="bottom">{{ orbInfo(id).name }}</div>
-          <div v-if="orbInfo(id).isCurrentlyConnected"
+          <div class="bottom">{{ getOrb(id).name }}</div>
+          <div v-if="isConnected(id)"
               class="power button"
               @click.stop="advanceManualFade(id)">
             <img src="/controller/images/power.svg"

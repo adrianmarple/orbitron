@@ -41,17 +41,15 @@ var app = new Vue({
 
     isPWA: window.matchMedia('(display-mode: standalone)').matches,
     orbID: location.pathname.split('/')[1],
+    idToOrb: {},
     registeredIDs: [],
     excludedIDs: [],
     excludedNameMap: {},
-    idToBasicOrbInfo: {},
     manuallingRegistering: false,
     newID: "",
     registrationErrorMessage: "",
+    loadingOrb: false,
 
-    idToWebSocket: {},
-    idToSocketStatus: {},
-    idToState: {},
     
     loginCode: "",
     localFlags: {},
@@ -131,29 +129,15 @@ var app = new Vue({
       this.browser = "Safari";
     }
 
-    this.startWebsocket()
-    setInterval(() => {
-      if(self.socketStatus == "CONNECTED") {
-        self.ping()
-      }
-    }, 3000)
-    setInterval(() => {
-      for (let id in self.idToSocketStatus) {
-        if (self.idToSocketStatus[id] == "CONNECTED") {
-          self.ping(id)
-        }
-      }
-    }, 1100) // Ping non-main orbs less often
-
     onfocus = () => {
       this.blurred = false
       setTimeout(() => {
         self.startWebsocket() // Prioritize current orb's websocket first
       }, 10)
       setTimeout(() => {
-        for (let id in self.idToBasicOrbInfo) {
-          if (self.idToBasicOrbInfo[id].isCurrentlyConnected) {
-            self.startWebsocket(id)
+        for (let orb of Object.values(self.idToOrb)) {
+          if (orb.isCurrentlyConnected) {
+            self.startWebsocket(orb.id)
           }
         }
       }, 20)
@@ -185,7 +169,10 @@ var app = new Vue({
       this.handleChange(event.changedTouches[0])
     }
 
-    onresize = this.setRem
+    addEventListener("resize", () => {
+      this.setRem()
+      this.checkOverscroll()
+    })
     addEventListener("DOMContentLoaded", this.setRem)
     // So hacky, but this seems relatively robust and necessary for things like firefox on iOS
     for (let i = 0; i < 20; i++) {
@@ -200,10 +187,32 @@ var app = new Vue({
     })
 
     if (this.orbID) {
-      fetch(`${location.origin}/${this.orbID}/info`).then(async data => {
-        self.$set(self.idToBasicOrbInfo, self.orbID, await data.json())
-      })
+      try {
+        let reponse = await fetch(`${location.origin}/${this.orbID}/info`)
+        let orb = await reponse.json()
+        this.initOrb(orb)
+        this.orbID = orb.id
+        this.startWebsocket()
+      }
+      catch (e) {
+        console.error(e)
+      }
     }
+    if (this.orbID) {
+      this.initOrb(this.getOrb(this.orbID))
+    }
+    setInterval(() => {
+      if(self.socketStatus == "CONNECTED") {
+        self.ping()
+      }
+    }, 3000)
+    setInterval(() => {
+      for (let orb of Object.values(self.idToOrb)) {
+        if (orb.socketStatus == "CONNECTED") {
+          self.ping(orb.id)
+        }
+      }
+    }, 10000) // Ping non-main orbs less often
 
     try {
       let rawRegisteredIDs = localStorage.getItem("registeredIDs")
@@ -252,7 +261,7 @@ var app = new Vue({
         for (let key in val) {
           this.$watch('prefs.' + key, (v, vOld) => {
             if (this.dontSendUpdates) return
-            if (typeof(v) == 'object' || v != vOld) {
+            if (!deepCompare(v, vOld)) {
               this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
             }
           }, {deep: true})
@@ -303,13 +312,13 @@ var app = new Vue({
   computed: {
     BETWEEN_GAMES() { return !this.state.game },
     ws() {
-      return this.idToWebSocket[this.orbID]
+      return this.orbInfo.ws ?? null
     },
     state() {
-      return this.idToState[this.orbID] || {}
+      return this.orbInfo.state ?? {}
     },
     socketStatus() {
-      return this.idToSocketStatus[this.orbID]
+      return this.orbInfo.socketStatus
     },
     connectionStatus() {
       if(this.blurred){
@@ -324,7 +333,7 @@ var app = new Vue({
     },
 
     orbInfo() {
-      return this.idToBasicOrbInfo[this.orbID] || {}
+      return this.idToOrb[this.orbID] || {}
     },
 
     navBarItems() {
@@ -550,6 +559,21 @@ var app = new Vue({
       this.$forceUpdate()
     },
 
+    initOrb(info) {
+      let orb = this.idToOrb[info.orbID]
+      if (orb) {
+        for (let key in info) {
+          this.$set(orb, key, info[key])
+        }
+      } else {
+        orb = info
+        this.$set(this.idToOrb, orb.orbID, orb)
+        orb.id = orb.orbID
+        orb.ws = null
+        orb.state = {}
+        orb.socketStatus = "DISCONNECTED"
+      }
+    },
     async updateLocalOrbs() {
       let self = this
       let localOrbs = await (await fetch(`${location.origin}/localorbs`)).json()
@@ -563,8 +587,8 @@ var app = new Vue({
       
       for (let id of this.registeredIDs) {
         fetch(`${location.origin}/${id}/info`).then(async data => {
-          self.$set(self.idToBasicOrbInfo, id, await data.json())
-          if (self.idToBasicOrbInfo[id].isCurrentlyConnected) {
+          this.initOrb(await data.json())
+          if (self.idToOrb[id].isCurrentlyConnected) {
             self.startWebsocket(id)
           }
         })
@@ -593,7 +617,7 @@ var app = new Vue({
         return
       }
 
-      this.$set(this.idToBasicOrbInfo, this.newID, info)
+      this.initOrb(info)
       this.registeredIDs.push(this.newID)
       localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
       if (this.excludedIDs.includes(this.newID)) {
@@ -604,9 +628,31 @@ var app = new Vue({
       this.manuallingRegistering = false
       this.registrationErrorMessage = ""
     },
-    openOrb(orbID, saveToHistory) {
-      if (this.idToBasicOrbInfo[orbID] && !this.idToBasicOrbInfo[orbID].isCurrentlyConnected) {
+    async openOrb(orbID, saveToHistory) {
+      let orb = this.idToOrb[orbID]
+      if (orb && !this.isConnected(orbID)) {
         return
+      }
+      if (orb) {
+        this.loadingOrb = true
+        try {
+          await new Promise((resolve, reject) => {
+            this.send("ECHO", orbID)
+            let timeout = setTimeout(() => {
+              reject()
+              orb.resolveEcho = () => {}
+            }, 3000)
+            orb.resolveEcho = () => {
+              clearTimeout(timeout)
+              resolve()
+            }
+          })
+        } catch(_) {
+          this.loadingOrb = false
+          orb.isCurrentlyConnected = false
+          return
+        }
+        this.loadingOrb = false
       }
       this.manuallingRegistering = false
       if (saveToHistory) {
@@ -621,28 +667,31 @@ var app = new Vue({
     },
     deleteRegistration(id) {
       let self = this
-      this.speedbumpMessage = `This will remove "${this.orbInfo(id).name}", you can always add it back.`
+      this.speedbumpMessage = `This will remove "${this.getOrb(id).name}", you can always add it back.`
       this.speedbumpCallback = () => {
         self.registeredIDs.remove(id)
         localStorage.setItem("registeredIDs", JSON.stringify(self.registeredIDs))
         self.excludedIDs.push(id)
         localStorage.setItem("excludedIDs", JSON.stringify(self.excludedIDs))
-        self.excludedNameMap[id] = self.orbInfo(id).name
-        console.log(JSON.stringify(self.excludedNameMap))
+        self.excludedNameMap[id] = self.getOrb(id).name
         localStorage.setItem("excludedNameMap", JSON.stringify(self.excludedNameMap))
         self.registrationErrorMessage = ""
         setTimeout(self.checkOverscroll, 1)
       }
     },
 
-    orbInfo(id) {
-      return this.idToBasicOrbInfo[id] ?? {name: id}
+    getOrb(id) {
+      return this.idToOrb[id] ?? { orbID: id, name: id }
     },
 
+    isConnected(id) {
+      let orb = this.getOrb(id)
+      return orb.isCurrentlyConnected && orb.socketStatus == "CONNECTED"
+    },
     dimmer(id) {
       id = id ?? this.orbID
-      let state = this.idToState[id]
-      if (!state) return 0
+      let state = this.getOrb(id).state
+      if (!state || !state.prefs) return 0
       return state.prefs.dimmer
     },
 
@@ -726,7 +775,6 @@ var app = new Vue({
       this.send({type: "ping"}, orbID)
     },
     advanceManualFade(orbID) {
-      console.log(orbID)
       this.send({type: "advanceManualFade"}, orbID)
     },
     // Game related commands
@@ -834,17 +882,18 @@ var app = new Vue({
       }
     },
 
-    send(json, orbID) {
-      // console.log(json)
+    send(message, orbID) {
+      // console.log(message)
       orbID = orbID ?? this.orbID
-      let ws = this.idToWebSocket[orbID]
-      json.timestamp = this.preciseTime()
-      let message = null
-      try {
-        message = JSON.stringify(json)
-      } catch(e) {
-        console.log("Error stringifying JSON", e)
-        return
+      let ws = this.idToOrb[orbID].ws
+      if (typeof message != "string") {
+        message.timestamp = this.preciseTime()
+        try {
+          message = JSON.stringify(message)
+        } catch(e) {
+          console.log("Error stringifying JSON", e)
+          return
+        }
       }
       if (!ws || ws.readyState === WebSocket.CLOSED) {
         try {
@@ -865,7 +914,7 @@ var app = new Vue({
 
     destroyWebsocket(orbID) {
       orbID = orbID ?? this.orbID
-      let ws = this.idToWebSocket[orbID]
+      let ws = this.getOrb(orbID).ws
       if(ws) {
         try {
           ws.close()
@@ -874,11 +923,12 @@ var app = new Vue({
         }
         ws = null
       }
-      this.idToSocketStatus[orbID] = "DISCONNECTED"
+      this.idToOrb[orbID].socketStatus = "DISCONNECTED"
     },
     startWebsocket(orbID) {
       orbID = orbID ?? this.orbID
-      if(this.idToWebSocket[orbID] || !orbID) {
+      let orb = this.getOrb(orbID)
+      if(orb.ws || !orbID) {
         return // Already trying to establish a connection or no orbID
       }
       let protocolAndHost
@@ -887,14 +937,14 @@ var app = new Vue({
       } else {
         protocolAndHost = "wss://" + location.hostname
       }
-      this.idToSocketStatus[orbID] == 'CONNECTING'
+      orb.socketStatus == 'CONNECTING'
       let ws = new WebSocket(`${protocolAndHost}:7777/${orbID}/${this.uuid}`)
       let self=this
       ws.onopen= _ => {
-        self.$set(self.idToSocketStatus, orbID, 'CONNECTED')
+        self.$set(self.idToOrb[orbID], 'socketStatus', 'CONNECTED')
       }
       ws.onmessage = event => {
-        self.$set(self.idToSocketStatus, orbID, 'CONNECTED')
+        self.$set(self.idToOrb[orbID], 'socketStatus', 'CONNECTED')
         self.handleMessage(event.data, orbID)
       }
       ws.onclose = _ => {
@@ -904,10 +954,14 @@ var app = new Vue({
         console.error("ERROR",event)
         setTimeout(function(){ self.destroyWebsocket(orbID) })
       }
-      this.idToWebSocket[orbID] = ws
+      orb.ws = ws
     },
 
     async handleMessage(data, orbID) {
+      if (data == "ECHO") {
+        this.idToOrb[orbID].resolveEcho()
+        return
+      }
       let message = JSON.parse(data)
       if(message.timestamp <= this.latestMessage){
         return
@@ -916,7 +970,7 @@ var app = new Vue({
       if (message.self != this.state.self) {
         window.parent.postMessage({this: message.self}, '*')
       }
-      this.$set(this.idToState, orbID, message)
+      this.$set(this.idToOrb[orbID], 'state', message)
       this.dontSendUpdates = true
       await this.$forceUpdate()
       this.dontSendUpdates = false
@@ -1028,13 +1082,6 @@ var app = new Vue({
         this.send({type: "move", move: [x,y]})
       }
     },
-    // displaySignup() {
-    //   if (this.localFlags.hasSeenSignup) {
-    //     return
-    //   }
-    //   this.$set(this.localFlags, 'hasSeenSignup', true)
-    //   document.getElementById("signup").style.display = 'block'
-    // },
 
     settingsKeydown(event) {
       if(event.keyCode == 13) {
@@ -1083,6 +1130,15 @@ var app = new Vue({
   },
 })
 
+class Orb {
+  constructor(basicInfo) {
+    this.info = basicInfo
+    this.id = basicInfo.orbID
+    this.ws = null
+    this.socketStatus = "DISCONNECTED"
+    this.state = {}
+  }
+}
 
 Array.prototype.remove = function(elem) {
   let index = this.indexOf(elem)

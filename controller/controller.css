@@ -146,6 +146,17 @@ a > .fancy-box:hover, a.fancy-box:hover {
   position: relative;
 }
 
+#loading-orb {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 10;
+  opacity: 0.5;
+  background-color: black;
+}
+
 #registration {
   border: 5.5rem solid #080808;
   font-size: 2rem;

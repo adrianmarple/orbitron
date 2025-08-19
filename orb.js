@@ -393,6 +393,11 @@ class ClientConnection {
 
   processMessage(data) {
     try {
+      if (data == "ECHO") {
+        this.send("ECHO")
+        return
+      }
+
       let content = JSON.parse(data)
       if(content.timestamp > this.latestMessage){
         this.latestMessage = content.timestamp
