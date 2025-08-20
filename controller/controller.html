@@ -26,7 +26,7 @@
   
 <div id=app
   :style="{ '--self-color': self.color }"
-  :class="{ isIframe }"
+  :class="[{ isIframe }, os, browser]"
   @scroll="checkOverscroll">
   <div id="background"></div>
 

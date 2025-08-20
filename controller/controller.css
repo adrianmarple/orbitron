@@ -126,7 +126,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
 }
 
 .overscroll {
-  background-color: #0a0a0a;
+  background-color: #080808;
   position: fixed;
   left: 0;
   margin-left: calc(50vw - 20.5rem);
@@ -138,6 +138,13 @@ a > .fancy-box:hover, a.fancy-box:hover {
 }
 .overscroll.bottom {
   bottom: 0;
+}
+.MacOS .overscroll, .Linux .overscroll, .Windows .overscroll {
+  height: 0 !important;
+}
+.iOS .overscroll {
+  /* No idea why this is necessary */
+  background-color: #0a0a0a;
 }
 
 .main {
