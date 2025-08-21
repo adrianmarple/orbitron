@@ -173,8 +173,8 @@ export default {
     await this.getOrbInfo()
     this.infoInterval = setInterval(async function() {
       if (document.hasFocus() && self.$root.mode == 'admin') {
-        self.getOrbInfo()
-        self.updateViewing()
+        await self.getOrbInfo()
+        await self.updateViewing()
         self.commits = await (await fetch("http://localhost:8000/commits")).json()
       }
     }, 5000)
@@ -316,6 +316,7 @@ export default {
       await this.sendCommand({ type: "restart" }, this.orbID)
     },
     async getOrbInfo() {
+      let promises = []
       try {
         this.orbInfo = JSON.parse(await this.sendServerCommand({type: "orblist"}))
         this.orbInfo = this.orbInfo.sort((a,b) => {
@@ -325,14 +326,15 @@ export default {
         })
 
         for (let orb of this.orbInfo) {
-          this.sendCommand({type: "ip"}, orb.id).then(ip => {
+          promises.push(this.sendCommand({type: "ip"}, orb.id).then(ip => {
             this.idToIP[orb.id] = ip
-          })
-          this.sendCommand({type: "commit"}, orb.id).then(commit => {
+          }))
+          promises.push(this.sendCommand({type: "commit"}, orb.id).then(commit => {
             this.idToCommit[orb.id] = this.commits.indexOf(commit)
-          })
+          }))
         }
       } catch {}
+      await Promise.all(promises)
     },
     async updateViewing() {
       if (this.viewing == 'config') {

@@ -135,7 +135,7 @@ function connectOrbToRelay(){
       // Admin command
       if (data.type == "admin") {
         let messageID = data.hash
-        command = await processAdminCommand(data)
+        let command = await processAdminCommand(data)
         if (!command) return
 
         let returnData = "OK"
@@ -186,12 +186,13 @@ function connectOrbToRelay(){
         if (command.type == "ip") {
           let interfaces = require('os').networkInterfaces();
           for (var devName in interfaces) {
-            var iface = interfaces[devName];
-
+            var iface = interfaces[devName]
             for (var i = 0; i < iface.length; i++) {
-              var alias = iface[i];
-              if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal)
-                returnData = alias.address;
+              var alias = iface[i]
+              if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
+                returnData = alias.address
+                break
+              }
             }
           }
         }
