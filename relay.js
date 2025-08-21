@@ -314,7 +314,6 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
   let orb = connectedOrbs[orbID]
   let reply = await new Promise(resolve => {
     orb.send(JSON.stringify(queryParams))
-    console.log(queryParams.hash)
     awaitingMessages[queryParams.hash] = {
       timestamp: Date.now(),
       resolve,

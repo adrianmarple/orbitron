@@ -249,6 +249,7 @@ function connectOrbToRelay(){
           await Promise.all(promises)
           restartOrbitron()
         }
+        console.log(returnData, messageID.slice(0, 6))
         orbToRelaySocket.send(JSON.stringify({
           messageID,
           data: returnData,
