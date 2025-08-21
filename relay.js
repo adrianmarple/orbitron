@@ -90,6 +90,7 @@ function bindOrb(socket, orbID) {
       if (messageID) {
         if (awaitingMessages[messageID]) {
           awaitingMessages[messageID].resolve(jsonData.data)
+          delete awaitingMessages[messageID]
         }
         return
       }
@@ -313,6 +314,7 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
   let orb = connectedOrbs[orbID]
   let reply = await new Promise(resolve => {
     orb.send(JSON.stringify(queryParams))
+    console.log(queryParams.hash)
     awaitingMessages[queryParams.hash] = {
       timestamp: Date.now(),
       resolve,
