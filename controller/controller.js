@@ -939,7 +939,7 @@ var app = new Vue({
       }
       orb.socketStatus == 'CONNECTING'
       let ws = new WebSocket(`${protocolAndHost}:7777/${orbID}/${this.uuid}`)
-      let self=this
+      let self = this
       ws.onopen= _ => {
         self.$set(self.idToOrb[orbID], 'socketStatus', 'CONNECTED')
       }
@@ -970,7 +970,10 @@ var app = new Vue({
       if (message.self != this.state.self) {
         window.parent.postMessage({this: message.self}, '*')
       }
-      this.$set(this.idToOrb[orbID], 'state', message)
+      let orb = {...this.idToOrb[orbID]}
+      orb.state = message
+      this.$set(this.idToOrb, orbID, orb)
+      
       this.dontSendUpdates = true
       await this.$forceUpdate()
       this.dontSendUpdates = false
