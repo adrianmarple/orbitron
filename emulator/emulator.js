@@ -13,6 +13,8 @@ let CAMERA_Z = 17
 let CONTROLLER = "none"
 let NO_HUD = false
 let SHOWTEXT = false
+let NO_AUTO_ROTATE = false
+let NO_CENTROID = false
 
 for (let param of new URLSearchParams(location.search)) {
   try {
@@ -22,6 +24,12 @@ for (let param of new URLSearchParams(location.search)) {
         break
       case 'cameraz':
         CAMERA_Z = parseFloat(param[1])
+        break
+      case 'lumatroniframe':
+        DISABLE_WHEEL = true
+        NO_HUD = true
+        NO_CENTROID = true
+        NO_AUTO_ROTATE = true
         break
       case 'controller':
         if (param[1] == "none") {
@@ -40,6 +48,12 @@ for (let param of new URLSearchParams(location.search)) {
         break
       case 'showtext':
         SHOWTEXT = true
+        break
+      case 'noautorotate':
+        NO_AUTO_ROTATE = true
+        break
+      case 'nocentroid':
+        NO_CENTROID = true
         break
     }
   } catch(e) {
@@ -275,11 +289,13 @@ var app = new Vue({
       }
       let scale = 1.6 / (0.6 + maxMagnitude)
       let centroid = new THREE.Vector3(0,0,0)
-      for (let point of this.pixelData.coords) {
-        point[0] *= scale
-        point[1] *= scale
-        point[2] *= scale
-        centroid.add(new THREE.Vector3(...point))
+      if (!NO_CENTROID) {
+        for (let point of this.pixelData.coords) {
+          point[0] *= scale
+          point[1] *= scale
+          point[2] *= scale
+          centroid.add(new THREE.Vector3(...point))
+        }
       }
       centroid.multiplyScalar(1/this.pixelData.coords.length)
       for (let point of this.pixelData.coords) {
@@ -428,7 +444,7 @@ var app = new Vue({
           lastInteractionTime = Date.now()
         }
 
-        if (lastInteractionTime + 10*1000 < Date.now()) {
+        if (!NO_AUTO_ROTATE && lastInteractionTime + 10*1000 < Date.now()) {
           moveVelocityY = 2
         }
 
