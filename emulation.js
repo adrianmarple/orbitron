@@ -72,7 +72,11 @@ class Emulator {
     if (orbID != this.config.ORB_ID.toLowerCase()) return
     if (!filePath.includes('dev') && !filePath.includes('view')) return
 
-    respondWithFile(response, "/emulator/emulator.html")
+    let idParts = orbID.split("+")
+    let idEnd = idParts[idParts.length - 1]
+    respondWithFile(response, "/emulator/emulator.html", {
+      "<title>Emulator - Lumatron</title>": `<title>${idEnd} - Lumatron Demo</title>`
+    })
     return true
   }
 

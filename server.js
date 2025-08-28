@@ -64,7 +64,7 @@ function getContentType(filePath){
   return contentType
 }
 
-function respondWithFile(response, filePath){
+function respondWithFile(response, filePath, replacements){
   filePath = decodeURI(filePath)
   filePath = `${__dirname}${filePath}`
   let contentType = getContentType(filePath)
@@ -80,6 +80,13 @@ function respondWithFile(response, filePath){
       }
     }
     else {
+      if (replacements) {
+        content = content.toString()
+        for (let searchValue in replacements) {
+          let replaceValue = replacements[searchValue]
+          content = content.replace(searchValue, replaceValue)
+        }
+      }
       response.writeHead(200, { 'Content-Type': contentType })
       response.end(content, 'utf-8')
     }
