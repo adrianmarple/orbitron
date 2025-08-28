@@ -187,23 +187,39 @@ addGETListener(async (response, request) => {
 })
 
 addPOSTListener(async (response, body) => {
-  if (body && body.type == "download") {
-    let filePath
-    if (body.fileName.endsWith(".json")) {
-      filePath = "../pixels/"
-    } else {
-      filePath = MANUFACTURING_FOLDER
-    }
-    let dirPath = filePath + body.fileName.split("/")[0]
-    if (!fs.existsSync(dirPath)) {
-      await fs.promises.mkdir(dirPath)
-    }
-    filePath += body.fileName
-    await fs.promises.writeFile(filePath, body.data)
-    response.writeHead(200)
-    response.end('post received')
-    return true
+  if (!body || body.type != "download") return
+
+  let filePath
+  if (body.fileName.endsWith(".json")) {
+    filePath = "../pixels/"
+  } else {
+    filePath = MANUFACTURING_FOLDER
   }
+  let dirPath = filePath + body.fileName.split("/")[0]
+  if (!fs.existsSync(dirPath)) {
+    await fs.promises.mkdir(dirPath)
+  }
+  filePath += body.fileName
+  await fs.promises.writeFile(filePath, body.data)
+  response.writeHead(200)
+  response.end('post received')
+  return true
+})
+
+addPOSTListener(async (response, body) => {
+  if (!body || body.type != "remove") return
+  
+  let message
+  try {
+    await fs.promises.unlink(body.fileName)
+    message = "Successfully deleted " + body.fileName
+  } catch(e) {
+    message = e.message
+  }
+  console.log(message)
+  response.writeHead(200)
+  response.end(message)
+  return true
 })
 
 async function fleshOutBody(body) {
@@ -382,9 +398,10 @@ async function generateGCode(info, print) {
 
   if (info.additionalSavePath && info.dir != "test") {
     console.log("Copying to additional save path " + info.additionalSavePath)
+    let additionalSuffix = info.additionalSavePathSuffix ?? ""
     await execute(`mkdir -p ${info.additionalSavePath}`)
     await execute(`mkdir -p ${info.additionalSavePath}/${info.dir}`)
-    await execute(`cp ${stlFilePath} ${info.additionalSavePath}/${info.fullProjectName}.stl`)
+    await execute(`cp ${stlFilePath} ${info.additionalSavePath}/${info.fullProjectName}${additionalSuffix}.stl`)
   }
   if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
 

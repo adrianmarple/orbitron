@@ -1,8 +1,18 @@
-var canPlayAudio = false
-MUSICON = false
-DISABLE_WHEEL = false
-CAMERA_Z = 17
-CONTROLLER = "default"
+
+import * as THREE from "three"
+import { RenderPass } from "https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/postprocessing/RenderPass.js"
+import { UnrealBloomPass } from "https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/postprocessing/UnrealBloomPass.js"
+import { EffectComposer } from "https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/postprocessing/EffectComposer.js"
+import { STLLoader } from "https://cdn.jsdelivr.net/npm/three@latest/examples/jsm/loaders/STLLoader.js"
+
+
+let canPlayAudio = false
+let MUSICON = false
+let DISABLE_WHEEL = false
+let CAMERA_Z = 17
+let CONTROLLER = "none"
+let NO_HUD = false
+let SHOWTEXT = false
 
 for (let param of new URLSearchParams(location.search)) {
   try {
@@ -24,6 +34,12 @@ for (let param of new URLSearchParams(location.search)) {
         break
       case 'disablewheel':
         DISABLE_WHEEL = true
+        break
+      case 'nohud':
+        NO_HUD = true
+        break
+      case 'showtext':
+        SHOWTEXT = true
         break
     }
   } catch(e) {
@@ -56,6 +72,7 @@ var west = false
 var east = false
 var north = false
 var south = false
+let lastInteractionTime = 0
 
 document.addEventListener("keydown", moveStart, false)
 document.addEventListener("keyup", moveEnd, false)
@@ -133,6 +150,7 @@ function drag(e) {
     xOffset = currentY
     yOffset = currentX
 
+    lastInteractionTime = Date.now()
   }
 }
 
@@ -144,18 +162,33 @@ function wheel(e) {
   camera.position.z = clamp(camera.position.z + e.deltaY * 0.02, 8, 100)
 }
 
+let pathParts = location.pathname.split("/")
+pathParts.shift()
+pathParts.pop()
+let orbID = pathParts.join("/")
+
+
 var app = new Vue({
   el: "#app",
   data: {
+    orbID,
     CONTROLLER,
+    NO_HUD,
+    SHOWTEXT,
     showController: CONTROLLER == "auto",
     followingPlayer:-1,
     pixelData:{},
-    camera:{},
-    orbitronGroup:{},
     pixels:[],
     rawPixels:"",
+
+    camera:{},
+    leds: null,
+    bloomPass: null,
+    orbitronGroup:{},
     composer:{},
+
+    viewToggle: false,
+
     ws:null,
     gameState:{},
     sounds:[],
@@ -174,7 +207,7 @@ var app = new Vue({
   },
   async created() {
     let self = this
-    fetch("/pixels.json").then(function(response){
+    fetch(`/${this.orbID}/pixels.json`).then(function(response){
       return response.json()
     }).then(function(json){
       self.pixelData = json
@@ -207,16 +240,23 @@ var app = new Vue({
     }
   },
   watch: {
+    viewToggle() {
+      this.bloomPass.enabled = !this.viewToggle
+      this.leds.visible = !this.viewToggle
+      this.stlMesh.visible = this.viewToggle
+    }
   },
   methods: {
     init() {
       // this.warmUpAudio()
       // this.warmUpMusic()
+      const SCALE = 4.4
       let w = window.innerWidth
       let h = window.innerHeight
+      const stlMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff })
 
       this.orbitronGroup = new THREE.Group()
-      let subGroup = new THREE.Group()
+      this.leds = new THREE.Group()
       let bgColor = new THREE.Color(0)
       let scene = new THREE.Scene()
       scene.background = bgColor
@@ -234,11 +274,58 @@ var app = new Vue({
         maxMagnitude = Math.max(maxMagnitude, magnitude)
       }
       let scale = 1.6 / (0.6 + maxMagnitude)
+      let centroid = new THREE.Vector3(0,0,0)
       for (let point of this.pixelData.coords) {
-        point[0] = point[0] * scale
-        point[1] = point[1] * scale
-        point[2] = point[2] * scale
+        point[0] *= scale
+        point[1] *= scale
+        point[2] *= scale
+        centroid.add(new THREE.Vector3(...point))
       }
+      centroid.multiplyScalar(1/this.pixelData.coords.length)
+      for (let point of this.pixelData.coords) {
+        point[0] -= centroid.x
+        point[1] -= centroid.y
+        point[2] -= centroid.z
+      }
+
+      // Light sources for the STL render
+      const sun = new THREE.DirectionalLight(0xffffff, 1.5)
+      sun.position.set(10, 10, 10).normalize()
+      const ambient = new THREE.AmbientLight(0xffffff, 0.5)
+      scene.add(sun)
+      scene.add(ambient)
+
+      // Load the STL file
+      const loader = new STLLoader()
+
+      let self = this
+      function loadGeometry(geometry) {
+        if (self.pixelData.stlScale) {
+          geometry.translate(new THREE.Vector3(...self.pixelData.centerOffset))
+          let stlScale = scale * self.pixelData.stlScale * SCALE
+          geometry.scale(stlScale, stlScale, stlScale)
+          geometry.translate(centroid.multiplyScalar(SCALE).negate())
+        }
+        else {
+          geometry.computeBoundingSphere()
+          const r = geometry.boundingSphere.radius * 0.2 / scale
+          geometry.translate(geometry.boundingSphere.center.negate())
+          geometry.scale(1/r, 1/r, 1/r)
+        }
+        // geometry.rotateX(-Math.PI / 2)
+        
+        self.stlMesh = new THREE.Mesh(geometry, stlMaterial)
+        self.stlMesh.visible = false
+        self.orbitronGroup.add(self.stlMesh)
+        // self.setRotation()
+      }
+      let path = "/stls/" + this.orbID.replace("+", "/")
+      loader.load(path + "_full.stl", loadGeometry, undefined, _ => {
+        // Fall back to ultra simple model
+        loader.load(path + ".stl", loadGeometry, undefined, error => {
+          console.error('An error happened while loading the STL file.', error)
+        })
+      })
 
       for (let index of this.pixelData.uniqueToDupe) {
         let point = this.pixelData.coords[index]
@@ -251,8 +338,8 @@ var app = new Vue({
         pixel.translateY(point[1])
         pixel.translateZ(point[2])
         this.pixels.push(pixel)
-        subGroup.add(pixel)
-        points.push(new THREE.Vector3(point[0], point[1], point[2]))
+        this.leds.add(pixel)
+        points.push(new THREE.Vector3(...point))
       }
 
       if (!this.pixelData.isWall) {
@@ -261,13 +348,12 @@ var app = new Vue({
         innerSphereMaterial.transparent = true
         innerSphereMaterial.opacity = 0.7
         let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
-        subGroup.add(innerSphere)
+        this.leds.add(innerSphere)
 
-        subGroup.rotation.set(-Math.PI/2,0,0)
+        this.leds.rotation.set(-Math.PI/2,0,0)
       }
-      const SCALE = 4.4
-      subGroup.scale.set(SCALE, SCALE, SCALE)
-      this.orbitronGroup.add(subGroup)
+      this.leds.scale.set(SCALE, SCALE, SCALE)
+      this.orbitronGroup.add(this.leds)
       //let axesHelper = new THREE.AxesHelper(5);
       //this.orbitronGroup.add(axesHelper)
 
@@ -276,20 +362,20 @@ var app = new Vue({
       //let axesHelper = new THREE.AxesHelper(5);
       //scene.add(axesHelper)
 
-      let renderer = new THREE.WebGLRenderer()
+      const renderer = new THREE.WebGLRenderer({antialias: true })
       renderer.setSize(w, h)
 
-      this.composer = new THREE.EffectComposer(renderer)
-      this.composer.addPass(new THREE.RenderPass(scene, this.camera))
+      this.composer = new EffectComposer(renderer)
+      this.composer.addPass(new RenderPass(scene, this.camera))
 
       document.getElementById("orb-canvas").appendChild(renderer.domElement)
-      const bloomPass = new THREE.UnrealBloomPass(
-        resolution=new THREE.Vector2(256, 256),
-        strength=5,
-        radius=0,
-        threshold=0
+      this.bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(256, 256), // Resolution
+        5, // strength
+        0, // radius
+        0 // threshold
       )
-      this.composer.addPass(bloomPass)
+      this.composer.addPass(this.bloomPass)
     },
     animate() {
       requestAnimationFrame(this.animate)
@@ -330,15 +416,22 @@ var app = new Vue({
         if(north){
           moveVelocityX = moveVelocityX + acceleration
         }
-        if(south){
+        else if(south){
           moveVelocityX = moveVelocityX - acceleration
         }
-        if(east){
+        else if(east){
           moveVelocityY = moveVelocityY + acceleration
+          lastInteractionTime = Date.now()
         }
-        if(west){
+        else if(west){
           moveVelocityY = moveVelocityY - acceleration
+          lastInteractionTime = Date.now()
         }
+
+        if (lastInteractionTime + 10*1000 < Date.now()) {
+          moveVelocityY = 2
+        }
+
         moveVelocityX = clamp(moveVelocityX * exponentialFactor, -maxVelocityX, maxVelocityX)
         moveVelocityY = clamp(moveVelocityY * exponentialFactor, -maxVelocityY, maxVelocityY)
         yOffset += moveVelocityY
@@ -355,6 +448,7 @@ var app = new Vue({
         let yRotation = yOffset/rotationFactor
         this.orbitronGroup.rotation.set(xRotation % (Math.PI*2),yRotation % (Math.PI*2),0)
       }
+
       if(this.rawPixels){
         let rp = pako.inflate(this.rawPixels, {to:'string'})
         for(let i = 0 ; i < this.pixels.length ; i++){
@@ -369,9 +463,11 @@ var app = new Vue({
       }
 
       this.composer.render()
-
-      // Render Text Display
+      this.renderTextDisplay()
+    },
+    renderTextDisplay() {
       let textDisplay = document.getElementById("text-display")
+      if (!textDisplay) return
       let currentText = this.gameState.currentText
       if (!currentText) {
         textDisplay.innerHTML = ""
@@ -420,7 +516,7 @@ var app = new Vue({
         } else {
           protocolAndHost = "wss://" + location.hostname
         }
-        this.ws = new WebSocket(protocolAndHost + ":8888")
+        this.ws = new WebSocket(protocolAndHost + ":8888/" + this.orbID)
         this.ws.binaryType = "arraybuffer"
         let self = this
         this.ws.onmessage = event => {
@@ -435,7 +531,7 @@ var app = new Vue({
             self.rawPixels = event.data
           }
         }
-        this.ws.onclose = event => {
+        this.ws.onclose = _ => {
           console.log("CLOSE")
           self.ws = null
         }
@@ -446,6 +542,9 @@ var app = new Vue({
       } catch(e) {
         console.error(e)
       }
+    },
+    hasConnected() {
+      return !["$LOADING", "CONNECTING"].includes(this.gameState.currentText)
     },
     followPlayer(player, index) {
       if(this.followingPlayer == index){

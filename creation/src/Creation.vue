@@ -7,10 +7,12 @@
 <div class="actions">
   <div class="button" @click="toggleCoverMode">Toggle Cover Mode ({{ coverMode[0] }})</div>
   <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
-  <div class="button" @click="downloadJSON">Download JSON</div>
+  <div class="button" @click="downloadGitFiles">Create git files</div>
+  <div class="button" @click="removeGitFiles">Remove git files</div>
+  <!-- <div class="button" @click="downloadJSON">Download JSON</div> -->
   <div class="button" @click="genPrints">Generate Prints</div>
-  <div class="button" @click="genModel('simple')">Simple 3D Model</div>
-  <div class="button" @click="genModel('simplest')">Ultra Simple 3D Model</div>
+  <!-- <div class="button" @click="genModel('simple')">Simple 3D Model</div> -->
+  <!-- <div class="button" @click="genModel('simplest')">Ultra Simple 3D Model</div> -->
   <div class="button" @click="genModel('parts')">3D Model with part IDs</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
   <!-- <div class="button" @click="configure">Configure Default Orb</div> -->
@@ -173,14 +175,31 @@ export default {
       console.log(`Cleaning up "${this.fullProjectName.split("/")[1]}" files`)
     },
     download(fileName, data) {
-      this.$root.post({
+      console.log(`Downloading ${fileName}`, data)
+      return this.$root.post({
         type: "download",
         fileName,
         data,
       })
-      console.log(`Downloading ${fileName}`, data)
+    },
+    removeFile(fileName) {
+      console.log(`Removing ${fileName}`)
+      return this.$root.post({
+        type: "remove",
+        fileName,
+      })
     },
 
+    async downloadGitFiles() {
+      this.downloadJSON()
+      await this.genModel('simple')
+      await this.genModel('simplest')
+    },
+    async removeGitFiles() {
+      this.removeFile(`../pixels/${this.fullProjectName}.json`)
+      this.removeFile(`../stls/${this.fullProjectName}.stl`)
+      this.removeFile(`../stls/${this.fullProjectName}_full.stl`)
+    },
     downloadJSON() {
       let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
       let fileName = this.fullProjectName + '.json'
@@ -198,9 +217,8 @@ export default {
       RENDER_MODE = renderMode
       await generateManufacturingInfo()
       let printInfo = createFullModel()
-      if (renderMode == "parts") {
-        printInfo.prints[0].suffix = "_parts"
-      }
+      printInfo.prints[0].suffix = "_" + renderMode
+      
       if (renderMode == "simple" || renderMode == "simplest") {
         let oldDepth = CHANNEL_DEPTH
         let oldThickness = THICKNESS
@@ -219,9 +237,11 @@ export default {
         THICKNESS = oldThickness
         BORDER = oldBorder
         COVER_TYPES = ["top", "bottom"]
-      }
-      if (renderMode == "simplest") {
+        
         printInfo.additionalSavePath = "../stls"
+        if (renderMode == "simple") {
+          printInfo.additionalSavePathSuffix = "_full"
+        }
       }
       RENDER_MODE = oldMode
       printInfo.fullProjectName = fullProjectName

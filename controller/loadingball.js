@@ -12,7 +12,6 @@ let EXPANSION_SPEED_RATIO = 3
 
 let icosahedron = getAllFaces(dodecahedralPoints(), icosahedralPoints())
 let dodecahedron = getAllFaces(icosahedralPoints(), dodecahedralPoints())
-console.log(dodecahedron)
 
 
 let canvas, ctx

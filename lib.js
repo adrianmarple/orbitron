@@ -20,15 +20,6 @@ if(config.KEY_LOCATION){
 }
 const PYTHON_EXECUTABLE = config.PYTHON_EXECUTABLE || '/home/pi/.env/bin/python3'
 
-config.PIXELS = config.PIXELS || "rhombicosidodecahedron"
-if (config.PIXELS.startsWith("/pixels/"))
-  config.PIXELS = config.PIXELS.slice(8)
-if (config.PIXELS.endsWith(".json"))
-  config.PIXELS = config.PIXELS.slice(0, config.PIXELS.length - 5)
-if (!config.PIXELS.includes("/"))
-  config.PIXELS = config.PIXELS + "/" + config.PIXELS
-config.PIXELS_FILE = `/pixels/${config.PIXELS}.json`
-
 if (!config.DEV_MODE && config.TIMEZONE) {
   execute(`timedatectl set-timezone ${config.TIMEZONE}`)
 }

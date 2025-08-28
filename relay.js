@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-const { config, processAdminCommand, noCorsHeader } = require('./lib')
-const { pullAndRestart } = require('./gitupdate')
 const WebSocket = require('ws')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
+const { config, processAdminCommand, noCorsHeader } = require('./lib')
+const { pullAndRestart } = require('./gitupdate')
 const homedir = require('os').homedir()
 const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
+const { startOrb } = require('./orb')
+const { PIXELS } = require('./config')
+const path = require('path')
 
 const connectedOrbs = {}
 const orbToIP = {}
@@ -420,10 +423,30 @@ addGETListener(async (response, orbID, filePath)=>{
   return true
 })
 
+addGETListener((response, orbID, filePath) => {
+  if(!filePath.includes('view')) return
+
+  // Spin up temp orb emulator (it will then add the get listener that will actually handle this request)
+  startOrb({
+    ORB_ID: orbID,
+    PIXELS: orbID.replace("+", "/"),
+    DEV_MODE: config.DEV_MODE,
+    PYTHON_EXECUTABLE: config.PYTHON_EXECUTABLE,
+    HAS_EMULATION: true,
+    TEMP_ORB: true,
+    EXCLUDE: {
+      save: true,
+      timing: true,
+    },
+  })
+  
+  return false
+})
+
 // Serve actual controller
 // Important that this goes last
 addGETListener(async (response, orbID, filePath) => {
-  if(filePath.includes(".")) return
+  if(filePath.includes(".") || filePath.split("/").length > 2) return
 
   if (filePath == "") { // Home page is same as controller now
     respondWithFile(response, "/controller/controller.html")

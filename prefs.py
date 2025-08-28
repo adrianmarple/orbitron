@@ -144,12 +144,14 @@ def update(update, client_timestamp=None):
   current_prefs.update(update)
   set_idle()
 
-  f = open(pref_path, "w")
-  f.write(json.dumps(prefs, indent=2))
-  f.close()
-  f = open(timing_pref_path, "w")
-  f.write(json.dumps(timing_prefs, indent=2))
-  f.close()
+
+  if not config.get("TEMP_ORB"):
+    f = open(pref_path, "w")
+    f.write(json.dumps(prefs, indent=2))
+    f.close()
+    f = open(timing_pref_path, "w")
+    f.write(json.dumps(timing_prefs, indent=2))
+    f.close()
 
   should_update_schedule = False
   for key in timing_prefs.keys():
@@ -188,6 +190,9 @@ def clear():
     os.remove(pref_path)
 
 def save(name):
+  if config.get("TEMP_ORB"):
+    return
+
   global current_pref_name
   current_pref_name = name
   new_path = pref_path_from_name(name)
@@ -428,47 +433,51 @@ class RepeatedTime():
 
 # Initial load
 
-# Preload all saved prefs
-for file in os.listdir(save_prefs_path):
-  name = os.path.basename(file)[:-11]
-  load(name, clobber_prefs=False)
+def init():
+  # Preload all saved prefs
+  for file in os.listdir(save_prefs_path):
+    name = os.path.basename(file)[:-11]
+    load(name, clobber_prefs=False)
 
-if os.path.exists(pref_path):
-  f = open(pref_path, "r")
-  try:
-    prefs = json.loads(f.read())
-  except:
-    prefs = {}
-    print("Failed to load prefs.json: %s" % f.read(), file=sys.stderr)
-  f.close()
-  current_prefs.update(prefs)
-  identify_name()
-  
-  # Convert old timer info
-  if "hasStartAndEnd" in prefs:
-    timing_prefs["useTimer"] = prefs["hasStartAndEnd"]
-  if current_pref_name is not None:
-    timing_prefs["schedule"] = [
-      {
-        "time": prefs.get("startTime", "00:00"),
-        "prefName": current_pref_name,
-      },
-      {
-        "time": prefs.get("endTime", "23:59"),
-        "prefName": "OFF",
-        "fadeIn": prefs.get("startFade", 10),
-        "fadeOut": prefs.get("endFade", 30),
-      },
-    ]
+  if os.path.exists(pref_path):
+    f = open(pref_path, "r")
+    try:
+      prefs = json.loads(f.read())
+    except:
+      prefs = {}
+      print("Failed to load prefs.json: %s" % f.read(), file=sys.stderr)
+    f.close()
+    current_prefs.update(prefs)
+    identify_name()
+    
+    # Convert old timer info
+    if "hasStartAndEnd" in prefs:
+      timing_prefs["useTimer"] = prefs["hasStartAndEnd"]
+    if current_pref_name is not None:
+      timing_prefs["schedule"] = [
+        {
+          "time": prefs.get("startTime", "00:00"),
+          "prefName": current_pref_name,
+        },
+        {
+          "time": prefs.get("endTime", "23:59"),
+          "prefName": "OFF",
+          "fadeIn": prefs.get("startFade", 10),
+          "fadeOut": prefs.get("endFade", 30),
+        },
+      ]
 
-if os.path.exists(timing_pref_path):
-  f = open(timing_pref_path, "r")
-  try:
-    timing_prefs.update(json.loads(f.read()))
-  except:
-    print("Failed to load timingprefs.json: %s" % f.read(), file=sys.stderr)
-  f.close()
-current_prefs.update(timing_prefs)
+  if os.path.exists(timing_pref_path):
+    f = open(timing_pref_path, "r")
+    try:
+      timing_prefs.update(json.loads(f.read()))
+    except:
+      print("Failed to load timingprefs.json: %s" % f.read(), file=sys.stderr)
+    f.close()
+  current_prefs.update(timing_prefs)
 
-if get_pref("useTimer"):
-  update_schedule()
+  if get_pref("useTimer"):
+    update_schedule()
+
+if not config.get("TEMP_ORB"):
+  init()

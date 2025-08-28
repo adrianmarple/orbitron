@@ -3,6 +3,12 @@
   "SIZE": 372,
   "RAW_SIZE": 744,
   "isWall": true,
+  "centerOffset": [
+    166,
+    166,
+    166
+  ],
+  "stlScale": 0.003478013669817022,
   "coords": [
     [
       0.5484827557301445,

@@ -11,9 +11,15 @@ const postListeners = []
 function addGETListener(callback){
   getListeners.push(callback)
 }
+function removeGETListener(callback) {
+  getListeners.remove(callback)
+}
 
 function addPOSTListener(callback){
   postListeners.push(callback)
+}
+function removePOSTListener(callback) {
+  postListeners.remove(callback)
 }
 
 function getContentType(filePath){
@@ -221,5 +227,5 @@ async function closeRedirectServer(){
 
 
 module.exports = {
-  addGETListener, addPOSTListener, respondWithFile
+  addGETListener, addPOSTListener, removeGETListener, removePOSTListener, respondWithFile
 }

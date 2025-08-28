@@ -336,6 +336,8 @@ function generatePixelInfo() {
     SIZE,
     RAW_SIZE,
     isWall,
+    centerOffset: centerOffset.scale(PIXEL_DISTANCE).toArray(),
+    stlScale: resizeScale / PIXEL_DISTANCE,
     coords: coords.map(c => c.toArray()),
     uniqueToDupe,
     dupeToUniques,
@@ -343,6 +345,7 @@ function generatePixelInfo() {
     nextPixel,
     defaultPulseDirection: [0,1,0],
   }
+  console.log(resizeScale)
 
   if (!isWall) {
     minV = 0

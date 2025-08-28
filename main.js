@@ -12,7 +12,14 @@ if (!config.DEV_MODE && !config.CONTINUOUS_INTEGRATION) {
 
 if(isOrb || config.HAS_EMULATION){
   console.log("Starting Orb")
-  require('./orb')
+  const { startOrb } = require('./orb')
+  startOrb(config)
+  // startOrb({
+  //   ORB_ID: 'test',
+  //   DEV_MODE: config.DEV_MODE,
+  //   PYTHON_EXECUTABLE: config.PYTHON_EXECUTABLE,
+  //   HAS_EMULATION: true,
+  // })
 }
 
 if(isOrb){

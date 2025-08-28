@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-let { checkConnection, delay, execute, config, processAdminCommand, PYTHON_EXECUTABLE, restartOrbitron} = require('./lib')
+let { checkConnection, delay, execute, processAdminCommand, PYTHON_EXECUTABLE, restartOrbitron} = require('./lib')
 let { fixExternalWifi } = require('./external_wifi.js')
 const { pullAndRestart, timeUntilHour } = require('./gitupdate')
 const WebSocket = require('ws')
@@ -10,27 +10,45 @@ const pako = require('./thirdparty/pako.min.js')
 const os = require('os')
 const { v4: uuid } = require('uuid')
 const homedir = os.homedir()
-let orbEmulatorBroadcast = () => {}
-if(config.HAS_EMULATION){
-  orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
-}
 
-function handleKill(signal){
-  console.log("GOT KILL SIGNAL")
-  if(python_process){
-    python_process.kill()
-  }
-  process.exit()
-}
-process.on('SIGINT', handleKill)
-process.on('SIGTERM', handleKill)
-process.on('SIGHUP', handleKill)
+fixExternalWifi()
+
 
 const NO_TIMEOUT = process.argv.includes('-t')
+let tempOrbIDs = []
+
+
+
+function startOrb(config) {
+if (tempOrbIDs.includes(config.ORB_ID)) {
+  return
+}
+tempOrbIDs.push(config.ORB_ID)
+
+let intervals = []
+let setInterval = (...args) => {
+  intervals.push(global.setInterval(...args))
+}
+
+config.PIXELS = config.PIXELS || "rhombicosidodecahedron"
+if (config.PIXELS.startsWith("/pixels/"))
+  config.PIXELS = config.PIXELS.slice(8)
+if (config.PIXELS.endsWith(".json"))
+  config.PIXELS = config.PIXELS.slice(0, config.PIXELS.length - 5)
+if (!config.PIXELS.includes("/"))
+  config.PIXELS = config.PIXELS + "/" + config.PIXELS
+config.PIXELS_FILE = `/pixels/${config.PIXELS}.json`
+
+// let orbEmulatorBroadcast = () => {}
+let emulator 
+if(config.HAS_EMULATION){
+  let { Emulator } = require('./emulation.js')
+  emulator = new Emulator(config)
+  // orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
+}
 if (process.argv.includes('-f')) {
   config.SHOW_FRAME_INFO = true
 }
-
 // Cloud save
 async function backupLoop() {
   while (true) {
@@ -670,15 +688,6 @@ function broadcast(baseMessage) {
   delete baseMessage.timestamp
 }
 
-let priorityToCurrentText = {}
-function displayText(text, priority) {
-  priority = priority || 0
-  if (text == priorityToCurrentText[priority]) return
-  priorityToCurrentText[priority] = text
-  let message = { type: "text", text, priority }
-  python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
-}
-
 
 let env = {...process.env, CONFIG: JSON.stringify(config)}
 const python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`], {env})
@@ -707,7 +716,7 @@ python_process.stdout.on('data', data => {
       if (raw_json.endsWith("}")) {
         try {
           broadcast(JSON.parse(raw_json))
-          orbEmulatorBroadcast(raw_json)
+          if (emulator) emulator.broadcast(raw_json)
         } catch(e) {
           console.log("broadcast error", e, raw_json)
         }
@@ -719,9 +728,9 @@ python_process.stdout.on('data', data => {
       raw_pixels += message
       if (raw_pixels.endsWith(";")) {
         try {
-          orbEmulatorBroadcast(pako.deflate(raw_pixels.slice(0, -1)))
+          if (emulator) emulator.broadcast(pako.deflate(raw_pixels.slice(0, -1)))
         } catch(e) {
-          console.log("orbEmulatorBroadcast error", e, raw_pixels)
+          console.log("emulator broadcast error", e, raw_pixels)
         }
         raw_pixels = null
       }
@@ -765,8 +774,53 @@ function statusLogging() {
 // statusLogging()
 // setInterval(statusLogging, 10 * 60 * 1000)
 
-fixExternalWifi()
+
+function handleParentKill(signal){
+  console.log("GOT KILL SIGNAL")
+  if(python_process){
+    python_process.kill()
+  }
+  process.exit()
+}
+
+process.addListener('SIGINT', handleParentKill)
+process.addListener('SIGTERM', handleParentKill)
+process.addListener('SIGHUP', handleParentKill)
+
+function cleanupTempOrb() {
+  if (Object.keys(emulator.orbEmulatorConnections).length > 0) return
+
+  emulator.destroy()
+  process.removeListener('SIGINT', handleParentKill)
+  process.removeListener('SIGTERM', handleParentKill)
+  process.removeListener('SIGHUP', handleParentKill)
+  python_process.kill()
+
+  orbToRelaySocket.close()
+  for (let interval of intervals) {
+    clearInterval(interval)
+  }
+  tempOrbIDs.remove(config.ORB_ID)
+}
+if (config.TEMP_ORB) {
+  setInterval(cleanupTempOrb, 60 * 1000)
+}
+
+let priorityToCurrentText = {}
+_displayText = function(text, priority) {
+  priority = priority || 0
+  if (text == priorityToCurrentText[priority]) return
+  priorityToCurrentText[priority] = text
+  let message = { type: "text", text, priority }
+  python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
+}
+}
+
+// Done to pierce through the closure. Should only be used if there is only one orb.
+function displayText(...args) {
+  _displayText(...args)
+}
 
 module.exports = {
-  displayText,
+  displayText, startOrb,
 }
