@@ -26,7 +26,7 @@ def set_idle():
 
 config = json.loads(os.getenv("CONFIG"))
 
-pref_path = os.path.dirname(__file__) + "/prefs.json"
+pref_path = os.path.dirname(__file__) + config.get("PREFS_FILE", "/prefs.json")
 timing_pref_path = os.path.dirname(__file__) + "/timingprefs.json"
 save_prefs_path = os.path.dirname(__file__) + "/savedprefs/"
 def pref_path_from_name(name):
@@ -479,5 +479,5 @@ def init():
   if get_pref("useTimer"):
     update_schedule()
 
-if not config.get("TEMP_ORB"):
+if config.get("PREFS_FILE") or not config.get("TEMP_ORB"):
   init()

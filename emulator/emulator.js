@@ -317,9 +317,15 @@ var app = new Vue({
       let self = this
       function loadGeometry(geometry) {
         if (self.pixelData.stlScale) {
-          geometry.translate(new THREE.Vector3(...self.pixelData.centerOffset))
+          geometry.translate(new THREE.Vector3(
+            self.pixelData.centerOffset[0],
+            self.pixelData.centerOffset[2],
+            self.pixelData.centerOffset[1],
+          ))
           let stlScale = scale * self.pixelData.stlScale * SCALE
           geometry.scale(stlScale, stlScale, stlScale)
+          geometry.rotateX(-Math.PI/2)
+          geometry.rotateY(-Math.PI/2)
           geometry.translate(centroid.multiplyScalar(SCALE).negate())
         }
         else {
@@ -328,7 +334,6 @@ var app = new Vue({
           geometry.translate(geometry.boundingSphere.center.negate())
           geometry.scale(1/r, 1/r, 1/r)
         }
-        // geometry.rotateX(-Math.PI / 2)
         
         self.stlMesh = new THREE.Mesh(geometry, stlMaterial)
         self.stlMesh.visible = false

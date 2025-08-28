@@ -438,6 +438,7 @@ addGETListener((response, orbID, filePath) => {
       save: true,
       timing: true,
     },
+    PREFS_FILE: "/savedprefs/demo.prefs.json",
   })
   
   return false
