@@ -323,11 +323,11 @@ function removeEdge(edge) {
   }
   resetInidices()
 }
-function removeEdges(...indicies) {
-  indicies = indicies.sort((a,b) => a-b).reverse()
-  console.log(indicies)
-  for (let index of indicies) {
-    removeEdge(index)
+function removeEdges(...edges) {
+  edges = edges.map(e => resolveEdge(e))
+  edges = edges.sort((a,b) => b.index-a.index)
+  for (let e of edges) {
+    removeEdge(e)
   }
 }
 

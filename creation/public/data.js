@@ -328,7 +328,7 @@ function generatePixelInfo() {
   }
 
   let RAW_SIZE = uniqueToDupe.length
-  console.log(RAW_SIZE, SIZE)
+  console.log("PIXEL COUNTS:", RAW_SIZE, SIZE)
 
   let name = fullProjectName.split("/")[1]
   let info = {
@@ -345,7 +345,6 @@ function generatePixelInfo() {
     nextPixel,
     defaultPulseDirection: [0,1,0],
   }
-  console.log(resizeScale)
 
   if (!isWall) {
     minV = 0

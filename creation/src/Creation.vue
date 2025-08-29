@@ -56,6 +56,7 @@ export default {
   name: 'Creation',
   data() {
     return {
+      renderInterval: null,
       innerWidth,
       mode: "creation",
       fullProjectName: "",
@@ -86,7 +87,7 @@ export default {
       pathIndex: -1,
     }
   },
-  created() {
+  mounted() {
     for (var setting of this.settings) {
       setting.value = localStorage.getItem(setting.name) || setting.value
       if (setting.type == "bool")
@@ -107,7 +108,10 @@ export default {
 
       }
     }
-    setInterval(this.render, 30)
+    this.renderInterval = setInterval(this.render, 30)
+  },
+  unmounted() {
+    clearInterval(this.renderInterval)
   },
   computed: {
     width() {

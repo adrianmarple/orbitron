@@ -324,8 +324,8 @@ var app = new Vue({
           ))
           let stlScale = scale * self.pixelData.stlScale * SCALE
           geometry.scale(stlScale, stlScale, stlScale)
-          geometry.rotateX(-Math.PI/2)
-          geometry.rotateY(-Math.PI/2)
+          geometry.rotateX(Math.PI/2)
+          geometry.rotateZ(-Math.PI/2)
           geometry.translate(centroid.multiplyScalar(SCALE).negate())
         }
         else {
