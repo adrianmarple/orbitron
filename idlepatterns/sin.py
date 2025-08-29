@@ -24,7 +24,10 @@ class Sin(Idle):
 
   def init_values(self):
     if get_pref("sinRadial"):
-      self.render_values = self.distancesFromCenter * self.period()
+      if get_pref("sinRadialReverse"):
+        self.render_values = self.distancesFromCenter * self.period()
+      else:
+        self.render_values = self.distancesFromCenter * -self.period()
     else:
       self.render_values = np.matmul(-self.direction() * self.period(), unique_coord_matrix)
     self.time_factor += (time() - self.previous_time) * 2*pi * self.speed()

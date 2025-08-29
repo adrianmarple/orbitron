@@ -366,6 +366,8 @@
       <vector v-if="prefs.idlePattern == 'sin' && !prefs.sinRadial"
           title="Direction" key="sinDirection" normalize="true"
           :size="0.85"></vector>
+      <boolean v-if="prefs.idlePattern == 'sin' && prefs.sinRadial"
+          title="Move inward" key="sinRadialReverse"></boolean>
       <boolean v-if="prefs.idlePattern == 'sin'"
           title="Radial" key="sinRadial"
           help="If radial is set, waves originate from the center and move outward."></boolean>
