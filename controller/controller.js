@@ -132,27 +132,12 @@ var app = new Vue({
     onfocus = () => {
       this.blurred = false
       setTimeout(() => {
-        self.startWebsocket() // Prioritize current orb's websocket first
+        self.auditWebsockets()
       }, 10)
-      setTimeout(() => {
-        for (let orb of Object.values(self.idToOrb)) {
-          if (orb.isCurrentlyConnected) {
-            self.startWebsocket(orb.id)
-          }
-        }
-      }, 20)
     }
-    // onblur = () => {
-    //   if (!this.state.notimeout) {
-    //     for (let id in this.idToWebSocket) {
-    //       if (this.idToWebSocket[id]) {
-    //         this.destroyWebsocket(id)
-    //       }
-    //     }
-    //     this.blurred = true
-    //   }
-    // }
-
+    setInterval(() => { // Doing it this way since PWAs don't seem to handle onfocus events
+        self.auditWebsockets() // Should be a low cost opperation if everything is in order
+    }, 500)
 
     onmousedown = this.handleStart
     ontouchstart = event => {
@@ -592,6 +577,14 @@ var app = new Vue({
             self.startWebsocket(id)
           }
         })
+      }
+    },
+    async auditWebsockets() {
+      this.startWebsocket() // Prioritize current orb's websocket first
+      for (let orb of Object.values(this.idToOrb)) {
+        if (orb.isCurrentlyConnected) {
+          this.startWebsocket(orb.id)
+        }
       }
     },
     showAddOrb() {

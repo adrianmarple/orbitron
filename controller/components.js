@@ -603,6 +603,11 @@ Vue.component('stlviewer', {
   unmounted() {
     window.removeEventListener('resize', this.resize)
   },
+  computed: {
+    isConnected() {
+      return this.$root.isConnected(this.info.id)
+    },
+  },
   methods: {
     resize() {
       if (!this.renderer) return
@@ -669,11 +674,11 @@ Vue.component('stlviewer', {
       let self = this
       function animate() {
         requestAnimationFrame(animate)
-        if (mesh && self.info.isCurrentlyConnected) {
+        if (mesh && self.isConnected) {
           mesh.rotation.y += 0.007
           mesh.rotation.z = Math.sin(Date.now() / 5000) * 0.1
         }
-        renderer.setClearColor(0x333333, self.info.isCurrentlyConnected ? 0.5 : 0.9)
+        renderer.setClearColor(0x333333, self.isConnected ? 0.5 : 0.9)
         renderer.render(scene, camera)
       }
       animate();
