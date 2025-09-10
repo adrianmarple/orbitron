@@ -135,9 +135,6 @@ var app = new Vue({
         self.auditWebsockets()
       }, 10)
     }
-    setInterval(() => { // Doing it this way since PWAs don't seem to handle onfocus events
-        self.auditWebsockets() // Should be a low cost opperation if everything is in order
-    }, 500)
 
     onmousedown = this.handleStart
     ontouchstart = event => {
@@ -907,14 +904,14 @@ var app = new Vue({
 
     destroyWebsocket(orbID) {
       orbID = orbID ?? this.orbID
-      let ws = this.getOrb(orbID).ws
-      if(ws) {
+      let orb = this.getOrb(orbID)
+      if(orb.ws) {
         try {
-          ws.close()
+          orb.ws.close()
         } catch(e) {
-          console.log("Error closing relay socket",e)
+          console.log("Error closing relay socket", e)
         }
-        ws = null
+        orb.ws = null
       }
       this.idToOrb[orbID].socketStatus = "DISCONNECTED"
     },
