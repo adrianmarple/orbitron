@@ -387,6 +387,11 @@ var app = new Vue({
       return true
     },
 
+    isCurrentOrbRegistered() {
+      if (!this.orbID) return false
+      return this.registeredIDs.includes(this.orbID)
+    },
+
     eventOptions() {
       return this.state.prefNames.concat("OFF").map(name => [name, name])
     },
