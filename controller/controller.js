@@ -243,7 +243,7 @@ var app = new Vue({
         for (let key in val) {
           this.$watch('prefs.' + key, (v, vOld) => {
             if (this.dontSendUpdates) return
-            if (!deepCompare(v, vOld)) {
+            if (typeof(v) == 'object' || v != vOld) {
               this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
             }
           }, {deep: true})
