@@ -1,5 +1,6 @@
 // SKIP
 module.exports = () => {
+  // setFor3DPrintedCovers()
   CHANNEL_WIDTH = 11
   INFILL_100 = true
 
@@ -46,5 +47,6 @@ module.exports = () => {
   let offset = tips[0].ogCoords.add(tips2[1].ogCoords).scale(0.5)
   origami(new Plain(offset, new Vector(0,1,-1)))
 
+  // zeroFoldAllEdges(1)
   EulerianPath(0)
 }

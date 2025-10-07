@@ -178,10 +178,8 @@ var app = new Vue({
       }
       catch (e) {
         console.error(e)
+        this.initOrb(this.getOrb(this.orbID))
       }
-    }
-    if (this.orbID) {
-      this.initOrb(this.getOrb(this.orbID))
     }
     setInterval(() => {
       if(self.socketStatus == "CONNECTED") {
@@ -546,6 +544,13 @@ var app = new Vue({
       this.$forceUpdate()
     },
 
+    resetRegistration() {
+      this.speedbumpMessage = "This will clear all data in local storage, then refresh the page. Pieces connected to the same wifi should reappear."
+      this.speedbumpCallback = () => {
+        localStorage.clear()
+        location.reload()
+      }
+    },
     initOrb(info) {
       let orb = this.idToOrb[info.orbID]
       if (orb) {

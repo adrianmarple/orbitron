@@ -116,6 +116,9 @@
     <div class="horiz-box"></div>
     <div class="horiz-box"></div>
     <div v-if="manuallingRegistering" class="bottom-content">
+      <div class="close" @click="manuallingRegistering = false">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+      </div>
       <div class="error">{{ registrationErrorMessage }}</div>
       <textarea v-model="newID"
         @keydown="onRegistrationKeypress"
@@ -129,6 +132,11 @@
             class="button"
             @click="newID = id; registerID()">
           Restore "{{ excludedNameMap[id] ?? id }}"
+        </div>
+      </div>
+      <div class="horiz-box center">
+        <div class="small button scary" @click="resetRegistration">
+          Reset Registration Data
         </div>
       </div>
     </div>
@@ -161,6 +169,7 @@
           Select "Add to Home Screen"</div>
       </div>
     </div>
+
 
     <div class="side-box left"></div>
     <div class="side-box right"></div>

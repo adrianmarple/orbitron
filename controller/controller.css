@@ -309,6 +309,16 @@ a > .fancy-box:hover, a.fancy-box:hover {
   align-items: center;
   width: 100%;
   background-color: #080808;
+  position: relative;
+}
+#registration .bottom-content .close {
+  position: absolute;
+  right: 0.6rem;
+  top: -2rem;
+}
+#registration .bottom-content .close > svg {
+  width: 3rem;
+  height: 3rem;
 }
 #registration .button {
   width: fit-content;
@@ -1428,17 +1438,12 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 0.5rem;
   padding: 0.25rem 1rem;
   margin-top: 2.5rem;
-  text-align: center;
   font-size: 4rem;
+  text-align: center;
   cursor: pointer;
   background: white;
   color: #121212;
   position: relative;
-}
-.button.disabled {
-  background-color: #ccc;
-  color: #666;
-  pointer-events: none;
 }
 
 .button:hover {
@@ -1450,6 +1455,32 @@ input[type="range"]::-moz-range-thumb {
   color: #666;
   transform: translateY(0.2rem);
 }
+.button.disabled {
+  background-color: #ccc;
+  color: #666;
+  pointer-events: none;
+}
+.button.small {
+  border-radius: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  margin-top: 1.5rem;
+  font-size: 1.6rem !important;
+}
+.button.scary {
+  background-color: black;
+  color: #6a0808
+}
+.button.scary:hover {
+  box-shadow: 0 0.25rem 0.625rem 0.25rem black;
+  color: #900;
+}
+.button.scary:active {
+  box-shadow: 0 0 0.625rem 0.25rem black;
+  color: #900;
+  transform: translateY(0.2rem);
+}
+
+
 a:link, a:visited, a:hover, a:active {
   text-decoration: none;
 }
