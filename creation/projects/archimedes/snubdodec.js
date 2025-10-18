@@ -1,3 +1,4 @@
+// SKIP
 module.exports = () => {
   setFor3DPrintedCovers()
 

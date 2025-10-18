@@ -338,6 +338,21 @@ function rotateAll(direction, theta, permanently) {
       vertex.ogCoords = vertex.ogCoords.applyAxisAngle(direction, theta)
     }
   }
+  if (permanently) {
+    let rotatedFolds = []
+    for (let plain of plains) {
+      plain.normal = plain.normal.applyAxisAngle(direction, theta)
+      plain.offset = plain.offset.applyAxisAngle(direction, theta)
+      for (let key in plain.folds) {
+        let fold = plain.folds[key]
+        if (!rotatedFolds.includes(fold)) {
+          rotatedFolds.push(fold)
+          fold.normal = fold.normal.applyAxisAngle(direction, theta)
+          fold.offset = fold.offset.applyAxisAngle(direction, theta)
+        }
+      }
+    }
+  }
 }
 
 function triangularArea(points) {

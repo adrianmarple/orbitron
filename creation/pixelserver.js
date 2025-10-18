@@ -260,7 +260,7 @@ addPOSTListener(async (response, body) => {
 
   console.log("Generating stl")
   let thickness = 0.4
-  let scadContents = (await fs.promises.readFile("scad/boxtop3D.scad")).toString()
+  let scadContents = (await fs.promises.readFile("scad/qrtemplate.scad")).toString()
   console.log(scadContents)
   scadContents = replaceScadVariable(scadContents, "thickness", thickness)
   scadContents = replaceScadVariable(scadContents, "SCALE", body.scale * 2.83464566929)
@@ -341,7 +341,7 @@ async function generateGCode(info, print) {
       multmatrix(M)
       rotate(a=-90, v=[0,1,0])
       linear_extrude(width, center=true)
-      polygon([[0,0], [thickness, 0], [x, y]]);
+      polygon([[0,-0.01], [0,-0.01], [thickness, 0], [x, y]]);
   }
 
   module led_support(width, thickness, height, gap) {

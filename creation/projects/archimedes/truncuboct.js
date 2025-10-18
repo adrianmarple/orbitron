@@ -1,8 +1,8 @@
-// SKIP
 module.exports = () => {
   setFor3DPrintedCovers()
   NO_EMBOSSING = true
 
+  isWall = false
   wallPostProcessingFunction = printInfo => {
     printInfo.prints = [printInfo.prints[1], printInfo.prints[5], printInfo.prints[4]]
   }
@@ -11,8 +11,8 @@ module.exports = () => {
     covers.bottom = [covers.bottom[0]]
   }
 
-  for (let permutation of [[1, 1, 0], [0, 1, 1], [1, 0, 1]]) {
-    addPlusMinusVertex(permutation)
+  for (let sigma of permutations([1, 1+Math.SQRT2, 1+2*Math.SQRT2])) {
+    addPlusMinusVertex(sigma)
   }
 
   let minDist = 1e6
@@ -65,10 +65,28 @@ module.exports = () => {
   isWall = true
 
   doubleEdges()
-  scale(2.5)
+  scale(2)
 
-  console.log(verticies[0].ogCoords.length() * PIXEL_DISTANCE +
+  let hexVerts = []
+  for (let v of verticies) {
+    if (v.ogCoords.x + v.ogCoords.y + v.ogCoords.z > 0) {
+      hexVerts.push(v)
+    }
+  }
+  rotateYAll(Math.PI/4, true)
+  let hexCenter = ZERO
+  for (let v of hexVerts) {
+    hexCenter = hexCenter.add(v.ogCoords)
+  }
+  hexCenter = hexCenter.normalize()
+  rotateXAll(hexCenter.angleTo(UP), true)
+
+  console.log("mount magnitude", verticies[0].ogCoords.length() * PIXEL_DISTANCE +
     CHANNEL_DEPTH/2 + THICKNESS + EXTRA_COVER_THICKNESS)
+
+  let axis = verticies[1].ogCoords.cross(UP).normalize()
+  let angle = verticies[1].ogCoords.angleTo(UP)
+  console.log("axis angle", axis, 180 - angle*180/Math.PI)
 
 
   printPostProcessingFunction = printInfo => {
@@ -76,15 +94,49 @@ module.exports = () => {
     printInfo.prints = [
       printInfo.prints[0],
       printInfo.prints[1],
+      printInfo.prints[7],
       printInfo.prints[2],
       printInfo.prints[3],
+      printInfo.prints[4],
+      printInfo.prints[5],
     ]
-    printInfo.prints[0].suffix = "square_wall"
-    printInfo.prints[1].suffix = "tri_wall"
-    printInfo.prints[2].suffix = "bottom"
-    printInfo.prints[3].suffix = "top"
+    printInfo.prints[0].suffix = "oct_wall"
+    printInfo.prints[1].suffix = "hex_wall"
+    printInfo.prints[2].suffix = "square_wall"
+    printInfo.prints[3].suffix = "bottom"
+    printInfo.prints[4].suffix = "top"
+    printInfo.prints[5].suffix = "bottom_mirror"
+    printInfo.prints[6].suffix = "top_mirror"
 
-    h = 10
+    let h = 15
+    let rIn = 6.8
+    let rOut = rIn + 1.4
+    printInfo.prints.push({
+      type: "difference",
+      suffix: "bottom_with_column_mirror",
+      components: [
+        {
+          type: "union",
+          operations: [{
+            type: "mirror",
+            normal: [0,0,1],
+          }],
+          components: [
+            printInfo.prints[3].components[0],
+            {
+              position: [0, 0, 0-h],
+              code: `
+              cylinder(h=${h}, r=${rOut}, $fn=64);`
+            },
+          ]
+        },
+        {
+          position: [0, 0, -3],
+          code: `
+          cylinder(h=${h+10}, r=${rIn}, $fn=64);`
+        },
+      ]
+    })
     printInfo.prints.push({
       type: "difference",
       suffix: "bottom_with_column",
@@ -96,22 +148,22 @@ module.exports = () => {
             normal: [0,0,1],
           }],
           components: [
-            printInfo.prints[2].components[0],
+            printInfo.prints[5].components[0],
             {
               position: [0, 0, 0-h],
               code: `
-              cylinder(h=${h}, r=6, $fn=64);`
+              cylinder(h=${h}, r=${rOut}, $fn=64);`
             },
           ]
         },
         {
           position: [0, 0, -3],
           code: `
-          cylinder(h=${h+10}, r=4.6, $fn=64);`
+          cylinder(h=${h+10}, r=${rIn}, $fn=64);`
         },
       ]
     })
   }
 
-  EulerianPath(1,1)
+  EulerianPath(4,1)
 }

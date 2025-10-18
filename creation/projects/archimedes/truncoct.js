@@ -72,8 +72,10 @@ module.exports = () => {
     printInfo.prints[2].suffix = "bottom"
     printInfo.prints[3].suffix = "top"
 
-    h = verticies[0].ogCoords.length() * PIXEL_DISTANCE
+    let h = verticies[0].ogCoords.length() * PIXEL_DISTANCE
         - THICKNESS - EXTRA_COVER_THICKNESS - CHANNEL_DEPTH/2 - 45 + 4.7 + 0.1
+    let r_in = 6.8
+    let r_out = r_in + 1.4
     printInfo.prints.push({
       type: "difference",
       suffix: "top_with_column",
@@ -89,14 +91,14 @@ module.exports = () => {
             {
               position: [0, 0, 0-h],
               code: `
-              cylinder(h=${h}, r=8.2, $fn=64);`
+              cylinder(h=${h}, r=${r_out}, $fn=64);`
             },
           ]
         },
         {
           position: [0, 0, -3],
           code: `
-          cylinder(h=${h+10}, r=6.8, $fn=64);`
+          cylinder(h=${h+10}, r=${r_in}, $fn=64);`
         },
       ]
     })

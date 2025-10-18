@@ -608,7 +608,7 @@ function singleSlotPath(wallLength, basis, offset, localOffset, print) {
         rotationAngle: -basis[0].scale(directionSign).signedAngle(RIGHT),
         position: position.toArray(),
         thickness: THICKNESS,
-        width: WALL_THICKNESS - 2*KERF,
+        width: WALL_THICKNESS - 2*KERF + 0.2,
       })
     }
     else if (LATCH_TYPE == "hook") {
