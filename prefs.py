@@ -467,6 +467,8 @@ def init():
           "fadeOut": prefs.get("endFade", 30),
         },
       ]
+  else:
+    print("No prefs.json file", file=sys.stderr)
 
   if os.path.exists(timing_pref_path):
     f = open(timing_pref_path, "r")
@@ -475,6 +477,8 @@ def init():
     except:
       print("Failed to load timingprefs.json: %s" % f.read(), file=sys.stderr)
     f.close()
+  else:
+    print("No timingprefs.json file", file=sys.stderr)
   current_prefs.update(timing_prefs)
 
   if get_pref("useTimer"):

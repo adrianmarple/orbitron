@@ -4,7 +4,7 @@ $fn=6;
 big_r1 = 16.2/2;
 big_r2 = 12;
 h = 50;
-strut_a = 30;
+strut_a = 45;
 
 difference() {
 union() {
@@ -24,7 +24,7 @@ union() {
 
 } // End union
 
-rotate([30, 0, 0])
+rotate([15, 0, 0])
 translate([-20, 0, -20])
 cube([40, 40, 40]);
 rotate([-30, 0, 0])
