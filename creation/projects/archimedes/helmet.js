@@ -81,9 +81,6 @@ module.exports = () => {
   // Rotate helmet to orient dodec/pentagons down
   rotateYAll(-Math.atan2(pentagonCenter.x, pentagonCenter.z))
   rotateXAll(Math.PI)
-  for (let vertex of verticies) {
-    vertex.ogCoords = vertex.coordinates.clone()
-  }
 
   scale(2.5)
   EulerianPath(start, [start.edges[1].index])

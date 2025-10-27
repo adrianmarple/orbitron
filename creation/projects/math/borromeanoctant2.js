@@ -12,7 +12,6 @@ module.exports = async () => {
 
   for (let v of verticies) {
     v.ogCoords.x = -v.ogCoords.x
-    v.coordinates.x = -v.coordinates.x
   }
 
   for (let permutation of ["yzx", "zxy"]) {

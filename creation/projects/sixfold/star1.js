@@ -25,7 +25,6 @@ module.exports = async () => {
 
   for (let vertex of verticies) {
     vertex.ogCoords.y *= -1
-    vertex.coordinates.y *= -1
   }
 
   zeroFoldAllEdges(1)

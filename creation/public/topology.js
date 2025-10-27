@@ -1,8 +1,7 @@
 
 class Vertex {
   constructor(coordinates) {
-    this.coordinates = coordinates
-    this.ogCoords = coordinates.clone()
+    this.ogCoords = coordinates
     this.plains = [currentPlain]
     this.edges = []
     this.index = verticies.length
@@ -273,7 +272,7 @@ function addVertex(coordinates) {
   if (!coordinates.isValid()) return null
 
   for (let existingVertex of verticies) {
-    if (existingVertex.coordinates.equals(coordinates)) {
+    if (existingVertex.ogCoords.equals(coordinates)) {
       return existingVertex
     }
   }
@@ -452,8 +451,8 @@ function addPlusMinusVertex(coords) {
 
 function findEdgeFromCenter(center) {
   for (let edge of edges) {
-    var edgeCenter = edge.verticies[0].coordinates
-        .add(edge.verticies[1].coordinates)
+    var edgeCenter = edge.verticies[0].ogCoords
+        .add(edge.verticies[1].ogCoords)
         .multiplyScalar(0.5)
     if (vectorEquals(edgeCenter, center)) {
       return edge
@@ -702,7 +701,7 @@ async function addFromSVG(src) {
 }
 
 function vertexOrder(a,b) {
-  return (a.coordinates.y - b.coordinates.y) * 1000000 + (a.coordinates.x - b.coordinates.x)
+  return (a.ogCoords.y - b.ogCoords.y) * 1000000 + (a.ogCoords.x - b.ogCoords.x)
 }
 function integerize(startingThreshold) {
   if (startingThreshold == undefined) {
@@ -751,7 +750,6 @@ function integerize(startingThreshold) {
     if (!!replacement && replacement != v) {
       removeVertex(replacement)
       v.ogCoords = replacement.ogCoords
-      v.coordinates = replacement.coordinates
     }
   }
 }
@@ -887,7 +885,6 @@ function origami(foldPlain) {
       vertex.plains.push(newPlain)
       if (!isSplit) {
         vertex.ogCoords = vertex.ogCoords.mirror(mirrorPlain)
-        vertex.coordinates = vertex.ogCoords
       }
     }
   }

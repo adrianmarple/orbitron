@@ -66,10 +66,6 @@ module.exports = () => {
     newVertex.addPlain(plain1)
   }
 
-  for (let vertex of verticies) {
-    vertex.coordinates = vertex.ogCoords
-  }
-
   scale(2)
   EulerianPath(0)
 }

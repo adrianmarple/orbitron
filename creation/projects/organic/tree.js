@@ -15,7 +15,6 @@ module.exports = async () => {
       lowerVertex = edge.verticies[1]
     }
     higherVertex.ogCoords.x = lowerVertex.ogCoords.x
-    higherVertex.coordinates.x = lowerVertex.coordinates.x
   }
   integerize(-41)
 

@@ -59,9 +59,6 @@ module.exports = () => {
     newVertex.addPlain(plain1)
   }
 
-  for (let vertex of verticies) {
-    vertex.coordinates = vertex.ogCoords
-  }
   isWall = true
 
   scale(2)

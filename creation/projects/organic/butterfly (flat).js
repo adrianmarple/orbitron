@@ -7,7 +7,6 @@ module.exports = async () => {
 
   for (let v of verticies) {
     v.ogCoords.x -= 32
-    v.coordinates.x -= 32
     console.log(v.ogCoords.x)
   }
   let indexMapping = {}

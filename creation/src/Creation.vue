@@ -84,6 +84,7 @@ export default {
       zoom: 1,
       previousXY: null,
       isDragging: false,
+      totalRotation: new THREE.Quaternion(),
       pathIndex: -1,
     }
   },
@@ -270,8 +271,12 @@ export default {
       let newXY = [e.clientX, e.clientY]
       let deltaX = newXY[0] - this.previousXY[0]
       let deltaY = newXY[1] - this.previousXY[1]
-      rotateXAll(-ROTATION_SCALE * deltaY)
-      rotateYAll(-ROTATION_SCALE * deltaX)
+      this.totalRotation.premultiply(new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(
+          -ROTATION_SCALE * deltaY,
+          -ROTATION_SCALE * deltaX,
+          0, 'XYZ' )
+      ))
       this.previousXY = newXY
     },
     onmouseup() {
@@ -324,8 +329,8 @@ export default {
 
       let maxMagnitude = 0
       for (let vertex of verticies) {
-        let point = vertex.coordinates
-        maxMagnitude = Math.max(maxMagnitude, point.length())
+        vertex.coordinates = vertex.ogCoords.applyQuaternion(this.totalRotation)
+        maxMagnitude = Math.max(maxMagnitude, vertex.coordinates.length())
       }
       let projScale = 8 / (0.6 + maxMagnitude)
 
@@ -364,27 +369,21 @@ export default {
 
       ctx.fillStyle = "#f06"
       ctx.font = "10px Arial"
-      for (let vertex of verticies) {
-        let xy = vertex.coordinates.project(projScale, this.zoom)
-        if (showVertexNumbers) {
+      if (showVertexNumbers) {
+        for (let vertex of verticies) {
+          let xy = vertex.coordinates.project(projScale, this.zoom)
           ctx.fillText(vertex.index, xy[0] + 4, xy[1] - 5)
         }
       }
-      for (let edge of edges) {
-        let center = edge.verticies[0].coordinates.add(edge.verticies[1].coordinates)
-        center = center.scale(0.5)
-        let xy = center.project(projScale, this.zoom)
-        if (showEdgeNumbers && !edge.isDupe) {
+      if (showEdgeNumbers) {
+        for (let edge of edges) {
+          if (edge.isDupe) return
+          let center = edge.verticies[0].coordinates.add(edge.verticies[1].coordinates)
+          center = center.scale(0.5)
+          let xy = center.project(projScale, this.zoom)
           let text = edge.index + ""
           let len = parseFloat(edge.length().toFixed(2))
           text += " (" + len + ")"
-          // if (window.edgeToWalls && window.edgeToWalls[edge.index]) {
-          //   text += " ("
-          //   for (let wall of window.edgeToWalls[edge.index]) {
-          //     text += wall.partID + " "
-          //   }
-          //   text += ")"
-          // }
           ctx.fillText(text, xy[0] - 2, xy[1] +4)
         }
       }
@@ -392,6 +391,7 @@ export default {
         ctx.font = "8px Arial"
         for (let coord of pixelInfo.coords) {
           let xy = new Vector(...coord)
+              .applyQuaternion(this.totalRotation)
               .scale(1/pixelToGraphSpace.resizeScale)
               .project(projScale, this.zoom)
           ctx.fillText(pixelInfo.coords.indexOf(coord), xy[0] + 2, xy[1] - 2)

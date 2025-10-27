@@ -77,7 +77,7 @@ class Vector extends THREE.Vector3 {
 }
 // Reference for THREE.js Vector3: https://threejs.org/docs/#api/en/math/Vector3
 let methodsToValuize = [
-  "add", "addScaledVector", "applyAxisAngle", "applyMatrix3", "cross", "divideScalar", "lerp",
+  "add", "addScaledVector", "applyAxisAngle", "applyMatrix3", "applyQuaternion", "cross", "divideScalar", "lerp",
   "min", "max", "multiplyScalar", "negate", "normalize", "projectOnVector", "sub",
 ]
 for (let method of methodsToValuize) {
@@ -281,26 +281,23 @@ function fromMagAngle(mag, angle) { //angle is in deg
 
 // Operations on all verticies
 
-function translateAll(vector, permanently) {
-  let attribute = permanently ? "ogCoords" : "coordinates"
+function translateAll(vector) {
   for (let vertex of verticies) {
-    vertex[attribute] = vertex[attribute].add(vector)
+    vertex.ogCoords = vertex.ogCoords.add(vector)
   }
 }
-function center(permanently) {
-  let attribute = permanently ? "ogCoords" : "coordinates"
-
+function center() {
   let mins = new Vector(1e6, 1e6, 1e6)
   let maxes = new Vector(-1e6, -1e6, -1e6)
   
   for (let vertex of verticies) {
-    let coords = vertex[attribute]
+    let coords = vertex.ogCoords
     mins = mins.min(coords)
     maxes = maxes.max(coords)
   }
   let offset = mins.add(maxes).multiplyScalar(-0.5)
   for (let vertex of verticies) {
-    vertex[attribute] = vertex[attribute].add(offset)
+    vertex.ogCoords = vertex.ogCoords.add(offset)
   }
   return offset
 }
@@ -317,39 +314,33 @@ function resize() {
 function scale(scalar) {
   for (let vertex of verticies) {
     vertex.ogCoords = vertex.ogCoords.multiplyScalar(scalar)
-    vertex.coordinates = vertex.coordinates.multiplyScalar(scalar)
   }
 }
 
-function rotateXAll(theta, permanently) {
-  rotateAll(RIGHT, theta, permanently)
+function rotateXAll(theta) {
+  rotateAll(RIGHT, theta)
 }
-function rotateYAll(theta, permanently) {
-  rotateAll(UP, theta, permanently)
+function rotateYAll(theta) {
+  rotateAll(UP, theta)
 }
-function rotateZAll(theta, permanently) {
-  rotateAll(FORWARD, theta, permanently)
+function rotateZAll(theta) {
+  rotateAll(FORWARD, theta)
 }
 
-function rotateAll(direction, theta, permanently) {
+function rotateAll(direction, theta) {
   for (let vertex of verticies) {
-    vertex.coordinates = vertex.coordinates.applyAxisAngle(direction, theta)
-    if (permanently) {
-      vertex.ogCoords = vertex.ogCoords.applyAxisAngle(direction, theta)
-    }
+    vertex.ogCoords = vertex.ogCoords.applyAxisAngle(direction, theta)
   }
-  if (permanently) {
-    let rotatedFolds = []
-    for (let plain of plains) {
-      plain.normal = plain.normal.applyAxisAngle(direction, theta)
-      plain.offset = plain.offset.applyAxisAngle(direction, theta)
-      for (let key in plain.folds) {
-        let fold = plain.folds[key]
-        if (!rotatedFolds.includes(fold)) {
-          rotatedFolds.push(fold)
-          fold.normal = fold.normal.applyAxisAngle(direction, theta)
-          fold.offset = fold.offset.applyAxisAngle(direction, theta)
-        }
+  let rotatedFolds = []
+  for (let plain of plains) {
+    plain.normal = plain.normal.applyAxisAngle(direction, theta)
+    plain.offset = plain.offset.applyAxisAngle(direction, theta)
+    for (let key in plain.folds) {
+      let fold = plain.folds[key]
+      if (!rotatedFolds.includes(fold)) {
+        rotatedFolds.push(fold)
+        fold.normal = fold.normal.applyAxisAngle(direction, theta)
+        fold.offset = fold.offset.applyAxisAngle(direction, theta)
       }
     }
   }

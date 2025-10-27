@@ -22,7 +22,6 @@ module.exports = () => {
 
   rotateZAll(Math.PI/2)
   for (let vertex of verticies) {
-    vertex.coordinates[1] *= -1
-    vertex.ogCoords = vertex.coordinates.clone()
+    vertex.ogCoords[1] *= -1
   }
 }

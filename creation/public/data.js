@@ -40,9 +40,9 @@ async function EulerianHelper(currentVertex) {
   previousEdge = edges[path.last()]
   p = sortOverride || potential
   function distance(edge) {
-    let v0 = previousEdge.otherVertex(currentVertex).coordinates
-    let v1 = currentVertex.coordinates
-    let v2 = edge.otherVertex(currentVertex).coordinates
+    let v0 = previousEdge.otherVertex(currentVertex).ogCoords
+    let v1 = currentVertex.ogCoords
+    let v2 = edge.otherVertex(currentVertex).ogCoords
   
     let e0 = v1.sub(v0)
     let e1 = v2.sub(v1)
@@ -67,9 +67,9 @@ async function EulerianHelper(currentVertex) {
     // Avoid a straight twist that is forced in a last pair of edges
     if (remainingEdges.length == 2 &&
         remainingEdges[0].isDupe != remainingEdges[1].isDupe) {
-      let v0 = remainingEdges[0].otherVertex(currentVertex).coordinates
-      let v1 = currentVertex.coordinates
-      let v2 = remainingEdges[1].otherVertex(currentVertex).coordinates
+      let v0 = remainingEdges[0].otherVertex(currentVertex).ogCoords
+      let v1 = currentVertex.ogCoords
+      let v2 = remainingEdges[1].otherVertex(currentVertex).ogCoords
       let e0 = v1.sub(v0)
       let e1 = v2.sub(v1)
 
