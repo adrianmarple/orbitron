@@ -484,6 +484,11 @@ class Player:
       else:
         delta = -np.matmul(basis, delta)
 
+      if config.get("INVERT_X"):
+        delta[0] = -delta[0]
+      if config.get("INVERT_Y"):
+        delta[1] = -delta[1]
+
       dot = np.dot(delta[0:2], self.buffered_move)
       if game.CONTINUOUS_MOVEMENT:
         if n == continuation_pos:
