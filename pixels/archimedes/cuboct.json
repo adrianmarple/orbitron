@@ -2,7 +2,7 @@
   "name": "cuboct",
   "SIZE": 120,
   "RAW_SIZE": 240,
-  "isWall": true,
+  "isWall": false,
   "coords": [
     [
       -0.5715476066494084,

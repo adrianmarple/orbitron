@@ -2,7 +2,7 @@
   "name": "helmetron",
   "SIZE": 500,
   "RAW_SIZE": 500,
-  "isWall": true,
+  "isWall": false,
   "coords": [
     [
       -0.6413570816037609,

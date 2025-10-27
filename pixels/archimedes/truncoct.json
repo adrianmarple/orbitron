@@ -2,7 +2,7 @@
   "name": "truncoct",
   "SIZE": 144,
   "RAW_SIZE": 288,
-  "isWall": true,
+  "isWall": false,
   "centerOffset": [
     0,
     0,

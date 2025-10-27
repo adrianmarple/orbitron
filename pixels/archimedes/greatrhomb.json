@@ -2,7 +2,7 @@
   "name": "greatrhomb",
   "SIZE": 720,
   "RAW_SIZE": 1440,
-  "isWall": true,
+  "isWall": false,
   "coords": [
     [
       -0.09776569963806639,
