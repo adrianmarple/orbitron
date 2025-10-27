@@ -46,7 +46,7 @@ base_settings = {
   "SELECTION_WEIGHTS": [0, 1, 1, 1, 1, 1],
   "INVULNERABILITY_TIME": 3,
   "MOVE_FREQ": 0.18,
-  "MOVE_BIAS": 0.5,
+  "MOVE_BIAS": 0.2, #0.5,
   "VICTORY_TIMEOUT": 18,
   "ROUND_TIME": 94.6,
   "CONTINUOUS_MOVEMENT": False,
@@ -70,9 +70,8 @@ RAW_SIZE = len(unique_to_dupe)
 coords = [np.array(coord) for coord in pixel_info["coords"]]
 
 DEFAULT_PULSE_DIRECTION = np.array(
-  pixel_info.get("defaultPulseDirection", (0,0,1)),
+  pixel_info.get("defaultPulseDirection", (0,1,0)),
   dtype=float)
-UP = 1 if IS_WALL else 2 # TODO use default pulse direction (or make defaultPulseDirection use UP)
 
 dupe_to_uniques = []
 for dupe in range(SIZE):
@@ -107,7 +106,7 @@ if north_pole is None:
       break
   north_pole = []
   for (i, coord) in enumerate(coords):
-    if coord[UP] > pole_threshold:
+    if coord[1] > pole_threshold:
       north_pole.append(i)
 
 south_pole = pixel_info.get("southPole", None)
@@ -124,7 +123,7 @@ if south_pole is None:
       break
   south_pole = []
   for (i, coord) in enumerate(coords):
-    if coord[UP] < pole_threshold:
+    if coord[1] < pole_threshold:
       south_pole.append(i)
 
 raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
@@ -460,18 +459,20 @@ class Player:
         len(neighbors) <= 2):
       return continuation_pos
 
-    up = coords[pos]
-    up_magnitude = np.linalg.norm(up)
-    if up_magnitude == 0:
-      up = np.array((0.0, 1.0, 0.0))
-    else:
-      up = up / up_magnitude
-    north = np.array((0.0, 0.0, 1.0))
-    north = ortho_proj(north, up)
-    north /= np.linalg.norm(north) # normalize
-    east = np.cross(up, north)
+    basis = None
+    if not IS_WALL:
+      up = coords[pos]
+      up_magnitude = np.linalg.norm(up)
+      if up_magnitude == 0:
+        up = np.array((0.0, 0.0, 1.0))
+      else:
+        up = up / up_magnitude
+      north = np.array((0.0, 1.0, 0.0))
+      north = ortho_proj(north, up)
+      north /= np.linalg.norm(north) # normalize
+      east = np.cross(up, north)
 
-    basis = np.array((east, north, up))
+      basis = np.array((east, north, up))
 
     max_dot = 0
     new_pos = pos
@@ -490,6 +491,8 @@ class Player:
         delta[1] = -delta[1]
 
       dot = np.dot(delta[0:2], self.buffered_move)
+      if n in neighbors[self.prev_pos]:
+        dot -= 0.3
       if game.CONTINUOUS_MOVEMENT:
         if n == continuation_pos:
           dot *= 1 - game.MOVE_BIAS

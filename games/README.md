@@ -136,10 +136,13 @@ Note that you can override existing config settings such as `MOVE_FREQ` and it w
 
 ## Other stuff your should know
 
-### Command line args for server.js
+### Command line args for startscript.sh/main.js
 
 - `-t`: no timeout. Controllers will not disconnect after 60 seconds nor when they loose focus and the normally do. Important for testing multiple controllers at once with one browser.
-- `-g [game name]`: always choose this particular game first (presumably do this for the game you're creating)
+
+### Set default game
+
+- Add `DEFAULT_GAME: [game name],` to the config (and restart)
 
 ### Audio
 
