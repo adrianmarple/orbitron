@@ -287,6 +287,9 @@ var app = new Vue({
     speedbumpCallback: function() {
       this.speedbumpTimestamp = Date.now()
     },
+    gameStarted() {
+      document.getElementById("app").style.overflowY = this.gameStarted ? "hidden" : "scroll"
+    }
   },
 
   computed: {

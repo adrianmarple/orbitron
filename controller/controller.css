@@ -5,6 +5,7 @@
 
 html, #game-stuff {
   height: 100%;
+  overscroll-behavior: none;
 }
 #player-background {
   position: fixed;
