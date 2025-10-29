@@ -446,7 +446,7 @@ def init():
       prefs = json.loads(f.read())
     except:
       prefs = {}
-      print("Failed to load prefs.json: %s" % f.read(), file=sys.stderr)
+      print("Failed to load prefs.json", file=sys.stderr)
     f.close()
     current_prefs.update(prefs)
     identify_name()
