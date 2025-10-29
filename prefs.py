@@ -450,23 +450,6 @@ def init():
     f.close()
     current_prefs.update(prefs)
     identify_name()
-    
-    # Convert old timer info
-    if "hasStartAndEnd" in prefs:
-      timing_prefs["useTimer"] = prefs["hasStartAndEnd"]
-    if current_pref_name is not None:
-      timing_prefs["schedule"] = [
-        {
-          "time": prefs.get("startTime", "00:00"),
-          "prefName": current_pref_name,
-        },
-        {
-          "time": prefs.get("endTime", "23:59"),
-          "prefName": "OFF",
-          "fadeIn": prefs.get("startFade", 10),
-          "fadeOut": prefs.get("endFade", 30),
-        },
-      ]
   else:
     print("No prefs.json file", file=sys.stderr)
 
