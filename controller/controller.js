@@ -288,6 +288,7 @@ var app = new Vue({
       this.speedbumpTimestamp = Date.now()
     },
     gameStarted() {
+      if (this.isIframe) return
       document.getElementById("app").style.overflowY = this.gameStarted ? "hidden" : "scroll"
     }
   },

@@ -363,14 +363,7 @@ var app = new Vue({
         points.push(new THREE.Vector3(...point))
       }
 
-      if (!this.pixelData.isWall) {
-        let innerSphereGeometry = new THREE.SphereGeometry( 0.8 * scale, 32, 16 )
-        let innerSphereMaterial = new THREE.MeshBasicMaterial( { color: bgColor } )
-        innerSphereMaterial.transparent = true
-        innerSphereMaterial.opacity = 0.7
-        let innerSphere = new THREE.Mesh( innerSphereGeometry, innerSphereMaterial )
-        this.leds.add(innerSphere)
-      }
+
       this.leds.scale.set(SCALE, SCALE, SCALE)
       this.orbitronGroup.add(this.leds)
       //let axesHelper = new THREE.AxesHelper(5);
@@ -474,11 +467,13 @@ var app = new Vue({
           let pixel = this.pixels[i]
           let j = i*6
           let color = `#${rp.slice(j+0,j+2)}${rp.slice(j+2,j+4)}${rp.slice(j+4,j+6)}`
-          if (color == "#000000") {
-            color = "#010101"
-          }
           let c = new THREE.Color()
-          c.setStyle(color, THREE.LinearSRGBColorSpace)
+          if (color == "#000000") {
+            c.setRGB(0.00005, 0.00005, 0.00005)
+          } else {
+            c.setStyle(color, THREE.LinearSRGBColorSpace)
+          }
+          c.multiplyScalar(2)
           c.setRGB(Math.pow(c.r,0.6), Math.pow(c.g, 0.6), Math.pow(c.b, 0.6))
           pixel.material.color = c
         }
