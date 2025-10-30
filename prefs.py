@@ -458,7 +458,7 @@ def init():
     try:
       timing_prefs.update(json.loads(f.read()))
     except:
-      print("Failed to load timingprefs.json: %s" % f.read(), file=sys.stderr)
+      print("Failed to load timingprefs.json", file=sys.stderr)
     f.close()
   else:
     print("No timingprefs.json file", file=sys.stderr)

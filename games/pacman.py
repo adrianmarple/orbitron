@@ -192,7 +192,7 @@ class Ghost(Player):
     move_freq = game.GHOST_SCARED_MOVE_FREQ if self.is_scared() else game.GHOST_MOVE_FREQ
     return (time() - self.hit_time < game.GHOST_STUN_TIME or
       time() - self.last_move_time < move_freq or # just moved
-      (self.is_claimed and (self.move_direction == ZERO_2D).all())
+      (self.is_claimed and (self.move_direction == engine.ZERO_2D).all())
     )
 
   def get_next_position(self):
