@@ -217,15 +217,15 @@ export default {
   methods: {
     async configureDefault(fullProjectName) {
       await this.setOrb("default")
-      this.genOrbID()
-      await this.setOrbKey()
+      await this.genOrbID()
       this.config = upsertKeyValueInConfig(this.config, 'PIXELS', fullProjectName, "ORB_KEY")
       await this.saveConfig()
     },
 
-    genOrbID() {
+    async genOrbID() {
       let orbID = createRandomID()
       this.config = upsertKeyValueInConfig(this.config, 'ORB_ID', orbID, "exports")
+      await this.setOrbKey()
     },
     async getOrbKey(orbID) {
       return await sha256(orbID.toLowerCase() + this.masterKey)
