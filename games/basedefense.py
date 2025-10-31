@@ -99,7 +99,7 @@ class Invader(Player):
     self.hit_time = time()
 
   def get_next_position(self):
-    my_up = engine.coords[self.position][engine.UP]
+    my_up = engine.coords[self.position][1]
     weights = []
     neighbors = engine.neighbors[self.position]
     for neighbor in neighbors:
@@ -107,7 +107,7 @@ class Invader(Player):
         weights.append(0)
         continue
       n_coord = engine.coords[neighbor]
-      weight = my_up - n_coord[engine.UP] + 0.02
+      weight = my_up - n_coord[1] + 0.02
       if weight > 0:
         weights.append(weight)
       else:
