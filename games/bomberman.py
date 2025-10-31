@@ -63,8 +63,8 @@ class Rhomberman(Game):
     threshold = 1 - 2 * phase
     threshold = min(threshold, 0.8)
     for i in range(engine.SIZE):
-      z = engine.coords[i][engine.UP]
-      if z < threshold:
+      y = engine.coords[i][2]
+      if y < threshold:
         self.statuses[i] = "death"
         self.explosion_providence[i] = None
 
