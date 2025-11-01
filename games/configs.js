@@ -101,13 +101,12 @@ GAMES_INFO = [
       },
       {
         words: [
-          "If you get hit by a bomb you will get hurt.",
-          "Get hurt twice and you're dead.",
+          "Everytime someone touches your bomb's explosion you get a point.",
         ],
       },
     ],
     tapInstructions: "Tap to Bomb",
-    victoryCondition: "Last one standing wins",
+    victoryCondition: "Most points wins",
     statusDisplay: {
       type: "rankedscore",
     },
