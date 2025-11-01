@@ -23,7 +23,7 @@ additional_settings = {
   "MIN_PULSE_DURATION": 0.25,
   "MAX_PULSE_DURATION": 0.6,
   "MOVE_FREQ": 0.24,
-  "SELECTION_WEIGHTS": [0.5, 1, 1, 1, 1, 1],
+  "SELECTION_WEIGHTS": [1, 1, 1, 1, 1, 1],
 }
 
 

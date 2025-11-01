@@ -21,16 +21,14 @@ additional_settings = {
   "BOMB_EXPLOSION_TIME": 0.9, # Should be less than INVUNERABILITY_TIME
   "STARTING_BOMB_POWER": 4,
   "PICKUP_CHANCE": 0, #0.3
-  "NUM_WALLS": 60,
+  "WALL_DENSITY": 0.1,
   "WALL_SPAWN_TIME": 10,
   "BOMB_MOVE_FREQ": 0.07,
-  "USE_SHIELDS": True,
-  "ROUND_TIME": 150,
   "DEATH_CREEP_DURATION": 60,
   "FIXED_OWNERSHIP": True,
   "NEWTONS_CRADLE": True,
   "TAP_BOMB_KICK": True,
-  "MAX_BOMBS": 3,
+  "MAX_BOMBS": 5,
   "SHOCKWAVE_DURATION": 0.5,
 }
 
@@ -43,7 +41,7 @@ class Rhomberman(Game):
       player.tap = 0 # Prevent bombs from being placed due to taps during countdown
 
     self.clear()
-    for i in range(self.NUM_WALLS):
+    for _ in range(int(self.WALL_DENSITY * engine.SIZE)):
       self.spawn("wall")
 
     Game.countdown_ontimeout(self)
@@ -58,30 +56,6 @@ class Rhomberman(Game):
       self.spawn("wall")
       self.previous_wall_generation_time = time()
 
-    # Timer death creep from south pole
-    phase = (self.end_time - time()) / self.DEATH_CREEP_DURATION
-    threshold = 1 - 2 * phase
-    threshold = min(threshold, 0.8)
-    for i in range(engine.SIZE):
-      y = engine.coords[i][1]
-      if y < threshold:
-        self.statuses[i] = "death"
-        self.explosion_providence[i] = None
-
-    live_player_count = 0
-    last_player_alive = self.players[0]
-    for player in self.claimed_players():
-      if player.is_alive:
-        live_player_count += 1
-
-      if player.is_alive or (not last_player_alive.is_alive and
-          player.hit_time > last_player_alive.hit_time):
-        last_player_alive = player
-
-    # GAME OVER
-    if live_player_count <= 1:
-      Game.play_ontimeout(self)
-      self.victors = [last_player_alive]
 
 
   def render_game(self):
@@ -131,7 +105,6 @@ class Bomberman(Player):
   def reset(self):
     self.bombs = []
     self.bomb_power = game.STARTING_BOMB_POWER
-    self.has_shield = game.USE_SHIELDS
     self.opacity = 1
     Player.reset(self)
 
@@ -142,15 +115,10 @@ class Bomberman(Player):
   def setup_for_game(self):
     Player.setup_for_game(self)
     self.bombs = []
-    self.has_shield = game.USE_SHIELDS
     self.bomb_power = game.STARTING_BOMB_POWER
 
   def current_color(self):
-    color = self.color * self.opacity
-    if game.USE_SHIELDS and not self.has_shield:
-      return color / 12
-    else:
-      return color
+    return self.color * self.opacity
 
   def is_occupied(self, position):
     if Player.is_occupied(self, position):
@@ -161,6 +129,7 @@ class Bomberman(Player):
         if bomb.position == position:
           if bomb.move(self.position):
             # Successful bomb kick!
+            bomb.owner = self
             sounds["kick"].play()
           else:
             return True
@@ -177,31 +146,17 @@ class Bomberman(Player):
       if bomb.has_exploded and time() - bomb.explosion_time > game.SHOCKWAVE_DURATION:
         self.bombs.remove(bomb)
 
-    if not self.is_alive:
-      return False
-
-    if game.statuses[pos] == "death":
-      sounds["death"].play()
-      self.is_alive = False
-      return False
-
     # non-blank status means either explosion or death
     if not game.is_pixel_blank(pos) and time() - self.hit_time > game.INVULNERABILITY_TIME:
       # Hurt
       if game.state == "start":
         pass
-      elif self.has_shield:
-        self.has_shield = False
-      else:
-        self.is_alive = False
-
-      if self.is_alive:
-        sounds["hurt"].play()
-      else:
-        sounds["death"].play()
 
       self.hit_time = time()
-
+      killer = game.explosion_providence[pos]
+      if killer is not None and killer != self:
+        killer.score += 1
+      sounds["hurt"].play()
 
     # Try to place bomb if tapped
     tap = self.tap
@@ -333,7 +288,11 @@ class Bomb:
     x = (300 / x)
     factor = (sin(x)+1.4) * 0.3
     factor *= factor
-    color = self.owner.current_color() * factor
+    phase = x/pi % 4
+    color = engine.BAD_COLOR
+    if phase > 1 and phase < 3:
+      color = self.owner.current_color()
+    color = color * factor
     engine.color_pixel(self.position, color)
     return factor
 

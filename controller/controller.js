@@ -480,7 +480,7 @@ var app = new Vue({
     },
 
     maxScore() {
-      let maxScore = 0
+      let maxScore = 1
       for (let player of this.state.players) {
         maxScore = Math.max(maxScore, player.score)
       }

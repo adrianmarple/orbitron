@@ -33,8 +33,8 @@ else:
   start_external_pixel_board_logging()
 
 
-GOOD_COLOR = np.array((255, 0, 255))
-GOOD_COLOR_STRING = "#ff00ff"
+GOOD_COLOR = np.array((0, 255, 0))
+GOOD_COLOR_STRING = "#00ff00"
 BAD_COLOR = np.array((255, 0, 0))
 BAD_COLOR_STRING = "#ff0000"
 FRAMERATE = 30
@@ -48,7 +48,7 @@ base_settings = {
   "MOVE_FREQ": 0.18,
   "MOVE_BIAS": 0.2, #0.5,
   "VICTORY_TIMEOUT": 18,
-  "ROUND_TIME": 94.6,
+  "ROUND_TIME": 90,
   "CONTINUOUS_MOVEMENT": False,
   "INTERSECTION_PAUSE_FACTOR": 0.2,
 }
@@ -155,7 +155,7 @@ def select_random_game():
 
   selection = weighted_random(weights)
   if selection is None:
-    selection = config.get("DEFAULT_GAME", "snektron")
+    selection = config.get("DEFAULT_GAME", "redlightgreenlight")
 
   for name in game_selection_weights.keys():
     game_selection_weights[name] += 1
@@ -181,7 +181,7 @@ def start(new_game):
       player.is_claimed = claimed[i]
 
 def start_first_game():
-  start(games[config.get("DEFAULT_GAME", "snektron")])
+  start(games[config.get("DEFAULT_GAME", "redlightgreenlight")])
 
 def start_random_game():
   start(select_random_game())
@@ -655,9 +655,9 @@ class Game:
     self.players = [
       player_class(
         position=positions[0],
-        color=(0, 255, 0),
-        color_string="#00ff00",
-        color_name="Green"
+        color=(255, 0, 255),
+        color_string="#E040FB",
+        color_name="Pink"
       ),
       player_class(
         position=positions[1],

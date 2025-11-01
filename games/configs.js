@@ -64,8 +64,8 @@ GAMES_INFO = [
       },
       {
         words: [
-          "Eating a POWER PELLET also makes the ghosts scared (pink).",
-          "Eating a PINK scared ghost earns you 200 points!",
+          "Eating a POWER PELLET also makes the ghosts scared (GREEN).",
+          "Eating a GREEN scared ghost earns you 200 points!",
         ],
       },
       {
@@ -109,19 +109,19 @@ GAMES_INFO = [
     tapInstructions: "Tap to Bomb",
     victoryCondition: "Last one standing wins",
     statusDisplay: {
-      type: "battleroyale",
+      type: "rankedscore",
     },
   },
   {
     name: "redlightgreenlight",
-    label: "Red Light Pink Light",
+    label: "Red Light Green Light",
     rules: [
-      { words: [ "You are currently playing Red Light Pink Light", ], },
-      { words: [ "You can only move when the dots glow pink"], },
-      { words: [ "When you reach a pink light you score"], },
+      { words: [ "You are currently playing Red Light Green Light", ], },
+      { words: [ "You can only move when the dots glow green"], },
+      { words: [ "When you reach a green light you score"], },
       { words: [ "You'll get sent back to the start if you try to move when the dots are red", ], },
     ],
-    victoryCondition: "Whoever reaches the most pink lights wins!",
+    victoryCondition: "Whoever reaches the most green lights wins!",
     statusDisplay: {
       type: "rankedscore",
     },
