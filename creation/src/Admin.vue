@@ -98,6 +98,11 @@
   </div>
 </div>
 <div v-if="viewing=='calibration'" id="calibration">
+  <div v-if="MAX_POWER_DRAW">MAX_POWER_DRAW present</div>
+  <div v-if="MAX_AVG_PIXEL_BRIGHTNESS">MAX_AVG_PIXEL_BRIGHTNESS present</div>
+  <div  v-if="MAX_POWER_DRAW || MAX_AVG_PIXEL_BRIGHTNESS"  class="row">
+    <div class="button" @click="clearMaxes">Clear Maxes</div>
+  </div>
   <div v-if="calibratingPower" class="row">
     <div class="button" @click="nextPowerValue(true)">Good 👍</div>
     <div class="button" @click="nextPowerValue(false)">Too Bright!</div>
@@ -109,6 +114,8 @@
 </template>
 
 <script>
+import { MAX_AVG_PIXEL_BRIGHTNESS, MAX_POWER_DRAW } from '../../config';
+
 export default {
   name: 'Admin',
   data() {
@@ -147,9 +154,11 @@ export default {
       command: "",
       commandHistory: [],
 
+      prefsBackup: null,
       calibratingPower: false,
-      powerValue: 128,
-      powerStep: 64,
+      powerValue: 1,
+      powerStep: 2,
+      stepIncreasing: true,
     }
   },
   async created() {
@@ -263,6 +272,12 @@ export default {
       this.timingprefs = ""
       this.config = this.idToConfig[this.orbID]
       this.logDaysAgo = 0
+      this.calibratingPower = false
+      if (this.prefsBackup) {
+        this.prefs = this.prefsBackup
+        await this.savePrefs()
+      }
+      this.prefsBackup = null
       this.updateViewing()
     },
     async setOrbKey() {
@@ -353,7 +368,7 @@ export default {
       await Promise.all(promises)
     },
     async updateViewing() {
-      if (this.viewing == 'config') {
+      if (this.viewing == 'config' || this.viewing == 'calibration') {
         await this.updateConfig()
       } else if (this.viewing == 'log') {
         await this.updateLog()
@@ -373,6 +388,8 @@ export default {
         this.idToConfig[this.orbID] = newConfig
         this.config = newConfig
       }
+      this.MAX_POWER_DRAW = this.config.includes("MAX_POWER_DRAW")
+      this.MAX_AVG_PIXEL_BRIGHTNESS = this.config.includes("MAX_AVG_PIXEL_BRIGHTNESS")
     },
     async updatePrefs() {
       let previousValue = this.idToPrefs[this.orbID]
@@ -490,15 +507,20 @@ export default {
 
     showCalibration() {
       this.viewing = "calibration"
+      this.updateConfig()
+    },
+    clearMaxes() {
+      this.config = removeLineInConfig(this.config, "MAX_POWER_DRAW")
+      this.config = removeLineInConfig(this.config, "MAX_AVG_PIXEL_BRIGHTNESS")
+      this.saveConfig()
     },
     async startPowerCalibration() {
       await this.updatePrefs()
-      this.updateConfig() // Not need to wait for this realistically
       this.prefsBackup = this.prefs
-      // TODO save prefs.json
       this.calibratingPower = true
-      this.powerValue = 128
-      this.powerStep = 64
+      this.powerValue = 1
+      this.powerStep = 1
+      this.stepIncreasing = true
       this.sendCommand({
         type: "python",
         content: {
@@ -530,7 +552,8 @@ export default {
       })
     },
     async nextPowerValue(wasGood) {
-      if (this.powerStep < 1) {
+      if ((this.powerStep == 1 && !this.stepIncreasing) ||
+          (wasGood && this.powerValue == 255)) {
 
         this.calibratingPower = false
         if (!wasGood) {
@@ -542,8 +565,15 @@ export default {
         this.saveConfig()
         return
       }
+      if (!wasGood) {
+        this.stepIncreasing = false
+      }
+      if (this.stepIncreasing) {
+        this.powerStep *= 2
+      } else {
+        this.powerStep /= 2
+      }
       this.powerValue += this.powerStep * (wasGood ? 1 : -1)
-      this.powerStep /= 2
       this.sendPowerValue()
     },
   },
@@ -603,6 +633,9 @@ function insertLineInConfig(config, newLine, after) {
     config = config.replace(/^\}/m, newLine + "\n$&")
   }
   return config
+}
+function removeLineInConfig(config, key) {
+  return config.replace(new RegExp(`.*${key}.*\n`), "")
 }
 </script>
 
@@ -708,6 +741,13 @@ function insertLineInConfig(config, newLine, after) {
 
 #calibration {
   padding-top: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 1.2rem;
+}
+#calibration .row {
+  margin-bottom: 2rem;
 }
 
 </style>
