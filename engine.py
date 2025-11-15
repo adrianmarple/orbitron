@@ -217,6 +217,12 @@ def update():
       power_draw = np.sum(np.matmul(raw_pixels, np.array([0.00013, 0.00013, 0.00013])))
       if power_draw > max_power_draw:
         raw_pixels *= max_power_draw / power_draw
+    max_pixel = config.get("MAX_AVG_PIXEL_BRIGHTNESS")
+    if max_pixel is not None:
+      total_bright = np.sum(raw_pixels)
+      if total_bright > max_pixel * RAW_SIZE:
+        raw_pixels *= max_pixel * RAW_SIZE / total_bright
+
     display_pixels(raw_pixels)
     broadcast_state()
 

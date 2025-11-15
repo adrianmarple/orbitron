@@ -45,6 +45,7 @@
   </div>
   <div class="button" @click="viewBackups">All Backups</div>
   <div class="button" @click="genBoxTop">Generate Box Top</div>
+  <div class="button" @click="showCalibration">Power Calibration</div>
   <div class="button" @click="restartOrb">Restart</div>
   <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
 </div>
@@ -66,7 +67,7 @@
 <textarea v-if="viewing=='timing'" class="main-text" v-model="timingprefs"></textarea>
 <div v-if="viewing=='log'" class="main-text">
   <textarea v-if="viewing=='log'" class="main-text" v-model="log" readonly></textarea>
-  <div class="row" style="display: flex; justify-content: center;">
+  <div class="row">
     <div class="back button" @click="logDaysAgo += 1; updateLog()">Back</div>
     <div style="font-size: 2rem; margin: 0.5rem 2rem;">{{ logDaysAgo }}</div>
     <div class="back button" @click="logDaysAgo -= 1; updateLog()" :class="{disabled: logDaysAgo <= 0}">Forward</div>
@@ -94,6 +95,15 @@
   <div class="row text-with-button">
     <textarea v-model="manualBackupName"></textarea>
     <div class="button" :class="{ disabled: !manualBackupName }" @click="manualBackup">Manual Backup</div>
+  </div>
+</div>
+<div v-if="viewing=='calibration'" id="calibration">
+  <div v-if="calibratingPower" class="row">
+    <div class="button" @click="nextPowerValue(true)">Good 👍</div>
+    <div class="button" @click="nextPowerValue(false)">Too Bright!</div>
+  </div>
+  <div v-else class="row">
+    <div class="button" @click="startPowerCalibration">Start Power Calibration</div>
   </div>
 </div>
 </template>
@@ -136,6 +146,10 @@ export default {
       commandResponses: " ",
       command: "",
       commandHistory: [],
+
+      calibratingPower: false,
+      powerValue: 128,
+      powerStep: 64,
     }
   },
   async created() {
@@ -256,25 +270,27 @@ export default {
       let orbKey = await this.getOrbKey(orbID)
       this.config = upsertKeyValueInConfig(this.config, 'ORB_KEY', orbKey, 'ORB_ID')
     },
-    async saveConfig() {
+    async saveConfig(dontRestart) {
       await this.sendCommand({
         type: "setconfig",
         data: this.config,
-      }, this.orbID)
+        dontRestart
+      })
       this.idToConfig[this.orbID] = this.config
     },
-    async savePrefs() {
+    async savePrefs(dontRestart) {
       await this.sendCommand({
         type: "setprefs",
         data: this.prefs,
-      }, this.orbID)
+        dontRestart,
+      })
       this.idToPrefs[this.orbID] = this.prefs
     },
     async saveTimingPrefs() {
       await this.sendCommand({
         type: "settimingprefs",
         data: this.timingprefs,
-      }, this.orbID)
+      })
       this.idToTimingPrefs[this.orbID] = this.timingprefs
     },
 
@@ -313,7 +329,7 @@ export default {
     },
 
     async restartOrb() {
-      await this.sendCommand({ type: "restart" }, this.orbID)
+      await this.sendCommand({ type: "restart" })
     },
     async getOrbInfo() {
       let promises = []
@@ -349,7 +365,7 @@ export default {
     },
     async updateConfig() {
       let previousValue = this.idToConfig[this.orbID]
-      let newConfig = await this.sendCommand({type: "getconfig"}, this.orbID)
+      let newConfig = await this.sendCommand({type: "getconfig"})
       if (newConfig.indexOf("module.exports") == -1) {
         return
       }
@@ -360,14 +376,14 @@ export default {
     },
     async updatePrefs() {
       let previousValue = this.idToPrefs[this.orbID]
-      this.idToPrefs[this.orbID] = await this.sendCommand({type: "getprefs"}, this.orbID)
+      this.idToPrefs[this.orbID] = await this.sendCommand({type: "getprefs"})
       if (previousValue != this.idToPrefs[this.orbID]) {
         this.prefs = this.idToPrefs[this.orbID]
       }
     },
     async updateTimingPrefs() {
       let previousValue = this.idToTimingPrefs[this.orbID]
-      this.idToTimingPrefs[this.orbID] = await this.sendCommand({type: "gettimingprefs"}, this.orbID)
+      this.idToTimingPrefs[this.orbID] = await this.sendCommand({type: "gettimingprefs"})
       if (previousValue != this.idToTimingPrefs[this.orbID]) {
         this.timingprefs = this.idToTimingPrefs[this.orbID]
       }
@@ -404,14 +420,14 @@ export default {
         console.error(`Backup with name ${this.manualBackupName} already exists`)
         return
       }
-      await this.sendCommand({ type: "manualBackup", nameOverride: this.manualBackupName }, this.orbID)
+      await this.sendCommand({ type: "manualBackup", nameOverride: this.manualBackupName })
       this.backupList.push(this.manualBackupName + ".bak")
     },
 
     async onCommandKeydown(event) {
       if (event.key == "Enter") {
         this.commandHistory.unshift(this.command)
-        let response = await this.sendCommand({ type: "run", command: this.command }, this.orbID)
+        let response = await this.sendCommand({ type: "run", command: this.command })
         this.commandResponses += "% " + this.command + response
         this.command = ""
         this.historyIndex = -1
@@ -433,6 +449,9 @@ export default {
       return this.sendCommand(command, this.serverOrbID, true)
     },
     async sendCommand(command, orbID, isServerCommand) {
+      if (!orbID) {
+        orbID = this.orbID
+      }
       command.timestamp = Date.now()
       command = JSON.stringify(command)
       let hash = await sha256(command + await this.getOrbKey(orbID))
@@ -467,6 +486,64 @@ export default {
         PETG: true,
         data,
       })
+    },
+
+    showCalibration() {
+      this.viewing = "calibration"
+    },
+    async startPowerCalibration() {
+      await this.updatePrefs()
+      this.prefsBackup = this.prefs
+      // TODO save prefs.json
+      this.calibratingPower = true
+      this.powerValue = 128
+      this.powerStep = 64
+      this.sendCommand({
+        type: "python",
+        content: {
+          type: "prefs",
+          update: {
+            brightness: 234,
+            idlePattern: "static",
+            idleColor: "fixed",
+            dimmer: 1,
+          }
+        }
+      })
+      this.sendPowerValue()
+    },
+    sendPowerValue() {
+      let powerHex = this.powerValue.toString(16)
+      if (powerHex.length < 2) {
+        powerHex = "0" + powerHex
+      }
+      this.sendCommand({
+        type: "python",
+        content: {
+          type: "prefs",
+          update: {
+            fixedColor: `#${powerHex}${powerHex}${powerHex}`,
+            idlePattern: "static",
+          }
+        }
+      })
+    },
+    async nextPowerValue(wasGood) {
+      if (this.powerStep < 1) {
+
+        this.calibratingPower = false
+        if (!wasGood) {
+          this.powerValue -= 1
+        }
+        this.prefs = this.prefsBackup
+        await this.savePrefs(true) // dontRestart
+        this.config = upsertKeyValueInConfig(this.config, "MAX_AVG_PIXEL_BRIGHTNESS", this.powerValue)
+        this.saveConfig()
+        return
+      }
+      this.powerValue += this.powerStep * (wasGood ? 1 : -1)
+      this.powerStep /= 2
+      this.sendPowerValue()
     },
   },
 }
@@ -507,7 +584,10 @@ function upsertKeyValueInConfig(config, key, value, after, tabs) {
   if (tabs == undefined) {
     tabs = 2
   }
-  let newLine = `${" ".repeat(tabs)}${key}: "${value}",`
+  if (typeof value == "string") {
+    value = `"${value}"`
+  }
+  let newLine = `${" ".repeat(tabs)}${key}: ${value},`
   let match = config.match(new RegExp(`.*${key}.*`))
   if (match) {
     config = config.replace(match[0], newLine)
@@ -531,7 +611,7 @@ function insertLineInConfig(config, newLine, after) {
   overflow-y: scroll;
   overflow-x: hidden;
 }
-#backups .row {
+.row {
   display: flex;
   width: 100%;
   justify-content: space-around;
@@ -623,6 +703,10 @@ function insertLineInConfig(config, newLine, after) {
 }
 .commit-status .error {
   background-color: #ff2600;
+}
+
+#calibration {
+  padding-top: 100px;
 }
 
 </style>

@@ -157,6 +157,9 @@ function connectOrbToRelay(){
         if (!command) return
 
         let returnData = "OK"
+        if (command.type == "python") {
+          python_process.stdin.write(JSON.stringify(command.content) + "\n", "utf8")
+        }
         if (command.type == "run") {
           returnData = await execute(command.command)
         }
@@ -231,7 +234,9 @@ function connectOrbToRelay(){
           try {
             JSON.parse(command.data)
             await fs.promises.writeFile("prefs.json", command.data)
-            restartOrbitron()
+            if (!command.dontRestart) {
+              restartOrbitron()
+            }
           } catch(_) {
             console.log("Couldn't parse pref to save: ", command.data)
           }
@@ -240,7 +245,9 @@ function connectOrbToRelay(){
           try {
             JSON.parse(command.data)
             await fs.promises.writeFile("timingprefs.json", command.data)
-            restartOrbitron()
+            if (!command.dontRestart) {
+              restartOrbitron()
+            }
           } catch(_) {
             console.log("Couldn't parse timingpref to save: ", command.data)
           }

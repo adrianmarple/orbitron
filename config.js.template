@@ -58,6 +58,7 @@ module.exports={
   //   },
   // ],
   // MAX_POWER_DRAW: 3,
+  // MAX_AVG_PIXEL_BRIGHTNESS: 100,
   // NO_ACCESS_POINT: true,
   // TETHER_ORB_ID: "TEST",
   LOG_INCOMING_MESSAGES: "update.dimmer",
