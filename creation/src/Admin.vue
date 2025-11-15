@@ -493,6 +493,7 @@ export default {
     },
     async startPowerCalibration() {
       await this.updatePrefs()
+      this.updateConfig() // Not need to wait for this realistically
       this.prefsBackup = this.prefs
       // TODO save prefs.json
       this.calibratingPower = true

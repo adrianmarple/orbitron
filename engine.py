@@ -220,8 +220,9 @@ def update():
     max_pixel = config.get("MAX_AVG_PIXEL_BRIGHTNESS")
     if max_pixel is not None:
       total_bright = np.sum(raw_pixels)
-      if total_bright > max_pixel * RAW_SIZE:
-        raw_pixels *= max_pixel * RAW_SIZE / total_bright
+      max_total = max_pixel * RAW_SIZE * 3
+      if total_bright > max_total:
+        raw_pixels *= max_total / total_bright
 
     display_pixels(raw_pixels)
     broadcast_state()
