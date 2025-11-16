@@ -300,7 +300,11 @@ export default {
         edge = edge.dual
       }
 
-      console.log(`Edge # ${edge.index}, ${edge.dual.index}`)
+      let dualIndexString = ""
+      if (edge.dual) {
+        dualIndexString = ", " + edge.dual.index
+      }
+      console.log(`Edge # ${edge.index}${dualIndexString}`)
 
       console.log("  associated walls: " + edgeToWalls[edge.index].map(wall => wall.partID))
       if (this.pathIndex >= 0) {

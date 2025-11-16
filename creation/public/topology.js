@@ -600,10 +600,10 @@ function edgeCleanup(dontDoubleEdges) {
 
   for (let edge of [...edges]) {
     let maxLength = MAX_WALL_LENGTH
-    if (edge.verticies[0].plains.length == 2 || edge.verticies[1].plains.length == 2) {
-      maxLength = MAX_FOLD_WALL_LENGTH
-    }
-    let splitCount = Math.floor(edge.length() * PIXEL_DISTANCE / MAX_WALL_LENGTH)
+    // if (edge.verticies[0].plains.length == 2 || edge.verticies[1].plains.length == 2) {
+    //   maxLength = MAX_FOLD_WALL_LENGTH
+    // }
+    let splitCount = Math.floor(edge.length() * PIXEL_DISTANCE / maxLength)
     let newLength = edge.length() / (splitCount + 1)
     for (let i = 0; i < splitCount; i++) {
       edge.split(-newLength)
@@ -903,20 +903,25 @@ function zeroFoldAllEdges(linearStartingVertex) {
     vertex.plains = []
     if (vertex.edges.length == 1) {
       oneEdgeVertecies.push(vertex)
-      continue
     }
-    if (vertex.edges.length == 2) {
+    else if (vertex.edges.length == 2) {
       twoEdgeVertecies.push(vertex)
-      continue
     }
-    threePlusEdgeVertecies.push(vertex)
-    addSelfPlain(vertex)
+    else {
+      threePlusEdgeVertecies.push(vertex)
+      addSelfPlain(vertex)
+    }
   }
 
   function addSelfPlain(vertex) {
     let normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[1].toVector(vertex))
     if (normal.equals(ZERO)) {
-      normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[2].toVector(vertex))
+      if (vertex.edges.length > 2) {
+        normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[2].toVector(vertex))
+      } else {
+        // Default to plain pointing away from origin (mainly used for Hamiltonian solids)
+        normal = vertex.ogCoords.normalize()
+      }
     }
     if (normal.dot(FORWARD) < 0) {
       normal = normal.negate()
@@ -932,13 +937,13 @@ function zeroFoldAllEdges(linearStartingVertex) {
     vertex.addPlain(new Plain(vertex.ogCoords, normal))
   }
 
-  // Topology is line or circle. So just pick an arbitrary non-colinear 2 edge vertex and set its plain
   if (linearStartingVertex) {
     let vertex = verticies[linearStartingVertex]
     addSelfPlain(vertex)
     twoEdgeVertecies.remove(vertex)
   }
   else if (threePlusEdgeVertecies.length == 0) {
+    // Topology is line or circle. So just pick an arbitrary non-colinear 2 edge vertex and set its plain
     for (let vertex of twoEdgeVertecies) {
       if (!ZERO.equals(vertex.edges[0].toVector(vertex).cross(vertex.edges[1].toVector(vertex)))) {
         addSelfPlain(vertex)
