@@ -133,6 +133,10 @@ def update(update, client_timestamp=None):
       not update["useTimer"] and
       get_pref("useTimer")):
     update["dimmer"] = 1
+  # Turn dimmer back on any change to non-timer prefs is being made
+  for key in default_prefs.keys():
+    if key in update:
+      update["dimmer"] = 1
 
   for key, value in update.items():
     converted_prefs[key] = None
