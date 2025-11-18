@@ -744,16 +744,25 @@ var app = new Vue({
       this.renamingSave = name
     },
     saveBlurred(name, i) {
-      if (name != "" && name != this.renamingSave) {
-        let self = this
-        let originalName = this.renamingSave
-        this.speedbumpMessage = `Would you like to rename ${this.renamingSave} to ${name}?`
-        this.speedbumpCallback = () => {
-          self.send({type: "renamePref", originalName, newName: name})
-        }
-      }
+      let self = this
+      let originalName = this.renamingSave
       this.saveNames[i] = this.renamingSave
       this.renamingSave = ""
+
+      if (name == "" || name == originalName) { 
+        return
+      }
+
+      console.log(this.saveNames)
+      if (this.saveNames.includes(name)) {
+        this.speedbumpMessage = `The save name "${name}" is already being used.`
+      } else {
+        this.speedbumpMessage = `Would you like to rename ${originalName} to ${name}?`
+        this.speedbumpCallback = () => {
+          self.send({type: "renamePref", originalName, newName: name})
+          this.saveNames[i] = this.renamingSave
+        }
+      }
     },
 
     stripSaveName(name) {

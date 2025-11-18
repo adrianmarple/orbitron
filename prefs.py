@@ -184,12 +184,14 @@ def are_prefs_equivalent(a, b):
   return True
 
 def clear():
+  global current_pref_name
   prefs.clear()
   pref_to_client_timestamp.clear()
   converted_prefs.clear()
   current_prefs.clear()
   current_prefs.update(default_prefs)
   current_prefs.update(timing_prefs)
+  current_pref_name = None
   set_idle()
   if os.path.exists(pref_path):
     os.remove(pref_path)

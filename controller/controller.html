@@ -43,6 +43,12 @@
       No
     </div>
   </div>
+  <div v-else-if="speedbumpMessage" id="speedbump" @click="clearSpeedbump">
+    <p>{{speedbumpMessage}}</p>
+    <div class="button" @click="confirmSpeedbump">
+      Ok
+    </div>
+  </div>
 
   <div v-else-if="!orbID" id="registration" :class="{ small: registeredIDs.length > 3 }">
     <div class="horiz-box"></div>
