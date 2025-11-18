@@ -1,6 +1,7 @@
 module.exports = () => {
   setFor3DPrintedCovers()
   PRINT_WALL_HALVES_SEPARATELY = false
+  let EDGE_LENGTH = 6
 
   addPlusMinusVertex([1,1,1])
   for (let permutation of evenPermutations([PHI, 1/PHI, 0])) {
@@ -22,7 +23,7 @@ module.exports = () => {
       }
     }
   }
-  scale(6)
+  scale(EDGE_LENGTH)
 
   // Find Hamiltonian cycle (bias towards less sharp path)
   let hamiltonianEdges = [edges[0]]
@@ -87,7 +88,7 @@ module.exports = () => {
 
   printPostProcessingFunction = printInfo => {
     let h = 30
-    let r_in = 16.2/2
+    let r_in = 8.0
     let r_out = r_in + 1.4
     let poleInsertionIndex = -1
     for (let i = 0; i < printInfo.prints.length; i++) {
@@ -127,7 +128,7 @@ module.exports = () => {
     }
   }
 
-  splitEdge(0, 3)
+  splitEdge(0, EDGE_LENGTH/2)
   zeroFoldAllEdges(20)
   edgeCleanup()
   doubleEdges()

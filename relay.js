@@ -336,6 +336,9 @@ addGETListener(async (response, _, filePath, __, request)=>{
   noCorsHeader(response, 'text/json')
   let localOrbs = []
   for (let orbID in orbToIP) {
+    let orbInfo = orbInfoCache[orbID]
+    if (!orbInfo) continue
+    if (orbInfo.config.NO_LOCAL_REGISTRATION) continue
     if (orbToIP[orbID] == clientIP) {
       localOrbs.push(orbID)
     }

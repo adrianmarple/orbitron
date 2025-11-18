@@ -863,7 +863,7 @@ function createPrintInfo3D() {
 
 
 function findEmbossing(print) {
-  findSubprint("embossing", print)
+  return findSubprint("embossing", print)
 }
 function findSubprint(type, print) {
   if (print.type == type) {

@@ -61,5 +61,6 @@ module.exports={
   // MAX_AVG_PIXEL_BRIGHTNESS: 100,
   // NO_ACCESS_POINT: true,
   // TETHER_ORB_ID: "TEST",
+  // NO_LOCAL_REGISTRATION: true,
   LOG_INCOMING_MESSAGES: "update.dimmer",
 }

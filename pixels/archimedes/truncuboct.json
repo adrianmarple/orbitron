@@ -2,7 +2,7 @@
   "name": "truncuboct",
   "SIZE": 288,
   "RAW_SIZE": 576,
-  "isWall": false,
+  "isWall": true,
   "centerOffset": [
     0,
     0,

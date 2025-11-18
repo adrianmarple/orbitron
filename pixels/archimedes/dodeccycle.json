@@ -2,7 +2,7 @@
   "name": "dodeccyle",
   "SIZE": 120,
   "RAW_SIZE": 240,
-  "isWall": true,
+  "isWall": false,
   "centerOffset": [
     0,
     0,
