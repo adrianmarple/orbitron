@@ -151,12 +151,13 @@ def update(update, client_timestamp=None):
 
 
   if not config.get("TEMP_ORB"):
-    f = open(pref_path, "w")
-    f.write(json.dumps(prefs, indent=2))
-    f.close()
-    f = open(timing_pref_path, "w")
-    f.write(json.dumps(timing_prefs, indent=2))
-    f.close()
+    debounce_save_prefs()
+    # f = open(pref_path, "w")
+    # f.write(json.dumps(prefs, indent=2))
+    # f.close()
+    # f = open(timing_pref_path, "w")
+    # f.write(json.dumps(timing_prefs, indent=2))
+    # f.close()
 
   should_update_schedule = False
   for key in timing_prefs.keys():
@@ -168,6 +169,26 @@ def update(update, client_timestamp=None):
   if get_pref("useTimer") and should_update_schedule:
     update_schedule()
   identify_name()
+
+loop_lock = False
+last_modified_time = 0
+def debounce_save_prefs(): # Trying to avoid race conditions
+  global last_modified_time, loop_lock
+  last_modified_time = time()
+  if loop_lock:
+    return
+  loop_lock = True
+  while loop_lock:
+    sleep(0.01)
+    if last_modified_time + 0.1 < time():
+      f = open(pref_path, "w")
+      f.write(json.dumps(prefs, indent=2))
+      f.close()
+      f = open(timing_pref_path, "w")
+      f.write(json.dumps(timing_prefs, indent=2))
+      f.close()
+      loop_lock = False
+
 
 def identify_name():
   global current_pref_name
@@ -193,8 +214,10 @@ def clear():
   current_prefs.update(timing_prefs)
   current_pref_name = None
   set_idle()
-  if os.path.exists(pref_path):
+  try:
     os.remove(pref_path)
+  except OSError:
+      pass
 
 def save(name):
   if config.get("TEMP_ORB"):
