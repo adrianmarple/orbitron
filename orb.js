@@ -148,7 +148,29 @@ function connectOrbToRelay(){
         }
         return
       }
+
       data = JSON.parse(data)
+
+      if (data.type == "restoreFromBackup") {
+        let promises = []
+        let backup = data.backup
+        promises.push(fs.promises.writeFile("config.js", backup.config))
+        if (backup.timingprefs) {
+          promises.push(fs.promises.writeFile("timingprefs.json", backup.timingprefs))
+        }
+        if (backup.prefs) {
+          promises.push(fs.promises.writeFile("prefs.json", backup.prefs))
+        }
+
+        await fs.promises.rm("savedprefs", { recursive: true })
+        await fs.promises.mkdir("savedprefs")
+        for (let name in backup.savedPrefs) {
+          promises.push(fs.promises.writeFile("savedprefs/" + name, backup.savedPrefs[name]))
+        }
+        await Promise.all(promises)
+        restartOrbitron()
+        return
+      }
 
       // Admin command
       if (data.type == "admin") {
@@ -255,25 +277,6 @@ function connectOrbToRelay(){
 
         if (command.type == "manualBackup") {
           await saveBackup(command.nameOverride)
-        }
-        if (command.type == "restoreFromBackup") {
-          let promises = []
-          let backup = command.backup
-          promises.push(fs.promises.writeFile("config.js", backup.config))
-          if (backup.timingprefs) {
-            promises.push(fs.promises.writeFile("timingprefs.json", backup.timingprefs))
-          }
-          if (backup.prefs) {
-            promises.push(fs.promises.writeFile("prefs.json", backup.prefs))
-          }
-
-          await fs.promises.rm("savedprefs", { recursive: true })
-          await fs.promises.mkdir("savedprefs")
-          for (let name in backup.savedPrefs) {
-            promises.push(fs.promises.writeFile("savedprefs/" + name, backup.savedPrefs[name]))
-          }
-          await Promise.all(promises)
-          restartOrbitron()
         }
         orbToRelaySocket.send(JSON.stringify({
           messageID,

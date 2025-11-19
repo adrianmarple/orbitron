@@ -417,9 +417,11 @@ export default {
       this.backupList = JSON.parse(await this.sendServerCommand({ type: "backuplist" }))
     },
     async restoreBackup() {
-      let backup = await this.sendServerCommand({ type: "backup", fileName: this.selectedBackup })
-      backup = JSON.parse(backup)
-      await this.sendCommand({ type: "restoreFromBackup", backup }, this.orbID)
+      let backup = await this.sendServerCommand({
+        type: "restoreBackup",
+        fileName: this.selectedBackup,
+        orbID: this.orbID,
+      })
       this.viewing = 'config'
     },
     async deleteBackup() {

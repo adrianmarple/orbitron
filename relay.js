@@ -295,8 +295,19 @@ addGETListener(async (response, orbID, _, queryParams) => {
     case "backuplist":
       response.end(JSON.stringify(await fs.promises.readdir(BACKUPS_DIR)))
       return true
-    case "backup":
-      response.end(await fs.promises.readFile(BACKUPS_DIR + command.fileName))
+    case "restoreBackup":
+      let backup
+      try {
+        backup = JSON.parse(await fs.promises.readFile(BACKUPS_DIR + command.fileName))
+      } catch(e) {
+        response.end("Error restoring backup.")
+      }
+      let orb = connectedOrbs[command.orbID]
+      orb.send(JSON.stringify({
+        type: "restoreFromBackup",
+        backup,
+      }))
+      response.end("OK")
       return true
     case "deleteBackup":
       response.end(await fs.promises.unlink(BACKUPS_DIR + command.fileName))
