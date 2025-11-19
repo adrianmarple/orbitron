@@ -170,16 +170,15 @@ def update(update, client_timestamp=None):
     update_schedule()
   identify_name()
 
-loop_lock = False
+save_prefs_loop_lock = False
 last_modified_time = 0
 def debounce_save_prefs(): # Trying to avoid race conditions
-  global last_modified_time, loop_lock
+  global last_modified_time, save_prefs_loop_lock
   last_modified_time = time()
-  if loop_lock:
+  if save_prefs_loop_lock:
     return
-  loop_lock = True
-  while loop_lock:
-    sleep(0.01)
+  save_prefs_loop_lock = True
+  while save_prefs_loop_lock:
     if last_modified_time + 0.1 < time():
       f = open(pref_path, "w")
       f.write(json.dumps(prefs, indent=2))
@@ -187,7 +186,9 @@ def debounce_save_prefs(): # Trying to avoid race conditions
       f = open(timing_pref_path, "w")
       f.write(json.dumps(timing_prefs, indent=2))
       f.close()
-      loop_lock = False
+      save_prefs_loop_lock = False
+      break
+    sleep(0.01)
 
 
 def identify_name():
@@ -205,14 +206,15 @@ def are_prefs_equivalent(a, b):
   return True
 
 def clear():
-  global current_pref_name
+  global current_pref_name, save_prefs_loop_lock
+  current_pref_name = None
+  save_prefs_loop_lock = False
   prefs.clear()
   pref_to_client_timestamp.clear()
   converted_prefs.clear()
   current_prefs.clear()
   current_prefs.update(default_prefs)
   current_prefs.update(timing_prefs)
-  current_pref_name = None
   set_idle()
   try:
     os.remove(pref_path)
