@@ -118,6 +118,14 @@ def update(update, client_timestamp=None):
   if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
     client_timestamp = 0
 
+  no_change = True
+  for key, value in update.items():
+    if current_prefs[key] != value:
+      no_change = False
+      break
+  if no_change:
+    return
+
   if update.get("weeklyTimer", False) and len(current_prefs["weeklySchedule"]) == 0:
     update["weeklySchedule"] = []
     for i in range(7):
@@ -206,7 +214,7 @@ def are_prefs_equivalent(a, b):
   return True
 
 def clear(should_set_idle=True):
-  global current_pref_name, save_prefs_loop_lock
+  global current_pref_name, save_prefs_loop_lock, ignore_updates_until
   current_pref_name = None
   save_prefs_loop_lock = False
   prefs.clear()
