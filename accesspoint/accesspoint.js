@@ -15,7 +15,7 @@ let someoneConnectedToAccessPoint = false
 let forceExitAccessPointLoop = false
 
 async function startAccessPoint() {
-  if(!(await execute("ifconfig")).includes("wlan0")){
+  if(!(await execute("ifconfig")).includes("wlan")){
     console.log("No wifi devices, cannot start access point")
     stopAccessPoint()
     return
