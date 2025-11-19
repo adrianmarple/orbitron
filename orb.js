@@ -499,7 +499,7 @@ function bindDataEvents(peer) {
           logContent = null
         }
       }
-      if (logContent == null) {
+      if (logContent != null) {
         console.log(config.LOG_INCOMING_MESSAGES, logContent)
       }
     }
