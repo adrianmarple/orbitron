@@ -205,7 +205,7 @@ def are_prefs_equivalent(a, b):
       return False
   return True
 
-def clear():
+def clear(should_set_idle=True):
   global current_pref_name, save_prefs_loop_lock
   current_pref_name = None
   save_prefs_loop_lock = False
@@ -215,11 +215,12 @@ def clear():
   current_prefs.clear()
   current_prefs.update(default_prefs)
   current_prefs.update(timing_prefs)
-  set_idle()
+  if should_set_idle:
+    set_idle()
   try:
     os.remove(pref_path)
   except OSError:
-      pass
+    pass
 
 def save(name):
   if config.get("TEMP_ORB"):
@@ -252,7 +253,7 @@ def load(name, clobber_prefs=True):
     f.close()
 
   if clobber_prefs:
-    clear()
+    clear(should_set_idle=False)
     prefs.update(loaded_prefs) # Effectively a copy
     current_prefs.update(loaded_prefs)
     current_prefs.update(timing_prefs)
