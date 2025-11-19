@@ -493,6 +493,9 @@ function bindDataEvents(peer) {
       let path = config.LOG_INCOMING_MESSAGES.split(".")
       let logContent = content
       for (let field of path) {
+        if (!logContent) {
+          break
+        }
         if (logContent[field]) {
           logContent = logContent[field]
         } else {
