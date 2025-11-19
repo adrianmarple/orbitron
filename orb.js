@@ -530,7 +530,8 @@ function tether(broadcastMessage) {
   delete update.schedule
   delete update.weeklySchedule
 
-  if (broadcastMessage.currentPrefName != previousBroadcast.currentPrefName ||
+  if (!previousBroadcast.prefs ||
+      broadcastMessage.currentPrefName != previousBroadcast.currentPrefName ||
       broadcastMessage.prefs.dimmer != previousBroadcast.prefs.dimmer) {
     shouldUpdateTetheree = true
   }
