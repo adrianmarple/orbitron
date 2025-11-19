@@ -83,6 +83,7 @@ var app = new Vue({
 
     settings: {},
     prefs: {},
+    unwatchers: {},
     dontSendUpdates: false,
     lastPrefUpdateTime: {},
     prefName: "",
@@ -239,7 +240,10 @@ var app = new Vue({
       if (!oldValue) {
         this.prefs = { ...val }
         for (let key in val) {
-          this.$watch('prefs.' + key, (v, vOld) => {
+          if (this.unwatchers['prefs.' + key]) {
+            this.unwatchers['prefs.' + key]()
+          }
+          this.unwatchers['prefs.' + key] = this.$watch('prefs.' + key, (v, vOld) => {
             if (this.dontSendUpdates) return
             if (typeof(v) == 'object' || v != vOld) {
               this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
