@@ -143,9 +143,10 @@ def update(update, client_timestamp=None):
         get_pref("useTimer")):
       update["dimmer"] = 1
     # Turn dimmer back on any change to non-timer prefs is being made
-    for key in default_prefs.keys():
-      if key in update:
-        update["dimmer"] = 1
+    if current_prefs["dimmer"] == 0:
+      for key in default_prefs.keys():
+        if key in update:
+          update["dimmer"] = 1
 
   for key, value in update.items():
     converted_prefs[key] = None
@@ -158,15 +159,8 @@ def update(update, client_timestamp=None):
   current_prefs.update(update)
   set_idle()
 
-
   if not config.get("TEMP_ORB"):
     debounce_save_prefs()
-    # f = open(pref_path, "w")
-    # f.write(json.dumps(prefs, indent=2))
-    # f.close()
-    # f = open(timing_pref_path, "w")
-    # f.write(json.dumps(timing_prefs, indent=2))
-    # f.close()
 
   should_update_schedule = False
   for key in timing_prefs.keys():
