@@ -134,17 +134,18 @@ def update(update, client_timestamp=None):
         new_event["weekday"] = i
         update["weeklySchedule"].append(new_event)
 
-  # Turn dimmer back on if not using timer and it's off
-  if (current is not None and
-      current["prefName"] == "OFF" and
-      "useTimer" in update and
-      not update["useTimer"] and
-      get_pref("useTimer")):
-    update["dimmer"] = 1
-  # Turn dimmer back on any change to non-timer prefs is being made
-  for key in default_prefs.keys():
-    if key in update:
+  if "dimmer" not in update:
+    # Turn dimmer back on if not using timer and it's off
+    if (current is not None and
+        current["prefName"] == "OFF" and
+        "useTimer" in update and
+        not update["useTimer"] and
+        get_pref("useTimer")):
       update["dimmer"] = 1
+    # Turn dimmer back on any change to non-timer prefs is being made
+    for key in default_prefs.keys():
+      if key in update:
+        update["dimmer"] = 1
 
   for key, value in update.items():
     converted_prefs[key] = None
