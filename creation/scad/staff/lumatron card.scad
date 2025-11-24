@@ -7,7 +7,7 @@ union() {
     translate([0, 75, 0])
     linear_extrude(card_thickness + embossing_h)
     scale(0.33)
-    import("./ravenstear.svg", center=true);
+    import("../ravenstear.svg", center=true);
     
     translate([0, 28, 0])
     linear_extrude(card_thickness + embossing_h)

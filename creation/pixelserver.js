@@ -383,6 +383,7 @@ async function generateGCode(info, print) {
 `
   scadFileContents += await generateModule(info, print)
   scadFileContents = info.prefixCode + scadFileContents
+  scadFileContents = scadFileContents.replaceAll("SOURCE_FOLDER", __dirname)
 
   console.log("Making .scad " + info.fullSuffix)
   await fs.promises.writeFile(scadFilePath, scadFileContents)

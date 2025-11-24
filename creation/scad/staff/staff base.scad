@@ -165,7 +165,7 @@ difference() {
         rotate([90,0,0])
         linear_extrude(1)
         scale(0.4)
-        import("./ravenstear.svg", center=true);
+        import("../ravenstear.svg", center=true);
     }
     
     // Removal for "test"

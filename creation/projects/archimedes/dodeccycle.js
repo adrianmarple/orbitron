@@ -88,8 +88,8 @@ module.exports = () => {
 
   printPostProcessingFunction = printInfo => {
     let h = 30
-    let r_in = 8.0
-    let r_out = r_in + 1.4
+    let pipe_r = 8.0
+    // let r_out = r_in + 1.4
     let poleInsertionIndex = -1
     for (let i = 0; i < printInfo.prints.length; i++) {
       if (printInfo.prints[i].suffix == "3b") {
@@ -107,22 +107,30 @@ module.exports = () => {
         {
           type: "union",
           operations: [{
-            type: "mirror",
-            normal: [0,0,1],
+            type: "rotate",
+            vector: [Math.PI,0,0],
           }],
           components: [
             printInfo.prints[poleInsertionIndex],
             {
-              position: [0, 0, 0-h],
+              type: "prefix",
               code: `
-              cylinder(h=${h}, r=${r_out}, $fn=64);`
+              use <SOURCE_FOLDER/scad/pipe.scad>`
+            },
+            {
+              operations: [{
+                type: "rotate",
+                vector: [Math.PI,0,0],
+              }],
+              code: `
+              outer_cuff(${pipe_r});`
             },
           ]
         },
         {
           position: [0, 0, -3],
           code: `
-          cylinder(h=${h+10}, r=${r_in}, $fn=64);`
+          cylinder(h=${h+10}, r=${pipe_r}, $fn=64);`
         },
       ]
     }
