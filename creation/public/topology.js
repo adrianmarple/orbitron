@@ -166,15 +166,14 @@ class Fold {
       this.negations[1] = -1
     }
 
-    let coords = vertex.oogCoords || vertex.ogCoords
-    this.deadendPlain = this.vertex.deadendPlain
-    if (!this.deadendPlain) {
-      this.deadendPlain = new Plain(coords, n0.sub(n1))
+    if (this.vertex.deadendPlain) {
+      this.deadendNormal = this.vertex.deadendPlain.normal
+    } else {
+      this.deadendNormal = n0.sub(n1)
     }
     this.dihedralAngle = n0.angleTo(n1)
 
-
-    let crease = vertex.plains[0].intersection(this.deadendPlain)
+    let crease = vertex.plains[0].intersection(this.deadendPlain())
     if (crease.direction.dot(n0.cross(n1)) < 0) {
       crease.direction = crease.direction.negate()
     }
@@ -201,10 +200,14 @@ class Fold {
     this.foldWalls[1].rightVertex = vertex1
   }
 
+  deadendPlain() { // Done this way so vertex coords can move
+    return new Plain(this.vertex.oogCoords || this.vertex.ogCoords, this.deadendNormal)
+  }
+
   getCoverInfo(plain, isOutgoing) {
     let index = this.plainToIndex[plain.index]
     let info = {
-      deadendPlain: this.deadendPlain,
+      deadendPlain: this.deadendPlain(),
       dihedralAngle: this.dihedralAngle * this.negations[index],
       aoiComplement: this.aoiComplement * this.negations[index] *
         (isOutgoing ? 1:-1) * (index == 0 ? -1:1),
@@ -603,10 +606,30 @@ function edgeCleanup(dontDoubleEdges) {
     // if (edge.verticies[0].plains.length == 2 || edge.verticies[1].plains.length == 2) {
     //   maxLength = MAX_FOLD_WALL_LENGTH
     // }
-    let splitCount = Math.floor(edge.length() * PIXEL_DISTANCE / maxLength)
-    let newLength = edge.length() / (splitCount + 1)
+    let isDeadend0 = edge.verticies[0].edges.length == 1
+    let isDeadend1 = edge.verticies[1].edges.length == 1
+    let splitCount = edge.length() * PIXEL_DISTANCE / maxLength
+    if (isDeadend0) {
+      splitCount += 0.5
+    }
+    if (isDeadend1) {
+      splitCount += 0.5
+    }
+    splitCount = Math.floor(splitCount)
+    let denom = splitCount+1
+    if (isDeadend0) {
+      denom -= 0.5
+    }
+    if (isDeadend1) {
+      denom -= 0.5
+    }
+    let newLength = edge.length() / denom
     for (let i = 0; i < splitCount; i++) {
-      edge.split(-newLength)
+      if (isDeadend1 && i == 0) {
+        edge.split(-newLength/2)
+      } else {
+        edge.split(-newLength)
+      }
     }
   }
 
@@ -914,13 +937,26 @@ function zeroFoldAllEdges(linearStartingVertex) {
   }
 
   function addSelfPlain(vertex) {
-    let normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[1].toVector(vertex))
-    if (normal.equals(ZERO)) {
+    let e0 = vertex.edges[0].toVector(vertex)
+    let e1 = vertex.edges[1].toVector(vertex)
+    let v = vertex.ogCoords
+    let normal = e0.cross(e1)
+    if (normal.equals(ZERO)) { // e1 and e2 are colinear
       if (vertex.edges.length > 2) {
         normal = vertex.edges[0].toVector(vertex).cross(vertex.edges[2].toVector(vertex))
       } else {
         // Default to plain pointing away from origin (mainly used for Hamiltonian solids)
-        normal = vertex.ogCoords.normalize()
+        // Then try up then forward
+        let n_v = v.orthoProj(e0)
+        let n_UP = UP.orthoProj(e0)
+        let n_FORWARD = FORWARD.orthoProj(e0)
+        if (!n_v.equals(ZERO)) {
+          normal = n_v
+        } else if (!n_UP.equals(ZERO)) {
+          normal = n_UP
+        } else {
+          normal = n_FORWARD
+        }
       }
     }
     if (normal.dot(FORWARD) < 0) {
@@ -934,11 +970,11 @@ function zeroFoldAllEdges(linearStartingVertex) {
         console.error("vertex edges not coplanar", normal, n2)
       }
     }
-    vertex.addPlain(new Plain(vertex.ogCoords, normal))
+    vertex.addPlain(new Plain(v, normal))
   }
 
   if (linearStartingVertex) {
-    let vertex = verticies[linearStartingVertex]
+    let vertex = resolveVertex(linearStartingVertex)
     addSelfPlain(vertex)
     twoEdgeVertecies.remove(vertex)
   }
@@ -1066,9 +1102,6 @@ function zeroFold(edge) {
   let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
   let newVertex = splitEdge(edge, edge.length()/2)
   newVertex.deadendPlain = new Plain(newVertex.ogCoords, foldNormal)
-  // let fold = new Plain(newVertex.ogCoords, foldNormal)
-  // plain0.folds[plain1.index] = fold
-  // plain1.folds[plain0.index] = fold
   newVertex.plains = []
   newVertex.addPlain(plain0)
   newVertex.addPlain(plain1)

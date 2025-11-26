@@ -299,6 +299,9 @@ function center() {
   for (let vertex of verticies) {
     vertex.ogCoords = vertex.ogCoords.add(offset)
   }
+  for (let plain of plains) {
+    
+  }
   return offset
 }
 function resize() {

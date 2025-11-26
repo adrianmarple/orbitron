@@ -202,8 +202,6 @@ async function createCoverSVG(plain) {
 
       let n = FORWARD.cross(e1)
 
-      let isFinalEdge = dPath == outerPath && e1.normalize().equals(v2.sub(start).normalize())
-
       let w1 = CHANNEL_WIDTH/2
       let w2 = w1 + WALL_THICKNESS
 
