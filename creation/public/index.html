@@ -144,6 +144,8 @@ function reset() {
 
   dataPostProcessingFunction = pixelInfo => {}
   printPostProcessingFunction = printInfo => {}
+  
+  setFor3DPrintedCovers()
 }
 reset()
 
@@ -173,9 +175,6 @@ function setFor3DPrintedCovers() {
   NOTCH_DEPTH = 4.5
   MAX_SLOT_SEGMENT_LENGTH = 40
   PORT_TYPE = "USBC_INTEGRATED"
-
-  // EXPERIMENTAL!!
-
 }
 
 Array.prototype.remove = function(elem) {

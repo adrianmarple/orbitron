@@ -106,10 +106,7 @@ module.exports = () => {
       components: [
         {
           type: "union",
-          operations: [{
-            type: "rotate",
-            vector: [Math.PI,0,0],
-          }],
+          operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
           components: [
             printInfo.prints[poleInsertionIndex],
             {
@@ -118,10 +115,7 @@ module.exports = () => {
               use <SOURCE_FOLDER/scad/pipe.scad>`
             },
             {
-              operations: [{
-                type: "rotate",
-                vector: [Math.PI,0,0],
-              }],
+              operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
               code: `
               outer_cuff(${pipe_r});`
             },
