@@ -470,6 +470,7 @@ class RepeatedTime():
 # Initial load
 
 def init():
+  print("Initializing prefs")
   # Preload all saved prefs
   for file in os.listdir(save_prefs_path):
     name = os.path.basename(file)[:-11]
