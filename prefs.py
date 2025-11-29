@@ -174,7 +174,7 @@ def update(update, client_timestamp=None):
   identify_name()
 
 save_prefs_loop_lock = False
-last_modified_time = 0
+last_modified_time = time() + 10 # Don't save at all for the first bit of time
 def debounce_save_prefs(): # Trying to avoid race conditions
   global last_modified_time, save_prefs_loop_lock
   last_modified_time = time()
@@ -470,7 +470,6 @@ class RepeatedTime():
 # Initial load
 
 def init():
-  print("Initializing prefs")
   # Preload all saved prefs
   for file in os.listdir(save_prefs_path):
     name = os.path.basename(file)[:-11]

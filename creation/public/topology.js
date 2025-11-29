@@ -247,6 +247,9 @@ class Fold {
     foldWall[coverType + "Length" + type] = wallLength
     foldWall["worldPlacementOperations" + type] = worldPlacementOperations
     foldWall.extraLEDSupportOffset = extraLEDSupportOffset // I think this should always be 0
+    if (extraLEDSupportOffset != 0) {
+      console.error("extraLEDSupportOffset not 0")
+    }
   }
 }
 

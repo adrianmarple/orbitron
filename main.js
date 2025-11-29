@@ -14,12 +14,6 @@ if(isOrb || config.HAS_EMULATION){
   console.log("Starting Orb")
   const { startOrb } = require('./orb')
   startOrb(config)
-  // startOrb({
-  //   ORB_ID: 'test',
-  //   DEV_MODE: config.DEV_MODE,
-  //   PYTHON_EXECUTABLE: config.PYTHON_EXECUTABLE,
-  //   HAS_EMULATION: true,
-  // })
 }
 
 if(isOrb){

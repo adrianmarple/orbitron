@@ -1,6 +1,6 @@
 #!/bin/bash
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-echo "Staring Orbitron"
+echo "Starting Lumatron"
 GIT_UPDATE=$SCRIPT_DIR/gitupdate.js
 EXTERNAL_BOARD_UPDATE=$SCRIPT_DIR/external_board_update.js
 MAIN=$SCRIPT_DIR/main.js
