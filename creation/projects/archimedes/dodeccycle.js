@@ -131,7 +131,7 @@ module.exports = () => {
   }
 
   splitEdge(0, EDGE_LENGTH/2)
-  zeroFoldAllEdges(20)
+  zeroFoldAllEdges(verticies.length - 1)
   edgeCleanup()
   doubleEdges()
   EulerianPath(0)

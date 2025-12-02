@@ -1,7 +1,6 @@
 module.exports = () => {
   setFor3DPrintedCovers()
   NO_EMBOSSING = true
-  BOTTOM_ORIGAMI_KERF = 0.1
   CHANNEL_LATCH_ANGLE = -6
 
 

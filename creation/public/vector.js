@@ -1,4 +1,3 @@
-
 class Vector extends THREE.Vector3 {
   isVector = true
 
@@ -45,8 +44,23 @@ class Vector extends THREE.Vector3 {
     return [500 + this.x * SCALE / z, 500 - this.y * SCALE / z]
   }
   // Assume z coordinate is 0 or otherwise ignorable
-  signedAngle(v) {
-    let a = Math.atan2(v.y*this.x - v.x*this.y, v.x*this.x + v.y*this.y)
+  // oldSignedAngle(v) {
+  //   let a = Math.atan2(v.y*this.x - v.x*this.y, v.x*this.x + v.y*this.y)
+  //   if (epsilonEquals(Math.abs(a), Math.PI)) {
+  //     return Math.PI
+  //   } else {
+  //     return a
+  //   }
+  // }
+  signedAngle(v, plain=DEFAULT_PLAIN) {
+    let thisPrime = plain.basis.convert(this)
+    let vPrime = plain.basis.convert(v)
+    let v0x = thisPrime.y
+    let v0y = thisPrime.z
+    let v1x = vPrime.y
+    let v1y = vPrime.z
+
+    let a = Math.atan2(v1y*v0x - v1x*v0y, v1x*v0x + v1y*v0y)
     if (epsilonEquals(Math.abs(a), Math.PI)) {
       return Math.PI
     } else {
@@ -182,6 +196,7 @@ class Plain {
     this.offset = offset.proj(normal)
     this.normal = normal.normalize()
     this.folds = {}
+    this.basis = new Basis(normal)
   }
 
   clone() {
@@ -242,6 +257,25 @@ class Plain {
     if (thing.isPlain) {
       return thing.offset.equals(this.offset) && thing.normal.plusMinusEquals(this.normal)
     }
+  }
+}
+
+class Basis {
+  // Corrects to make actual basis no matter what
+  constructor(v0, v1) {
+    this.v0 = v0.normalize()
+    if (!v1) {
+      v1 = UP
+    }
+    if (epsilonEquals(v1.dot(v0), 0)) {
+      v1 = RIGHT
+    }
+    this.v1 = v1.orthoProj(v0).normalize()
+    this.v2 = v0.cross(v1)
+  }
+
+  convert(v) {
+    return new Vector(this.v0.dot(v), this.v1.dot(v), this.v2.dot(v))
   }
 }
 

@@ -177,7 +177,7 @@ save_prefs_loop_lock = False
 last_modified_time = time() + 10 # Don't save at all for the first bit of time
 def debounce_save_prefs(): # Trying to avoid race conditions
   global last_modified_time, save_prefs_loop_lock
-  last_modified_time = time()
+  last_modified_time = max(last_modified_time, time())
   if save_prefs_loop_lock:
     return
   save_prefs_loop_lock = True

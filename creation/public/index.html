@@ -81,9 +81,6 @@ function reset() {
   NOTCH_KERF = -0.15
   WALL_STRAIGHT_KERF = 0 // 0.11
   WALL_MITER_KERF = 0.1
-  ORIGAMI_KERF = 0.1 // Might need to be different for laser cutting
-  TOP_ORIGAMI_KERF = null
-  BOTTOM_ORIGAMI_KERF = null
 
   LED_SUPPORT_WIDTH = 9
   LED_SUPPORT_GAP = 2
@@ -144,7 +141,7 @@ function reset() {
 
   dataPostProcessingFunction = pixelInfo => {}
   printPostProcessingFunction = printInfo => {}
-  
+
   setFor3DPrintedCovers()
 }
 reset()
@@ -164,11 +161,8 @@ function setFor3DPrintedCovers() {
   TOP_KERF = BOTTOM_KERF
   WALL_KERF = 0
   NOTCH_KERF = 0
-  TOP_ORIGAMI_KERF = 0 //-0.1
-  BOTTOM_ORIGAMI_KERF = 0
 
   WALL_THICKNESS = 2.6
-  PRINT_WALL_HALVES_SEPARATELY = true
 
   THICKNESS = 2 
   CHANNEL_LATCH_ANGLE = -6.7

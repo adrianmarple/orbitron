@@ -252,29 +252,34 @@ async function createCoverSVG(plain) {
       let plains1 = vertex1.plains
       let plains2 = vertex2.plains
 
-      function addFoldWallInfo(type) {
-        let isOne = type == 1
-        let vertex = isOne ? vertex1 : vertex2
-        let {deadendPlain, dihedralAngle, aoiComplement} =
-            vertex.fold().getCoverInfo(plain, isOne)
-        deadendPlain = deadendPlain.rotateAndScale(R, PIXEL_DISTANCE)
+      function addFoldWallInfo(isOutgoing) {
+        let vertex = isOutgoing ? vertex1 : vertex2
+        let edge = vertex1.getEdge(vertex2)
+        let fold = vertex.fold(edge, isOutgoing)
+        let {deadendPlain, dihedralAngle, aoiComplement, plainTranslationValue} = fold.getCoverInfo(edge, isOutgoing, R)
+        let oldFold = vertex.oldFold()
+        let info = oldFold.getCoverInfo(plain, isOutgoing)
+        if (!epsilonEquals(dihedralAngle, info.dihedralAngle)) {
+          console.log("Dihedral", dihedralAngle, info.dihedralAngle)
+        }if (!epsilonEquals(aoiComplement, info.aoiComplement)) {
+          console.log("Complement", aoiComplement, info.aoiComplement)
+        }
+        if (vertex.negation(plain) != oldFold.negations[oldFold.plainToIndex[plain.index]]) {
+          console.log("Negation", fold, oldFold)
+        }
 
-        let outerV = isOne ? v2 : v1
+        let outerV = isOutgoing ? v2 : v1
         let wallStartPoint = outerV
             .addScaledVector(n, aoiComplement < 0 ? w2 : w1)
-            .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
-
-        let plainTranslationValue = CHANNEL_DEPTH/2
-        plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS
-        plainTranslationValue *= IS_BOTTOM ? 1 : -1
-        wallStartPoint = wallStartPoint.addScaledVector(FORWARD, plainTranslationValue)
+            .addScaledVector(e1, isOutgoing ? lengthOffset2 : lengthOffset1)
+            .addScaledVector(FORWARD, plainTranslationValue)
         let wallEndPoint = deadendPlain.intersection(new Line(wallStartPoint, e1))
 
-        if (wallEndPoint.sub(wallStartPoint).normalize().dot(e1) * (isOne ?-1:1) < 0) {
-          console.log("wallStartPoint on wrong side of deadend plain!", isOne ? vertex1 : vertex2)
+        if (wallEndPoint.sub(wallStartPoint).normalize().dot(e1) * (isOutgoing ?-1:1) < 0) {
+          console.log("wallStartPoint on wrong side of deadend plain!", isOutgoing ? vertex1 : vertex2)
         }
         wallLength = wallEndPoint.sub(wallStartPoint).length()
-        if (isOne) {
+        if (isOutgoing) {
           lengthOffset1 = edgeLength + lengthOffset2 - wallLength
         } else {
           lengthOffset2 = wallLength + lengthOffset1 - edgeLength
@@ -283,7 +288,7 @@ async function createCoverSVG(plain) {
         // World placement adjustments
         let outerPoint = outerV
             .addScaledVector(n, w2)
-            .addScaledVector(e1, isOne ? lengthOffset2 : lengthOffset1)
+            .addScaledVector(e1, isOutgoing ? lengthOffset2 : lengthOffset1)
         let wallCorner = deadendPlain.intersection(new Line(outerPoint, e1))
 
         worldPlacementOperations[2].position = wallCorner.toArray()
@@ -297,23 +302,54 @@ async function createCoverSVG(plain) {
           angle: 0, // Create stub so other functions can manipulate this angle
         })
 
-        vertex.fold().addFoldWallInfo({
-          plain,
-          isOutgoing: isOne,
+        fold.addFoldWallInfo({
+          plain, edge,
+          isOutgoing,
           wallLength,
-          angle: isOne ? angle2 : angle1,
-          lengthOffset: isOne ? lengthOffset2 : lengthOffset1,
+          angle: isOutgoing ? angle2 : angle1,
+          lengthOffset: isOutgoing ? lengthOffset2 : lengthOffset1,
           edgeLength,
           worldPlacementOperations,
           extraLEDSupportOffset,
         })
-        associateWallWithEdge(vertex.fold().getWall(plain, isOne), associatedEdge)
+        vertex.oldFold().addFoldWallInfo({
+          plain,
+          isOutgoing,
+          wallLength,
+          angle: isOutgoing ? angle2 : angle1,
+          lengthOffset: isOutgoing ? lengthOffset2 : lengthOffset1,
+          edgeLength,
+          worldPlacementOperations,
+          extraLEDSupportOffset,
+        })
+        if (fold.infoAdded.length == 4) {
+          let oldWall = vertex.oldFold().getWall(plain, isOutgoing)
+          let flipped = oldWall.leftVertex != fold.wall.leftVertex
+          if (flipped) {
+            oldWall = vertex.oldFold().getWall(plain, !isOutgoing)
+          }
+          let fields = ["angleOfIncidence", "aoiComplement", "bottomLength1", "bottomLength2",
+            "topLength1", "topLength2", "miterAngle1", "miterAngle2", "lengthOffset1", "lengthOffset2",
+            "dihedralAngle", "edgeLength1", "edgeLength2", "extraLEDSupportOffset"]
+          for (let field of fields) {
+            if (!epsilonEquals(fold.wall[field], oldWall[field])) {
+              console.log(vertex.index, isOutgoing, IS_BOTTOM, vertex.negation(plain))
+              console.log(fold)
+              console.log(fold.wall)
+              console.log(oldWall)
+              console.log(vertex.oldFold().getWall(plain, !isOutgoing != flipped))
+              console.log(vertex.negation(vertex.plains[0]), vertex.negation(vertex.plains[1]))
+              break
+            }
+          }
+        }
+        associateWallWithEdge(fold.wall, associatedEdge)
       }
 
-      if (plains1.length == 2) {
-        addFoldWallInfo(1)
-      } else if (plains2.length == 2) {
-        addFoldWallInfo(2)
+      if (plains1.length >= 2) {
+        addFoldWallInfo(true)
+      } else if (plains2.length >= 2) {
+        addFoldWallInfo(false)
       } else {
         associateWallWithEdge({
           miterAngle: angle1,
@@ -344,26 +380,17 @@ async function createCoverSVG(plain) {
       let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
       let borderLengthOffset = width / -Math.tan((Math.PI - a1)/2)
       
-      if (plains1.length == 2) {
-        let {deadendPlain, dihedralAngle, angleOfIncidence} = vertex1.fold().getCoverInfo(plain, true)
+      if (plains1.length >= 2) {
+        let edge = vertex1.getEdge(vertex2)
+        let {deadendPlain, line, dihedralAngle, angleOfIncidence} = vertex1
+          .fold(edge, true).getCoverInfo(edge, true, R)
 
-        let plainTranslationValue = CHANNEL_DEPTH/2
-        plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
-        plainTranslationValue *= IS_BOTTOM ? 1 : -1
-        let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
-        deadendPlain = deadendPlain.rotateAndScale(R, PIXEL_DISTANCE)
-        let kerf = ORIGAMI_KERF
         if (RENDER_MODE == "parts") {
-          kerf -= 0.2
+          deadendPlain = deadendPlain.translate(e0.normalize().scale(-0.2))
         }
-        else if (RENDER_MODE != "standard") {
-          kerf = 0
-        }
-        deadendPlain = deadendPlain.translate(e0.normalize().scale(kerf))
         let line1 = line.translate(n.scale(width))
         let p1 = deadendPlain.intersection(line1)
-        let line2 = line.translate(n.scale(-width))
-        let p2 = deadendPlain.intersection(line2)
+        let p2 = deadendPlain.intersection(line)
         borderString += pointsToSVGString([p2, p1])
         borderPoints.push(p2)
         borderPoints.push(p1)
@@ -371,8 +398,7 @@ async function createCoverSVG(plain) {
         // fold wall miter
         let skew = Math.tan(angleOfIncidence - Math.PI/2)
         let angle = Math.atan(Math.tan(dihedralAngle/2) / Math.sin(angleOfIncidence))
-        centerPoint = v2.addScaledVector(FORWARD, plainTranslationValue)
-        let wedgePoint = deadendPlain.intersection(new Line(centerPoint, e1))
+        let wedgePoint = p1.add(p2).scale(0.5)
         wedgePoint.z = 0
         print.components.push({
           type: "wedge",
@@ -380,7 +406,42 @@ async function createCoverSVG(plain) {
           rotationAngle: -e1.signedAngle(LEFT),
           position: wedgePoint.toArray(),
           thickness: THICKNESS + EXTRA_COVER_THICKNESS,
-          width: CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER),
+          width: CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER,
+          skew,
+        })
+      } else if (plains2.length >= 2) {
+        points = [[borderLengthOffset, width]]
+        borderString += pointsToSVGString(points, [e1, n], v1)
+        borderPoints.push(v1
+            .addScaledVector(e1, borderLengthOffset)
+            .addScaledVector(n, width))
+
+        let edge = vertex1.getEdge(vertex2)
+        let {deadendPlain, line, dihedralAngle, angleOfIncidence} = vertex2
+          .fold(edge, false).getCoverInfo(edge, false, R)
+
+        if (RENDER_MODE == "parts") {
+          deadendPlain = deadendPlain.translate(e1.normalize().scale(-0.2))
+        }
+        // let line1 = line.translate(n.scale(width))
+        // let p1 = deadendPlain.intersection(line1)
+        let line2 = line.translate(n.scale(width))
+        let p = deadendPlain.intersection(line2)
+        borderString += pointsToSVGString([p])
+        borderPoints.push(p)
+
+        // fold wall miter
+        let skew = -Math.tan(angleOfIncidence - Math.PI/2)
+        let angle = Math.atan(Math.tan(dihedralAngle/2) / Math.sin(angleOfIncidence))
+        let wedgePoint = deadendPlain.intersection(line).add(p).scale(0.5)
+        wedgePoint.z = 0
+        print.components.push({
+          type: "wedge",
+          angle: angle * (IS_BOTTOM ? -1 : 1),
+          rotationAngle: -e2.signedAngle(LEFT),
+          position: wedgePoint.toArray(),
+          thickness: THICKNESS + EXTRA_COVER_THICKNESS,
+          width: CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER,
           skew,
         })
       } else {
@@ -394,20 +455,23 @@ async function createCoverSVG(plain) {
       // Inner Channel
       width = CHANNEL_WIDTH/2 - INNER_CHANNEL_BUFFER
       let channelLengthOffset = width / -Math.tan((Math.PI - a1)/2)
-      if (plains1.length == 2) {
-        let plainTranslationValue = CHANNEL_DEPTH/2
-        let {deadendPlain, dihedralAngle} = vertex1.fold().getCoverInfo(plain, true)
-
-        plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
-        plainTranslationValue *= IS_BOTTOM ? 1 : -1
-        let line = new Line(v0, e0).translate(FORWARD.scale(plainTranslationValue))
-        deadendPlain = deadendPlain.rotateAndScale(R, PIXEL_DISTANCE)
+      if (plains1.length >= 2) {
+        let edge = vertex1.getEdge(vertex2)
+        let { deadendPlain, line } = vertex1.fold(edge, true).getCoverInfo(edge, true, R)
         deadendPlain = deadendPlain.translate(e0.normalize().scale(5)) // TODO calculate more properply
         let line1 = line.translate(n.scale(width))
         let p1 = deadendPlain.intersection(line1)
-        let line2 = line.translate(n.scale(-width))
-        let p2 = deadendPlain.intersection(line2)
+        let p2 = deadendPlain.intersection(line)
         channelString += pointsToSVGString([p2, p1])
+      } else if (plains2.length >= 2) {
+        channelString += pointsToSVGString([[channelLengthOffset, width]], [e1, n], v1)
+
+        let edge = vertex1.getEdge(vertex2)
+        let { deadendPlain, line } = vertex2.fold(edge, false).getCoverInfo(edge, false, R)
+        deadendPlain = deadendPlain.translate(e1.normalize().scale(5)) // TODO calculate more properply
+        let line2 = line.translate(n.scale(width))
+        let p = deadendPlain.intersection(line2)
+        channelString += pointsToSVGString([p])
       } else {
         channelString += pointsToSVGString([[channelLengthOffset, width]], [e1, n], v1)
       }
@@ -805,7 +869,11 @@ function createPrintInfo3D() {
       if (wall.isFoldWall) {
         foldWallCreation(wall, printInfo)
       } else {
-        printInfo.prints.push(wallPrint(wall, true))
+        let print = wallPrint(wall, true)
+        if (print.suffix == portPartID) {
+          cleanAndFlip(print)
+        }
+        printInfo.prints.push(print)
       }
       completedWalls.push(wall)
       partID += 1
@@ -1321,16 +1389,16 @@ function wallPrint(wall, isLeft) {
   }
 
   // Embossing
-  const MAX_EMBOSSING_WIDTH = 10
+  const MAX_EMBOSSING_WIDTH = 12
   if (!NO_EMBOSSING &&
     !(hasPort && PORT_TYPE == "USBC_INTEGRATED") &&
     RENDER_MODE == "standard") {
 
     let embossingOffset = lengthOffset
-    if (embossingOffset + MAX_EMBOSSING_WIDTH + LED_SUPPORT_WIDTH/2 > supportOffset) {
+    if (supportOffset && embossingOffset + MAX_EMBOSSING_WIDTH + LED_SUPPORT_WIDTH/2 > supportOffset) {
       embossingOffset = supportOffset + LED_SUPPORT_WIDTH/2 + 1
     }
-    embossingOffset = Math.min(embossingOffset, lengthOffset + topLength - MAX_EMBOSSING_WIDTH)
+    embossingOffset = Math.min(embossingOffset, lengthOffset + Math.max(topLength, bottomLength) - MAX_EMBOSSING_WIDTH)
     let emboPos = startV.addScaledVector(E, -embossingOffset)
     print.components.push({
       type: "embossing",
@@ -1638,7 +1706,6 @@ async function generateManufacturingInfo() {
     
     IS_BOTTOM = false
     window.KERF = TOP_KERF
-    window.ORIGAMI_KERF = TOP_ORIGAMI_KERF == null ? ORIGAMI_KERF : TOP_ORIGAMI_KERF
     for (let plain of plains) {
       covers.top.push(await createCoverSVG(plain))
       let w = (maxX - minX)
@@ -1656,7 +1723,6 @@ async function generateManufacturingInfo() {
     }
     IS_BOTTOM = true
     window.KERF = BOTTOM_KERF
-    window.ORIGAMI_KERF = BOTTOM_ORIGAMI_KERF == null ? ORIGAMI_KERF : BOTTOM_ORIGAMI_KERF
     for (let plain of plains) {
       covers.bottom.push(await createCoverSVG(plain))
       let w = (maxX - minX) / 96
