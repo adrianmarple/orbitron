@@ -267,7 +267,7 @@ class Basis {
     if (!v1) {
       v1 = UP
     }
-    if (epsilonEquals(v1.dot(v0), 0)) {
+    if (v1.cross(v0).equals(ZERO)) {
       v1 = RIGHT
     }
     this.v1 = v1.orthoProj(v0).normalize()

@@ -70,8 +70,25 @@ class Vertex {
       }
     }
   }
+  nextEdge(edge, flip) {
+    let plain = edge.commonPlain()
+    if (flip) {
+      plain = plain.otherSide()
+    }
+    let e = edge.toVector(this, true)
 
-  arrangeEdgesAndSetNegations() {
+    let minAngle = 4
+    let bestEdge = edge
+    for (let otherEdge of this.edges) {
+      if (otherEdge == edge || otherEdge.isDupe) continue
+      e0 = otherEdge.toVector(this, true).negate()
+      let angle = e.signedAngle(e0, plain)
+      if (angle < minAngle) {
+        minAngle = angle
+        bestEdge = otherEdge
+      }
+    }
+    return bestEdge
   }
 
   fold(edge, isOutgoing) {
@@ -94,32 +111,11 @@ class Vertex {
     }
     let name = this.subEdgeName(edge, isOutgoing)
     if (!this.folds[name]) {
-      // this.folds[name] = new Fold(this, edge, isOutgoing)
       let fold = new Fold(this, edge, isOutgoing)
       this.folds[fold.edge0.index + "bottom1"] = fold
       this.folds[fold.edge0.index + "top1"] = fold
       this.folds[fold.edge1.index + "bottom2"] = fold
       this.folds[fold.edge1.index + "top2"] = fold
-    } else {
-      // let oldFold = this.folds[name]
-      // let newFold = new Fold(this, edge, isOutgoing)
-      // let fields = ["edge0", "edge1", "dihedralAngle", "angleOfIncidence", "aoiComplement"]
-      // for (let field of fields) {
-      //   if (typeof oldFold[field] == "number" && !epsilonEquals(oldFold[field], newFold[field])) {
-      //     console.log(oldFold)
-      //     console.log(newFold)
-      //     break
-      //   }
-      //   if (typeof oldFold[field] == "object" && oldFold[field] != newFold[field]) {
-      //     console.log(oldFold)
-      //     console.log(newFold)
-      //     break
-      //   }
-      // }
-      // if (oldFold.wall.leftVertex != newFold.wall.leftVertex) {
-      //   console.log(oldFold)
-      //   console.log(newFold)
-      // }
     }
     return this.folds[name]
   }
@@ -139,27 +135,6 @@ class Vertex {
       normal = normal.negate()
     }
     return normal
-  }
-
-  nextEdge(edge, flip) {
-    let plain = edge.commonPlain()
-    if (flip) {
-      plain = plain.otherSide()
-    }
-    let e = edge.toVector(this, true)
-
-    let minAngle = 4
-    let bestEdge = null
-    for (let otherEdge of this.edges) {
-      if (otherEdge == edge || otherEdge.isDupe) continue
-      e0 = otherEdge.toVector(this, true)
-      let angle = e.signedAngle(e0)
-      if (angle < minAngle) {
-        minAngle = angle
-        bestEdge = otherEdge
-      }
-    }
-    return bestEdge
   }
 
   subEdgeName(edge, isOutgoing, isBottom=IS_BOTTOM) {
@@ -298,7 +273,7 @@ class Fold {
     let dihedralAngle = this.dihedralAngle * negation
 
     let plainTranslationValue = CHANNEL_DEPTH/2
-    plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
+    // plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
     plainTranslationValue *= IS_BOTTOM ? 1 : -1
     let line = new Line(this.vertex.ogCoords, edge.toVector(this.vertex))
       .translate(FORWARD.scale(plainTranslationValue))
@@ -324,7 +299,7 @@ class Fold {
     this.infoAdded.push(this.vertex.subEdgeName(edge, isOutgoing))
     // console.log(this.infoAdded)
 
-    let negation = this.vertex.negation(plain)
+    let negation = this.vertex.negation(edge)
     if (negation == -1) {
       isOutgoing = !isOutgoing
       worldPlacementOperations[2].angle = Math.PI
@@ -812,9 +787,8 @@ function resetInidices() {
 function edgeCleanup(dontDoubleEdges) {
   // First check if there are any edges with two fold verticies so they can be split
   for (let edge of [...edges]) {
-    if (edge.verticies[0].plains.length == 2 && edge.verticies[1].plains.length == 2) {
-      let newVertex = edge.split(edge.length()/2)
-      newVertex.dontMergeEdges = true
+    if (edge.verticies[0].plains.length >= 2 && edge.verticies[1].plains.length >= 2) {
+      edge.split(edge.length()/2)
     }
   }
 

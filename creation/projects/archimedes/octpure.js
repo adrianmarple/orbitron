@@ -1,5 +1,7 @@
 // SKI
 module.exports = () => {
+  const EDGE_LENGTH = 6
+
   for (let permutation of [[1, 0, 0], [0, 1, 0], [0, 0, 1]]) {
     addPlusMinusVertex(permutation)
   }
@@ -19,10 +21,21 @@ module.exports = () => {
       }
     }
   }
-  scale(6)
+  for (let vertex of verticies) {
+    vertex.plains = []
+  }
+  for (let edge of edges) {
+    let v0 = edge.verticies[0]
+    let v1 = edge.verticies[1]
+    let center = v0.ogCoords.add(v1.ogCoords).scale(0.5)
+    let plain = new Plain(center, center)
+    v0.addPlain(plain)
+    v1.addPlain(plain)
+  }
+  scale(EDGE_LENGTH)
 
-  splitEdge(0, EDGE_LENGTH/2)
-  zeroFoldAllEdges(verticies.length - 1)
+  // splitEdge(0, EDGE_LENGTH/2)
+  // zeroFoldAllEdges(verticies.length - 1)
   edgeCleanup()
   doubleEdges()
   EulerianPath(0)

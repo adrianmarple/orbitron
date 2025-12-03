@@ -1,4 +1,4 @@
-// SKIP
+// SKI
 module.exports = () => {
   PIXEL_DISTANCE = 16.5
 

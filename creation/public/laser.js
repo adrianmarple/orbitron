@@ -150,6 +150,9 @@ async function createCoverSVG(plain) {
       let vertex1 = dPath[(i+1) % dPath.length]
       let vertex2 = dPath[(i+2) % dPath.length]
       let vertex3 = dPath[(i+3) % dPath.length]
+      let edge0 = vertex0.getEdge(vertex1)
+      let edge1 = vertex1.getEdge(vertex2)
+      let edge2 = vertex2.getEdge(vertex3)
   	  let v0 = vertex0.ogCoords
   	  let v1 = vertex1.ogCoords
   	  let v2 = vertex2.ogCoords
@@ -249,24 +252,25 @@ async function createCoverSVG(plain) {
       ]
 
       // Logic for fold walls
-      let plains1 = vertex1.plains
-      let plains2 = vertex2.plains
+      let outgoingFoldWall = vertex1.nextEdge(edge1, false) != edge0
+      let incomingFoldWall = vertex2.nextEdge(edge1, true) != edge2
 
       function addFoldWallInfo(isOutgoing) {
         let vertex = isOutgoing ? vertex1 : vertex2
-        let edge = vertex1.getEdge(vertex2)
-        let fold = vertex.fold(edge, isOutgoing)
-        let {deadendPlain, dihedralAngle, aoiComplement, plainTranslationValue} = fold.getCoverInfo(edge, isOutgoing, R)
-        let oldFold = vertex.oldFold()
-        let info = oldFold.getCoverInfo(plain, isOutgoing)
-        if (!epsilonEquals(dihedralAngle, info.dihedralAngle)) {
-          console.log("Dihedral", dihedralAngle, info.dihedralAngle)
-        }if (!epsilonEquals(aoiComplement, info.aoiComplement)) {
-          console.log("Complement", aoiComplement, info.aoiComplement)
-        }
-        if (vertex.negation(plain) != oldFold.negations[oldFold.plainToIndex[plain.index]]) {
-          console.log("Negation", fold, oldFold)
-        }
+        let edge = edge1 // Won't always be the case
+        let fold = vertex.fold(edge1, isOutgoing)
+        let { deadendPlain, aoiComplement, plainTranslationValue } =
+            fold.getCoverInfo(edge1, isOutgoing, R)
+        // let oldFold = vertex.oldFold()
+        // let info = oldFold.getCoverInfo(plain, isOutgoing)
+        // if (!epsilonEquals(dihedralAngle, info.dihedralAngle)) {
+        //   console.log("Dihedral", dihedralAngle, info.dihedralAngle)
+        // }if (!epsilonEquals(aoiComplement, info.aoiComplement)) {
+        //   console.log("Complement", aoiComplement, info.aoiComplement)
+        // }
+        // if (vertex.negation(plain) != oldFold.negations[oldFold.plainToIndex[plain.index]]) {
+        //   console.log("Negation", fold, oldFold)
+        // }
 
         let outerV = isOutgoing ? v2 : v1
         let wallStartPoint = outerV
@@ -303,17 +307,8 @@ async function createCoverSVG(plain) {
         })
 
         fold.addFoldWallInfo({
-          plain, edge,
-          isOutgoing,
-          wallLength,
-          angle: isOutgoing ? angle2 : angle1,
-          lengthOffset: isOutgoing ? lengthOffset2 : lengthOffset1,
-          edgeLength,
-          worldPlacementOperations,
-          extraLEDSupportOffset,
-        })
-        vertex.oldFold().addFoldWallInfo({
           plain,
+          edge,
           isOutgoing,
           wallLength,
           angle: isOutgoing ? angle2 : angle1,
@@ -322,33 +317,44 @@ async function createCoverSVG(plain) {
           worldPlacementOperations,
           extraLEDSupportOffset,
         })
-        if (fold.infoAdded.length == 4) {
-          let oldWall = vertex.oldFold().getWall(plain, isOutgoing)
-          let flipped = oldWall.leftVertex != fold.wall.leftVertex
-          if (flipped) {
-            oldWall = vertex.oldFold().getWall(plain, !isOutgoing)
-          }
-          let fields = ["angleOfIncidence", "aoiComplement", "bottomLength1", "bottomLength2",
-            "topLength1", "topLength2", "miterAngle1", "miterAngle2", "lengthOffset1", "lengthOffset2",
-            "dihedralAngle", "edgeLength1", "edgeLength2", "extraLEDSupportOffset"]
-          for (let field of fields) {
-            if (!epsilonEquals(fold.wall[field], oldWall[field])) {
-              console.log(vertex.index, isOutgoing, IS_BOTTOM, vertex.negation(plain))
-              console.log(fold)
-              console.log(fold.wall)
-              console.log(oldWall)
-              console.log(vertex.oldFold().getWall(plain, !isOutgoing != flipped))
-              console.log(vertex.negation(vertex.plains[0]), vertex.negation(vertex.plains[1]))
-              break
-            }
-          }
-        }
+        // oldFold.addFoldWallInfo({
+        //   plain,
+        //   isOutgoing,
+        //   wallLength,
+        //   angle: isOutgoing ? angle2 : angle1,
+        //   lengthOffset: isOutgoing ? lengthOffset2 : lengthOffset1,
+        //   edgeLength,
+        //   worldPlacementOperations,
+        //   extraLEDSupportOffset,
+        // })
+        // if (fold.infoAdded.length == 4) {
+        //   let oldWall = oldFold.getWall(plain, isOutgoing)
+        //   let flipped = oldWall.leftVertex != fold.wall.leftVertex
+        //   if (flipped) {
+        //     oldWall = oldFold.getWall(plain, !isOutgoing)
+        //   }
+        //   let fields = ["angleOfIncidence", "aoiComplement", "bottomLength1", "bottomLength2",
+        //     "topLength1", "topLength2", "miterAngle1", "miterAngle2", "lengthOffset1", "lengthOffset2",
+        //     "dihedralAngle", "edgeLength1", "edgeLength2", "extraLEDSupportOffset"]
+        //   for (let field of fields) {
+        //     if (!epsilonEquals(fold.wall[field], oldWall[field])) {
+        //       console.log(vertex.index, isOutgoing, IS_BOTTOM, vertex.negation(plain))
+        //       console.log(fold)
+        //       console.log(fold.wall)
+        //       console.log(oldWall)
+        //       console.log(oldFold.getWall(plain, !isOutgoing != flipped))
+        //       console.log(vertex.negation(vertex.plains[0]), vertex.negation(vertex.plains[1]))
+        //       break
+        //     }
+        //   }
+        // }
+        // // associateWallWithEdge(oldFold.getWall(plain, isOutgoing), associatedEdge)
         associateWallWithEdge(fold.wall, associatedEdge)
       }
 
-      if (plains1.length >= 2) {
+      if (outgoingFoldWall) {
         addFoldWallInfo(true)
-      } else if (plains2.length >= 2) {
+      } else if (incomingFoldWall) {
         addFoldWallInfo(false)
       } else {
         associateWallWithEdge({
@@ -380,7 +386,7 @@ async function createCoverSVG(plain) {
       let width = CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER
       let borderLengthOffset = width / -Math.tan((Math.PI - a1)/2)
       
-      if (plains1.length >= 2) {
+      if (outgoingFoldWall) {
         let edge = vertex1.getEdge(vertex2)
         let {deadendPlain, line, dihedralAngle, angleOfIncidence} = vertex1
           .fold(edge, true).getCoverInfo(edge, true, R)
@@ -409,7 +415,7 @@ async function createCoverSVG(plain) {
           width: CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER,
           skew,
         })
-      } else if (plains2.length >= 2) {
+      } else if (incomingFoldWall) {
         points = [[borderLengthOffset, width]]
         borderString += pointsToSVGString(points, [e1, n], v1)
         borderPoints.push(v1
@@ -423,8 +429,6 @@ async function createCoverSVG(plain) {
         if (RENDER_MODE == "parts") {
           deadendPlain = deadendPlain.translate(e1.normalize().scale(-0.2))
         }
-        // let line1 = line.translate(n.scale(width))
-        // let p1 = deadendPlain.intersection(line1)
         let line2 = line.translate(n.scale(width))
         let p = deadendPlain.intersection(line2)
         borderString += pointsToSVGString([p])
@@ -455,7 +459,7 @@ async function createCoverSVG(plain) {
       // Inner Channel
       width = CHANNEL_WIDTH/2 - INNER_CHANNEL_BUFFER
       let channelLengthOffset = width / -Math.tan((Math.PI - a1)/2)
-      if (plains1.length >= 2) {
+      if (outgoingFoldWall) {
         let edge = vertex1.getEdge(vertex2)
         let { deadendPlain, line } = vertex1.fold(edge, true).getCoverInfo(edge, true, R)
         deadendPlain = deadendPlain.translate(e0.normalize().scale(5)) // TODO calculate more properply
@@ -463,7 +467,7 @@ async function createCoverSVG(plain) {
         let p1 = deadendPlain.intersection(line1)
         let p2 = deadendPlain.intersection(line)
         channelString += pointsToSVGString([p2, p1])
-      } else if (plains2.length >= 2) {
+      } else if (incomingFoldWall) {
         channelString += pointsToSVGString([[channelLengthOffset, width]], [e1, n], v1)
 
         let edge = vertex1.getEdge(vertex2)
@@ -477,7 +481,7 @@ async function createCoverSVG(plain) {
       }
 
       // Embossed id
-      if (!findEmbossing(print) && plains1.length == 1) {
+      if (!findEmbossing(print) && !outgoingFoldWall) {
         if (RENDER_MODE == "standard" && !NO_EMBOSSING) {
           let z = EXTRA_COVER_THICKNESS + (INNER_CHANNEL_THICKNESS ? INNER_CHANNEL_THICKNESS : THICKNESS)
           let embossing = {
@@ -1210,7 +1214,7 @@ function wallPrint(wall, isLeft) {
       break // Reached middle vertex of foldwall first; keep inset
     }
   }
-  // Excpetion for if first wall is foldWall
+  // Exception for if first wall is foldWall
   if (vertex1 == vertexPath[0] && vertex0 == vertexPath[1]) {
     insetAngle = 0
   }

@@ -1,6 +1,5 @@
 module.exports = () => {
-  setFor3DPrintedCovers()
-  PRINT_WALL_HALVES_SEPARATELY = false
+  PRINT_WALL_HALVES_SEPARATELY = true
   let EDGE_LENGTH = 6
 
   addPlusMinusVertex([1,1,1])
