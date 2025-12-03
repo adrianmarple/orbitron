@@ -220,8 +220,9 @@ async function createCoverSVG(plain) {
 
       let wallLength = edgeLength + lengthOffset2 - lengthOffset1
       let borderLength = edgeLength + (lengthRatio2 - lengthRatio1) * w3
-      if (borderLength < 0) {
+      if (borderLength < 0 && edge1.index != edge2.index) {
         negativeAreaDetected = true
+        console.log("Negative area detected")
       }
       let angle1 = a1/2
       let angle2 = -a2/2

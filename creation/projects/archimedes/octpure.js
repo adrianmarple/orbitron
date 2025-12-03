@@ -22,6 +22,7 @@ module.exports = () => {
       }
     }
   }
+  rotateZAll(Math.PI * 5/4)
   for (let vertex of verticies) {
     vertex.plains = []
   }
@@ -35,7 +36,6 @@ module.exports = () => {
   }
   scale(EDGE_LENGTH)
 
-  rotateZAll(Math.PI * 5/4)
 
   printPostProcessingFunction = printInfo => {
     let h = 30
