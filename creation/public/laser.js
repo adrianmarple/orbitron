@@ -1153,6 +1153,7 @@ function wallPrint(wall, isLeft) {
     topLength = isLeft ? wall.topLength1 : wall.topLength2
     bottomLength = isLeft ? wall.bottomLength1 : wall.bottomLength2
   }
+  let maxLength = Math.max(topLength, bottomLength)
   let miterAngle = wall.miterAngle
   if (!miterAngle) {
     miterAngle = isLeft ? wall.miterAngle1 : wall.miterAngle2
@@ -1358,8 +1359,8 @@ function wallPrint(wall, isLeft) {
       supportOffset += PIXEL_DISTANCE
     }
   }
-  if (!isLeft && !NO_SUPPORTS && print.suffix != portPartID &&
-      bottomLength > PIXEL_DISTANCE * 3) {
+  if (!isLeft && !NO_SUPPORTS && print.suffix != portPartID
+      && maxLength > PIXEL_DISTANCE * 2.5) {
     supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
     supportOffset -= supportOffset % PIXEL_DISTANCE
     supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * PIXEL_DISTANCE

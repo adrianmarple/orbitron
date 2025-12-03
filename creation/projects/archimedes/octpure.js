@@ -1,5 +1,6 @@
 // SKI
 module.exports = () => {
+  NO_EMBOSSING = true
   const EDGE_LENGTH = 6
 
   for (let permutation of [[1, 0, 0], [0, 1, 0], [0, 0, 1]]) {
@@ -34,12 +35,52 @@ module.exports = () => {
   }
   scale(EDGE_LENGTH)
 
-  // splitEdge(0, EDGE_LENGTH/2)
-  // zeroFoldAllEdges(verticies.length - 1)
+  rotateZAll(Math.PI * 5/4)
+
+  printPostProcessingFunction = printInfo => {
+    let h = 30
+    let pipe_r = 8.0
+    
+    printInfo.prints = [
+      printInfo.prints[0],
+      printInfo.prints[2],
+      printInfo.prints[3],
+    ]
+    console.log(printInfo.prints)
+    printInfo.prints[0].suffix = "wall"
+    printInfo.prints[1].suffix = "bottom"
+    printInfo.prints[2].suffix = "top"
+    printInfo.prints[3] = {
+      type: "difference",
+      suffix: "bottom(with cuff)",
+      components: [
+        {
+          type: "union",
+          operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
+          components: [
+            printInfo.prints[1],
+            {
+              type: "prefix",
+              code: `
+              use <SOURCE_FOLDER/scad/pipe.scad>`
+            },
+            {
+              operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
+              code: `
+              outer_cuff(${pipe_r});`
+            },
+          ]
+        },
+        {
+          position: [0, 0, -3],
+          code: `
+          cylinder(h=${h+10}, r=${pipe_r}, $fn=64);`
+        },
+      ]
+    }
+  }
+
   edgeCleanup()
   doubleEdges()
   EulerianPath(0)
-
-
-  EulerianPath(1,1)
 }
