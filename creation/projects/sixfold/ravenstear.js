@@ -1,6 +1,7 @@
 // SKI
 module.exports = () => {
   PIXEL_DISTANCE = 16.5
+  BORDER = 4
 
   let dodecEdges = addDodecagon([0,0,0], 5)
   let nextVerticies = []

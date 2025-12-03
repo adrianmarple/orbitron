@@ -144,6 +144,7 @@ async function createCoverSVG(plain) {
   	let borderString = ""
     let borderPoints = []
     let channelString = ""
+    let negativeAreaDetected = false
 
    	for (let i = 0; i < dPath.length; i++) {
       let vertex0 = dPath[i]
@@ -207,16 +208,21 @@ async function createCoverSVG(plain) {
 
       let w1 = CHANNEL_WIDTH/2
       let w2 = w1 + WALL_THICKNESS
+      let w3 = w2 + BORDER
 
       let widthFactor1 = a1 > 0 ? w1 : w2
-      let lengthOffset1 = -1 / Math.tan((Math.PI - a1)/2)
-      lengthOffset1 *= widthFactor1
+      let lengthRatio1 = -1 / Math.tan((Math.PI - a1)/2)
+      let lengthOffset1 = lengthRatio1 * widthFactor1
 
       let widthFactor2 = a2 < 0 ? w1 : w2
-      let lengthOffset2 = -1 / Math.tan((Math.PI - a2)/2)
-      lengthOffset2 *= widthFactor2
+      let lengthRatio2 = -1 / Math.tan((Math.PI - a2)/2)
+      let lengthOffset2 = lengthRatio2 * widthFactor2
 
       let wallLength = edgeLength + lengthOffset2 - lengthOffset1
+      let borderLength = edgeLength + (lengthRatio2 - lengthRatio1) * w3
+      if (borderLength < 0) {
+        negativeAreaDetected = true
+      }
       let angle1 = a1/2
       let angle2 = -a2/2
 
@@ -530,9 +536,7 @@ async function createCoverSVG(plain) {
       }
     }
 
-    // TODO actually detect "negative" area
-    let isTooSmall = borderPoints.length == 3 && triangularArea(borderPoints) < 105
-    if (!skipBorder && !isTooSmall) {
+    if (!skipBorder && !negativeAreaDetected) {
       borderString = "M" + borderString.substring(1) + "Z "
       totalPathString += borderString
       totalBorderString += borderString
