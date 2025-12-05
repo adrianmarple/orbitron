@@ -10,8 +10,8 @@ kerf = 0.02;
 default_h = 20;
 stop_thick = 1.2;
 
-outer_cuff(8);
-//inner_cuff_half(8);
+//outer_cuff(8);
+inner_cuff_half(8);
 
 module outer_cuff(pipe_radius, height=default_h) {
   h = height - stop_thick;
