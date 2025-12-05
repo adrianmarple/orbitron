@@ -71,24 +71,40 @@ class Vertex {
     }
   }
   nextEdge(edge, flip) {
-    let plain = edge.commonPlain()
-    if (flip) {
-      plain = plain.otherSide()
+    if (!this.normal) {
+      this.setNormal() //Needed for complex multimiter case
     }
-    let e = edge.toVector(this, true)
+    let normal = this.normal
+    let plain = edge.commonPlain()
+    if (normal.dot(plain.normal) < 0) {
+      flip = !flip
+    }
+    if (flip) {
+      normal = normal.negate()
+    }
+    let basis = new Basis(this.normal)
+    let e = edge.toVector(this)
 
     let minAngle = 4
     let bestEdge = edge
     for (let otherEdge of this.edges) {
       if (otherEdge == edge || otherEdge.isDupe) continue
-      e0 = otherEdge.toVector(this, true).negate()
-      let angle = e.signedAngle(e0, plain)
+      e0 = otherEdge.toVector(this).negate()
+      let angle = e.signedAngle(e0, basis)
       if (angle < minAngle) {
         minAngle = angle
         bestEdge = otherEdge
       }
     }
     return bestEdge
+  }
+
+  setNormal() {
+    let normal = ZERO
+    for (let edge of this.edges) {
+      normal = normal.add(edge.toVector(this, true))
+    }
+    this.normal = normal.normalize()
   }
 
   fold(edge, isOutgoing) {
@@ -146,12 +162,12 @@ class Vertex {
     let coverType = isBottom == (negation == 1) ? "bottom" : "top"
     return `${edge.index}${coverType}${type}`
   }
-  oldFold() {
-    if (!this._oldFold) {
-      this._oldFold = new OldFold(this)
-    }
-    return this._oldFold
-  }
+  // oldFold() {
+  //   if (!this._oldFold) {
+  //     this._oldFold = new OldFold(this)
+  //   }
+  //   return this._oldFold
+  // }
 }
 
 class Edge {
@@ -237,6 +253,9 @@ class Fold {
       this.deadendNormal = this.vertex.deadendPlain.normal
     } else {
       this.deadendNormal = n0.sub(n1)
+      if (this.deadendNormal.equals(ZERO)) {
+        console.error("deadEndNormal is zero", vertex)
+      }
     }
     this.dihedralAngle = n0.angleTo(n1)
 
@@ -256,11 +275,10 @@ class Fold {
       dihedralAngle: this.dihedralAngle,
       angleOfIncidence: this.angleOfIncidence,
       aoiComplement: this.aoiComplement,
-      leftVertex: this.edge0.otherVertex(vertex),
-      rightVertex: this.edge1.otherVertex(vertex),
+      left: { endVertex: this.edge0.otherVertex(vertex) },
+      right: { endVertex: this.edge1.otherVertex(vertex) },
       extraLEDSupportOffset: 0,
     }
-    this.infoAdded = []
   }
 
   deadendPlain() { // Done this way so vertex coords can move
@@ -273,7 +291,7 @@ class Fold {
     let dihedralAngle = this.dihedralAngle * negation
 
     let plainTranslationValue = CHANNEL_DEPTH/2
-    // plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
+    plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
     plainTranslationValue *= IS_BOTTOM ? 1 : -1
     let line = new Line(this.vertex.ogCoords, edge.toVector(this.vertex))
       .translate(FORWARD.scale(plainTranslationValue))
@@ -293,11 +311,9 @@ class Fold {
   }
 
   addFoldWallInfo(params) {
-    let { plain, edge, isOutgoing, wallLength, angle, lengthOffset, edgeLength,
-      worldPlacementOperations, extraLEDSupportOffset } = params
-
-    this.infoAdded.push(this.vertex.subEdgeName(edge, isOutgoing))
-    // console.log(this.infoAdded)
+    let { edge, isOutgoing, wallLength, nearWallLength, farWallLength,
+      lengthOffset, edgeLength, angle,
+      worldPlacementOperations } = params
 
     let negation = this.vertex.negation(edge)
     if (negation == -1) {
@@ -305,144 +321,17 @@ class Fold {
       worldPlacementOperations[2].angle = Math.PI
       lengthOffset *= -1
     }
-    let type = isOutgoing ? 1 : 2
+    let side = this.wall[isOutgoing ? "left" : "right"]
     let coverType = IS_BOTTOM == (negation == 1) ? "bottom" : "top"
-    this.wall["miterAngle" + type] = angle
-    this.wall["edgeLength" + type] = edgeLength
-    this.wall["lengthOffset" + type] = -lengthOffset
-    this.wall[coverType + "Length" + type] = wallLength
-    this.wall["worldPlacementOperations" + type] = worldPlacementOperations
-    this.wall.extraLEDSupportOffset = extraLEDSupportOffset // I think this should always be 0
-    if (extraLEDSupportOffset != 0) {
-      console.error("extraLEDSupportOffset not 0")
-    }
+    side.miterAngle = angle
+    side.edgeLength = edgeLength
+    side.lengthOffset = -lengthOffset
+    side[coverType + "Length"] = wallLength
+    side[coverType + "LengthFar"] = farWallLength
+    side[coverType + "LengthNear"] = nearWallLength
+    side.worldPlacementOperations = worldPlacementOperations
   }
 }
-
-class OldFold {
-  // Assumes vertex with two edges and two plains
-  constructor(vertex) {
-    this.vertex = vertex
-    
-    let vertex0 = vertex.edges[0].otherVertex(vertex)
-    let vertex1 = vertex.edges[1].otherVertex(vertex)
-    let e0 = vertex.edges[0].toVector(vertex, true)
-    let e1 = vertex.edges[1].toVector(vertex, true)
-    let n0, n1
-    this.plainToIndex = {}
-    this.negations = [1, 1]
-    if (epsilonEquals(vertex.plains[0].normal.dot(e0), 0)) {
-      n0 = vertex.plains[0].normal
-      n1 = vertex.plains[1].normal
-      this.plainToIndex[vertex.plains[0].index] = 0
-      this.plainToIndex[vertex.plains[1].index] = 1
-    } else {
-      n0 = vertex.plains[1].normal
-      n1 = vertex.plains[0].normal
-      this.plainToIndex[vertex.plains[0].index] = 1
-      this.plainToIndex[vertex.plains[1].index] = 0
-    }
-    if (n0.dot(e1) < -0.001) {
-      n0 = n0.negate()
-      this.negations[0] = -1
-    }
-    if (n1.dot(e0) < -0.001) {
-      n1 = n1.negate()
-      this.negations[1] = -1
-    }
-    if (n0.negate().equals(n1)) {
-      n1 = n1.negate()
-      this.negations[1] = -1
-    }
-
-    if (this.vertex.deadendPlain) {
-      this.deadendNormal = this.vertex.deadendPlain.normal
-    } else {
-      this.deadendNormal = n0.sub(n1)
-    }
-    this.dihedralAngle = n0.angleTo(n1)
-
-    let crease = vertex.plains[0].intersection(this.deadendPlain())
-    if (crease.direction.dot(n0.cross(n1)) < 0) {
-      crease.direction = crease.direction.negate()
-    }
-    let aoi = e1.angleTo(crease.direction)
-    if (aoi < 0) aoi += Math.PI
-    if (aoi > Math.PI) aoi -= Math.PI
-    this.angleOfIncidence = aoi
-    this.aoiComplement = Math.PI/2 - aoi
-
-    this.foldWalls = [{
-      isFoldWall: true,
-      vertex,
-      dihedralAngle: this.dihedralAngle,
-      angleOfIncidence: aoi,
-      aoiComplement: this.aoiComplement,
-      leftVertex: vertex1,
-      rightVertex: vertex0,
-      extraLEDSupportOffset: 0,
-    }]
-    this.foldWalls.push({...this.foldWalls[0]})
-    this.foldWalls[1].aoiComplement *= -1
-    this.foldWalls[1].angleOfIncidence = Math.PI/2 - this.foldWalls[1].aoiComplement
-    this.foldWalls[1].leftVertex = vertex0
-    this.foldWalls[1].rightVertex = vertex1
-  }
-
-  deadendPlain() { // Done this way so vertex coords can move
-    return new Plain(this.vertex.oogCoords || this.vertex.ogCoords, this.deadendNormal)
-  }
-
-  getCoverInfo(plain, isOutgoing) {
-    let index = this.plainToIndex[plain.index]
-    let info = {
-      deadendPlain: this.deadendPlain(),
-      dihedralAngle: this.dihedralAngle * this.negations[index],
-      aoiComplement: this.aoiComplement * this.negations[index] *
-        (isOutgoing ? 1:-1) * (index == 0 ? -1:1),
-    }
-    info.angleOfIncidence = Math.PI/2 - info.aoiComplement
-    return info
-  }
-
-  getWall(plain, isOutgoing) {
-    let foldWallIndex = this.plainToIndex[plain.index]
-    if (isOutgoing) {
-      foldWallIndex = 1 - foldWallIndex
-    }
-    return this.foldWalls[foldWallIndex]
-  }
-
-  addFoldWallInfo(params) {
-    let { plain, isOutgoing, wallLength, angle, lengthOffset, edgeLength,
-      worldPlacementOperations, extraLEDSupportOffset } = params
-
-    let index = this.plainToIndex[plain.index]
-    if (this.negations[index] == -1) {
-      isOutgoing = !isOutgoing
-      worldPlacementOperations[2].angle = Math.PI
-      lengthOffset *= -1
-    }
-    let type = isOutgoing ? 1 : 2
-    let foldWallIndex = index
-    if (isOutgoing) {
-      foldWallIndex = 1 - foldWallIndex
-    }
-    let coverType = IS_BOTTOM == (this.negations[index] == 1) ? "bottom" : "top"
-    let foldWall = this.foldWalls[foldWallIndex]
-    foldWall["miterAngle" + type] = angle
-    foldWall["edgeLength" + type] = edgeLength
-    foldWall["lengthOffset" + type] = -lengthOffset
-    foldWall[coverType + "Length" + type] = wallLength
-    foldWall["worldPlacementOperations" + type] = worldPlacementOperations
-    foldWall.extraLEDSupportOffset = extraLEDSupportOffset // I think this should always be 0
-    if (extraLEDSupportOffset != 0) {
-      console.error("extraLEDSupportOffset not 0")
-    }
-  }
-}
-
-
 
 
 function resolveVertex(vertex) {

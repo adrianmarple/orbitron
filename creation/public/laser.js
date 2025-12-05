@@ -259,8 +259,10 @@ async function createCoverSVG(plain) {
       ]
 
       // Logic for fold walls
-      let outgoingFoldWall = vertex1.nextEdge(edge1, false) != edge0
-      let incomingFoldWall = vertex2.nextEdge(edge1, true) != edge2
+      // let outgoingFoldWall = vertex1.nextEdge(edge1, false) != edge0
+      // let incomingFoldWall = vertex2.nextEdge(edge1, true) != edge2
+      let outgoingFoldWall = vertex1.plains.length > 1
+      let incomingFoldWall = vertex2.plains.length > 1
 
       function addFoldWallInfo(isOutgoing) {
         let vertex = isOutgoing ? vertex1 : vertex2
@@ -268,28 +270,33 @@ async function createCoverSVG(plain) {
         let fold = vertex.fold(edge1, isOutgoing)
         let { deadendPlain, aoiComplement, plainTranslationValue } =
             fold.getCoverInfo(edge1, isOutgoing, R)
-        // let oldFold = vertex.oldFold()
-        // let info = oldFold.getCoverInfo(plain, isOutgoing)
-        // if (!epsilonEquals(dihedralAngle, info.dihedralAngle)) {
-        //   console.log("Dihedral", dihedralAngle, info.dihedralAngle)
-        // }if (!epsilonEquals(aoiComplement, info.aoiComplement)) {
-        //   console.log("Complement", aoiComplement, info.aoiComplement)
-        // }
-        // if (vertex.negation(plain) != oldFold.negations[oldFold.plainToIndex[plain.index]]) {
-        //   console.log("Negation", fold, oldFold)
-        // }
+
+        let zTrans = CHANNEL_DEPTH/2
+        let zTransFar = zTrans + THICKNESS + EXTRA_COVER_THICKNESS
+        zTrans *= IS_BOTTOM ? 1 : -1
+        zTransFar *= IS_BOTTOM ? 1 : -1
 
         let outerV = isOutgoing ? v2 : v1
         let wallStartPoint = outerV
             .addScaledVector(n, aoiComplement < 0 ? w2 : w1)
             .addScaledVector(e1, isOutgoing ? lengthOffset2 : lengthOffset1)
-            .addScaledVector(FORWARD, plainTranslationValue)
+        let nearWallStartPoint = wallStartPoint.addScaledVector(FORWARD, zTrans)
+        let farWallStartPoint = wallStartPoint.addScaledVector(FORWARD, zTransFar)
+        wallStartPoint = wallStartPoint.addScaledVector(FORWARD, plainTranslationValue)
         let wallEndPoint = deadendPlain.intersection(new Line(wallStartPoint, e1))
+        let nearWallEndPoint = deadendPlain.intersection(new Line(nearWallStartPoint, e1))
+        let farWallEndPoint = deadendPlain.intersection(new Line(farWallStartPoint, e1))
 
         if (wallEndPoint.sub(wallStartPoint).normalize().dot(e1) * (isOutgoing ?-1:1) < 0) {
           console.log("wallStartPoint on wrong side of deadend plain!", isOutgoing ? vertex1 : vertex2)
         }
         wallLength = wallEndPoint.sub(wallStartPoint).length()
+        let nearWallLength = nearWallEndPoint.sub(nearWallStartPoint).length()
+        let farWallLength = farWallEndPoint.sub(farWallStartPoint).length()
+        if (!epsilonEquals(wallLength, Math.min(nearWallLength, farWallLength))) {
+          console.log(vertex1.index, vertex2.index, deadendPlain, fold)
+          console.log(wallLength, nearWallLength, farWallLength, plainTranslationValue)
+        }
         if (isOutgoing) {
           lengthOffset1 = edgeLength + lengthOffset2 - wallLength
         } else {
@@ -314,48 +321,14 @@ async function createCoverSVG(plain) {
         })
 
         fold.addFoldWallInfo({
-          plain,
           edge,
           isOutgoing,
-          wallLength,
+          wallLength, farWallLength, nearWallLength,
           angle: isOutgoing ? angle2 : angle1,
           lengthOffset: isOutgoing ? lengthOffset2 : lengthOffset1,
           edgeLength,
           worldPlacementOperations,
-          extraLEDSupportOffset,
         })
-        // oldFold.addFoldWallInfo({
-        //   plain,
-        //   isOutgoing,
-        //   wallLength,
-        //   angle: isOutgoing ? angle2 : angle1,
-        //   lengthOffset: isOutgoing ? lengthOffset2 : lengthOffset1,
-        //   edgeLength,
-        //   worldPlacementOperations,
-        //   extraLEDSupportOffset,
-        // })
-        // if (fold.infoAdded.length == 4) {
-        //   let oldWall = oldFold.getWall(plain, isOutgoing)
-        //   let flipped = oldWall.leftVertex != fold.wall.leftVertex
-        //   if (flipped) {
-        //     oldWall = oldFold.getWall(plain, !isOutgoing)
-        //   }
-        //   let fields = ["angleOfIncidence", "aoiComplement", "bottomLength1", "bottomLength2",
-        //     "topLength1", "topLength2", "miterAngle1", "miterAngle2", "lengthOffset1", "lengthOffset2",
-        //     "dihedralAngle", "edgeLength1", "edgeLength2", "extraLEDSupportOffset"]
-        //   for (let field of fields) {
-        //     if (!epsilonEquals(fold.wall[field], oldWall[field])) {
-        //       console.log(vertex.index, isOutgoing, IS_BOTTOM, vertex.negation(plain))
-        //       console.log(fold)
-        //       console.log(fold.wall)
-        //       console.log(oldWall)
-        //       console.log(oldFold.getWall(plain, !isOutgoing != flipped))
-        //       console.log(vertex.negation(vertex.plains[0]), vertex.negation(vertex.plains[1]))
-        //       break
-        //     }
-        //   }
-        // }
-        // // associateWallWithEdge(oldFold.getWall(plain, isOutgoing), associatedEdge)
         associateWallWithEdge(fold.wall, associatedEdge)
       }
 
@@ -366,15 +339,16 @@ async function createCoverSVG(plain) {
       } else {
         associateWallWithEdge({
           miterAngle: angle1,
-          lengthOffset1,
+          lengthOffset: lengthOffset1,
           dihedralAngle: 0,
           zRotationAngle: 0,
           aoiComplement: angle2,
           yRotationAngle: angle2,
-          length: wallLength,
+          topLength: wallLength,
+          bottomLength: wallLength,
           edgeLength,
           worldPlacementOperations,
-          leftVertex: vertex1,
+          endVertex: vertex1,
           vertex: vertex2,
           extraLEDSupportOffset,
         }, associatedEdge)
@@ -1148,24 +1122,15 @@ function foldWallCreation(foldWall, printInfo) {
 
 
 function wallPrint(wall, isLeft) {
-  let topLength = wall.length
-  let bottomLength = wall.length
-  if (!topLength) {
-    topLength = isLeft ? wall.topLength1 : wall.topLength2
-    bottomLength = isLeft ? wall.bottomLength1 : wall.bottomLength2
+  let side = wall
+  if (wall.left) {
+    side = wall[isLeft ? "left": "right"]
   }
-  let maxLength = Math.max(topLength, bottomLength)
-  let miterAngle = wall.miterAngle
-  if (!miterAngle) {
-    miterAngle = isLeft ? wall.miterAngle1 : wall.miterAngle2
-  }
-  let edgeLength = wall.edgeLength
-  if (!edgeLength) {
-    edgeLength = isLeft ? wall.edgeLength1 : wall.edgeLength2
-  }
-  let lengthOffset = isLeft ? wall.lengthOffset1 : -wall.lengthOffset2
-  let vertex0 = wall[isLeft ? "leftVertex" : "rightVertex"]
+  let  { miterAngle, edgeLength, lengthOffset, endVertex,
+    topLength, topLengthNear,
+    bottomLength, bottomLengthNear } = side
   let vertex1 = wall.vertex
+  let maxLength = Math.max(topLength, bottomLength)
 
 
   let print = blankPrint()
@@ -1193,6 +1158,14 @@ function wallPrint(wall, isLeft) {
     E = E.negate()
   }
 
+  if (topLengthNear && !E.scale(topLengthNear - bottomLengthNear).addScaledVector(N, -CHANNEL_DEPTH).equals(
+      UP.scale(-CHANNEL_DEPTH * dihedralRatio))) {
+    console.log(E.scale(topLengthNear - bottomLengthNear).addScaledVector(N, -CHANNEL_DEPTH).sub(
+      UP.scale(-CHANNEL_DEPTH * dihedralRatio)))
+    console.log(E.scale(topLength - bottomLength).addScaledVector(N, -CHANNEL_DEPTH).sub(
+      UP.scale(-CHANNEL_DEPTH * dihedralRatio)))
+  }
+
   let topEndNotchDepth = NOTCH_DEPTH
   if (2*NOTCH_DEPTH + MIN_NON_NOTCH_LENGTH > topLength) {
     topEndNotchDepth = (topLength - MIN_NON_NOTCH_LENGTH)/2
@@ -1212,7 +1185,7 @@ function wallPrint(wall, isLeft) {
 
   let insetAngle = (wall.dihedralAngle ?? 0) / 2
   for (let vertex of vertexPath) {
-    if (vertex == vertex0) {
+    if (vertex == endVertex) {
       insetAngle = 0 // Don't inset inner foldwall of from initial direction
       break
     }
@@ -1221,18 +1194,14 @@ function wallPrint(wall, isLeft) {
     }
   }
   // Exception for if first wall is foldWall
-  if (vertex1 == vertexPath[0] && vertex0 == vertexPath[1]) {
+  if (vertex1 == vertexPath[0] && endVertex == vertexPath[1]) {
     insetAngle = 0
   }
 
   let wallSegments = [UP.scale(CHANNEL_DEPTH/2 * dihedralRatio)]
-  if (wall.dihedralAngle < 0) {
-    if (coverPrint3D) {
-      wallSegments.push(E.scale(-THICKNESS * Math.tan(wall.zRotationAngle)))
-    } else {
-      wallSegments.push(UP.scale(THICKNESS * dihedralRatio))
-      wallSegments.push(N.scale(-THICKNESS))
-    }
+
+  if (topLengthNear) {
+    wallSegments.push(E.scale(topLengthNear - topLength))
   }
   if (RENDER_MODE == "standard") {
     for (let i = 0; i < topSegmentCount; i++) {
@@ -1263,12 +1232,8 @@ function wallPrint(wall, isLeft) {
   } else {
     wallSegments.push(E.scale(-bottomLength))
   }
-  if (wall.dihedralAngle > 0) {
-    if (coverPrint3D) {
-      wallSegments.push(E.scale(-THICKNESS * Math.tan(wall.zRotationAngle)))
-    } else {
-      wallSegments.push(N.scale(-THICKNESS))
-    }
+  if (bottomLengthNear) {
+    wallSegments.push(E.scale(-bottomLengthNear + bottomLength))
   }
 
   let xOffset = (WALL_THICKNESS * Math.abs(Math.tan(wall.yRotationAngle))) * (isLeft ? -1 : 1)
@@ -1350,7 +1315,7 @@ function wallPrint(wall, isLeft) {
   if (isLeft && !NO_SUPPORTS && print.suffix != portPartID &&
       bottomLength > PIXEL_DISTANCE * 1.2) {
     supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 1)
-    supportOffset += edgeOffset(wall.leftVertex, wall.vertex) * PIXEL_DISTANCE
+    supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
     supportOffset += wall.extraLEDSupportOffset
     let threshold = lengthOffset - LED_SUPPORT_WIDTH/2
     if (miterAngle < 0) {
@@ -1364,15 +1329,14 @@ function wallPrint(wall, isLeft) {
       && maxLength > PIXEL_DISTANCE * 2.5) {
     supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
     supportOffset -= supportOffset % PIXEL_DISTANCE
-    supportOffset += edgeOffset(wall.rightVertex, wall.vertex) * PIXEL_DISTANCE
+    supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
     let threshold = edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH
     while (supportOffset > threshold) {
       supportOffset -= PIXEL_DISTANCE
     }
   }
-
   if (supportOffset != null && RENDER_MODE == "standard") {
-    let v0 = vertex0.ogCoords
+    let v0 = endVertex.ogCoords
     let v1 = vertex1.ogCoords
     let e = v1.sub(v0).normalize()
     let worldPosition = v0.addScaledVector(e, supportOffset / PIXEL_DISTANCE)

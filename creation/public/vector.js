@@ -52,9 +52,12 @@ class Vector extends THREE.Vector3 {
   //     return a
   //   }
   // }
-  signedAngle(v, plain=DEFAULT_PLAIN) {
-    let thisPrime = plain.basis.convert(this)
-    let vPrime = plain.basis.convert(v)
+  signedAngle(v, basis=DEFAULT_PLAIN) {
+    if (basis.isPlain) {
+      basis = basis.basis
+    }
+    let thisPrime = basis.convert(this)
+    let vPrime = basis.convert(v)
     let v0x = thisPrime.y
     let v0y = thisPrime.z
     let v1x = vPrime.y
@@ -261,6 +264,7 @@ class Plain {
 }
 
 class Basis {
+  isBasis = true
   // Corrects to make actual basis no matter what
   constructor(v0, v1) {
     this.v0 = v0.normalize()
