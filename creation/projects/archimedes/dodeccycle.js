@@ -24,6 +24,10 @@ module.exports = () => {
   }
   scale(EDGE_LENGTH)
 
+  rotateZAll((180 - 116.565)/2 * Math.PI/180)
+  rotateYAll(-54 * Math.PI/180)
+  rotateXAll(-(180 - 116.565)/2 * Math.PI/180 + Math.PI)
+
   // Find Hamiltonian cycle (bias towards less sharp path)
   let hamiltonianEdges = [edges[0]]
   let previousVertex = edges[0].verticies[1]
