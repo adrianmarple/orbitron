@@ -11,7 +11,8 @@ default_h = 20;
 stop_thick = 1.2;
 
 //outer_cuff(8);
-inner_cuff_half(8);
+//inner_cuff_half(8);
+jammer(8);
 
 module outer_cuff(pipe_radius, height=default_h) {
   h = height - stop_thick;
@@ -44,4 +45,20 @@ module inner_cuff_half(pipe_radius, height=default_h) {
       cube([100,100,2], center=true);
   }
 }
-    
+
+module jammer(pipe_radius) {
+    difference() {
+        union() {
+            cylinder(h = 20, r=pipe_radius + inner_wall_min - 0.1);
+            translate([0,-pipe_radius/2,5])
+            cube([50, 6 + pipe_radius, 10], center=true);
+        }
+        
+        translate([0,0,-1])
+        cylinder(h = 100, r=pipe_radius + 0.1);
+        
+        cut_w = pipe_radius * 1.8;
+        translate([-cut_w/2,0,-1])
+        cube([cut_w, 100, 100]);
+    }
+}

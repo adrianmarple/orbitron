@@ -183,12 +183,14 @@ def debounce_save_prefs(): # Trying to avoid race conditions
   save_prefs_loop_lock = True
   while save_prefs_loop_lock:
     if last_modified_time + 0.1 < time():
-      f = open(pref_path, "w")
-      f.write(json.dumps(prefs, indent=2))
-      f.close()
-      f = open(timing_pref_path, "w")
-      f.write(json.dumps(timing_prefs, indent=2))
-      f.close()
+      prefs_file_content = json.dumps(prefs, indent=2)
+      if prefs_file_content != "{}":
+        with open(pref_path, "w") as f:
+          f.write(prefs_file_content)
+      timing_prefs_file_content = json.dumps(timing_prefs, indent=2)
+      if timing_prefs_file_content != "{}":
+        with open(timing_pref_path, "w") as f:
+          f.write(timing_prefs_file_content)
       save_prefs_loop_lock = False
       break
     sleep(0.01)
@@ -209,7 +211,7 @@ def are_prefs_equivalent(a, b):
   return True
 
 def clear(should_set_idle=True):
-  global current_pref_name, save_prefs_loop_lock, ignore_updates_until
+  global current_pref_name, save_prefs_loop_lock
   current_pref_name = None
   save_prefs_loop_lock = False
   prefs.clear()
@@ -237,7 +239,7 @@ def save(name):
   if name not in pref_names:
     pref_names.append(name)
     sort_pref_names()
-  
+
 
 
 def load(name, clobber_prefs=True):
@@ -476,25 +478,23 @@ def init():
     load(name, clobber_prefs=False)
 
   if os.path.exists(pref_path):
-    f = open(pref_path, "r")
-    try:
-      prefs = json.loads(f.read())
-    except:
-      prefs = {}
-      print("Failed to load prefs.json", file=sys.stderr)
-    f.close()
+    with open(pref_path, "r") as f:
+      try:
+        prefs = json.loads(f.read())
+      except:
+        prefs = {}
+        print("Failed to load prefs.json", file=sys.stderr)
     current_prefs.update(prefs)
     identify_name()
   else:
     print("No prefs.json file", file=sys.stderr)
 
   if os.path.exists(timing_pref_path):
-    f = open(timing_pref_path, "r")
-    try:
-      timing_prefs.update(json.loads(f.read()))
-    except:
-      print("Failed to load timingprefs.json", file=sys.stderr)
-    f.close()
+    with open(timing_pref_path, "r") as f:
+      try:
+        timing_prefs.update(json.loads(f.read()))
+      except:
+        print("Failed to load timingprefs.json", file=sys.stderr)
   else:
     print("No timingprefs.json file", file=sys.stderr)
   current_prefs.update(timing_prefs)
