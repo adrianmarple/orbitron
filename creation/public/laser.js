@@ -1458,6 +1458,9 @@ function wallPrint(wall, isLeft) {
       let top_width = port_width + 2*top_border+1
       let top_radius = port_radius + top_border
 
+
+      let portRotation = wall.dihedralAngle/2 * (isLeft ? -1:1)
+
       print = {
         type: "difference",
         suffix: print.suffix,
@@ -1468,7 +1471,7 @@ function wallPrint(wall, isLeft) {
               print,
               {
                 position: portCenter.toArray(),
-                rotationAngle: -wall.dihedralAngle/2,
+                rotationAngle: portRotation,
                 code: `
 translate([0,0,${-top_thickness}])
 pillinder(${top_width}, ${top_radius}, ${top_thickness});`
@@ -1489,7 +1492,7 @@ module pillinder(width, radius, height) {
           },
           {
             position: portCenter.toArray(),
-            rotationAngle: -wall.dihedralAngle/2,
+            rotationAngle: portRotation,
             code: `
 difference() {
   translate([0, 0, ${-top_thickness}])

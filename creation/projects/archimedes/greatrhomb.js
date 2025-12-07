@@ -1,15 +1,6 @@
 // SKI
 module.exports = () => {
-  setFor3DPrintedCovers()
-  cat5FoldWallIndex = 5
-
-  wallPostProcessingFunction = printInfo => {
-    printInfo.prints = [printInfo.prints[0], printInfo.prints[2], printInfo.prints[4], printInfo.prints[5]]
-  }
-  coverPostProcessingFunction = covers => {
-    covers.top = [covers.top[0]]
-    covers.bottom = [covers.bottom[0]]
-  }
+  portPartID = "6R"
 
   let baseVerticies = [
     [1/PHI, 1/PHI, 3+PHI],
@@ -18,7 +9,6 @@ module.exports = () => {
     [2*PHI-1, 2, 2+PHI],
     [PHI, 3, 2*PHI],
   ]
-  isWall = false // To avoid non-coplanar errors
   for (let baseVertex of baseVerticies) {
     for (let permutation of evenPermutations(baseVertex)) {
       addPlusMinusVertex(permutation)
@@ -61,9 +51,29 @@ module.exports = () => {
     newVertex.addPlain(plain0)
     newVertex.addPlain(plain1)
   }
-
-  isWall = true
-
   scale(2)
+
+  printPostProcessingFunction = printInfo => {
+    printInfo.prints = [
+      printInfo.prints[10],
+      printInfo.prints[0],
+      printInfo.prints[11],
+      printInfo.prints[2],
+      printInfo.prints[3],
+      printInfo.prints[4],
+      printInfo.prints[5],
+      printInfo.prints[7],
+    ]
+    printInfo.prints[0].suffix = "square_wall"
+    printInfo.prints[1].suffix = "hex_wall"
+    printInfo.prints[2].suffix = "oct_wall"
+    printInfo.prints[3].suffix = "bottom"
+    printInfo.prints[4].suffix = "top"
+    printInfo.prints[5].suffix = "bottom(mirror)"
+    printInfo.prints[6].suffix = "top(mirror)"
+    printInfo.prints[7].suffix = "port"
+
+  }
+
   EulerianPath(1, 1)
 }
