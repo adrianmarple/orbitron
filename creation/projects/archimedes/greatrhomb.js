@@ -1,6 +1,8 @@
 // SKI
 module.exports = () => {
   portPartID = "6R"
+  WALL_THICKNESS = 2
+  NOTCH_DEPTH = 5
 
   let baseVerticies = [
     [1/PHI, 1/PHI, 3+PHI],
