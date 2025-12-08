@@ -16,7 +16,7 @@ Game = engine.Game
 Player = engine.Player
 
 additional_settings = {
-  "CONTINUOUS_MOVEMENT": True,
+  # "CONTINUOUS_MOVEMENT": True,
   "LIVES": 3,
   "STARTING_SPAWN_DELAY": 6,
   "ENDING_SPAWN_DELAY": 5,

@@ -1,3 +1,23 @@
+
+GLOBAL_RULES = [
+  {
+    words: [
+      "You will be playing a series of minigames.",
+      "The rules change every round, so be sure to read them.",
+    ],
+  },
+  {
+    words: [
+      "Once a game has started you can drag your finger on your phone to move.",
+    ],
+    image: "/controller/images/snektronMovementTutorial.gif",
+  },
+  {
+    words: ["Your color is <span style='color:{{self.color}}'>{{self.colorName}}</span>.",
+      "Find the <span style='color:{{self.color}}'>{{self.colorName}}</span> pixel and stand in front of it."],
+  },
+]
+
 GAMES_INFO = [
   {
     name: "snektron",
@@ -152,23 +172,5 @@ GAMES_INFO = [
     statusDisplay: {
       type: "rankedscore",
     },
-  },
-]
-
-GLOBAL_RULES = [
-  {
-    words: [
-      "You will be playing a series of minigames.",
-      "The rules change every round, so be sure to read them.",
-    ],
-  },
-  {
-    words: [
-      "Once a game has started you can drag on your phone to move.",
-    ],
-    image: "/controller/images/snektronMovementTutorial.gif",
-  },
-  {
-    words: ["Your color is <span style='color:{{self.color}}'>{{self.colorName}}</span>, so look for the <span style='color:{{self.color}}'>{{self.colorName}}</span> pixel once the game starts."],
   },
 ]

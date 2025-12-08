@@ -38,8 +38,8 @@ class RLGL(Game):
   def start_ontimeout(self):
     self.top_score = 0
     self.goals.clear()
-    goal_count = len(self.claimed_players()) - 1
-    goal_count = max(goal_count, 2)
+    goal_count = len(self.claimed_players())
+    goal_count += floor(engine.SIZE / 200)
     for i in range(goal_count):
       self.spawn_goal()
     Game.start_ontimeout(self)

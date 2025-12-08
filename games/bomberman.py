@@ -288,7 +288,7 @@ class Bomb:
     x = (300 / x)
     factor = (sin(x)+1.4) * 0.3
     factor *= factor
-    phase = x/pi % 4
+    phase = x/pi % 6
     color = engine.BAD_COLOR
     if phase > 1 and phase < 3:
       color = self.owner.current_color()
