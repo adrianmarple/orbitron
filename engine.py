@@ -1114,7 +1114,7 @@ def run_core_loop():
         pin_start_time = time()
         pin_end_time = 0
 
-      if not pin_value and not previous_pin_value:
+      if not pin_value and previous_pin_value:
         if time() - pin_start_time < 0.5:
           if not double_action:
             perform_action(short_action)
