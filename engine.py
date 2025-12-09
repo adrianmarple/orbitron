@@ -1131,10 +1131,10 @@ def run_core_loop():
           pin_end_time = time() # Prep for either waiting for short press or double click
           pin_start_time = 0
 
-      if pin_start_time and time() - pin_start_time > 1:
+      if pin_start_time and time() - pin_start_time > 0.7:
         perform_action(long_action)
 
-      if pin_end_time and time() - pin_end_time > 1:
+      if pin_end_time and time() - pin_end_time > 0.6:
         perform_action(short_action)
 
       previous_pin_value = pin_value
