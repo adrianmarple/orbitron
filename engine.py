@@ -1119,21 +1119,22 @@ def run_core_loop():
 
     if config.get("MANUAL_FADE_PIN"):
       pin_value = GPIO.input(config["MANUAL_FADE_PIN"]) != GPIO.HIGH
-      if pin_value and not previous_pin_value:
+      if pin_value and not previous_pin_value: # Started pressing
         pin_start_time = time()
         if pin_end_time:
           perform_action(double_action)
 
-      if pin_start_time and not pin_value and previous_pin_value:
+      if pin_start_time and not pin_value and previous_pin_value: # Stopped
         if not double_action:
           perform_action(short_action)
         else:
           pin_end_time = time() # Prep for either waiting for short press or double click
+          pin_start_time = 0
 
       if pin_start_time and time() - pin_start_time > 1:
         perform_action(long_action)
 
-      if pin_end_time and time() - pin_end_time > 0.5:
+      if pin_end_time and time() - pin_end_time > 5:
         perform_action(short_action)
 
       previous_pin_value = pin_value
