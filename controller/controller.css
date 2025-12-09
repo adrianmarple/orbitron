@@ -600,28 +600,21 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
   position: absolute;
   width: var(--power-size);
   height: var(--power-size);
-  padding: 0.5rem;
-  margin: -0.5rem;
+  padding: 0.2rem;
   padding-top: 0.2rem;
   margin-top: -0.2rem;
-  overflow: hidden;
   bottom: calc(8.15rem - var(--power-size)/2);
   z-index: 1;
-}
-.power-wrapper .power-border {
-  border: calc(var(--power-size)/2) solid #080808;
-  border-radius: var(--power-size);
-  margin: calc(var(--power-size)/-2);
-  width: var(--power-size);
-  height: var(--power-size);
+  background-color: #080808;
 }
 .power-wrapper .power {
   background-color: black;
-  width: calc(var(--power-size) - 0.8rem);
-  height: calc(var(--power-size) - 0.8rem);
-  margin: 0.4rem;
-  border-radius: calc(var(--power-size)/2 - 0.4rem);
+  width: var(--power-size);
+  height: var(--power-size);
+  border-radius: calc(var(--power-size)/2);
+  border: 0.4rem solid #272727;
   box-sizing: border-box;
+  margin-top: 0;
 }
 .power-wrapper .power img {
   width: 100%;

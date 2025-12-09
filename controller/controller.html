@@ -434,14 +434,13 @@
     <div class="side-box right"></div>
 
     <div class="power-wrapper">
-      <div class="power-border">
-        <div class="power button"
-              @click.stop="advanceManualFade()">
-          <img src="/controller/images/power.svg"
-          :style="{filter: `invert(100%)
-            drop-shadow(0 0 1.2rem rgba(255,255,255, ${Math.sqrt(dimmer())}))
-            drop-shadow(0 0 0.5rem rgba(255,255,255, ${Math.sqrt(dimmer())}))`}">
-        </div>
+      <div class="power button"
+            :style="{borderColor: `rgba(255,255,255, ${Math.sqrt(dimmer()) / 2 + 0.1})`}"
+            @click.stop="advanceManualFade()">
+        <img src="/controller/images/power.svg"
+        :style="{filter: `invert(100%)
+          drop-shadow(0 0 1.2rem rgba(255,255,255, ${Math.sqrt(dimmer())}))
+          drop-shadow(0 0 0.5rem rgba(255,255,255, ${Math.sqrt(dimmer())}))`}">
       </div>
     </div>
 
