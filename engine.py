@@ -1083,6 +1083,12 @@ def run_core_loop():
   }
 
   previous_pin_value = 0
+  pin_start_time = 0
+  pin_end_time = 0
+
+  short_action = config.get("SHORT_PRESS_ACTION", "DIM")
+  long_action = config.get("LONG_PRESS_ACTION", "DIM")
+  double_action = config.get("DOUBLE_CLICK_ACTION")
 
   while True:
     time_to_wait = last_frame_time + 1.0/FRAMERATE - time()
@@ -1105,7 +1111,30 @@ def run_core_loop():
     if config.get("MANUAL_FADE_PIN"):
       pin_value = GPIO.input(config["MANUAL_FADE_PIN"]) != GPIO.HIGH
       if pin_value and not previous_pin_value:
-        prefs.advance_manual_fade()
+        pin_start_time = time()
+        pin_end_time = 0
+
+      if not pin_value and not previous_pin_value:
+        if time() - pin_start_time < 0.5:
+          if not double_action:
+            perform_action(short_action)
+          elif pin_end_time:
+            perform_action(double_action)
+            pin_end_time = 0
+          else:
+            pin_end_time = time() # Either short press or prep for double click
+        else:
+          perform_action(long_action)
+
+      if pin_end_time and time() - pin_end_time > 0.5:
+          perform_action(short_action)
+
       previous_pin_value = pin_value
 
     update()
+
+def perform_action(type):
+  if type == "DIM":
+    prefs.advance_manual_fade()
+  if type == "CYCLE":
+    prefs.advance_preset()

@@ -93,6 +93,7 @@ for (key, value) in list(default_prefs.items()) + list(timing_prefs.items()):
 
 saved_prefs = {}
 prefs = {}
+last_known_pref_name = None
 current_pref_name = None
 
 converted_prefs = {}
@@ -197,10 +198,11 @@ def debounce_save_prefs(): # Trying to avoid race conditions
 
 
 def identify_name():
-  global current_pref_name
+  global current_pref_name, last_known_pref_name
   for (name, saved_pref) in saved_prefs.items():
     if are_prefs_equivalent(prefs, saved_pref):
       current_pref_name = name
+      last_known_pref_name = name
       return
   current_pref_name = None
 
@@ -211,8 +213,9 @@ def are_prefs_equivalent(a, b):
   return True
 
 def clear(should_set_idle=True):
-  global current_pref_name, save_prefs_loop_lock
+  global current_pref_name, last_known_pref_name, save_prefs_loop_lock
   current_pref_name = None
+  last_known_pref_name = None
   save_prefs_loop_lock = False
   prefs.clear()
   pref_to_client_timestamp.clear()
@@ -243,7 +246,7 @@ def save(name):
 
 
 def load(name, clobber_prefs=True):
-  global current_pref_name, current_prefs, prefs
+  global current_pref_name, last_known_pref_name, current_prefs, prefs
   old_path = pref_path_from_name(name)
   if not os.path.exists(old_path):
     print("Tried to load non-existant pref: %s" % name, file=sys.stderr)
@@ -265,6 +268,7 @@ def load(name, clobber_prefs=True):
     for key in default_prefs.keys():
       converted_prefs[key] = None
     current_pref_name = name
+    last_known_pref_name = name
     set_idle()
     shutil.copy(old_path, pref_path)
 
@@ -366,7 +370,7 @@ def fade():
   fade = max(fade, 0)
   return min(fade, get_pref("dimmer"))
 
-def advance_manual_fade(): # Consider adding a delay before being callable again
+def advance_manual_fade():
   steps = config.get("MANUAL_FADE_STEPS", [1, 0])
   defacto_fade = fade()
   
@@ -381,6 +385,15 @@ def advance_manual_fade(): # Consider adding a delay before being callable again
   index = (closest_index + 1) % len(steps)
   update({"dimmer": steps[index]})
 
+def advance_preset():
+  print(last_known_pref_name)
+  index = -1
+  try:
+    index = pref_names.index(last_known_pref_name)
+  except ValueError:
+    pass
+  index = (index + 1) % len(pref_names)
+  load(pref_names[index])
 
 def update_schedule():
   schedule = get_pref("weeklySchedule") if get_pref("weeklyTimer") else get_pref("schedule")
