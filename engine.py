@@ -1127,7 +1127,8 @@ def run_core_loop():
           perform_action(long_action)
 
       if pin_end_time and time() - pin_end_time > 0.5:
-          perform_action(short_action)
+        perform_action(short_action)
+        pin_end_time = 0
 
       previous_pin_value = pin_value
 
