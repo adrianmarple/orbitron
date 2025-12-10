@@ -7,14 +7,21 @@ GLOBAL_RULES = [
     ],
   },
   {
+    words: ["Your color is <span style='color:{{self.color}}'>{{self.colorName}}</span>"],
+  },
+  {
+    nonFlatOnly: true,
+    words: ["Find the <span style='color:{{self.color}}'>{{self.colorName}}</span> pixel and stand in front of it"],
+  },
+  {
     words: [
-      "Once a game has started you can drag your finger on your phone to move.",
+      "Once a game has started you can move by dragging your finger on your phone",
     ],
     image: "/controller/images/snektronMovementTutorial.gif",
   },
   {
-    words: ["Your color is <span style='color:{{self.color}}'>{{self.colorName}}</span>.",
-      "Find the <span style='color:{{self.color}}'>{{self.colorName}}</span> pixel and stand in front of it."],
+    nonFlatOnly: true,
+    words: ["Remember, up is north, right/left is east/west"],
   },
 ]
 
@@ -74,7 +81,7 @@ GAMES_INFO = [
         ],
       },
       {
-        words: ["You are one of several Pac-Men trying to avoid enemy AI ghosts. If you run into a RED ghost you lose a collective life."],
+        words: ["You are one of several Pac-Men trying to avoid enemy AI ghosts. If you run into a <span style='color:#D50000'>red</span> ghost you lose a collective life."],
       },
       {
         words: [
@@ -84,8 +91,8 @@ GAMES_INFO = [
       },
       {
         words: [
-          "Eating a POWER PELLET also makes the ghosts scared (GREEN).",
-          "Eating a GREEN scared ghost earns you 200 points!",
+          "Eating a POWER PELLET also makes the ghosts scared (<span style='color:#00C853'>green</span>).",
+          "Eating a <span style='color:#00C853'>green</span> scared ghost earns you 200 points!",
         ],
       },
       {
@@ -136,11 +143,11 @@ GAMES_INFO = [
     label: "Red Light Green Light",
     rules: [
       { words: [ "You are currently playing Red Light Green Light", ], },
-      { words: [ "You can only move when the dots glow green"], },
-      { words: [ "When you reach a green light you score"], },
-      { words: [ "You'll get sent back to the start if you try to move when the dots are red", ], },
+      { words: [ "You can only move when the dots glow <span style='color:#00C853'>green</span>"], },
+      { words: [ "When you reach a <span style='color:#00C853'>green</span> light you score"], },
+      { words: [ "You'll get sent back to the start if you try to move when the dots are <span style='color:#D50000'>red</span>", ], },
     ],
-    victoryCondition: "Whoever reaches the most green lights wins!",
+    victoryCondition: "Whoever reaches the most <span style='color:#00C853'>green</span> lights wins!",
     statusDisplay: {
       type: "rankedscore",
     },
@@ -150,7 +157,7 @@ GAMES_INFO = [
     label: "Base Defense",
     rules: [
       { words: [ "You are currently playing co-op Base Defense", ], },
-      { words: [ "Stop the RED enemies before they reach the bottom" ], },
+      { words: [ "Stop the <span style='color:#D50000'>red</span> enemies before they reach the bottom" ], },
       { words: [ "Survive the round to collectively win", ], },
     ],
     victoryCondition: "Survive for {{state.settings.ROUND_TIME}} seconds.",

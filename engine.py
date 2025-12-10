@@ -561,9 +561,11 @@ class Player:
       self.position = 0
       return 0
 
-    for i in range(20):
+    for _ in range(50):
       pos = randrange(SIZE)
       if game.statuses[pos] != "blank":
+        continue
+      if abs(coords[pos][1]) > 0.7:
         continue
       occupied = False
       for player in game.claimed_players():

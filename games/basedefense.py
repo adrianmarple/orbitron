@@ -17,13 +17,14 @@ Player = engine.Player
 
 additional_settings = {
   # "CONTINUOUS_MOVEMENT": True,
-  "LIVES": 3,
+  "LIVES": 4,
   "STARTING_SPAWN_DELAY": 6,
   "ENDING_SPAWN_DELAY": 5,
-  "MIN_INVADER_MOVE_FREQ": 0.4,
-  "MAX_INVADER_MOVE_FREQ": 0.9,
+  "MIN_INVADER_MOVE_FREQ": 0.3,
+  "MAX_INVADER_MOVE_FREQ": 0.7,
+  "MOVE_FREQ": 0.2,
   "PULSE_DURATION": 0.75,
-  "ROUND_TIME": 90,
+  "ROUND_TIME": 60,
   "SELECTION_WEIGHTS": [0.5, 0.5, 1, 1, 1, 0.2],
   "REQUIREMENTS": ["north_pole", "south_pole"],
 }

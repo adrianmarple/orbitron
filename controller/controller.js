@@ -526,11 +526,10 @@ var app = new Vue({
           startingRules = [...this.orbInfo.extraStartingRules, ...startingRules]
         }
       }
-      if (!this.gameInfo || !this.gameInfo.rules) {
-        return startingRules
-      } else {
-        return startingRules.concat(this.gameInfo.rules)
+      if (this.gameInfo && this.gameInfo.rules) {
+        startingRules =  startingRules.concat(this.gameInfo.rules)
       }
+      return startingRules.filter(rule => rule.nonFlatOnly || !this.orbInfo.isFlat)
     },
     carouselSize() {
       return this.rules.length

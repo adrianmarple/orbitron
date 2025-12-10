@@ -20,7 +20,7 @@ additional_settings = {
   "MAX_RED_LIGHT_TIME": 4,
   "MIN_GREEN_LIGHT_TIME": 1.5,
   "MAX_GREEN_LIGHT_TIME": 6,
-  "MIN_PULSE_DURATION": 0.25,
+  "MIN_PULSE_DURATION": 0.3,
   "MAX_PULSE_DURATION": 0.6,
   "MOVE_FREQ": 0.24,
   "SELECTION_WEIGHTS": [1, 1, 1, 1, 1, 1],
@@ -28,7 +28,7 @@ additional_settings = {
 
 
 class RLGL(Game):
-  red_light = True
+  red_light = False
   light_change_time = 0
   pulse_duration = 0
   top_score = 0
@@ -40,7 +40,10 @@ class RLGL(Game):
     self.goals.clear()
     goal_count = len(self.claimed_players())
     goal_count += floor(engine.SIZE / 200)
-    for i in range(goal_count):
+    self.red_light = False
+    self.light_change_time = time() + 8
+    self.pulse_duration = 0.8
+    for _ in range(goal_count):
       self.spawn_goal()
     Game.start_ontimeout(self)
 
@@ -75,8 +78,6 @@ class RLGL(Game):
       engine.color_pixel(pos, pole_color)
 
     if not self.red_light:
-      direction = np.array((0,1.2,0)) if engine.IS_WALL else np.array((0,0,1))
-
       for goal in self.goals:
         engine.render_pulse(
           direction=engine.coords[goal],
