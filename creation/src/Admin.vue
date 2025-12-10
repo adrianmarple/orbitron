@@ -98,16 +98,24 @@
   </div>
 </div>
 <div v-if="viewing=='calibration'" id="calibration">
+  
   <div v-if="MAX_POWER_DRAW">MAX_POWER_DRAW present</div>
   <div v-if="MAX_AVG_PIXEL_BRIGHTNESS">MAX_AVG_PIXEL_BRIGHTNESS present</div>
   <div  v-if="MAX_POWER_DRAW || MAX_AVG_PIXEL_BRIGHTNESS"  class="row">
     <div class="button" @click="clearMaxes">Clear Maxes</div>
   </div>
   <div v-if="calibratingPower" class="row">
+    Do you see any dimming (i.e. part of the strip starting to turn a bit yellow)?
+  </div>
+  <div v-if="calibratingPower" class="row">
     <div class="button" @click="nextPowerValue(true)">Good 👍</div>
     <div class="button" @click="nextPowerValue(false)">Too Bright!</div>
   </div>
-  <div v-else class="row">
+
+  <div v-if="!calibratingPower" class="row">
+    You will need to have the piece visible in front of you.
+  </div>
+  <div v-if="!calibratingPower" class="row">
     <div class="button" @click="startPowerCalibration">Start Power Calibration</div>
   </div>
 </div>
