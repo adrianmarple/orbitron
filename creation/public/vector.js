@@ -5,8 +5,12 @@ class Vector extends THREE.Vector3 {
     return [this.x, this.y, this.z]
   }
 
-  swizzle(permutation) {
-    return new Vector(this[permutation[0]], this[permutation[1]], this[permutation[2]])
+  swizzle(permutationString) {
+    let coordArray = []
+    for (let letter of permutationString) {
+      coordArray.push(this[letter])
+    }
+    return new Vector(...coordArray)
   }
 
   isValid() {
@@ -202,6 +206,12 @@ class Plain {
     this.basis = new Basis(normal)
   }
 
+  static fromPoints(p0, p1, p2) {
+    let e0 = p0.sub(p1)
+    let e1 = p0.sub(p2)
+    return new Plain(p0, e0.cross(e1))
+  }
+
   clone() {
     return new Plain(this.offset, this.normal)
   }
@@ -371,6 +381,7 @@ function rotateZAll(theta) {
 function rotateAll(direction, theta) {
   for (let vertex of verticies) {
     vertex.ogCoords = vertex.ogCoords.applyAxisAngle(direction, theta)
+    vertex.normal = null
   }
   let rotatedFolds = []
   for (let plain of plains) {

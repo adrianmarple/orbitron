@@ -81,15 +81,14 @@ class Vertex {
     }
     if (flip) {
       normal = normal.negate()
-    }
-    let basis = new Basis(this.normal)
-    let e = edge.toVector(this)
-
+    } 
+    let basis = new Basis(normal)
+    let e = edge.toVector(this, true)
     let minAngle = 4
     let bestEdge = edge
     for (let otherEdge of this.edges) {
       if (otherEdge == edge || otherEdge.isDupe) continue
-      e0 = otherEdge.toVector(this).negate()
+      let e0 = otherEdge.toVector(this, true).negate()
       let angle = e.signedAngle(e0, basis)
       if (angle < minAngle) {
         minAngle = angle
@@ -162,12 +161,6 @@ class Vertex {
     let coverType = isBottom == (negation == 1) ? "bottom" : "top"
     return `${edge.index}${coverType}${type}`
   }
-  // oldFold() {
-  //   if (!this._oldFold) {
-  //     this._oldFold = new OldFold(this)
-  //   }
-  //   return this._oldFold
-  // }
 }
 
 class Edge {
@@ -243,7 +236,7 @@ class Fold {
     }
     else {
       this.edge1 = edge
-      this.edge0 = vertex.nextEdge(edge, flip == false) // TODO flip if IS_BOTTOM (or something like that)
+      this.edge0 = vertex.nextEdge(edge, !flip) // TODO flip if IS_BOTTOM (or something like that)
     }
 
     let n0 = this.vertex.correctedNormal(this.edge0)

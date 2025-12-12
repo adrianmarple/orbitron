@@ -643,8 +643,7 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
 .nav-bar .filler {
   background-color: #080808;
   width: calc(var(--power-size) + 2rem);
-  height: calc(8rem - var(--power-size)/2);
-  margin-top: calc(var(--power-size)/2 + 1.85rem);
+  height: 100%;
 }
 
 .icon {

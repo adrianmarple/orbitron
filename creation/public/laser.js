@@ -1160,6 +1160,7 @@ function wallPrint(wall, isLeft) {
 
   if (topLengthNear && !E.scale(topLengthNear - bottomLengthNear).addScaledVector(N, -CHANNEL_DEPTH).equals(
       UP.scale(-CHANNEL_DEPTH * dihedralRatio))) {
+    console.log(wall, side)
     console.log(E.scale(topLengthNear - bottomLengthNear).addScaledVector(N, -CHANNEL_DEPTH).sub(
       UP.scale(-CHANNEL_DEPTH * dihedralRatio)))
     console.log(E.scale(topLength - bottomLength).addScaledVector(N, -CHANNEL_DEPTH).sub(
