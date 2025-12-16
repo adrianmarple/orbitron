@@ -82,8 +82,8 @@ class Vertex {
     if (flip) {
       normal = normal.negate()
     } 
-    let basis = new Basis(normal)
     let e = edge.toVector(this, true)
+    let basis = new Basis(normal.negate())
     let minAngle = 4
     let bestEdge = edge
     for (let otherEdge of this.edges) {

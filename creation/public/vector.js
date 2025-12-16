@@ -285,7 +285,7 @@ class Basis {
       v1 = RIGHT
     }
     this.v1 = v1.orthoProj(v0).normalize()
-    this.v2 = v0.cross(v1)
+    this.v2 = this.v0.cross(this.v1)
   }
 
   convert(v) {
