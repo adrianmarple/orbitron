@@ -7,8 +7,8 @@ import shutil
 import sys
 
 from datetime import datetime, timedelta
-from math import isnan
 from time import sleep, time
+from threading import Thread
 
 
 def _now(): # Solely for use in testing
@@ -64,6 +64,13 @@ default_prefs = {
   "rainbowDuration": 10.0,
   "rainbowFade": 0.0,
 
+  # beta
+  "tricolor1": "#ff0000",
+  "tricolor2": "#00ff00",
+  "tricolor3": "#0000ff",
+  "tricolorThreshold1": 50,
+  "tricolorThreshold2": 100,
+
   "idleMin": 0,
   "applyIdleMinBefore": False,
 }
@@ -114,6 +121,7 @@ pref_names = [filename.split(".")[0] for filename in pref_names]
 sort_pref_names()
 
 def update(update, client_timestamp=None):
+  global last_modified_time
   if client_timestamp is None:
     client_timestamp = time()
   if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
@@ -161,7 +169,7 @@ def update(update, client_timestamp=None):
   set_idle()
 
   if not config.get("TEMP_ORB"):
-    debounce_save_prefs()
+    last_modified_time = time() # Will get picked up by save loop now
 
   should_update_schedule = False
   for key in timing_prefs.keys():
@@ -174,16 +182,17 @@ def update(update, client_timestamp=None):
     update_schedule()
   identify_name()
 
-save_prefs_loop_lock = False
-last_modified_time = time() + 10 # Don't save at all for the first bit of time
-def debounce_save_prefs(): # Trying to avoid race conditions
-  global last_modified_time, save_prefs_loop_lock
-  last_modified_time = max(last_modified_time, time())
-  if save_prefs_loop_lock:
-    return
-  save_prefs_loop_lock = True
-  while save_prefs_loop_lock:
-    if last_modified_time + 0.1 < time():
+
+last_modified_time = -1
+def save_loop(): # Trying to avoid race conditions
+  global last_modified_time
+  while True:
+    if last_modified_time < 0:
+      sleep(1)
+    elif time() < last_modified_time + 0.5:
+      sleep(0.1)
+    else:
+      print("saving")
       prefs_file_content = json.dumps(prefs, indent=2)
       if prefs_file_content != "{}":
         with open(pref_path, "w") as f:
@@ -192,9 +201,10 @@ def debounce_save_prefs(): # Trying to avoid race conditions
       if timing_prefs_file_content != "{}":
         with open(timing_pref_path, "w") as f:
           f.write(timing_prefs_file_content)
-      save_prefs_loop_lock = False
-      break
-    sleep(0.01)
+      last_modified_time = -1
+save_thread = Thread(target=save_loop)
+save_thread.start()
+
 
 
 def identify_name():

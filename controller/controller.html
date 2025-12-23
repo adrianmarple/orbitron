@@ -338,6 +338,20 @@
           title="Color blend" key="gradientThreshold"
           :min="1"
           help="Lower numbers means more color 1; higher numbers, more color 2."></slider>
+
+
+      <color v-if="prefs.idleColor == 'tricolor'"
+          key="tricolor1" title="Color 1"></color>
+      <color v-if="prefs.idleColor == 'tricolor'"
+          key="tricolor2" title="Color 2"></color>
+      <color v-if="prefs.idleColor == 'tricolor'"
+          key="tricolor3" title="Color 3"></color>
+      <slider v-if="prefs.idleColor == 'tricolor' && prefs.fadeToBlack" 
+          title="Color blend 1" key="tricolorThreshold1"
+          :min="1"></slider>
+      <slider v-if="prefs.idleColor == 'tricolor' && prefs.fadeToBlack" 
+          title="Color blend 2" key="tricolorThreshold2"
+          :min="1"></slider>
       
       
       <!-- <boolean v-if="prefs.idleColor == 'gradient' || prefs.idleColor == 'rainbow'"
@@ -347,7 +361,7 @@
           key="fixedColor" title="Color"></color>
 
       <dropdown title="Color Style" key="idleColor"
-      :options="[['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']]"
+      :options="colorOptions"
       ></dropdown>
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
           title="Blur over time" key="idleBlend"
@@ -411,7 +425,7 @@
       <boolean v-if="include.beatMode && ['default'].includes(prefs.idlePattern)"
           title="Disable Beat Mode" key="disableBeatMode"></boolean>
       <dropdown title="Pattern" key="idlePattern"
-          :options="patternDropdownInfo"
+          :options="patternOptions"
           help="Lumatron pieces can have many different patterns.
           This lets you change them. Remember that you can always save a pattern and
           all its related settings and colors in the save tab."

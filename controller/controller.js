@@ -353,8 +353,21 @@ var app = new Vue({
         return `Dim (${Math.round(nextDimmerState * 100)}%)`
       }
     },
-    patternDropdownInfo() {
-      let info = [
+    colorOptions() {
+      let options = [['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']
+      ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
+      let includibleOptions = [
+        ['tricolor', '3 Colors'],
+      ]
+      for (let option of includibleOptions) {
+        if (this.include[option[0]]) {
+          options.push(option)
+        }
+      }
+      return options
+    },
+    patternOptions() {
+      let options = [
         ['static', 'Static'],
         ['fireflies', 'Fireflies'],
         ['lightning', 'Lightning'],
@@ -364,21 +377,21 @@ var app = new Vue({
         ['default', 'Fire (default)'],
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])
 
-      let optionalPatterns = [
+      let includibleOptions = [
         ['hourglass', 'Hourglass'],
       ]
-      for (let optionalPattern of optionalPatterns) {
-        if (this.include[optionalPattern[0]]) {
-          info.push(optionalPattern)
+      for (let option of includibleOptions) {
+        if (this.include[option[0]]) {
+          options.push(option)
         }
       }
       
       let extra = this.orbInfo.extraIdle
       if (extra) {
         let extraDisplayName = extra[0].toUpperCase() + extra.slice(1)
-        info.unshift([extra, extraDisplayName])
+        options.unshift([extra, extraDisplayName])
       }
-      return info
+      return options
     },
 
     scheduleType() {

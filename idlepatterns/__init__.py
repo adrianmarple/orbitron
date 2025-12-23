@@ -191,6 +191,24 @@ class Idle(Game):
       colors = start_colors + end_colors
       self.render_values = np.outer(self.render_values, np.ones(3))
       self.render_values = np.multiply(self.render_values, colors)
+    elif get_pref("idleColor") == "tricolor":
+      thresh1 = get_pref("tricolorThreshold1") / 100.0
+      thresh2 = get_pref("tricolorThreshold2") / 100.0
+      start_values = self.target_values / thresh1
+      start_values = np.minimum(1, start_values)
+      end_values = self.target_values / (thresh2 - thresh1) - thresh1
+      end_values = np.minimum(1, end_values)
+      end_values = np.maximum(0, end_values)
+      mid_values = 1 - start_values - end_values
+      start = get_pref("tricolor1")/255
+      start_colors = np.outer(start_values, start)
+      mid = get_pref("tricolor2")/255
+      mid_colors = np.outer(mid_values, mid)
+      end = get_pref("tricolor3")/255
+      end_colors = np.outer(end_values, end)
+      colors = start_colors + end_colors + mid_colors
+      self.render_values = np.outer(self.render_values, np.ones(3))
+      self.render_values = np.multiply(self.render_values, colors)
     else:
       self.render_values = np.outer(self.render_values, self.color())
 
