@@ -58,16 +58,16 @@ module.exports = () => {
 
 
     let plain0 = Plain.fromPoints(ZERO, v, v0)
-    plain0 = plain0.translate(plain0.normal.scale(CHANNEL_WIDTH/2/PIXEL_DISTANCE))
+    plain0 = plain0.translate(plain0.normal.scale(-CHANNEL_WIDTH/2/PIXEL_DISTANCE))
     let plain1 = Plain.fromPoints(ZERO, v, v1)
-    plain1 = plain1.translate(plain1.normal.scale(-CHANNEL_WIDTH/2/PIXEL_DISTANCE))
+    plain1 = plain1.translate(plain1.normal.scale(CHANNEL_WIDTH/2/PIXEL_DISTANCE))
     facePlain = Plain.fromPoints(v, v0, v1)
     let faceCenter = facePlain.offset
 
     let wallOrigin = plain0.intersection(plain1).intersection(facePlain)
     let dotCheck = wallOrigin.sub(v).normalize().dot(faceCenter.sub(v).normalize())
     if (!epsilonEquals(dotCheck, 1)) {
-      console.log("Face center, vertex, and wallOrigin not colinear", faceCenter, v, wallOrigin)
+      console.log("Face center, vertex, and wallOrigin not colinear", dotCheck, faceCenter, v, wallOrigin)
     }
     let vertexOffset = wallOrigin.sub(v).scale(PIXEL_DISTANCE)
     let y = vertexOffset.dot(v.normalize())

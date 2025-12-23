@@ -48,6 +48,10 @@ box_wall = 2;
 //power();
 controller();
 
+module seeed_holder() {
+    // TODO
+}
+
 module power() {
 difference() {
     union() {
@@ -133,8 +137,8 @@ difference() {
             [0, -15],
             [30, 10],
             [30, 48],
-            [24, 48],
-            [24, 76],
+            [14, 48],
+            [14, 76],
             [30, 76],
             [30, 115],
             [0, 140],
@@ -142,7 +146,7 @@ difference() {
         }
     }// end union
     
-    cylinder(h=power_connection_h + power_top_total, r=power_connection_r + 0.15);
+    cylinder(h=power_connection_h + power_top_total, r=power_connection_r + 0.8);
     
     translate([0, 0, power_connection_h + power_top_total + box_h/2])
     cube([power_connection_r*2, box_thick, box_h], center=true);
@@ -161,7 +165,7 @@ difference() {
     // Deboss
     for (i = [0:1]) {
         rotate([0,0,180*i])
-        translate([0, -box_thick/2 - box_wall + 0.6, 70])
+        translate([0, -box_thick/2 - box_wall + 0.6, 76.3])
         rotate([90,0,0])
         linear_extrude(1)
         scale(0.4)

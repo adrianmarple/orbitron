@@ -9,11 +9,11 @@
   <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
   <div class="button" @click="downloadGitFiles">Create git files</div>
   <div class="button" @click="removeGitFiles">Remove git files</div>
-  <!-- <div class="button" @click="downloadJSON">Download JSON</div> -->
   <div class="button" @click="genPrints">Generate Prints</div>
   <!-- <div class="button" @click="genModel('simple')">Simple 3D Model</div> -->
   <!-- <div class="button" @click="genModel('simplest')">Ultra Simple 3D Model</div> -->
   <div class="button" @click="genModel('parts')">3D Model with part IDs</div>
+  <div class="button" @click="makeForArduino">Create Arudino file</div>
   <div class="button" @click="cleanup">Cleanup Printer Files</div>
   <!-- <div class="button" @click="configure">Configure Default Orb</div> -->
 </div>
@@ -258,6 +258,43 @@ export default {
     configure() {
       this.$root.$refs.admin.configureDefault(this.fullProjectName)
       this.$root.toggleMode()
+    },
+
+    makeForArduino() {
+      let info = generatePixelInfo()
+      // For now assume dupeToUniques is always of lists of length 2
+      let dupeToUniquesConverted = info.dupeToUniques.map(uniques => {
+        return "0x" + uniques[1].toString(16).padStart(4, '0') + uniques[0].toString(16).padStart(4, '0')
+      })
+
+      let maxNeighbors = 0
+      for (let ns of info.neighbors) {
+        maxNeighbors = Math.max(maxNeighbors, ns.length)
+      }
+      let neighborsConverted = info.neighbors.map(neighbors => {
+        let neighborString = "0x"
+        for (let i = maxNeighbors-1; i >= 0; i--) {
+          if (neighbors.length <= i) {
+            neighborString += "ffff"
+          } else {
+            neighborString += neighbors[i].toString(16).padStart(4, '0')
+          }
+        }
+        return neighborString
+      })
+
+
+      function convertToArduinoArrayString(array) {
+        return JSON.stringify(array)
+            .replaceAll('"', '')
+            .replaceAll("[", "{")
+            .replaceAll("]", "}") + ";"
+      }
+
+      console.log(convertToArduinoArrayString(dupeToUniquesConverted))
+      console.log(maxNeighbors)
+      console.log(convertToArduinoArrayString(neighborsConverted))
+      // [TODO] send info to server (where it can inject into arduino file)
     },
 
     onmousedown(e) {

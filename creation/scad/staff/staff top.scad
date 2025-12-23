@@ -8,13 +8,13 @@ big_r1 = 22.4/2;
 big_r2 = 14;
 big_r2_p = big_r2 * sqrt(3) / 2;
 
-l1 = 30;
+l1 = 20;
 l2 = 45;
-l3 = 50;
+l3 = 48;
 
 a1 = 35.264389682754654;
 a2 = -60;
-a3 = -45;
+a3 = -30;
 
 difference() {
 union() {
@@ -76,14 +76,14 @@ for (i = [0:2]) {
             cube([100, 100, 100]);
         }
         
-        translate([0,0,-150])
+        translate([0,0,-148])
         rotate([-30,0,0])
-        translate([0,7,10])
-        cube([r2, 16, 35], center=true);
+        translate([0,8,10])
+        cube([r2, 13, 35], center=true);
         
-        translate([0,0, -195])
+        translate([0,0, -198])
         rotate([90,0,30])
-        linear_extrude(3, center=true)
+        linear_extrude(4, center=true)
         polygon([
             [big_r2_p, 0],
             [big_r2_p + 7, 0],
@@ -94,15 +94,15 @@ for (i = [0:2]) {
             [big_r2_p + 7, 42],
             [big_r2_p + 10, 42],
             [big_r2_p + 10, 75],
-            [0, 90],
-            [0, 80],
-            [big_r2_p + 3, 70],
+            [0, 100],
+            [0, 91],
+            [big_r2_p + 3, 73],
             [big_r2_p + 3, 50],
             [big_r2_p, 50],
         ]);
     }
 } // End for loop
-translate([0,0,-130])
+translate([0,0,-133])
 //rotate([0,0,30])
 union(){
     translate([0,0,-15])
@@ -111,11 +111,11 @@ union(){
     cylinder(h = 50, r=big_r2);
 }
 } // End union
-translate([0,0,-108])
+translate([0,0,-102])
 cylinder(h = 10, r=big_r1);
-translate([0,0,-145])
+translate([0,0,-148])
 cylinder(h = 12, r1=big_r1, r2=r2*0.5, $fn=64);
-translate([0,0,-196])
+translate([0,0,-199])
 cylinder(h = 51.01, r=big_r1, $fn=64);
 
 //translate([0,0, -150])
@@ -138,15 +138,16 @@ for (i = [0:2]) {
             cube([100, 100, 100], center=true);
         }
         
+        l = i == 0 ? l2 : 14;
         rotate([a1, 0, 0])
         translate([0,0,-81.63010851410841])
         translate([0, r2_p, -l1])
         rotate([a2/2, 0, 0]) 
         difference() {      
             rotate([a2/2, 0, 0])    
-            translate([0, -r2_p, -l2])
+            translate([0, -r2_p, -l])
             difference() {
-                cylinder(h=l2, r=r1, $fn=64);
+                cylinder(h=l, r=r1, $fn=64);
                 
                 translate([0, r2_p, 0])
                 rotate([a3/2, 0, 0]) 
@@ -158,6 +159,7 @@ for (i = [0:2]) {
             cube([100, 100, 100]);
         }
         
+        if (i == 0) {
         rotate([a1, 0, 0])
         translate([0,0,-81.63010851410841])
         translate([0, r2_p, -l1])
@@ -172,9 +174,7 @@ for (i = [0:2]) {
             translate([-50, -50, 0])
             cube([100, 100, 100]);
         }
-        
-        translate([0,7,-165])
-        cube([4, 16, 36], center=true);
+        }
     }
 } // End for loop
 
