@@ -192,7 +192,6 @@ def save_loop(): # Trying to avoid race conditions
     elif time() < last_modified_time + 0.5:
       sleep(0.1)
     else:
-      print("saving")
       prefs_file_content = json.dumps(prefs, indent=2)
       if prefs_file_content != "{}":
         with open(pref_path, "w") as f:
