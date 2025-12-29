@@ -15,7 +15,6 @@ from idlepatterns import Idle
 
 class Sin(Idle):
   time_factor = 0
-  previous_time = 0
 
   def __init__(self):
     Idle.__init__(self)
@@ -30,8 +29,7 @@ class Sin(Idle):
         self.render_values = self.distancesFromCenter * -self.period()
     else:
       self.render_values = np.matmul(-self.direction() * self.period(), unique_coord_matrix)
-    self.time_factor += (time() - self.previous_time) * 2*pi * self.speed()
-    self.previous_time = time()
+    self.time_factor += self.time_delta() * 2*pi * self.speed()
     self.render_values += self.time_factor
     self.render_values = (np.sin(self.render_values) + 1 + self.min_value())/(2 + self.min_value())
     self.render_values = np.maximum(self.render_values, 0)

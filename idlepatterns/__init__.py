@@ -48,7 +48,9 @@ class Idle(Game):
   waiting_music = "idle"
   render_values = None
   previous_values = None
+  previous_time = 0
   target_values = np.zeros((RAW_SIZE, 1))
+  rainbow_phase = 0
 
   previous_render_time = 0
   previous_beat_time = 0
@@ -103,6 +105,10 @@ class Idle(Game):
     self.render_birthday()
 
     engine.raw_pixels = self.render_values * 255
+    self.previous_time = time()
+
+  def time_delta(self):
+    return time() - self.previous_time
   
   def render_birthday(self):
     if self.birthday is None:
@@ -168,7 +174,7 @@ class Idle(Game):
   def color(self):
     color_string = get_pref("idleColor")
     if color_string == "rainbow":
-      return rainbow_phase_color()
+      return self.rainbow_phase_color()
     elif color_string == "timeofday":
       return time_of_day_color()
     else:
@@ -176,10 +182,10 @@ class Idle(Game):
 
   def apply_color(self):
     if get_pref("idleColor") == "rainbow" and get_pref("rainbowFade") > 0:
-      color_phase = (time()/get_pref("rainbowDuration")) % 1
-      R = self.rainbow_helper(color_phase + 0.33333)
-      G = self.rainbow_helper(color_phase)
-      B = self.rainbow_helper(color_phase + 0.66666)
+      self.rainbow_phase = (self.rainbow_phase + self.time_delta()/get_pref("rainbowDuration")) % 1
+      R = self.rainbow_helper(self.rainbow_phase + 0.33333)
+      G = self.rainbow_helper(self.rainbow_phase)
+      B = self.rainbow_helper(self.rainbow_phase + 0.66666)
       self.render_values = np.stack([R,G,B], axis=-1)
     elif get_pref("idleColor") == "gradient":
       rectified_target_values = self.target_values * 100.0 / get_pref("gradientThreshold")
@@ -249,23 +255,20 @@ class Idle(Game):
     self.previous_render_time = time()
     self.previous_values = self.render_values.copy()
 
-
-
-def rainbow_phase_color():
-  color_phase = (time()/get_pref("rainbowDuration")) % 1
-  if color_phase < 0.333:
-    r = 1 - 3 * color_phase
-    g = 3 * color_phase
-    b = 0
-  elif color_phase < 0.666:
-    r = 0
-    g = 2 - 3 * color_phase
-    b = 3 * color_phase - 1
-  else:
-    r = 3 * color_phase - 2
-    g = 0
-    b = 3 - 3 * color_phase
-  return np.array((r,g,b))
+  def rainbow_phase_color(self):
+    if self.rainbow_phase < 0.333:
+      r = 1 - 3 * self.rainbow_phase
+      g = 3 * self.rainbow_phase
+      b = 0
+    elif self.rainbow_phase < 0.666:
+      r = 0
+      g = 2 - 3 * self.rainbow_phase
+      b = 3 * self.rainbow_phase - 1
+    else:
+      r = 3 * self.rainbow_phase - 2
+      g = 0
+      b = 3 - 3 * self.rainbow_phase
+    return np.array((r,g,b))
 
 
 tod_colors = [
