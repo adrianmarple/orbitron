@@ -291,10 +291,6 @@ var app = new Vue({
     speedbumpCallback: function() {
       this.speedbumpTimestamp = Date.now()
     },
-    gameStarted() {
-      if (this.isIframe) return
-      document.getElementById("app").style.overflowY = this.gameStarted ? "hidden" : "scroll"
-    }
   },
 
   computed: {
@@ -313,6 +309,16 @@ var app = new Vue({
         return "LOST FOCUS"
       } else {
         return this.socketStatus
+      }
+    },
+
+    appOverflowY() {
+      if (this.isIframe) {
+        return "inherit"
+      } else if (this.speedbumpCallback || this.gameStarted) {
+        return "hidden"
+      } else {
+        return "scroll"
       }
     },
 

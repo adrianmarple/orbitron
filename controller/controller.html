@@ -22,7 +22,7 @@
   </script>
   
 <div id=app
-  :style="{ '--self-color': self.color }"
+  :style="{ '--self-color': self.color, overflowY: appOverflowY }"
   :class="[{ isIframe }, os, browser]"
   @scroll="checkOverscroll">
   <div id="background"></div>
