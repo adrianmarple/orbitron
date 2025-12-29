@@ -83,15 +83,13 @@ for (i = [0:2]) {
         
         translate([0,0, -198])
         rotate([90,0,30])
-        linear_extrude(4, center=true)
+        linear_extrude(5, center=true)
         polygon([
             [big_r2_p, 0],
-            [big_r2_p + 7, 0],
-            [big_r2_p + 7, 12],
-            [big_r2_p + 10, 12],
+            [big_r2_p + 10, 13],
             [big_r2_p + 10, 25],
-            [big_r2_p + 7, 25],
-            [big_r2_p + 7, 42],
+            [big_r2_p + 6, 25],
+            [big_r2_p + 6, 42],
             [big_r2_p + 10, 42],
             [big_r2_p + 10, 75],
             [0, 100],

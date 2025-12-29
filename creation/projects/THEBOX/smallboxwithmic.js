@@ -17,7 +17,7 @@ module.exports = async () => {
   THICKNESS = 2.6
   LATCH_TYPE = "hook"
 
-  addPolygon(4, [0,0,0], [34 - 2*BOTTOM_KERF, 120])
+  addPolygon(4, [0,0,0], [34 - 2*KERF, 120])
 
   printPostProcessingFunction = printInfo => {
     let width = 10

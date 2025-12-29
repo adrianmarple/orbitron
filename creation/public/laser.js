@@ -19,6 +19,14 @@ async function createCoverSVG(plain) {
     plain = DEFAULT_PLAIN
   }
 
+  isStrong = false
+  for (let cover of strongCovers) {
+    if (cover.plain == plain && cover.isBottom == IS_BOTTOM) {
+      isStrong = true
+      break
+    }
+  }
+
   minX = 1e6
   minY = 1e6
   maxX = -1e6
@@ -323,6 +331,7 @@ async function createCoverSVG(plain) {
         fold.addFoldWallInfo({
           edge,
           isOutgoing,
+          isStrong,
           wallLength, farWallLength, nearWallLength,
           angle: isOutgoing ? angle2 : angle1,
           lengthOffset: isOutgoing ? lengthOffset2 : lengthOffset1,
@@ -360,6 +369,7 @@ async function createCoverSVG(plain) {
           [e1, n],
           v1,
           [lengthOffset1, CHANNEL_WIDTH/2],
+          isStrong,
           print)
       }
 
@@ -562,7 +572,18 @@ async function createCoverSVG(plain) {
       ]
     })
 
-    if (INNER_CHANNEL_THICKNESS !== null) {
+    if (print.bitsToRemove) {
+      print = {
+        type: "difference",
+        components: [
+          print,
+          ...print.bitsToRemove
+        ],
+      }
+      delete print.components[0].bitsToRemove
+    }
+
+    if (!isStrong && INNER_CHANNEL_THICKNESS !== null) {
       let embo = findEmbossing(print)
       print = {
         type: "difference",
@@ -632,7 +653,7 @@ function associateWallWithEdge(wall, associatedEdge) {
   }
 }
 
-function singleSlotPath(wallLength, basis, offset, localOffset, print) {
+function singleSlotPath(wallLength, basis, offset, localOffset, isStrong, print) {
   offset = offset.sub(new Vector(0,0, offset.z))
   if (wallLength > 1e6) return ""
   let path = ""
@@ -640,6 +661,36 @@ function singleSlotPath(wallLength, basis, offset, localOffset, print) {
     offset = offset
         .addScaledVector(basis[0], localOffset[0])
         .addScaledVector(basis[1], localOffset[1])
+  }
+
+  let trueNotchDepth = NOTCH_DEPTH
+  if (2*NOTCH_DEPTH + MIN_NON_NOTCH_LENGTH > wallLength) {
+    trueNotchDepth = (wallLength - MIN_NON_NOTCH_LENGTH)/2
+  }
+
+  if (isStrong) {
+    if (!print.bitsToRemove) {
+      print.bitsToRemove = []
+    }
+    let position = offset
+        .addScaledVector(basis[0], wallLength/2)
+        .addScaledVector(basis[1], WALL_THICKNESS/2)
+        .addScaledVector(FORWARD, THICKNESS + EXTRA_COVER_THICKNESS)
+    let rotationAngle = -basis[0].signedAngle(LEFT)
+    print.bitsToRemove.push({
+      position: position.toArray(),
+      rotationAngle,
+      code: `
+      rotate([0,-90,0])
+      linear_extrude(${wallLength - 2*trueNotchDepth}, center=true)
+      polygon([[0, ${-WALL_THICKNESS/2 + KERF}],
+        [0, ${WALL_THICKNESS/2 - KERF}],
+        [${-THICKNESS}, ${STRONG_SLOPE*THICKNESS + WALL_THICKNESS/2 - KERF}],
+        [${-THICKNESS}, ${STRONG_SLOPE*THICKNESS - WALL_THICKNESS/2 + KERF}]
+      ]);`
+    })
+
+    return ""
   }
 
   function addLatch(x, directionSign) {
@@ -669,10 +720,6 @@ function singleSlotPath(wallLength, basis, offset, localOffset, print) {
     }
   }
 
-  let trueNotchDepth = NOTCH_DEPTH
-  if (2*NOTCH_DEPTH + MIN_NON_NOTCH_LENGTH > wallLength) {
-    trueNotchDepth = (wallLength - MIN_NON_NOTCH_LENGTH)/2
-  }
 
   let w1 = KERF
   let w2 = WALL_THICKNESS - KERF
@@ -1127,8 +1174,8 @@ function wallPrint(wall, isLeft) {
     side = wall[isLeft ? "left": "right"]
   }
   let  { miterAngle, edgeLength, lengthOffset, endVertex,
-    topLength, topLengthNear,
-    bottomLength, bottomLengthNear } = side
+    bottomLength, bottomLengthNear, bottomIsStrong,
+    topLength, topLengthNear, topIsStrong,} = side
   let vertex1 = wall.vertex
   let maxLength = Math.max(topLength, bottomLength)
 
@@ -1157,6 +1204,12 @@ function wallPrint(wall, isLeft) {
   if (isLeft) {
     E = E.negate()
   }
+
+  let xOffset = (WALL_THICKNESS * Math.abs(Math.tan(wall.yRotationAngle))) * (isLeft ? -1 : 1)
+  let yOffset = xOffset * Math.tan(rotationAngle)
+  let offset = RIGHT.scale(xOffset)
+      .addScaledVector(UP, yOffset)
+
 
   if (topLengthNear && !E.scale(topLengthNear - bottomLengthNear).addScaledVector(N, -CHANNEL_DEPTH).equals(
       UP.scale(-CHANNEL_DEPTH * dihedralRatio))) {
@@ -1204,7 +1257,25 @@ function wallPrint(wall, isLeft) {
   if (topLengthNear) {
     wallSegments.push(E.scale(topLengthNear - topLength))
   }
-  if (RENDER_MODE == "standard") {
+
+  if (topIsStrong) {
+    wallSegments.push(E.scale(topLength))
+    let position = offset
+        .addScaledVector(UP, CHANNEL_DEPTH/2 * dihedralRatio)
+        .addScaledVector(E, topLength/2)
+    print.components.push({
+      position: [position.x, -position.y, 0],
+      rotationAngle: -rotationAngle,
+      code: `
+      rotate([0,-90,0])
+      linear_extrude(${topLength - 2*topEndNotchDepth}, center=true)
+      polygon([[0,0],
+        [${WALL_THICKNESS}, 0],
+        [${STRONG_SLOPE*THICKNESS + WALL_THICKNESS}, ${-THICKNESS}],
+        [${STRONG_SLOPE*THICKNESS}, ${-THICKNESS}]
+      ]);`
+    })
+  } else if (RENDER_MODE == "standard") {
     for (let i = 0; i < topSegmentCount; i++) {
       let insetA = i == 0 ? -insetAngle : 0
       wallSegments.push(E.scale(topEndNotchDepth))
@@ -1221,7 +1292,24 @@ function wallPrint(wall, isLeft) {
     N.scale(-CHANNEL_DEPTH),
     E.scale(-WALL_MITER_KERF),
   ])
-  if (RENDER_MODE == "standard") {
+  if (bottomIsStrong) {
+    wallSegments.push(E.scale(-bottomLength))
+    let position = offset
+        .addScaledVector(UP, -CHANNEL_DEPTH/2 * dihedralRatio)
+        .addScaledVector(E, bottomLength/2)
+    print.components.push({
+      position: [position.x, -position.y, 0],
+      rotationAngle: -rotationAngle,
+      code: `
+      rotate([0,-90,0])
+      linear_extrude(${bottomLength - 2*bottomEndNotchDepth}, center=true)
+      polygon([[0,0],
+        [${WALL_THICKNESS}, 0],
+        [${STRONG_SLOPE*THICKNESS + WALL_THICKNESS}, ${THICKNESS}],
+        [${STRONG_SLOPE*THICKNESS}, ${THICKNESS}]
+      ]);`
+    })
+  } else if (RENDER_MODE == "standard") {
     for (let i = 0; i < bottomSegmentCount; i++) {
       let insetA = i == bottomSegmentCount-1 ? insetAngle : 0
       wallSegments.push(E.scale(-bottomEndNotchDepth)),
@@ -1236,11 +1324,6 @@ function wallPrint(wall, isLeft) {
   if (bottomLengthNear) {
     wallSegments.push(E.scale(-bottomLengthNear + bottomLength))
   }
-
-  let xOffset = (WALL_THICKNESS * Math.abs(Math.tan(wall.yRotationAngle))) * (isLeft ? -1 : 1)
-  let yOffset = xOffset * Math.tan(rotationAngle)
-  let offset = RIGHT.scale(xOffset)
-      .addScaledVector(UP, yOffset)
 
   path += pathFromSegments(offset, wallSegments)
 
@@ -1677,13 +1760,11 @@ function downloadSVGAsText(id, name) {
 async function generateManufacturingInfo() {
   document.querySelectorAll("path.laser").forEach(path => path.setAttribute('d', ""))
   if (isWall) {
-    KERF = TOP_KERF
     foldWalls = []
     edgeToWalls = {}
     covers = {top: [], bottom: []}
     
     IS_BOTTOM = false
-    window.KERF = TOP_KERF
     for (let plain of plains) {
       covers.top.push(await createCoverSVG(plain))
       let w = (maxX - minX)
@@ -1700,7 +1781,6 @@ async function generateManufacturingInfo() {
       }
     }
     IS_BOTTOM = true
-    window.KERF = BOTTOM_KERF
     for (let plain of plains) {
       covers.bottom.push(await createCoverSVG(plain))
       let w = (maxX - minX) / 96

@@ -75,8 +75,7 @@ function reset() {
   INNER_WALL_EXTERIOR_THICKNESS = 0.6
   INNER_WALL_KERF = 0.25 //0.2
 
-  BOTTOM_KERF = 0
-  TOP_KERF = -0.05
+  KERF = 0
   WALL_KERF = 0.2
   NOTCH_KERF = -0.15
   WALL_STRAIGHT_KERF = 0 // 0.11
@@ -109,7 +108,6 @@ function reset() {
   CHANNEL_DEPTH = CAT5_HEIGHT
   
   END_CAP_FACTOR = 0.3872
-  KERF = BOTTOM_KERF
   IS_BOTTOM = true
   INFILL_100 = false
 
@@ -128,10 +126,12 @@ function reset() {
   NO_SUPPORTS = false
   RENDER_MODE = "standard"
   COVER_TYPES = ["top", "bottom"] // Needed for semi-hack for simple mode
+  STRONG_SLOPE = 1.6
 
   coverPrint3D = false
   exteriorOnly = false
   cat5PortAtEnd = false
+  strongCovers = []
   addNubs = true
   addExtraFoldWallWedge = true
   portPartID = ""
@@ -156,8 +156,7 @@ function setFor3DPrintedCovers() {
   INNER_CHANNEL_THICKNESS = 0.4
 
   BORDER = 2
-  BOTTOM_KERF = -0.08
-  TOP_KERF = BOTTOM_KERF
+  KERF = -0.08
   WALL_KERF = 0
   NOTCH_KERF = 0
 

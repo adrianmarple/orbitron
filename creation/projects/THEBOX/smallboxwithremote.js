@@ -18,7 +18,7 @@ module.exports = async () => {
   PORT_TYPE = "USBC"
   PORT_POSITION = "center"
 
-  addPolygon(4, [0,0,0], [34 - 2*BOTTOM_KERF, 100])
+  addPolygon(4, [0,0,0], [34 - 2*KERF, 100])
 
   printPostProcessingFunction = printInfo => {
     let width = 10

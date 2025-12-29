@@ -305,7 +305,7 @@ class Fold {
 
   addFoldWallInfo(params) {
     let { edge, isOutgoing, wallLength, nearWallLength, farWallLength,
-      lengthOffset, edgeLength, angle,
+      lengthOffset, edgeLength, angle, isStrong,
       worldPlacementOperations } = params
 
     let negation = this.vertex.negation(edge)
@@ -322,6 +322,7 @@ class Fold {
     side[coverType + "Length"] = wallLength
     side[coverType + "LengthFar"] = farWallLength
     side[coverType + "LengthNear"] = nearWallLength
+    side[coverType + "IsStrong"] = isStrong
     side.worldPlacementOperations = worldPlacementOperations
   }
 }
