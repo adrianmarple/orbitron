@@ -1,6 +1,9 @@
 module.exports = async () => {
   setFor3DPrintedCovers()
   portPartID = "1R"
+  NOTCH_DEPTH = 5
+  THICKNES = 1.8
+  MAX_SLOT_SEGMENT_LENGTH = 200
 
   await addFromSVG("organic/Butterfly wing.svg")
   integerize()
