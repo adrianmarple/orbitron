@@ -1,6 +1,5 @@
 
 module.exports = () => {
-  setFor3DPrintedCovers()
   MAX_WALL_LENGTH = 150
   portPartID = "2"
   PORT_POSITION = "center"

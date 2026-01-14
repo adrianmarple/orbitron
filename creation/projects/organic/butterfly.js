@@ -1,5 +1,4 @@
 module.exports = async () => {
-  setFor3DPrintedCovers()
   portPartID = "1R"
   NOTCH_DEPTH = 5
   THICKNES = 1.8

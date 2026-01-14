@@ -232,11 +232,11 @@ class Fold {
     }
     if (isOutgoing) {
       this.edge0 = edge
-      this.edge1 = vertex.nextEdge(edge, flip)
+      this.edge1 = vertex.nextEdge(edge, !flip)
     }
     else {
       this.edge1 = edge
-      this.edge0 = vertex.nextEdge(edge, !flip) // TODO flip if IS_BOTTOM (or something like that)
+      this.edge0 = vertex.nextEdge(edge, flip) // TODO flip if IS_BOTTOM (or something like that)
     }
 
     let n0 = this.vertex.correctedNormal(this.edge0)

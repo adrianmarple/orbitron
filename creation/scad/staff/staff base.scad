@@ -1,5 +1,7 @@
 $fn=6;
 
+use <../utils.scad>
+
 r1 = 5.98;
 r2 = 9;
 r2_p = r2 * sqrt(3) / 2;
@@ -44,12 +46,30 @@ box_w = power_connection_r * 2 + 1;
 box_thick = 18;
 box_h = 90;
 box_wall = 2;
+seeed_h = 30;
 
 //power();
-controller();
+//controller();
+seeed_sled();
 
-module seeed_holder() {
-    // TODO
+module seeed_sled() {
+    rotate([90,0,0])
+    difference() {
+        cube([power_connection_r * 2 + box_wall, box_thick, seeed_h]);
+    
+        translate([1.2, box_thick/2 - 3.6, -1])
+        cube([21.2, box_thick, 32]);
+        
+        
+        translate([10, box_thick/2 - 3.6, seeed_h/2 + 7])
+        cube([40, box_thick, 20]);
+        translate([10, box_thick/2 - 3.6, seeed_h/2 - 27])
+        cube([40, box_thick, 20]);
+        
+        translate([-1, box_thick/2, 21])
+        rotate([0,90,0])
+        pillinder(9.5, 1.8, 10);
+    }
 }
 
 module power() {
@@ -125,10 +145,10 @@ difference() {
         polygon([
             [0, -15],
             [30, 10],
-            [30, 48],
-            [24, 48],
-            [24, 76],
-            [30, 76],
+            [30, 47],
+            [14, 47],
+            [14, 77],
+            [30, 77],
             [30, 115],
             [0, 140],
         ]);
@@ -136,17 +156,17 @@ difference() {
         polygon([
             [0, -15],
             [30, 10],
-            [30, 48],
-            [14, 48],
-            [14, 76],
-            [30, 76],
+            [30, 47],
+            [14, 47],
+            [14, 77],
+            [30, 77],
             [30, 115],
             [0, 140],
         ]);
         }
     }// end union
     
-    cylinder(h=power_connection_h + power_top_total, r=power_connection_r + 0.8);
+    cylinder(h=power_connection_h + power_top_total, r=power_connection_r + 0.08);
     
     translate([0, 0, power_connection_h + power_top_total + box_h/2])
     cube([power_connection_r*2, box_thick, box_h], center=true);
@@ -162,10 +182,20 @@ difference() {
     translate([0, 0, -50])
     cube([100, 100, 100], center=true);
     
+    
+    // Entrance for seeed sled
+    translate([-20, 0, 76])
+    cube([10, box_thick, 30], center=true);
+    
+    // Hole to be able to poke seeed sled out
+    translate([15, 0, 76])
+    rotate([0,90,0])
+    cylinder(h = 10, r=3, $fn=64);
+    
     // Deboss
     for (i = [0:1]) {
         rotate([0,0,180*i])
-        translate([0, -box_thick/2 - box_wall + 0.6, 76.3])
+        translate([0, -box_thick/2 - box_wall + 0.6, 76])
         rotate([90,0,0])
         linear_extrude(1)
         scale(0.4)

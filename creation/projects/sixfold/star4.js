@@ -1,7 +1,5 @@
 // SKI
 module.exports = async () => {
-  setFor3DPrintedCovers()
-
   // portPartID = "1L"
   CENTER = new Vector(3, 3, 3)
   const SIZE = -4

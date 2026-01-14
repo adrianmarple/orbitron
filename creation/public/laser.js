@@ -1179,7 +1179,9 @@ function wallPrint(wall, isLeft) {
   let vertex1 = wall.vertex
   let maxLength = Math.max(topLength, bottomLength)
 
-
+  if (!isLeft) {
+    lengthOffset *= -1
+  }
   let print = blankPrint()
   print.suffix = wall.partID + ""
 
@@ -1332,7 +1334,7 @@ function wallPrint(wall, isLeft) {
       .addScaledVector(E, topLength)
       .addScaledVector(N, -CHANNEL_DEPTH/2)
   let startV = wallStart
-      .addScaledVector(E, lengthOffset)
+      .addScaledVector(E, lengthOffset + wall.extraLEDSupportOffset)
 
 
   // Power hole
@@ -1395,54 +1397,108 @@ function wallPrint(wall, isLeft) {
 
 
   // LED supports
-  supportOffset = null
-  if (isLeft && !NO_SUPPORTS && print.suffix != portPartID &&
-      bottomLength > PIXEL_DISTANCE * 1.2) {
-    supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 1)
-    supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
-    supportOffset += wall.extraLEDSupportOffset
-    let threshold = lengthOffset - LED_SUPPORT_WIDTH/2
-    if (miterAngle < 0) {
-      threshold += Math.tan(miterAngle) * WALL_THICKNESS
+  if (LED_SUPPORT_TYPE == "single") {
+    supportOffset = null
+    if (isLeft && print.suffix != portPartID &&
+        bottomLength > PIXEL_DISTANCE * 1.2) {
+      supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 1)
+      supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
+      supportOffset += wall.extraLEDSupportOffset
+      let threshold = lengthOffset + LED_SUPPORT_WIDTH/2
+      if (miterAngle < 0) {
+        threshold += Math.tan(miterAngle) * WALL_THICKNESS
+      }
+      while (supportOffset < threshold) {
+        supportOffset += PIXEL_DISTANCE
+      }
     }
-    while (supportOffset < threshold) {
-      supportOffset += PIXEL_DISTANCE
+    if (!isLeft && print.suffix != portPartID
+        && maxLength > PIXEL_DISTANCE * 2.5) {
+      supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
+      supportOffset -= supportOffset % PIXEL_DISTANCE
+      supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
+      let threshold = edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH
+      while (supportOffset > threshold) {
+        supportOffset -= PIXEL_DISTANCE
+      }
+    }
+    if (supportOffset != null && RENDER_MODE == "standard") {
+      let v0 = endVertex.ogCoords
+      let v1 = vertex1.ogCoords
+      let e = v1.sub(v0).normalize()
+      let worldPosition = v0.addScaledVector(e, supportOffset / PIXEL_DISTANCE)
+      
+      let shouldAddSupport = true
+      for (let wp of ledWorldPositions) {
+        if (wp.equals(worldPosition)) {
+          shouldAddSupport = false
+        }
+      }
+      if (shouldAddSupport) {
+        ledWorldPositions.push(worldPosition)
+        position = startV.addScaledVector(E, -supportOffset)
+        print.components.push({
+          type: "ledSupport",
+          position: [position.x, -position.y, WALL_THICKNESS],
+          width: LED_SUPPORT_WIDTH,
+          height: LED_SUPPORT_HEIGHT(),
+          thickness: LED_SUPPORT_THICKNESS,
+          gap: LED_SUPPORT_GAP,
+          rotationAngle: -rotationAngle,
+        })
+      }
     }
   }
-  if (!isLeft && !NO_SUPPORTS && print.suffix != portPartID
-      && maxLength > PIXEL_DISTANCE * 2.5) {
-    supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
-    supportOffset -= supportOffset % PIXEL_DISTANCE
-    supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
-    let threshold = edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH
-    while (supportOffset > threshold) {
-      supportOffset -= PIXEL_DISTANCE
-    }
-  }
-  if (supportOffset != null && RENDER_MODE == "standard") {
+  if (LED_SUPPORT_TYPE == "all" && RENDER_MODE == "standard") {
     let v0 = endVertex.ogCoords
     let v1 = vertex1.ogCoords
     let e = v1.sub(v0).normalize()
-    let worldPosition = v0.addScaledVector(e, supportOffset / PIXEL_DISTANCE)
-    
-    let shouldAddSupport = true
-    for (let wp of ledWorldPositions) {
-      if (wp.equals(worldPosition)) {
-        shouldAddSupport = false
-      }
+
+    supportOffset = PIXEL_DISTANCE * (ledAtVertex ? -0.5 : 0)
+    supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
+
+    let minOffset = lengthOffset + LED_SUPPORT_WIDTH/2 + wall.extraLEDSupportOffset
+    if (miterAngle < 0) {
+      minOffset += Math.tan(miterAngle) * WALL_THICKNESS
     }
-    if (shouldAddSupport) {
-      ledWorldPositions.push(worldPosition)
-      position = startV.addScaledVector(E, -supportOffset)
-      print.components.push({
-        type: "ledSupport",
-        position: [position.x, -position.y, WALL_THICKNESS],
-        width: LED_SUPPORT_WIDTH,
-        height: LED_SUPPORT_HEIGHT(),
-        thickness: LED_SUPPORT_THICKNESS,
-        gap: LED_SUPPORT_GAP,
-        rotationAngle: -rotationAngle,
-      })
+    let maxOffset = edgeLength - LED_SUPPORT_WIDTH
+    if (wall.isFoldWall && epsilonEquals(wall.dihedralAngle, 0)) {
+      maxOffset += PIXEL_DISTANCE
+    }
+    
+    console.log(print.suffix, startV.length() / PIXEL_DISTANCE,
+    edgeOffset(endVertex, wall.vertex), wall.extraLEDSupportOffset / PIXEL_DISTANCE)
+    console.log(minOffset/ PIXEL_DISTANCE, maxOffset/ PIXEL_DISTANCE)
+    while (supportOffset < maxOffset) {
+      console.log(supportOffset/PIXEL_DISTANCE)
+      if (supportOffset < minOffset) {
+        supportOffset += PIXEL_DISTANCE
+        continue
+      }
+
+      let worldPosition = v0.addScaledVector(e, supportOffset / PIXEL_DISTANCE)
+      let shouldAddSupport = true
+      for (let wp of ledWorldPositions) {
+        if (wp.equals(worldPosition)) {
+          shouldAddSupport = false
+        }
+      }
+      if (shouldAddSupport) {
+        ledWorldPositions.push(worldPosition)
+        position = startV.addScaledVector(E, -supportOffset)
+        console.log(worldPosition)
+        print.components.push({
+          type: "ledSupport",
+          position: [position.x, -position.y, WALL_THICKNESS],
+          width: LED_SUPPORT_WIDTH,
+          height: LED_SUPPORT_HEIGHT(),
+          thickness: LED_SUPPORT_THICKNESS,
+          gap: LED_SUPPORT_GAP,
+          rotationAngle: -rotationAngle,
+        })
+      }
+
+      supportOffset += PIXEL_DISTANCE
     }
   }
 
@@ -1452,17 +1508,14 @@ function wallPrint(wall, isLeft) {
     !(hasPort && PORT_TYPE == "USBC_INTEGRATED") &&
     RENDER_MODE == "standard") {
 
-    let embossingOffset = lengthOffset
-    if (supportOffset && embossingOffset + MAX_EMBOSSING_WIDTH + LED_SUPPORT_WIDTH/2 > supportOffset) {
-      embossingOffset = supportOffset + LED_SUPPORT_WIDTH/2 + 1
-    }
-    embossingOffset = Math.min(embossingOffset, lengthOffset + Math.max(topLength, bottomLength) - MAX_EMBOSSING_WIDTH)
-    let emboPos = startV.addScaledVector(E, -embossingOffset)
+    let emboPos = startV.addScaledVector(E, -lengthOffset - wall.extraLEDSupportOffset)
+        .addScaledVector(N, -LED_SUPPORT_GAP/2 - LED_SUPPORT_THICKNESS - 0.1)
     print.components.push({
       type: "embossing",
       position: [emboPos.x, -emboPos.y, WALL_THICKNESS],
       rotationAngle: -rotationAngle,
       halign: isLeft ? "left" : "right",
+      valign: "bottom",
       text: print.suffix,
     })
   }

@@ -1,7 +1,7 @@
 // SKI
+// v2.0
 module.exports = () => {
-  setFor3DPrintedCovers()
-  // RENDER_MODE = "simple"
+  LED_SUPPORT_GAP = 3
 
   const topH = 4
 

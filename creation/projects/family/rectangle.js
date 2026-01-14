@@ -1,10 +1,9 @@
 // SKIP
 module.exports = () => {
-  setFor3DPrintedCovers()
   portPartID = "2L"
   ZERO_FOLD_LENGTH_THRESHOLD = 19
   MAX_WALL_LENGTH = 150
-  NO_SUPPORTS = true
+  LED_SUPPORT_TYPE = "none"
 
   // CHANNEL_WIDTH = 10
   PIXEL_DISTANCE = 8.3 //https://www.superlightingled.com/4mm-ws2812c-individually-addressable-rgb-led-strip-light-120ledsm-328ft1m-p-4003.html

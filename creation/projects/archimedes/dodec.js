@@ -1,7 +1,5 @@
 // SKIP
 module.exports = () => {
-  setFor3DPrintedCovers()
-
   wallPostProcessingFunction = printInfo => {
     printInfo.prints = [printInfo.prints[1], printInfo.prints[5], printInfo.prints[4]]
   }

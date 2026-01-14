@@ -509,7 +509,7 @@ async function generateModule(info, module) {
       let thickness = module.thickness || 0.2
       moduleString += `
       linear_extrude(${thickness})
-      text("${module.text}", size=4, valign="${valign}", halign="${halign}");`
+      text("${module.text}", size=3.6, valign="${valign}", halign="${halign}");`
       break
     case "qtClip":
       moduleString += `
@@ -553,19 +553,19 @@ addPOSTListener(async (response, body) => {
 
 
 addGETListener((response, request) => {
-  if (request.url.endsWith("buttonlist.json")) {
+  if (request.url.endsWith("projectlist.json")) {
     noCorsHeader(response, 'text/plain')
-    response.end(JSON.stringify(buttonUrls), 'utf-8')
+    response.end(JSON.stringify(projects), 'utf-8')
     return true
   } else {
     return false
   }
 })
 
-let buttonUrls = []
+let projects = []
 async function findAllButtons() {
   // TODO: Log diff when there's a change
-  buttonUrls = []
+  projects = []
   const folderNames = (await fs.promises.readdir("./projects/", { withFileTypes: true }))
       .filter(file => file.isDirectory())
       .map(directory => directory.name)
@@ -573,14 +573,22 @@ async function findAllButtons() {
     const jsFiles = (await fs.promises.readdir("./projects/" + dirName))
         .filter(name => name.endsWith(".js"))
     for (const fileName of jsFiles) {
-      let fullName = dirName + "/" + fileName.slice(0,-3)
-      let path = "projects/" + fullName + ".js"
-      let fileContents = (await fs.promises.readFile(path)).toString()
+      const shortName = fileName.slice(0,-3)
+      const fullName = dirName + "/" + shortName
+      const path = "projects/" + fullName + ".js"
+      const fileContents = (await fs.promises.readFile(path)).toString()
       if (fileContents.includes("SKIP")) continue
-      buttonUrls.push(fullName)
+
+      const match = fileContents.match(/\/\/.*v(\d+(\.\d+)+)/)
+      const version = match ? match[1] : "1"
+      projects.push({
+        name: fullName,
+        shortName,
+        version,
+      })
     }
   }
-  buttonUrls = buttonUrls.sort()
+  projects = projects.sort(p => p.name)
 }
 findAllButtons()
 setInterval(findAllButtons, 10 * 1000)

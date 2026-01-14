@@ -1,6 +1,4 @@
 module.exports = async () => {
-  setFor3DPrintedCovers()
-
   await addFromSVG("organic/tree.svg")
 
   integerize()

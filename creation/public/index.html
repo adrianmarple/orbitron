@@ -20,7 +20,11 @@
 const initialSeed = 3
 const PHI = (1 + Math.sqrt(5))/ 2
 
+VERSION = "1"
+
 function reset() {
+  console.log("version", VERSION)
+
   verticies = []
   edges = []
   DEFAULT_PLAIN.index = 0
@@ -85,6 +89,7 @@ function reset() {
   LED_SUPPORT_GAP = 2
   LED_SUPPORT_THICKNESS = 1.6
   LED_SUPPORT_HEIGHT = () => CHANNEL_WIDTH - 0.2
+  LED_SUPPORT_TYPE = "single" // "none", "all"
 
   PORT_TYPE = "USBC" // "CAT5"
   PORT_POSITION = "start" // "center", "end"
@@ -123,7 +128,6 @@ function reset() {
   MAX_SLOT_SEGMENT_LENGTH = 200
 
   NO_EMBOSSING = false
-  NO_SUPPORTS = false
   RENDER_MODE = "standard"
   COVER_TYPES = ["top", "bottom"] // Needed for semi-hack for simple mode
   STRONG_SLOPE = 1.6
@@ -142,11 +146,8 @@ function reset() {
   dataPostProcessingFunction = pixelInfo => {}
   printPostProcessingFunction = printInfo => {}
 
-  setFor3DPrintedCovers()
-}
-reset()
+  if (versionLessThan("1", VERSION)) return
 
-function setFor3DPrintedCovers() {
   coverPrint3D = true
   addNubs = false
   addExtraFoldWallWedge = false
@@ -167,6 +168,30 @@ function setFor3DPrintedCovers() {
   NOTCH_DEPTH = 4.5
   MAX_SLOT_SEGMENT_LENGTH = 40
   PORT_TYPE = "USBC_INTEGRATED"
+
+  if (versionLessThan("1.0.1", VERSION)) return
+
+  LED_SUPPORT_TYPE = "all"
+}
+reset()
+
+function versionLessThan(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    
+    // Determine the maximum length to ensure we compare all segments
+    const maxLength = Math.max(parts1.length, parts2.length);
+
+    for (let i = 0; i < maxLength; i++) {
+        // Use 0 as a default if one version has fewer segments than the other
+        const num1 = parts1[i] || 0;
+        const num2 = parts2[i] || 0;
+
+        if (num1 > num2) return true;
+        if (num1 < num2) return false;
+    }
+
+    return false;
 }
 
 Array.prototype.remove = function(elem) {

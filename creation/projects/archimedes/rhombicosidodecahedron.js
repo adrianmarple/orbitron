@@ -1,14 +1,5 @@
 // SKIP
 module.exports = () => {
-  setFor3DPrintedCovers()
-
-  // wallPostProcessingFunction = printInfo => {
-  //   printInfo.prints = [printInfo.prints[1], printInfo.prints[5], printInfo.prints[4]]
-  // }
-  // coverPostProcessingFunction = covers => {
-  //   covers.top = [covers.top[0]]
-  //   covers.bottom = [covers.bottom[0]]
-  // }
 
   baseVerticies = [
     [1, 1, Math.pow(PHI, 3)],

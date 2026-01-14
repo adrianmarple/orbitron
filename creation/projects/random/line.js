@@ -1,6 +1,5 @@
-// SKI
+// SKIP
 module.exports = () => {
-  setFor3DPrintedCovers()
   MAX_WALL_LENGTH = 180
   portPartID = "2"
   PORT_POSITION = "center"

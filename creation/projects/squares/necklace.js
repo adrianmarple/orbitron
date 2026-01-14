@@ -1,6 +1,5 @@
 // SKIP
 module.exports = () => {
-  // setFor3DPrintedCovers()
   CHANNEL_WIDTH = 11
   INFILL_100 = true
 

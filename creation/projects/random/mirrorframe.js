@@ -1,7 +1,9 @@
-// SKIP
-module.exports = () => {
+// SKI
+// v1.0.1
+module.exports = () => {  
   BORDER = 9
   NOTCH_DEPTH = 9
+  LED_SUPPORT_GAP = 3
 
   let longSequence = [5,6,8,10,10,8,6,5,4,4,4]
   let shortSequence = [5,6,8,8,6,5,4,4,4]
@@ -21,7 +23,8 @@ module.exports = () => {
   diamonds(verticies[verticies.length - 5],
     verticies.last(), [...longSequence], false)
 
-  EulerianPath(59)
+  zeroFoldAllEdges()
+  // EulerianPath(59)
 }
 
 function diamonds(base0, base1, lengths, handedness) {

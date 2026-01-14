@@ -1,7 +1,5 @@
 // SKIP
 module.exports = async () => {
-  setFor3DPrintedCovers()
-
   await addFromSVG("organic/ButterflyWingV0.svg")
   integerize()
 

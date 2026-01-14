@@ -1,6 +1,5 @@
 // SKIP
 module.exports = () => {
-  setFor3DPrintedCovers()
   portPartID = "2"
   PORT_POSITION = "center"
 

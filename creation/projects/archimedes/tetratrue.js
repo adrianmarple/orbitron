@@ -80,15 +80,19 @@ module.exports = () => {
     // Not sure how to find this programmatically. Faster to just manually binary search for now
     let trueR = faceCenter.sub(wallOrigin).length() * PIXEL_DISTANCE + 15.12
 
-    let captureWall = 2
     let innerR = Math.round(trueR - 6)
     let glassR = innerR - 4
-    console.log(glassR)
+    let glassT = 1.5
+    let captureWall = glassT/2 + 1.5
+    console.log(`Polygon width ${glassR * 2}`)
     let slope = faceH / faceR
     let lowR = innerR + captureWall / slope
     let highR = innerR - captureWall / slope
     let slopeAngle = -Math.atan(slope) * 180/Math.PI
     let sectorAngle = 120
+
+    let highOverhang = 6
+    let lowOverhang = 4.8
 
     printInfo.prints = [
       printInfo.prints[0],
@@ -115,10 +119,11 @@ module.exports = () => {
             translate([0,0, ${-captureWall}])
             cylinder(h=${2*captureWall}, r1=${lowR}, r2=${highR}, $fn=3);
           
-            cylinder(h=${1}, r=${glassR}, $fn=3, center=true);
+            cylinder(h=${glassT}, r=${glassR+0.5}, $fn=3, center=true);
 
+            cylinder(h=100, r=${glassR - lowOverhang}, $fn=3);
             translate([0,0, ${-captureWall} - 1])
-            cylinder(h=100, r=${glassR-3}, $fn=3, center=true);
+            cylinder(h=${captureWall} + 1, r=${glassR - highOverhang}, $fn=3);
             
             translate([0,0, ${-captureWall} - 1])
             linear_extrude(100)

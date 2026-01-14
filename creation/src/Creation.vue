@@ -1,7 +1,7 @@
 <template>
 <div class="type-buttons">
-  <div v-for="button in buttons" class="button" @click="openProject(button)">
-    {{ button.split("/")[1] }}
+  <div v-for="project in projects" class="button" @click="openProject(project)">
+    {{ project.shortName }}
   </div>
 </div>
 <div class="actions">
@@ -59,7 +59,7 @@ export default {
       renderInterval: null,
       innerWidth,
       mode: "creation",
-      fullProjectName: "",
+      currentProject: {name: ""},
       coverMode: "bottom",
       coverIndex: 0,
       settings: [
@@ -78,7 +78,7 @@ export default {
           value: "upload",
         },
       ],
-      buttons: [],
+      projects: [],
 
       // Rendering
       zoom: 1,
@@ -118,13 +118,16 @@ export default {
     width() {
       return Math.min(700, this.innerWidth)
     },
+    fullProjectName() {
+      return this.currentProject.name
+    },
   },
   methods: {
     updateSetting(setting) {
       localStorage.setItem(setting.name, setting.value)
       window[setting.name] = setting.value
       if (!["STARTING_PART_ID", "ENDING_PART_ID", "PROCESS_STOP"].includes(setting.name)) {
-        this.openProject(this.fullProjectName)
+        this.openProject(this.currentProject)
       }
     },
     setSetting(name, value) {
@@ -136,14 +139,17 @@ export default {
         }
       }
     },
-    async openProject(name) {
+    async openProject(project) {
+      this.currentProject = project
+      const name = project.name
       if (this.fullProjectName && this.fullProjectName != name) {
         this.setSetting("STARTING_PART_ID", 1)
         this.setSetting("ENDING_PART_ID", 0)
       }
       window.fullProjectName = name
-      this.fullProjectName = name
-      localStorage.setItem("button", name)
+      localStorage.setItem("currentproject", JSON.stringify(project))
+
+      VERSION = project.version
       reset()
       await require("../projects/" + name + ".js")()
       if (centerOnRender) {
@@ -155,8 +161,16 @@ export default {
       this.$forceUpdate()
     },
     async fetchButtons() {
-      this.buttons = await (await fetch("http://localhost:8000/buttonlist.json")).json()
-      this.openProject(localStorage.getItem("button"))
+      this.projects = await (await fetch("http://localhost:8000/projectlist.json")).json()
+      let currentProject = null
+      try {
+        currentProject = JSON.parse(localStorage.getItem("currentproject"))
+      } catch(_) {
+        return
+      }
+      if (currentProject) {
+        this.openProject(currentProject)
+      }
     },
     toggleCoverMode() {
       this.coverMode = this.coverMode == "top" ? "bottom" : "top"

@@ -1,5 +1,4 @@
 module.exports = () => {
-  setFor3DPrintedCovers()
   PRINT_WALL_HALVES_SEPARATELY = false
 
   let verticies4D = []

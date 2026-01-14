@@ -1,7 +1,5 @@
 
 module.exports = async () => {
-  setFor3DPrintedCovers()
-
   portPartID = "1L"
   PORT_POSITION = "end"
   CENTER = new Vector(3, 3, 3)

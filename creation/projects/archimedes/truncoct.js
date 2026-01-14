@@ -1,6 +1,5 @@
 // SKIP
 module.exports = () => {
-  setFor3DPrintedCovers()
   NO_EMBOSSING = true
   CHANNEL_LATCH_ANGLE = -6
 

@@ -1,7 +1,5 @@
 // SKIP
 module.exports = () => {
-  setFor3DPrintedCovers()
-
   const topH = 4
 
 

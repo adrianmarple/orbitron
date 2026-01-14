@@ -1,7 +1,6 @@
 // SKI
 
 module.exports = () => {
-  setFor3DPrintedCovers()
   MAX_WALL_LENGTH = 1000
   // PRINT_WALL_HALVES_SEPARATELY = false
 
