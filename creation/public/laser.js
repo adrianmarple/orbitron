@@ -1195,6 +1195,8 @@ function wallPrint(wall, isLeft) {
     print.suffix += isLeft ? "L" : "R"
   }
   let hasPort = print.suffix == portPartID && RENDER_MODE != "simple"
+  let portPartNumber = portPartID.match(/\d+/)[0]
+  let isPortRelated = print.suffix.match(/\d+/)[0] == portPartNumber
 
   let path = ""
   
@@ -1449,7 +1451,8 @@ function wallPrint(wall, isLeft) {
       }
     }
   }
-  if (LED_SUPPORT_TYPE == "all" && RENDER_MODE == "standard") {
+  if (LED_SUPPORT_TYPE == "all" && RENDER_MODE == "standard" &&
+      !(isPortRelated && PORT_TYPE == "USBC_INTEGRATED")) {
     let v0 = endVertex.ogCoords
     let v1 = vertex1.ogCoords
     let e = v1.sub(v0).normalize()
@@ -1458,19 +1461,18 @@ function wallPrint(wall, isLeft) {
     supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
 
     let minOffset = lengthOffset + LED_SUPPORT_WIDTH/2 + wall.extraLEDSupportOffset
+    minOffset = Math.max(minOffset, 0.1)
     if (miterAngle < 0) {
       minOffset += Math.tan(miterAngle) * WALL_THICKNESS
     }
     let maxOffset = edgeLength - LED_SUPPORT_WIDTH
     if (wall.isFoldWall && epsilonEquals(wall.dihedralAngle, 0)) {
       maxOffset += PIXEL_DISTANCE
+    } else {
+      maxOffset = Math.min(maxOffset, v0.sub(v1).length() - 0.1)
     }
-    
-    console.log(print.suffix, startV.length() / PIXEL_DISTANCE,
-    edgeOffset(endVertex, wall.vertex), wall.extraLEDSupportOffset / PIXEL_DISTANCE)
-    console.log(minOffset/ PIXEL_DISTANCE, maxOffset/ PIXEL_DISTANCE)
+
     while (supportOffset < maxOffset) {
-      console.log(supportOffset/PIXEL_DISTANCE)
       if (supportOffset < minOffset) {
         supportOffset += PIXEL_DISTANCE
         continue
@@ -1486,7 +1488,6 @@ function wallPrint(wall, isLeft) {
       if (shouldAddSupport) {
         ledWorldPositions.push(worldPosition)
         position = startV.addScaledVector(E, -supportOffset)
-        console.log(worldPosition)
         print.components.push({
           type: "ledSupport",
           position: [position.x, -position.y, WALL_THICKNESS],
@@ -1503,10 +1504,8 @@ function wallPrint(wall, isLeft) {
   }
 
   // Embossing
-  const MAX_EMBOSSING_WIDTH = 12
-  if (!NO_EMBOSSING &&
-    !(hasPort && PORT_TYPE == "USBC_INTEGRATED") &&
-    RENDER_MODE == "standard") {
+  if (!NO_EMBOSSING && RENDER_MODE == "standard" &&
+    !(hasPort && PORT_TYPE == "USBC_INTEGRATED")) {
 
     let emboPos = startV.addScaledVector(E, -lengthOffset - wall.extraLEDSupportOffset)
         .addScaledVector(N, -LED_SUPPORT_GAP/2 - LED_SUPPORT_THICKNESS - 0.1)
@@ -1541,7 +1540,7 @@ function wallPrint(wall, isLeft) {
 
 
   // Port hole
-  if (hasPort && PORT_TYPE.indexOf("USBC") == 0) {
+  if (hasPort || (PORT_POSITION == "fold" && isPortRelated)) {
     let portCenter = wallStart
     if (PORT_POSITION == "start") {
       portCenter = portCenter.addScaledVector(E, -USBC_WIDTH/2 - 1)
@@ -1552,6 +1551,9 @@ function wallPrint(wall, isLeft) {
     if (PORT_POSITION == "end") {
       portCenter = portCenter.addScaledVector(E,
         -Math.min(topLength, bottomLength) + USBC_WIDTH/2 + 1)
+    }
+    if (PORT_POSITION == "fold") {
+      portCenter = portCenter.addScaledVector(E, -(topLength + bottomLength)/2)
     }
 
     if (PORT_TYPE == "USBC") {
@@ -1647,73 +1649,6 @@ difference() {
       }
     }
   }
-
-  // Old CAT5 version of port
-  if (hasPort && PORT_TYPE == "CAT5") {
-    let portBottomCenter = wallStart.addScaledVector(N, -CHANNEL_DEPTH/2)
-    if (PORT_POSITION == "start") {
-      portBottomCenter = portBottomCenter.addScaledVector(E, -CAT5_WIDTH/2 - NOTCH_DEPTH)
-    }
-    if (PORT_POSITION == "center") {
-      portBottomCenter = portBottomCenter.addScaledVector(E, -topLength/2)
-    }
-    if (PORT_POSITION == "end") {
-      portBottomCenter = portBottomCenter.addScaledVector(E,
-        -Math.min(topLength, bottomLength) + CAT5_WIDTH/2 + NOTCH_DEPTH)
-    }
-
-    port_path = ""
-    let cat5Start1 = portBottomCenter
-      .addScaledVector(E, CAT5_WIRES_WIDTH/2)
-      .addScaledVector(N, CAT5_WIRES_Y)
-    port_path += pathFromSegments(cat5Start1, [
-      E.scale(-CAT5_WIRES_WIDTH),
-      N.scale(CAT5_WIRES_HEIGHT),
-      E.scale(CAT5_WIRES_WIDTH),
-    ])
-    let cat5Start2 = portBottomCenter
-        .addScaledVector(E, -CAT5_SNAP_DISTANCE/2)
-        .addScaledVector(N, CAT5_HEIGHT - CAT5_SNAP_Y)
-    port_path += pathFromSegments(cat5Start2, [
-      E.scale(CAT5_SNAP_WIDTH),
-      N.scale(CAT5_SNAP_HEIGHT),
-      E.scale(-CAT5_SNAP_WIDTH),
-    ])
-    let cat5Start3 = cat5Start2
-        .addScaledVector(E, CAT5_SNAP_DISTANCE)
-    port_path += pathFromSegments(cat5Start3, [
-      E.scale(-CAT5_SNAP_WIDTH),
-      N.scale(CAT5_SNAP_HEIGHT),
-      E.scale(CAT5_SNAP_WIDTH),
-    ])
-
-    let qtPosition = portBottomCenter.addScaledVector(N, CAT5_WIRES_HEIGHT + CAT5_WIRES_Y)
-
-    wallElem.querySelector("path").setAttribute("d", port_path)
-    print = {
-      type: "union",
-      suffix: print.suffix,
-      components: [
-        {
-          type: "difference",
-          components: [
-            print,
-            {
-              type: "svg",
-              svg: wallElem.outerHTML,
-              thickness: WALL_THICKNESS + 1,
-              position: [0, -WALL_PANEL_HEIGHT/2, 0],
-            }
-          ]
-        },
-        {
-          type: "qtClip",
-          position: [qtPosition.x, -qtPosition.y, 0],
-          rotationAngle: -rotationAngle + Math.PI,
-        }
-      ]
-    }
-  } 
 
   return print
 }

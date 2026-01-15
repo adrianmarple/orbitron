@@ -5,7 +5,6 @@ module.exports = () => {
   PRINT_WALL_HALVES_SEPARATELY = false
   // LED_SUPPORT_GAP = 1
   PORT_POSITION = "center"
-  addNubs = false
   portPartID = "3L"
 
   let xCount = 93

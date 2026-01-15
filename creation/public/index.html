@@ -23,7 +23,7 @@ const PHI = (1 + Math.sqrt(5))/ 2
 VERSION = "1"
 
 function reset() {
-  console.log("version", VERSION)
+  console.log("Version", VERSION)
 
   verticies = []
   edges = []
@@ -56,11 +56,11 @@ function reset() {
   BORDER = 6
   PIXEL_DISTANCE = 16.6
   CHANNEL_WIDTH = 13
+  CHANNEL_DEPTH = 15.1
   MIN_NON_NOTCH_LENGTH = 5
   NOTCH_DEPTH = 5
-  FASTENER_DEPTH = 2.5
-  CHANNEL_LATCH_ANGLE = 0 // Only used with 3d printer covers
 
+  CHANNEL_LATCH_ANGLE = 0
   LATCH_TYPE = "wedge"
   ANTI_CORNER = 0.5
   MAX_LATCH_WIDTH = 4
@@ -92,37 +92,18 @@ function reset() {
   LED_SUPPORT_TYPE = "single" // "none", "all"
 
   PORT_TYPE = "USBC" // "CAT5"
-  PORT_POSITION = "start" // "center", "end"
-  CAT5_HEIGHT = 15.1
-  CAT5_WIDTH = 15.3
-  CAT5_SNAP_DISTANCE = 13.6
-  CAT5_SNAP_WIDTH = 2.2
-  CAT5_SNAP_HEIGHT = 3.4
-  CAT5_SNAP_Y = 6.6
-  CAT5_WIRES_WIDTH = 12
-  // CAT5_WIRES_HEIGHT = 6.6
-  CAT5_WIRES_HEIGHT = 5.4
-  CAT5_WIRES_Y = 1.2
-
+  PORT_POSITION = "start" // "center", "end", "fold"
   POWER_TYPE = "USBC" // "BARREL"
   POWER_BARREL_RADIUS = 5.4
-  
   USBC_WIDTH = 14.0
   USBC_HEIGHT = 5.2
 
-  CHANNEL_DEPTH = CAT5_HEIGHT
   
   END_CAP_FACTOR = 0.3872
   IS_BOTTOM = true
   INFILL_100 = false
 
-  WALL_PANEL_HEIGHT = 200  // Prusa MK4
-  WALL_PANEL_WIDTH = 250  // Prusa MK4
-  WALL_SVG_PADDING = {
-    left: 20, right: 20,
-    top: 5, bottom: 15,
-  }
-  WALL_SVG_GAP = 6
+  WALL_PANEL_HEIGHT = 200  // Not sure why this is still needed, but it is
 
   MAX_WALL_LENGTH = 200
   MAX_SLOT_SEGMENT_LENGTH = 200
@@ -136,8 +117,6 @@ function reset() {
   exteriorOnly = false
   cat5PortAtEnd = false
   strongCovers = []
-  addNubs = true
-  addExtraFoldWallWedge = true
   portPartID = ""
   powerHolePartID = ""
 
@@ -147,22 +126,15 @@ function reset() {
   printPostProcessingFunction = printInfo => {}
 
   if (versionLessThan("1", VERSION)) return
-
   coverPrint3D = true
-  addNubs = false
-  addExtraFoldWallWedge = false
-
   ANTI_CORNER = 0.5
   EXTRA_COVER_THICKNESS = 0.4
   INNER_CHANNEL_THICKNESS = 0.4
-
   BORDER = 2
   KERF = -0.08
   WALL_KERF = 0
   NOTCH_KERF = 0
-
   WALL_THICKNESS = 2.6
-
   THICKNESS = 2 
   CHANNEL_LATCH_ANGLE = -6.7
   NOTCH_DEPTH = 4.5
@@ -170,8 +142,9 @@ function reset() {
   PORT_TYPE = "USBC_INTEGRATED"
 
   if (versionLessThan("1.0.1", VERSION)) return
-
   LED_SUPPORT_TYPE = "all"
+  LED_SUPPORT_GAP = 3
+  CHANNEL_DEPTH = 15
 }
 reset()
 
