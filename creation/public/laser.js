@@ -1195,7 +1195,7 @@ function wallPrint(wall, isLeft) {
     print.suffix += isLeft ? "L" : "R"
   }
   let hasPort = print.suffix == portPartID && RENDER_MODE != "simple"
-  let portPartNumber = portPartID.match(/\d+/)[0]
+  let portPartNumber = portPartID ? portPartID.match(/\d+/)[0] : null
   let isPortRelated = print.suffix.match(/\d+/)[0] == portPartNumber
 
   let path = ""

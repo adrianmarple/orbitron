@@ -32,8 +32,6 @@ module.exports = () => {
   let faceH = faceCenter.length() * PIXEL_DISTANCE
   let faceR = faceCenter.sub(v0).length() * PIXEL_DISTANCE
 
-  console.log(faceCenter)
-
   let captureWall = 2
   let innerR = Math.round(faceR - 16)
   console.log(innerR - 4)
@@ -56,7 +54,7 @@ module.exports = () => {
 
   let wallOrigin = plain0.intersection(plain1).intersection(facePlain)
   let vertexOffset = wallOrigin.sub(v0).scale(PIXEL_DISTANCE)
-  vertexOffset.y *= -1
+  vertexOffset.z *= -1
   vertexOffset = vertexOffset.swizzle("yzx")
 
 
