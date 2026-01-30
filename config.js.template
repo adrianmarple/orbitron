@@ -44,6 +44,8 @@ module.exports={
   // BEAT_PIN: 15, // board pin 10/GPIO pin 15
   // MANUAL_FADE_PIN: 24, // board pin 18/GPIO pin 24
   // MANUAL_FADE_STEPS: [1, 0],
+  // PIN_INPUT_TYPE: "HIGH", // "LOW"
+  // PIN_SAMPLES_PER_FRAME: 1, 
   // TEXT_DISPLAY: "Seg14x4",
   // LAT: 0,
   // LON: 0,

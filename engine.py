@@ -12,6 +12,7 @@ from datetime import datetime
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
+from threading import Thread
 from time import sleep, time
 
 from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
@@ -1101,6 +1102,23 @@ def run_core_loop():
     if type == "CYCLE":
       prefs.advance_preset()
 
+  if config.get("MANUAL_FADE_PIN"):
+    input_type = GPIO.HIGH if config.get("PIN_INPUT_TYPE", "LOW") == "HIGH" else GPIO.LOW
+    def sample():
+      return GPIO.input(config["MANUAL_FADE_PIN"]) == input_type
+
+    pin_value = 0
+    samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
+    if samples_per_frame > 1:
+      def pin_loop():
+        while (True):
+          if sample():
+            true_sample_count += 1
+          sleep(1.0/ FRAMERATE / samples_per_frame)
+
+      pin_thread = Thread(target=pin_loop)
+      pin_thread.start()
+
   while True:
     time_to_wait = last_frame_time + 1.0/FRAMERATE - time()
     if time_to_wait > 0:
@@ -1120,7 +1138,9 @@ def run_core_loop():
 
 
     if config.get("MANUAL_FADE_PIN"):
-      pin_value = GPIO.input(config["MANUAL_FADE_PIN"]) != GPIO.HIGH
+      if samples_per_frame == 1:
+        pin_value = sample()
+
       if pin_value and not previous_pin_value: # Started pressing
         pin_start_time = time()
         if pin_end_time:
@@ -1140,5 +1160,6 @@ def run_core_loop():
         perform_action(short_action)
 
       previous_pin_value = pin_value
+      pin_value = 0 # For multi sampling thread
 
     update()

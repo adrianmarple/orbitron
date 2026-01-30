@@ -89,19 +89,10 @@ module.exports = () => {
   printPostProcessingFunction = printInfo => {
     let h = 30
     let pipe_r = 8.0
+    let glassT = 1
 
-    printInfo.prints = [
-      printInfo.prints[0],
-      printInfo.prints[2],
-      printInfo.prints[3],
-    ]
-    printInfo.prints[0] = {
-      type: "union",
-      suffix: "wall",
-      components: [
-        printInfo.prints[0],
-        {
-          code: `
+    function bracketCode(open) {
+      return `
           sectorPoints = concat([[0, 0]],
               [for(a = [${sectorAngle/2} : 10 : 360 - ${sectorAngle/2}]) 
                   [100 * cos(a), 100 * sin(a)]
@@ -115,7 +106,11 @@ module.exports = () => {
             translate([0,0, ${-captureWall}])
             cylinder(h=${2*captureWall}, r1=${lowR}, r2=${highR}, $fn=3);
           
-            cylinder(h=${1}, r=${innerR-4}, $fn=3, center=true);
+            cylinder(h=${glassT}, r=${innerR-4}, $fn=3, center=true);
+            if (${open}) {
+              translate([0,0, ${-captureWall}])
+              cylinder(h=${captureWall}, r=${innerR-4}, $fn=3);
+            }
 
             translate([0,0, ${-captureWall} - 1])
             cylinder(h=100, r=${innerR-7}, $fn=3, center=true);
@@ -124,14 +119,40 @@ module.exports = () => {
             linear_extrude(100)
             polygon(sectorPoints);
           }`
+    }
+
+    printInfo.prints = [
+      printInfo.prints[0],
+      printInfo.prints[2],
+      printInfo.prints[3],
+      printInfo.prints[2],
+      {
+        type: "union",
+        suffix: "wall_open",
+        components: [
+          printInfo.prints[0],
+          {
+            code: bracketCode(true)
+          },
+        ]
+      }
+    ]
+    printInfo.prints[0] = {
+      type: "union",
+      suffix: "wall",
+      components: [
+        printInfo.prints[0],
+        {
+          code: bracketCode(false)
         },
       ]
     }
+
     printInfo.prints[1].suffix = "bottom"
     printInfo.prints[2].suffix = "top"
     printInfo.prints[3] = {
       type: "difference",
-      suffix: "bottom(with cuff)",
+      suffix: "bottom_with_cuff",
       components: [
         {
           type: "union",

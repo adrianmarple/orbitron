@@ -94,10 +94,52 @@ module.exports = () => {
     let highOverhang = 6
     let lowOverhang = 4.8
 
+    function bracketCode(open) {
+      return `
+          sectorPoints = concat([[0, 0]],
+              [for(a = [${sectorAngle/2} : 10 : 360 - ${sectorAngle/2}]) 
+                  [100 * cos(a), 100 * sin(a)]
+              ]
+          );
+          //translate([${localOffset}])
+          rotate([${slopeAngle},-90-${wallAngle/2*180/Math.PI},0])
+          translate([0, ${trueR}, 0])
+          rotate([0,0,-90])
+          difference() {
+            translate([0,0, ${-captureWall}])
+            cylinder(h=${2*captureWall}, r1=${lowR}, r2=${highR}, $fn=3);
+          
+            cylinder(h=${glassT}, r=${glassR+0.5}, $fn=3, center=true);
+            if (${open}) {
+              translate([0,0, ${-captureWall}])
+              cylinder(h=${captureWall}, r=${glassR+0.5}, $fn=3);
+            }
+
+            cylinder(h=100, r=${glassR - lowOverhang}, $fn=3);
+            translate([0,0, ${-captureWall} - 1])
+            cylinder(h=${captureWall} + 1, r=${glassR - highOverhang}, $fn=3);
+            
+            translate([0,0, ${-captureWall} - 1])
+            linear_extrude(100)
+            polygon(sectorPoints);
+          }`
+    }
+
     printInfo.prints = [
       printInfo.prints[0],
       printInfo.prints[2],
       printInfo.prints[3],
+      printInfo.prints[2],
+      {
+        type: "union",
+        suffix: "wall_open",
+        components: [
+          printInfo.prints[0],
+          {
+            code: bracketCode(true)
+          },
+        ]
+      }
     ]
     printInfo.prints[0] = {
       type: "union",
@@ -137,37 +179,45 @@ module.exports = () => {
     printInfo.prints[2].suffix = "top"
     printInfo.prints[3] = {
       type: "difference",
-      suffix: "bottom(with cuff)",
+      suffix: "bottom_with_hole",
       components: [
+        printInfo.prints[1],
         {
-          type: "union",
-          operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
-          components: [
-            printInfo.prints[1],
-            {
-              type: "prefix",
-              code: `
-              use <SOURCE_FOLDER/scad/pipe.scad>`
-            },
-            {
-              operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
-              code: `
-              outer_cuff(${pipe_r});`
-            },
-          ]
-        },
-        {
-          position: [0, 0, -3],
+          position: [0, 0, -1],
           code: `
-          cylinder(h=${h+10}, r=${pipe_r}, $fn=64);`
+          cylinder(h=${5}, r=${5.2}, $fn=64);`
         },
       ]
+      // components: [
+      //   {
+      //     type: "union",
+      //     operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
+      //     components: [
+      //       printInfo.prints[1],
+      //       {
+      //         type: "prefix",
+      //         code: `
+      //         use <SOURCE_FOLDER/scad/pipe.scad>`
+      //       },
+      //       {
+      //         operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
+      //         code: `
+      //         outer_cuff(${pipe_r});`
+      //       },
+      //     ]
+      //   },
+      //   {
+      //     position: [0, 0, -3],
+      //     code: `
+      //     cylinder(h=${h+10}, r=${pipe_r}, $fn=64);`
+      //   },
+      // ]
     }
-    printInfo.prints[4] = {
-      suffix: "stencil",
-      code: `
-      cylinder(h=1, r=${glassR}, $fn=3, center=true);`
-    }
+    // printInfo.prints[5] = {
+    //   suffix: "stencil",
+    //   code: `
+    //   cylinder(h=1, r=${glassR}, $fn=3, center=true);`
+    // }
   }
 
   edgeCleanup()
