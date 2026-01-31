@@ -1111,9 +1111,10 @@ def run_core_loop():
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
     if samples_per_frame > 1:
       def pin_loop():
+        nonlocal pin_value
         while (True):
           if sample():
-            true_sample_count += 1
+            pin_value += 1
           sleep(1.0/ FRAMERATE / samples_per_frame)
 
       pin_thread = Thread(target=pin_loop)
