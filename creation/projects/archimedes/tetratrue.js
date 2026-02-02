@@ -39,6 +39,9 @@ module.exports = () => {
     v1.addPlain(plain)
   }
 
+  rotateXAll(Math.PI)
+
+
   printPostProcessingFunction = printInfo => {
     let h = 30
     let pipe_r = 8.0
@@ -188,30 +191,6 @@ module.exports = () => {
           cylinder(h=${5}, r=${5.2}, $fn=64);`
         },
       ]
-      // components: [
-      //   {
-      //     type: "union",
-      //     operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
-      //     components: [
-      //       printInfo.prints[1],
-      //       {
-      //         type: "prefix",
-      //         code: `
-      //         use <SOURCE_FOLDER/scad/pipe.scad>`
-      //       },
-      //       {
-      //         operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
-      //         code: `
-      //         outer_cuff(${pipe_r});`
-      //       },
-      //     ]
-      //   },
-      //   {
-      //     position: [0, 0, -3],
-      //     code: `
-      //     cylinder(h=${h+10}, r=${pipe_r}, $fn=64);`
-      //   },
-      // ]
     }
     // printInfo.prints[5] = {
     //   suffix: "stencil",
