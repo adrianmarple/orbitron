@@ -650,6 +650,7 @@ let MAX_PLAYERS = 6
 let connections = {}
 let connectionQueue = []
 
+
 // Communications with python script
 
 gameState = null
@@ -699,12 +700,28 @@ function broadcast(baseMessage) {
   delete baseMessage.timestamp
 }
 
+// Restart python if it stop sending updates
+last_python_stdout = 0
+setInterval(() => {
+  if (last_python_stdout == 0) { // Ignore until at least one message has been received
+    return
+  }
+  if (Date.now() - last_python_stdout > 1000) {
+    console.log("Engine stopped outputting, attempting restart")
+    restartEngine()
+    last_python_stdout = 0
+  }
+}, 1000)
+
 
 let env = {...process.env, CONFIG: JSON.stringify(config)}
-const python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`], {env})
+let python_process = null
+restartEngine()
+
 let raw_pixels = null
 let raw_json = null
-python_process.stdout.on('data', data => {
+function handleEngineOut(data) {
+  last_python_stdout = Date.now()
   messages = data.toString().trim().split("\n")
   for(let message of messages){
     message = message.trim()
@@ -747,50 +764,33 @@ python_process.stdout.on('data', data => {
       }
     }
   }
-});
-python_process.stderr.on('data', data => {
+}
+function handleEngineErr(data) {
   message = data.toString().trim()
   if(message){
     // stderr is used for regular log messages from python
     console.log(message)
   }
-});
-
-python_process.on('uncaughtException', function(err, origin) {
-  console.log('Caught python exception: ', err, origin);
-});
-
-
-// ---periodic status logging---
-function statusLogging() {
-  if (orbToRelaySocket && Object.keys(connections).length === 0) {
-    return
-  }
-
-  console.log("STATUS",{
-    id: config.ORB_ID,
-    orbToRelaySocket: orbToRelaySocket ? "connected" : null,
-    connections,
-    connectionQueue,
-    game: !gameState ? null : {
-      name: gameState.game,
-      state: gameState.gameState,
-    },
-    //gameState,
-    //broadcastCounter,
-    //lastMessageTimestamp,
-    //lastMessageTimestampCount,
-  })
 }
-// statusLogging()
-// setInterval(statusLogging, 10 * 60 * 1000)
+function handleEngineException(err, origin) {
+  console.log('Caught python exception: ', err, origin);
+}
 
+function restartEngine() {
+  if (python_process) {
+    python_process.kill()
+  }
+  python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`], {env})
+  python_process.stdout.on('data', handleEngineOut)
+  python_process.stderr.on('data', handleEngineErr)
+  python_process.on('uncaughtException', handleEngineException)
+}
 
-function handleParentKill(signal){
-  console.log("GOT KILL SIGNAL")
+function handleParentKill() {
   if(python_process){
     python_process.kill()
   }
+  console.log("GOT KILL SIGNAL")
   process.exit()
 }
 

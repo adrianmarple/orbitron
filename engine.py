@@ -1041,8 +1041,6 @@ def broadcast_event(event):
   print(json.dumps(event))
 
 def broadcast_state():
-  # for line in traceback.format_stack():
-  #   print(line.strip(), file=sys.stderr)
   time_remaining = round(game.end_time - time()) if game and game.end_time else 0
   message = {
     "game": game.name,
@@ -1085,7 +1083,7 @@ def run_core_loop():
     'slowest_frame': 0,
   }
 
-  previous_pin_value = 0
+  previous_triggered = False
   pin_start_time = 0
   pin_end_time = 0
 
@@ -1105,7 +1103,7 @@ def run_core_loop():
   if config.get("MANUAL_FADE_PIN"):
     input_type = GPIO.HIGH if config.get("PIN_INPUT_TYPE", "LOW") == "HIGH" else GPIO.LOW
     def sample():
-      return GPIO.input(config["MANUAL_FADE_PIN"]) == input_type
+      return 1 if GPIO.input(config["MANUAL_FADE_PIN"]) == input_type else 0
 
     pin_value = 0
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
@@ -1113,8 +1111,7 @@ def run_core_loop():
       def pin_loop():
         nonlocal pin_value
         while (True):
-          if sample():
-            pin_value += 1
+          pin_value += sample()
           sleep(1.0/ FRAMERATE / samples_per_frame)
 
       pin_thread = Thread(target=pin_loop)
@@ -1142,12 +1139,14 @@ def run_core_loop():
       if samples_per_frame == 1:
         pin_value = sample()
 
-      if pin_value and not previous_pin_value: # Started pressing
+      triggered = pin_value >= config.get("PIN_THRESHOLD", 1)
+
+      if triggered and not previous_triggered: # Started pressing
         pin_start_time = time()
         if pin_end_time:
           perform_action(double_action)
 
-      if pin_start_time and not pin_value and previous_pin_value: # Stopped
+      if pin_start_time and not triggered and previous_triggered: # Stopped
         if not double_action:
           perform_action(short_action)
         else:
@@ -1160,7 +1159,7 @@ def run_core_loop():
       if pin_end_time and time() - pin_end_time > 0.6:
         perform_action(short_action)
 
-      previous_pin_value = pin_value
+      previous_triggered = triggered
       pin_value = 0 # For multi sampling thread
 
     update()
