@@ -706,7 +706,7 @@ setInterval(() => {
   if (last_python_stdout == 0) { // Ignore until at least one message has been received
     return
   }
-  if (Date.now() - last_python_stdout > 1000) {
+  if (Date.now() - last_python_stdout > 5000) {
     console.log("Engine stopped outputting, attempting restart")
     restartEngine()
     last_python_stdout = 0

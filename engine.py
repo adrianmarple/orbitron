@@ -1108,7 +1108,7 @@ def run_core_loop():
 
     pin_value = 0
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
-    pin_threshold = samples_per_frame * 1.0
+    pin_threshold = samples_per_frame / 4.0
     if samples_per_frame > 1:
       def pin_loop():
         nonlocal pin_value
@@ -1140,12 +1140,12 @@ def run_core_loop():
 
     if config.get("MANUAL_FADE_PIN"):
       if samples_per_frame == 1:
-        pin_value = sample()
-
-      triggered = pin_value >= pin_threshold
-      if not triggered:
-        alpha = 0.9
-        pin_threshold = pin_threshold * alpha + pin_value * 2.5 * (1-alpha)
+        triggered = sample()
+      else:
+        triggered = pin_value >= pin_threshold
+        if not triggered:
+          alpha = 0.95 + 0.05 * sqrt(pin_value / pin_threshold)
+          pin_threshold = pin_threshold * alpha + pin_value * 4 * (1-alpha)
 
       if triggered and not previous_triggered: # Started pressing
         pin_start_time = time()
