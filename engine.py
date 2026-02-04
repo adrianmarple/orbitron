@@ -1083,30 +1083,32 @@ def run_core_loop():
     'slowest_frame': 0,
   }
 
-  previous_triggered = False
-  pin_start_time = 0
-  pin_end_time = 0
-
-  short_action = config.get("SHORT_PRESS_ACTION", "DIM")
-  long_action = config.get("LONG_PRESS_ACTION", "DIM")
-  double_action = config.get("DOUBLE_CLICK_ACTION")
-
-  def perform_action(type):
-    nonlocal pin_start_time, pin_end_time
-    pin_start_time = 0
-    pin_end_time = 0
-    if type == "DIM":
-      prefs.advance_manual_fade()
-    if type == "CYCLE":
-      prefs.advance_preset()
 
   if config.get("MANUAL_FADE_PIN"):
     input_type = GPIO.HIGH if config.get("PIN_INPUT_TYPE", "LOW") == "HIGH" else GPIO.LOW
     def sample():
       return 1 if GPIO.input(config["MANUAL_FADE_PIN"]) == input_type else 0
 
+    previous_triggered = False
+    pin_start_time = 0
+    pin_end_time = 0
+
+    def perform_action(type):
+      nonlocal pin_start_time, pin_end_time
+      pin_start_time = 0
+      pin_end_time = 0
+      if type == "DIM":
+        prefs.advance_manual_fade()
+      if type == "CYCLE":
+        prefs.advance_preset()
+
+    short_action = config.get("SHORT_PRESS_ACTION", "DIM")
+    long_action = config.get("LONG_PRESS_ACTION", "DIM")
+    double_action = config.get("DOUBLE_CLICK_ACTION")
+
     pin_value = 0
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
+    pin_threshold = samples_per_frame * 1.0
     if samples_per_frame > 1:
       def pin_loop():
         nonlocal pin_value
@@ -1116,6 +1118,7 @@ def run_core_loop():
 
       pin_thread = Thread(target=pin_loop)
       pin_thread.start()
+  # end if config.get("MANUAL_FADE_PIN")
 
   while True:
     time_to_wait = last_frame_time + 1.0/FRAMERATE - time()
@@ -1139,7 +1142,10 @@ def run_core_loop():
       if samples_per_frame == 1:
         pin_value = sample()
 
-      triggered = pin_value >= config.get("PIN_THRESHOLD", 1)
+      triggered = pin_value >= pin_threshold
+      if not triggered:
+        alpha = 0.9
+        pin_threshold = pin_threshold * alpha + pin_value * 2.5 * (1-alpha)
 
       if triggered and not previous_triggered: # Started pressing
         pin_start_time = time()
