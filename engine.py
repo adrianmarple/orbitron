@@ -1153,7 +1153,7 @@ def run_core_loop():
           perform_action(double_action)
 
       if pin_start_time and not triggered and previous_triggered: # Stopped
-        if time() - pin_start_time < 0.1: # Ignore short (likely spurious) triggers
+        if time() - pin_start_time < 0.05: # Ignore short (likely spurious) triggers
           pin_start_time = 0
         elif not double_action:
           perform_action(short_action)
