@@ -1144,8 +1144,8 @@ def run_core_loop():
       else:
         triggered = pin_value >= pin_threshold
         if not triggered:
-          alpha = 0.95 + 0.05 * sqrt(pin_value / pin_threshold)
-          pin_threshold = pin_threshold * alpha + pin_value * 4 * (1-alpha)
+          alpha = 0.95
+          pin_threshold = pin_threshold * alpha + (pin_value+1) * 4 * (1-alpha)
 
       if triggered and not previous_triggered: # Started pressing
         pin_start_time = time()
@@ -1153,7 +1153,9 @@ def run_core_loop():
           perform_action(double_action)
 
       if pin_start_time and not triggered and previous_triggered: # Stopped
-        if not double_action:
+        if time() - pin_start_time < 0.1: # Ignore short (likely spurious) triggers
+          pin_start_time = 0
+        elif not double_action:
           perform_action(short_action)
         else:
           pin_end_time = time() # Prep for either waiting for short press or double click
