@@ -261,7 +261,7 @@ def save(name):
 
 
 def load(name, clobber_prefs=True):
-  global current_pref_name, last_known_pref_name
+  global current_pref_name, last_known_pref_name, current_prefs, prefs
   old_path = pref_path_from_name(name)
   if not os.path.exists(old_path):
     print("Tried to load non-existant pref: %s" % name, file=sys.stderr)
@@ -279,6 +279,7 @@ def load(name, clobber_prefs=True):
     clear(should_set_idle=False)
     prefs.update(loaded_prefs) # Effectively a copy
     current_prefs.update(loaded_prefs)
+    current_prefs.update(timing_prefs)
     for key in default_prefs.keys():
       converted_prefs[key] = None
     current_pref_name = name
