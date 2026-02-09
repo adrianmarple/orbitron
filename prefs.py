@@ -120,6 +120,11 @@ pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no fil
 pref_names = [filename.split(".")[0] for filename in pref_names]
 sort_pref_names()
 
+def diagnostic():
+  for key, value in current_prefs.items():
+    if default_prefs[key] != value and prefs.get(key) != value:
+      print("pref mismatch for key %s" % key)
+
 def update(update, client_timestamp=None):
   global last_modified_time
   if client_timestamp is None:
@@ -181,6 +186,7 @@ def update(update, client_timestamp=None):
   if get_pref("useTimer") and should_update_schedule:
     update_schedule()
   identify_name()
+  diagnostic()
 
 
 last_modified_time = -1
@@ -255,7 +261,7 @@ def save(name):
 
 
 def load(name, clobber_prefs=True):
-  global current_pref_name, last_known_pref_name, current_prefs, prefs
+  global current_pref_name, last_known_pref_name
   old_path = pref_path_from_name(name)
   if not os.path.exists(old_path):
     print("Tried to load non-existant pref: %s" % name, file=sys.stderr)
@@ -273,13 +279,13 @@ def load(name, clobber_prefs=True):
     clear(should_set_idle=False)
     prefs.update(loaded_prefs) # Effectively a copy
     current_prefs.update(loaded_prefs)
-    current_prefs.update(timing_prefs)
     for key in default_prefs.keys():
       converted_prefs[key] = None
     current_pref_name = name
     last_known_pref_name = name
     set_idle()
     shutil.copy(old_path, pref_path)
+  diagnostic()
 
 def delete(name):
   path = pref_path_from_name(name)
