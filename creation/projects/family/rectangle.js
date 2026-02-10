@@ -8,7 +8,7 @@ module.exports = () => {
   // CHANNEL_WIDTH = 10
   PIXEL_DISTANCE = 8.3 //https://www.superlightingled.com/4mm-ws2812c-individually-addressable-rgb-led-strip-light-120ledsm-328ft1m-p-4003.html
   // MAX_NOTCH_DISTANCE = 140
-  startMidwayDownFinalEdge = true
+  startMidwayDownFinalEdge = true // Broken
 
   let rectEdges = addPolygon(4, [0,0,0], [44,56])
 

@@ -38,7 +38,7 @@ function processDodec(dodecEdges, parity) {
 
 module.exports = () => {
   PORT_POSITION = "center"
-  startMidwayDownFinalEdge = true
+  startMidwayDownFinalEdge = true // Broken
   ledAtVertex = false
   CHANNEL_WIDTH = 12
   PIXEL_DISTANCE = 16.6

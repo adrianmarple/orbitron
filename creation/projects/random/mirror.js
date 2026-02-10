@@ -26,6 +26,7 @@ module.exports = () => {
     verticies.last(), [...longSequence], false)
 
   zeroFoldAllEdges()
+  doubleEdges()
   EulerianPath(61)
 }
 

@@ -166,6 +166,9 @@ function versionLessThan(v1, v2) {
 
     return false;
 }
+function versionAtLeast(v1, v2) {
+  return !versionLessThan(v1,v2)
+}
 
 Array.prototype.remove = function(elem) {
   let index = this.indexOf(elem)

@@ -1,6 +1,4 @@
 
-startMidwayDownFinalEdge = false
-
 noncovergenceGuard = 1e4
 async function EulerianPath(currentVertex, pathOverride) {
   edgeCleanup()
@@ -23,6 +21,30 @@ async function EulerianPath(currentVertex, pathOverride) {
   }
 }
 
+function potential(edge, previousEdge, angle) {
+  if (versionAtLeast("1.0.1", VERSION) &&
+      path.includes(edge.dual.index) &&
+      !path.includes(previousEdge.dual.index)) {
+    if (epsilonEquals(angle, Math.PI)) {
+      console.log(previousEdge.index, edge.index, path.length)
+      angle = -1 // Strongly prefer doubling back when having to merge with an existing strip
+    }
+    angle += 100 // Avoid merges
+  }
+  else if (edge.isDupe != previousEdge.isDupe) {
+    if (angle < Math.PI/4) { // Avoid relatively straight twists
+      angle -= Math.PI
+    }
+    else {
+      if (epsilonEquals(angle, Math.PI)) {
+        angle = Math.PI/5 // Slightly prefer doubling back
+      }
+    }
+    angle = -angle + 10 // Avoid twists and prefer sharper angles when doing so
+  }
+  return -angle
+}
+
 async function EulerianHelper(currentVertex) {
   noncovergenceGuard -= 1
   if (noncovergenceGuard < 0) {
@@ -37,8 +59,8 @@ async function EulerianHelper(currentVertex) {
   let edgesCopy = currentVertex.edges.slice()
   shuffle(edgesCopy)
 
-  previousEdge = edges[path.last()]
-  p = sortOverride || potential
+  let previousEdge = edges[path.last()]
+  let pot = sortOverride || potential
   function distance(edge) {
     let v0 = previousEdge.otherVertex(currentVertex).ogCoords
     let v1 = currentVertex.ogCoords
@@ -48,7 +70,7 @@ async function EulerianHelper(currentVertex) {
     let e1 = v2.sub(v1)
     let angle = e1.angleTo(e0)
 
-    return p(edge, previousEdge, angle)
+    return pot(edge, previousEdge, angle)
   }
 
   edgesCopy.sort((a,b) => distance(b) - distance(a))
@@ -59,8 +81,7 @@ async function EulerianHelper(currentVertex) {
     path.push(edge.index);
     let remainingEdges = currentVertex.edges.filter(edge => !path.includes(edge.index))
 
-    if (remainingEdges.length > 0 &&
-        !isConnectedToStart(currentVertex)) {
+    if (remainingEdges.length > 0 && !isConnectedToStart(currentVertex)) {
       path.pop()
       continue
     }
@@ -89,16 +110,6 @@ async function EulerianHelper(currentVertex) {
       path.pop()
     }
   }
-}
-
-function potential(edge, previousEdge, angle) {
-  if (edge.isDupe != previousEdge.isDupe) {
-    if (epsilonEquals(angle, Math.PI)) {
-      angle = Math.PI/5 
-    }
-    angle = -angle + 1e6
-  }
-  return -angle
 }
 
 function startVertex() {
@@ -177,10 +188,6 @@ function generatePixelInfo() {
   }
 
   let lastEdge = edges[path.last()]
-  if (startMidwayDownFinalEdge) {
-    previousVertex = lastEdge.otherVertex(previousVertex)
-    path.unshift(path.last())
-  }
   hasSeenLastEdge = false
 
   singleSided = true
@@ -218,11 +225,6 @@ function generatePixelInfo() {
         console.log(edge, nextVertex.edges.length, alpha/resizeScale, edgeLength/resizeScale)
         console.error("Edge length not a integer multiple of pixel density")
         return
-      }
-      
-      if (startMidwayDownFinalEdge && edge == lastEdge) {
-        if (!hasSeenLastEdge && alpha < edgeLength/2) continue
-        if (hasSeenLastEdge && alpha >= edgeLength/2) continue
       }
       
       if (alpha > edgeLength) {
@@ -267,9 +269,6 @@ function generatePixelInfo() {
     if (edge == lastEdge) {
       hasSeenLastEdge = true
     }
-  }
-  if (startMidwayDownFinalEdge) {
-    path.shift()
   }
 
   let SIZE = coords.length
