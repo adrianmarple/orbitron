@@ -125,7 +125,7 @@ def diagnostic():
     if (default_prefs.get(key) != value and
         timing_prefs.get(key) != value and
         prefs.get(key) != value):
-      print("pref mismatch for key %s" % key, file=sys.stderr)
+      print("pref mismatch for key %s (%s vs %s)" % (key, value, prefs.get(key)), file=sys.stderr)
 
 def update(update, client_timestamp=None):
   global last_modified_time
