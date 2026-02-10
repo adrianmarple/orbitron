@@ -99,7 +99,6 @@ for (key, value) in list(default_prefs.items()) + list(timing_prefs.items()):
     pref_type[key] = "vector"
 
 saved_prefs = {}
-prefs = {}
 last_known_pref_name = None
 current_pref_name = None
 
@@ -108,6 +107,13 @@ pref_to_client_timestamp = {}
 current_prefs = {}
 current_prefs.update(default_prefs)
 current_prefs.update(timing_prefs)
+
+def prefs():
+  differences = {}
+  for (key, value) in default_prefs.items():
+    if current_prefs[key] != value:
+      differences[key] = value
+  return differences
 
 
 if not os.path.exists(save_prefs_path):
@@ -119,13 +125,6 @@ def sort_pref_names():
 pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no file
 pref_names = [filename.split(".")[0] for filename in pref_names]
 sort_pref_names()
-
-def diagnostic():
-  for key, value in current_prefs.items():
-    if (default_prefs.get(key) != value and
-        timing_prefs.get(key) != value and
-        prefs.get(key) != value):
-      print("pref mismatch for key %s (%s vs %s)" % (key, value, prefs.get(key)), file=sys.stderr)
 
 def update(update, client_timestamp=None):
   global last_modified_time
@@ -169,8 +168,6 @@ def update(update, client_timestamp=None):
     pref_to_client_timestamp[key] = client_timestamp
     if key in timing_prefs:
       timing_prefs[key] = value
-    else:
-      prefs[key] = value
 
   current_prefs.update(update)
   set_idle()
@@ -188,7 +185,6 @@ def update(update, client_timestamp=None):
   if get_pref("useTimer") and should_update_schedule:
     update_schedule()
   identify_name()
-  diagnostic()
 
 
 last_modified_time = -1
@@ -200,7 +196,7 @@ def save_loop(): # Trying to avoid race conditions
     elif time() < last_modified_time + 0.5:
       sleep(0.1)
     else:
-      prefs_file_content = json.dumps(prefs, indent=2)
+      prefs_file_content = json.dumps(prefs(), indent=2)
       if prefs_file_content != "{}":
         with open(pref_path, "w") as f:
           f.write(prefs_file_content)
@@ -217,15 +213,15 @@ save_thread.start()
 def identify_name():
   global current_pref_name, last_known_pref_name
   for (name, saved_pref) in saved_prefs.items():
-    if are_prefs_equivalent(prefs, saved_pref):
+    if are_prefs_equivalent(prefs(), saved_pref):
       current_pref_name = name
       last_known_pref_name = name
       return
   current_pref_name = None
 
 def are_prefs_equivalent(a, b):
-  for key in default_prefs.keys():
-    if a.get(key, default_prefs[key]) != b.get(key, default_prefs[key]):
+  for (key, default) in default_prefs.items():
+    if a.get(key, default) != b.get(key, default):
       return False
   return True
 
@@ -234,7 +230,6 @@ def clear(should_set_idle=True):
   current_pref_name = None
   last_known_pref_name = None
   save_prefs_loop_lock = False
-  prefs.clear()
   pref_to_client_timestamp.clear()
   converted_prefs.clear()
   current_prefs.clear()
@@ -247,18 +242,18 @@ def clear(should_set_idle=True):
   except OSError:
     pass
 
-def save(name):
-  if config.get("TEMP_ORB"):
-    return
+# def save(name):
+#   if config.get("TEMP_ORB"):
+#     return
 
-  global current_pref_name
-  current_pref_name = name
-  new_path = pref_path_from_name(name)
-  saved_prefs[name] = json.loads(json.dumps(prefs)) # deep copy
-  shutil.copy(pref_path, new_path)
-  if name not in pref_names:
-    pref_names.append(name)
-    sort_pref_names()
+#   global current_pref_name
+#   current_pref_name = name
+#   new_path = pref_path_from_name(name)
+#   saved_prefs[name] = json.loads(json.dumps(prefs())) # deep copy
+#   shutil.copy(pref_path, new_path)
+#   if name not in pref_names:
+#     pref_names.append(name)
+#     sort_pref_names()
 
 
 
@@ -269,21 +264,20 @@ def load(name, clobber_prefs=True):
     print("Tried to load non-existant pref: %s" % name, file=sys.stderr)
     return
   
-  # if name in saved_prefs:
-  #   loaded_prefs = saved_prefs[name]
-  # else:
-  try:
-    f = open(old_path, "r")
-    loaded_prefs = json.loads(f.read())
-    saved_prefs[name] = loaded_prefs
-    f.close()
-  except Exception as e:
-    print("Error loading pref: %s" % e, file=sys.stderr)
-    return
+  if name in saved_prefs:
+    loaded_prefs = saved_prefs[name]
+  else:
+    try:
+      f = open(old_path, "r")
+      loaded_prefs = json.loads(f.read())
+      saved_prefs[name] = loaded_prefs
+      f.close()
+    except Exception as e:
+      print("Error loading pref: %s" % e, file=sys.stderr)
+      return
 
   if clobber_prefs:
     clear(should_set_idle=False)
-    prefs.update(loaded_prefs) # Effectively a copy
     current_prefs.update(loaded_prefs)
     for key in default_prefs.keys():
       converted_prefs[key] = None
@@ -291,7 +285,6 @@ def load(name, clobber_prefs=True):
     last_known_pref_name = name
     set_idle()
     shutil.copy(old_path, pref_path)
-  diagnostic()
 
 def delete(name):
   path = pref_path_from_name(name)
@@ -515,11 +508,11 @@ def init():
   if os.path.exists(pref_path):
     with open(pref_path, "r") as f:
       try:
-        prefs = json.loads(f.read())
+        loaded_prefs = json.loads(f.read())
       except:
-        prefs = {}
+        loaded_prefs = {}
         print("Failed to load prefs.json", file=sys.stderr)
-    current_prefs.update(prefs)
+    current_prefs.update(loaded_prefs)
     identify_name()
   else:
     print("No prefs.json file", file=sys.stderr)
