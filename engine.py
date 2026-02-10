@@ -1089,7 +1089,7 @@ def run_core_loop():
     def sample():
       return 1 if GPIO.input(config["MANUAL_FADE_PIN"]) == input_type else 0
 
-    previous_triggered = False
+    previous_pin_value = 0
     pin_start_time = 0
     pin_end_time = 0
 
@@ -1108,7 +1108,7 @@ def run_core_loop():
 
     pin_value = 0
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
-    pin_threshold = samples_per_frame / 4.0
+    noise = samples_per_frame / 10.0
     if samples_per_frame > 1:
       def pin_loop():
         nonlocal pin_value
@@ -1140,19 +1140,20 @@ def run_core_loop():
 
     if config.get("MANUAL_FADE_PIN"):
       if samples_per_frame == 1:
-        triggered = sample()
+        pin_value = sample()
       else:
-        triggered = pin_value >= pin_threshold
-        if not triggered:
-          alpha = 0.95
-          pin_threshold = pin_threshold * alpha + (pin_value+1) * 4 * (1-alpha)
+        alpha = 0.95
+        noise = noise * alpha + abs(pin_value - previous_pin_value) * (1-alpha)
 
-      if triggered and not previous_triggered: # Started pressing
+      started = pin_value - previous_pin_value > 4*noise
+      stopped = previous_pin_value - pin_value > 4*noise
+
+      if started:
         pin_start_time = time()
         if pin_end_time:
           perform_action(double_action)
 
-      if pin_start_time and not triggered and previous_triggered: # Stopped
+      if pin_start_time and stopped:
         if time() - pin_start_time < 0.05: # Ignore short (likely spurious) triggers
           pin_start_time = 0
         elif not double_action:
@@ -1167,7 +1168,7 @@ def run_core_loop():
       if pin_end_time and time() - pin_end_time > 0.6:
         perform_action(short_action)
 
-      previous_triggered = triggered
+      previous_pin_value = pin_value
       pin_value = 0 # For multi sampling thread
 
     update()
