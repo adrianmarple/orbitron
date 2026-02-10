@@ -46,6 +46,9 @@ module.exports={
   // MANUAL_FADE_STEPS: [1, 0],
   // PIN_INPUT_TYPE: "LOW", // "HIGH"
   // PIN_SAMPLES_PER_FRAME: 1,
+  // SHORT_PRESS_ACTION: "DIM", "CYCLE"
+  // LONG_PRESS_ACTION: "DIM",
+  // DOUBLE_CLICK_ACTION: null,
   // TEXT_DISPLAY: "Seg14x4",
   // LAT: 0,
   // LON: 0,
@@ -59,10 +62,10 @@ module.exports={
   //     ]
   //   },
   // ],
-  // MAX_POWER_DRAW: 3,
-  // MAX_AVG_PIXEL_BRIGHTNESS: 100,
+  // MAX_POWER_DRAW: 3, // Estimated Volts
+  // MAX_AVG_PIXEL_BRIGHTNESS: 100, // 0-255 white
   // NO_ACCESS_POINT: true,
   // TETHER_ORB_ID: "TEST",
   // NO_LOCAL_REGISTRATION: true,
-  LOG_INCOMING_MESSAGES: "update.dimmer",
+  // LOG_INCOMING_MESSAGES: "update.dimmer",
 }

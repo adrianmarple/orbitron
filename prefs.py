@@ -403,13 +403,14 @@ def advance_manual_fade():
   update({"dimmer": steps[index]})
 
 def advance_preset():
-  print(last_known_pref_name)
+  print("Advancing from %s" % last_known_pref_name, file=sys.stderr)
   index = -1
   try:
     index = pref_names.index(last_known_pref_name)
   except ValueError:
     pass
   index = (index + 1) % len(pref_names)
+  print("Cycling to %s" % pref_names[index], file=sys.stderr)
   load(pref_names[index])
 
 def update_schedule():
