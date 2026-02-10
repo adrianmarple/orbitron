@@ -125,7 +125,7 @@ def diagnostic():
     if (default_prefs.get(key) != value and
         timing_prefs.get(key) != value and
         prefs.get(key) != value):
-      print("pref mismatch for key %s" % key)
+      print("pref mismatch for key %s" % key, file=sys.stderr)
 
 def update(update, client_timestamp=None):
   global last_modified_time
@@ -269,13 +269,17 @@ def load(name, clobber_prefs=True):
     print("Tried to load non-existant pref: %s" % name, file=sys.stderr)
     return
   
-  if name in saved_prefs:
-    loaded_prefs = saved_prefs[name]
-  else:
+  # if name in saved_prefs:
+  #   loaded_prefs = saved_prefs[name]
+  # else:
+  try:
     f = open(old_path, "r")
     loaded_prefs = json.loads(f.read())
     saved_prefs[name] = loaded_prefs
     f.close()
+  except Exception as e:
+    print("Error loading pref: %s" % e, file=sys.stderr)
+    return
 
   if clobber_prefs:
     clear(should_set_idle=False)
