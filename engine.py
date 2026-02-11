@@ -1156,8 +1156,8 @@ def run_core_loop():
         ring_index = (ring_index + 1) % (2*PIN_WINDOW)
         pin_value = 0
 
-      started = current_value > 2*previous_value + PIN_MIN
-      stopped = previous_value > 1.5*current_value + PIN_MIN
+      started = current_value > 3.5*previous_value + PIN_MIN
+      stopped = previous_value > 3*current_value + PIN_MIN
 
       if started:
         pin_start_time = time()
