@@ -1109,7 +1109,8 @@ def run_core_loop():
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
     if samples_per_frame > 1:
       PIN_WINDOW = 3
-      pin_ring_buffer = [0] * PIN_WINDOW*2
+      PIN_MIN = samples_per_frame / 50
+      pin_ring_buffer = [PIN_MIN] * PIN_WINDOW*2
       ring_index = 0
 
       def pin_loop():
@@ -1147,8 +1148,8 @@ def run_core_loop():
         current_value = pin_value
       else:
         pin_ring_buffer[ring_index] = pin_value
-        current_value = 2
-        previous_value = 2
+        current_value = PIN_MIN
+        previous_value = PIN_MIN
         for i in range(PIN_WINDOW):
           current_value += pin_ring_buffer[(ring_index + 2*PIN_WINDOW - i) % (2*PIN_WINDOW)]
           previous_value += pin_ring_buffer[(ring_index + PIN_WINDOW - i) % (2*PIN_WINDOW)]
