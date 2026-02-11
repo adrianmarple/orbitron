@@ -384,6 +384,7 @@ def advance_manual_fade():
       closest_index = i
 
   index = (closest_index + 1) % len(steps)
+  print("Advancing dimmer to %s" % steps[index], file=sys.stderr)
   update({"dimmer": steps[index]})
 
 def advance_preset():
