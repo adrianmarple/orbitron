@@ -1107,6 +1107,7 @@ def run_core_loop():
 
     pin_value = 0
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
+    PIN_MIN = 0
     if samples_per_frame > 1:
       PIN_WINDOW = 4
       PIN_MIN = samples_per_frame * 0.1
