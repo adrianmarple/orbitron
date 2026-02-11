@@ -26,7 +26,6 @@ function potential(edge, previousEdge, angle) {
       path.includes(edge.dual.index) &&
       !path.includes(previousEdge.dual.index)) {
     if (epsilonEquals(angle, Math.PI)) {
-      console.log(previousEdge.index, edge.index, path.length)
       angle = -1 // Strongly prefer doubling back when having to merge with an existing strip
     }
     angle += 100 // Avoid merges

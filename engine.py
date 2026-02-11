@@ -1089,7 +1089,6 @@ def run_core_loop():
     def sample():
       return 1 if GPIO.input(config["MANUAL_FADE_PIN"]) == input_type else 0
 
-    previous_pin_value = 0
     pin_start_time = 0
     pin_end_time = 0
 
@@ -1108,8 +1107,11 @@ def run_core_loop():
 
     pin_value = 0
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
-    noise = samples_per_frame / 10.0
     if samples_per_frame > 1:
+      PIN_WINDOW = 3
+      pin_ring_buffer = [0] * PIN_WINDOW*2
+      ring_index = 0
+
       def pin_loop():
         nonlocal pin_value
         while (True):
@@ -1140,13 +1142,19 @@ def run_core_loop():
 
     if config.get("MANUAL_FADE_PIN"):
       if samples_per_frame == 1:
+        previous_value = pin_value
         pin_value = sample()
+        current_value = pin_value
       else:
-        alpha = 0.95
-        noise = noise * alpha + abs(pin_value - previous_pin_value) * (1-alpha)
+        pin_ring_buffer[ring_index] = pin_value
+        current_value = 0
+        previous_value = 0
+        for i in range(PIN_WINDOW):
+          current_value += pin_ring_buffer[(ring_index + 2*PIN_WINDOW - i) % (2*PIN_WINDOW)]
+          previous_value += pin_ring_buffer[(ring_index + PIN_WINDOW - i) % (2*PIN_WINDOW)]
 
-      started = pin_value - previous_pin_value > 4*noise
-      stopped = previous_pin_value - pin_value > 4*noise
+      started = current_value > 2 * previous_value
+      stopped = previous_value > 2 * current_value
 
       if started:
         pin_start_time = time()
@@ -1154,9 +1162,7 @@ def run_core_loop():
           perform_action(double_action)
 
       if pin_start_time and stopped:
-        if time() - pin_start_time < 0.05: # Ignore short (likely spurious) triggers
-          pin_start_time = 0
-        elif not double_action:
+        if not double_action:
           perform_action(short_action)
         else:
           pin_end_time = time() # Prep for either waiting for short press or double click
@@ -1168,7 +1174,7 @@ def run_core_loop():
       if pin_end_time and time() - pin_end_time > 0.6:
         perform_action(short_action)
 
-      previous_pin_value = pin_value
+      pin_ring_buffer[ring_index] = pin_value
       pin_value = 0 # For multi sampling thread
 
     update()
