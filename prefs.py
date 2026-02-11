@@ -242,20 +242,6 @@ def clear(should_set_idle=True):
   except OSError:
     pass
 
-# def save(name):
-#   if config.get("TEMP_ORB"):
-#     return
-
-#   global current_pref_name
-#   current_pref_name = name
-#   new_path = pref_path_from_name(name)
-#   saved_prefs[name] = json.loads(json.dumps(prefs())) # deep copy
-#   shutil.copy(pref_path, new_path)
-#   if name not in pref_names:
-#     pref_names.append(name)
-#     sort_pref_names()
-
-
 
 def load(name, clobber_prefs=True):
   global current_pref_name, last_known_pref_name
@@ -283,6 +269,7 @@ def load(name, clobber_prefs=True):
       converted_prefs[key] = None
     current_pref_name = name
     last_known_pref_name = name
+    update({"dimmer": 1})
     set_idle()
     shutil.copy(old_path, pref_path)
 

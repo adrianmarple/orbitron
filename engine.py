@@ -1147,14 +1147,16 @@ def run_core_loop():
         current_value = pin_value
       else:
         pin_ring_buffer[ring_index] = pin_value
-        current_value = 0
-        previous_value = 0
+        current_value = 2
+        previous_value = 2
         for i in range(PIN_WINDOW):
           current_value += pin_ring_buffer[(ring_index + 2*PIN_WINDOW - i) % (2*PIN_WINDOW)]
           previous_value += pin_ring_buffer[(ring_index + PIN_WINDOW - i) % (2*PIN_WINDOW)]
+        ring_index = (ring_index + 1) % (2*PIN_WINDOW)
+        pin_value = 0
 
-      started = current_value > 2 * previous_value
-      stopped = previous_value > 2 * current_value
+      started = current_value > 3.5 * previous_value
+      stopped = previous_value > 2.5 * current_value
 
       if started:
         pin_start_time = time()
@@ -1173,8 +1175,5 @@ def run_core_loop():
 
       if pin_end_time and time() - pin_end_time > 0.6:
         perform_action(short_action)
-
-      pin_ring_buffer[ring_index] = pin_value
-      pin_value = 0 # For multi sampling thread
 
     update()
