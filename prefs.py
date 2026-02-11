@@ -112,7 +112,7 @@ def prefs():
   differences = {}
   for (key, value) in default_prefs.items():
     if current_prefs[key] != value:
-      differences[key] = value
+      differences[key] = current_prefs[key]
   return differences
 
 
@@ -501,6 +501,7 @@ def init():
         print("Failed to load prefs.json", file=sys.stderr)
     current_prefs.update(loaded_prefs)
     identify_name()
+    print("Current pref name: %s" % current_pref_name, file=sys.stderr)
   else:
     print("No prefs.json file", file=sys.stderr)
 
