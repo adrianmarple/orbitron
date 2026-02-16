@@ -1108,8 +1108,8 @@ def run_core_loop():
     pin_value = 0
     samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
     PIN_MIN = 0
+    PIN_WINDOW = 4
     if samples_per_frame > 1:
-      PIN_WINDOW = 4
       PIN_MIN = samples_per_frame * 0.05
       pin_ring_buffer = [0] * PIN_WINDOW*2
       ring_index = 0
