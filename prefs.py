@@ -208,6 +208,18 @@ def save_loop(): # Trying to avoid race conditions
 save_thread = Thread(target=save_loop)
 save_thread.start()
 
+def save(name):
+  if config.get("TEMP_ORB"):
+    return
+
+  global current_pref_name
+  current_pref_name = name
+  new_path = pref_path_from_name(name)
+  saved_prefs[name] = json.loads(json.dumps(prefs)) # deep copy
+  shutil.copy(pref_path, new_path)
+  if name not in pref_names:
+    pref_names.append(name)
+    sort_pref_names()
 
 
 def identify_name():
