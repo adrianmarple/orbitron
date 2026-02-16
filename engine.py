@@ -1110,7 +1110,7 @@ def run_core_loop():
     PIN_MIN = 0
     if samples_per_frame > 1:
       PIN_WINDOW = 4
-      PIN_MIN = samples_per_frame * 0.1
+      PIN_MIN = samples_per_frame * 0.05
       pin_ring_buffer = [0] * PIN_WINDOW*2
       ring_index = 0
 
@@ -1157,10 +1157,10 @@ def run_core_loop():
         ring_index = (ring_index + 1) % (2*PIN_WINDOW)
         pin_value = 0
 
-      started = current_value > 3.5*previous_value + PIN_MIN
-      stopped = previous_value > 3*current_value + PIN_MIN
+      started = current_value > 3*previous_value + PIN_MIN*PIN_WINDOW
+      stopped = previous_value > 2*current_value + 0.5*PIN_MIN*PIN_WINDOW
 
-      if started:
+      if not pin_start_time and started:
         pin_start_time = time()
         if pin_end_time:
           perform_action(double_action)

@@ -1,4 +1,4 @@
-// SKIP
+// SKI
 module.exports = () => {
   portPartID = "6R"
   WALL_THICKNESS = 2

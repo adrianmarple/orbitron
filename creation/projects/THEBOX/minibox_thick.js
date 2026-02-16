@@ -22,7 +22,7 @@ module.exports = async () => {
   innerLength += 2*endWallBuffer
   addPolygon(4, [0,0,0], [innerWidth, innerLength])
 
-  let portHeight = 3.2
+  let portHeight = 3.25
   let portWidth = 9.3
   let portZOffset = 0 //5.6
   let portLength = 6.6 + 2
