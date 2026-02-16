@@ -215,7 +215,7 @@ def save(name):
   global current_pref_name
   current_pref_name = name
   new_path = pref_path_from_name(name)
-  saved_prefs[name] = json.loads(json.dumps(prefs)) # deep copy
+  saved_prefs[name] = json.loads(json.dumps(prefs())) # deep copy
   shutil.copy(pref_path, new_path)
   if name not in pref_names:
     pref_names.append(name)
