@@ -262,14 +262,18 @@ a > .fancy-box:hover, a.fancy-box:hover {
   border-color: transparent;
 }
 
+#registration .orb.dragging {
+  opacity: 0.4;
+}
+
 #registration .orb-wrapper {
   border: 1.4rem solid #080808;
-  border-radius: 2.5rem;
-  margin: -0.75rem;
+  border-radius: 2rem;
+  margin: -0.7rem;
 }
 #registration .orb {
   border: 0.1rem solid white;
-  border-radius: 1rem;
+  border-radius: 0.5rem;
   position: relative;
   cursor: pointer;
   width: 30rem;

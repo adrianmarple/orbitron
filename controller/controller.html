@@ -101,7 +101,12 @@
     <div id="orbs">
       <div v-for="id in registeredIDs" class="orb-wrapper" @click="openOrb(id, true)"
       :class="{ connected: isConnected(id) }">
-        <div class="orb">
+        <div class="orb" :class="{ dragging: draggingID === id }"
+          draggable="true"
+          @dragstart="onDragStart(id)"
+          @dragend="draggingID = null"
+          @dragover.prevent
+          @drop.stop="onDrop(id)">
           <stlviewer :info="getOrb(id)"></stlviewer>
           <img class="clear" src="/controller/images/close_white.svg" @click.stop="deleteRegistration(id)"/>
     

@@ -43,6 +43,7 @@ var app = new Vue({
     orbID: location.pathname.split('/')[1],
     idToOrb: {},
     registeredIDs: [],
+    draggingID: null,
     excludedIDs: [],
     excludedNameMap: {},
     manuallingRegistering: false,
@@ -694,6 +695,18 @@ var app = new Vue({
       this.openOrb("", true)
       this.overscrollBottom = 0
       this.overscrollTop = 0
+    },
+    onDragStart(id) {
+      this.draggingID = id
+    },
+    onDrop(targetID) {
+      if (this.draggingID === targetID) return
+      const from = this.registeredIDs.indexOf(this.draggingID)
+      const to = this.registeredIDs.indexOf(targetID)
+      this.registeredIDs.splice(from, 1)
+      this.registeredIDs.splice(to, 0, this.draggingID)
+      localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+      this.draggingID = null
     },
     deleteRegistration(id) {
       let self = this
