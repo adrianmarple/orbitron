@@ -972,7 +972,7 @@ var app = new Vue({
       } else {
         protocolAndHost = "wss://" + location.hostname
       }
-      orb.socketStatus == 'CONNECTING'
+      this.$set(this.idToOrb[orbID], 'socketStatus', 'CONNECTING')
       let ws = new WebSocket(`${protocolAndHost}:7777/${orbID}/${this.uuid}`)
       let self = this
       ws.onopen= _ => {

@@ -109,7 +109,7 @@ Vue.component('color', {
         red: parseInt(result[1], 16),
         green: parseInt(result[2], 16),
         blue: parseInt(result[3], 16)
-      } : [0,0,0]
+      } : {red: 0, green: 0, blue: 0}
     },
   },
   template: `
@@ -292,7 +292,6 @@ Vue.component('vector2', {
           translateY(${yOffset}rem)
           rotate(${angle}rad)`,
         width: `${mag * this.halfWidth}rem`,
-        width: `${mag * this.halfWidth}rem`,
       }
     },
   },
@@ -373,6 +372,7 @@ Vue.component('vector3', {
       theta: 0,
       sigma: 0,
       start: null,
+      animationFrameId: null,
     }
   },
   watch: {
@@ -385,6 +385,7 @@ Vue.component('vector3', {
   },
   unmounted() {
     window.removeEventListener('resize', this.resize)
+    cancelAnimationFrame(this.animationFrameId)
   },
   computed: {
     halfWidth() {
@@ -490,8 +491,9 @@ Vue.component('vector3', {
       // Position the this.camera
       camera.position.z = 3
   
+      let self = this
       function animate() {
-        requestAnimationFrame(animate)
+        self.animationFrameId = requestAnimationFrame(animate)
         renderer.setClearColor(0x333333, 0.5)
         renderer.render(scene, camera)
       }
@@ -586,6 +588,7 @@ Vue.component('stlviewer', {
   data() {
     return {
       renderer: null,
+      animationFrameId: null,
     }
   },
   watch: {
@@ -602,6 +605,7 @@ Vue.component('stlviewer', {
   },
   unmounted() {
     window.removeEventListener('resize', this.resize)
+    cancelAnimationFrame(this.animationFrameId)
   },
   computed: {
     isConnected() {
@@ -616,7 +620,7 @@ Vue.component('stlviewer', {
     },
     load() {
       if (!this.info.topology) return
-  
+      cancelAnimationFrame(this.animationFrameId)
       this.$el.innerHTML = ""
 
       // Create a scene, camera, and renderer
@@ -673,7 +677,7 @@ Vue.component('stlviewer', {
       // Animate the scene
       let self = this
       function animate() {
-        requestAnimationFrame(animate)
+        self.animationFrameId = requestAnimationFrame(animate)
         if (mesh && self.isConnected) {
           mesh.rotation.y += 0.007
           mesh.rotation.z = Math.sin(Date.now() / 5000) * 0.1
