@@ -1041,17 +1041,20 @@ def broadcast_event(event):
   print(json.dumps(event))
 
 def broadcast_state():
+  is_idle = game == idle
   time_remaining = round(game.end_time - time()) if game and game.end_time else 0
   message = {
-    "game": game.name,
-    "gameId": game.id,
-    "nextGame": next_game.name if next_game else "",
-    "players": [player.to_json() for player in game.players],
-    "gameState": game.state,
-    "timeRemaining": time_remaining,
-    "victors": [victor.victor_json() for victor in game.victors],
-    "settings": game.settings,
-    "data": game.data,
+    "gameInfo": None if is_idle else {
+      "game": game.name,
+      "gameId": game.id,
+      "nextGame": next_game.name if next_game else "",
+      "players": [player.to_json() for player in game.players],
+      "gameState": game.state,
+      "timeRemaining": time_remaining,
+      "victors": [victor.victor_json() for victor in game.victors],
+      "settings": game.settings,
+      "data": game.data,
+    },
     "prefs": prefs.current_prefs,
     "prefTimestamps": prefs.pref_to_client_timestamp,
     "currentText": current_text,

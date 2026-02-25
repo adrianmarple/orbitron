@@ -606,11 +606,11 @@ if (config.TETHER_ORB_ID) {
 
 
 function upkeep() {
-  if(!gameState) return
+  if(!state) return
   // Check for stale players
-  if (!NO_TIMEOUT) {
+  if (state.gameInfo && !NO_TIMEOUT) {
     for (let peer of Object.values(connections)) {
-      let player = gameState.players[peer.pid]
+      let player = state.gameInfo.players[peer.pid]
       if (!player.isReady && !player.isPlaying &&
         Date.now() - peer.lastActivityTime > 60*1000) { // 60 seconds
         //console.log("Player timed out.",peer.pid,peer.lastActivityTime)
@@ -629,7 +629,7 @@ function upkeep() {
         claim = { self: peer.pid, type: "claim" }
         python_process.stdin.write(JSON.stringify(claim) + "\n", "utf8")
         connectionQueue = connectionQueue.filter(elem => elem !== peer)
-        message = {...gameState}
+        message = {...state}
         message.self = peer.pid
         peer.send(JSON.stringify(message))
         break;
@@ -637,7 +637,7 @@ function upkeep() {
       id += 1;
     }
     if (id >= MAX_PLAYERS) {
-      message = {...gameState}
+      message = {...state}
       message.queuePosition = connectionQueue.indexOf(peer) + 1
       peer.send(JSON.stringify(message))
     }
@@ -653,8 +653,8 @@ let connectionQueue = []
 
 // Communications with python script
 
-gameState = null
-gameStateString = ""
+state = null
+stateString = ""
 broadcastCounter = 0
 const counterThreshold = 35
 
@@ -677,15 +677,15 @@ function broadcast(baseMessage) {
 
   broadcastCounter++
   baseMessage.notimeout = NO_TIMEOUT
-  let newGameState = {...baseMessage}
-  delete newGameState.timestamp
-  let newGameStateString = JSON.stringify(newGameState)
-  let noChange = newGameStateString == gameStateString
+  let newState = {...baseMessage}
+  delete newState.timestamp
+  let newStateString = JSON.stringify(newState)
+  let noChange = newStateString == stateString
   if(noChange && broadcastCounter % counterThreshold != 0){
     return
   }
-  gameState = newGameState
-  gameStateString = newGameStateString
+  state = newState
+  stateString = newStateString
   broadcastCounter = 0
   for (let id in connections) {
     baseMessage.self = parseInt(id)

@@ -225,7 +225,7 @@ var app = new Vue({
     newID() {
       this.newID = this.newID.toLowerCase().replace(/[^a-zA-Z0-9]/g, '')
     },
-    "state.settings": function(val, oldValue) {
+    "state.gameInfo.settings": function(val, oldValue) {
       if (!oldValue) {
         this.settings = { ...val }
         return
@@ -270,7 +270,7 @@ var app = new Vue({
         this.saveNames = [...this.state.prefNames]
       }
     },
-    "state.gameId": function() {
+    "state.gameInfo.gameId": function() {
       this.isReadyLocal = false
     },
     "state.victory": function(val, oldValue) {
@@ -295,7 +295,7 @@ var app = new Vue({
   },
 
   computed: {
-    BETWEEN_GAMES() { return !this.state.game },
+    BETWEEN_GAMES() { return !this.state.gameInfo },
     ws() {
       return this.orbInfo.ws ?? null
     },
@@ -433,28 +433,31 @@ var app = new Vue({
       return this.orbInfo.include || {}
     },
     gameStarted() {
-      return this.state.game && this.state.game != "idle"
+      return !!this.state.gameInfo
+    },
+    gameInfo() {
+      return this.state.gameInfo || {}
     },
 
     victoryCondition() {
-      return this.substitute(this.gameInfo.victoryCondition)
+      return this.substitute(this.gameMeta.victoryCondition)
     },
 
     mode() {
-      return this.state.gameState
+      return this.gameInfo.gameState
     },
     hasClaimed() {
       return !isNothing(this.state.self)
     },
     self() {
-      if (this.state.players && !isNothing(this.state.self))
-        return this.state.players[this.state.self]
+      if (this.gameInfo.players && !isNothing(this.state.self))
+        return this.gameInfo.players[this.state.self]
       else
         return {}
     },
     claimedPlayers() {
-      if (this.state.players) {
-        return this.state.players.filter(player => player.isClaimed)
+      if (this.gameInfo.players) {
+        return this.gameInfo.players.filter(player => player.isClaimed)
       } else {
         return []
       }
@@ -508,14 +511,16 @@ var app = new Vue({
     },
 
     maxScore() {
+      if (!this.gameInfo.players) return 1
       let maxScore = 1
-      for (let player of this.state.players) {
+      for (let player of this.gameInfo.players) {
         maxScore = Math.max(maxScore, player.score)
       }
       return maxScore
     },
     iAmVictorious() {
-      for (let victor of this.state.victors) {
+      if (!this.gameInfo.victors) return false
+      for (let victor of this.gameInfo.victors) {
         if (this.self.color == victor.color) {
           return true
         }
@@ -525,15 +530,15 @@ var app = new Vue({
 
     nextGameName() {
       for (let info of GAMES_INFO) {
-        if (info.name == this.state.nextGame) {
+        if (info.name == this.gameInfo.nextGame) {
           return info.label
         }
       }
       return ""
     },
-    gameInfo() {
+    gameMeta() {
       for (let info of GAMES_INFO) {
-        if (info.name == this.state.game) {
+        if (info.name == this.gameInfo.game) {
           return info
         }
       }
@@ -550,8 +555,8 @@ var app = new Vue({
           startingRules = [...this.orbInfo.extraStartingRules, ...startingRules]
         }
       }
-      if (this.gameInfo && this.gameInfo.rules) {
-        startingRules =  startingRules.concat(this.gameInfo.rules)
+      if (this.gameMeta && this.gameMeta.rules) {
+        startingRules =  startingRules.concat(this.gameMeta.rules)
       }
       return startingRules.filter(rule => rule.nonFlatOnly || !this.orbInfo.isFlat)
     },
@@ -842,7 +847,7 @@ var app = new Vue({
     },
     skip() {
       let self = this
-      this.speedbumpMessage = `This will skip ${this.gameInfo.label} for everyone.`
+      this.speedbumpMessage = `This will skip ${this.gameMeta.label} for everyone.`
       this.speedbumpCallback = () => {
         self.send({type: "skip"})
       }
@@ -863,7 +868,7 @@ var app = new Vue({
     },
     playagain() {
       let self = this
-      this.speedbumpMessage = `Everyone will play ${this.gameInfo.label} again.`
+      this.speedbumpMessage = `Everyone will play ${this.gameMeta.label} again.`
       this.speedbumpCallback = () => {
         self.send({type: "playagain"})
       }

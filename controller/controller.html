@@ -559,7 +559,7 @@
   </div> -->
 
   <div id="header">
-    <div id="label">{{gameInfo.label}}</div>
+    <div id="label">{{gameMeta.label}}</div>
     <div id="header-buttons">
       <div class="button" style="width: 8rem" @click="showRules()">RULES</div>
       <div class="button" @click.stop="skip">SKIP GAME</div>
@@ -588,14 +588,14 @@
 
   <div v-else-if="mode=='countdown'" class="main">
     <div class="header">
-      <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 3em">{{Math.round(state.timeRemaining)}}</div>
-      <div v-html="substitute(gameInfo.victoryCondition)"></div>
+      <div v-if="gameInfo.timeRemaining > 0" class="banner" style="font-size: 3em">{{Math.round(gameInfo.timeRemaining)}}</div>
+      <div v-html="substitute(gameMeta.victoryCondition)"></div>
     </div>
   </div>
 
   <div v-else class="main">
     <div class="header card">
-      <div v-if="state.timeRemaining > 0" class="banner" style="font-size: 2em">{{mode=='previctory' ? 0 : Math.round(state.timeRemaining)}}</div>
+      <div v-if="gameInfo.timeRemaining > 0" class="banner" style="font-size: 2em">{{mode=='previctory' ? 0 : Math.round(gameInfo.timeRemaining)}}</div>
       <div v-if="mode=='victory'" >
         <div v-if="iAmVictorious">
           Victory!
@@ -610,7 +610,7 @@
         <br/>
       </div>
 
-      <div v-if="gameInfo.statusDisplay.type == 'battleroyale'">
+      <div v-if="gameMeta.statusDisplay.type == 'battleroyale'">
         Live players:
         <div class="players">
           <div v-for="player in livePlayers"
@@ -620,16 +620,16 @@
         </div>
       </div>
 
-      <div v-if="gameInfo.statusDisplay.type == 'cooperative'">
-        <div v-if="gameInfo.statusDisplay.showScore">
-          Score: {{state.data.score}}/{{state.data.victory_score}}
+      <div v-if="gameMeta.statusDisplay.type == 'cooperative'">
+        <div v-if="gameMeta.statusDisplay.showScore">
+          Score: {{gameInfo.data.score}}/{{gameInfo.data.victory_score}}
         </div>
-        <div v-if="gameInfo.statusDisplay.showLives">
-          Lives left: {{state.data.lives}}
+        <div v-if="gameMeta.statusDisplay.showLives">
+          Lives left: {{gameInfo.data.lives}}
         </div>
       </div>
 
-      <div v-else-if="gameInfo.statusDisplay.type == 'rankedscore'">
+      <div v-else-if="gameMeta.statusDisplay.type == 'rankedscore'">
         <div v-if="self.isPlaying">
           {{position}} ({{self.score}})
         </div>
@@ -638,8 +638,8 @@
           <div class="snek"
             :style="{ backgroundColor: player.color }"
           ></div>
-          <div v-if="gameInfo.statusDisplay.innerScore" class="background-darkener"></div>
-          <div v-if="gameInfo.statusDisplay.innerScore" class="inner-snek"
+          <div v-if="gameMeta.statusDisplay.innerScore" class="background-darkener"></div>
+          <div v-if="gameMeta.statusDisplay.innerScore" class="inner-snek"
             :style="{backgroundColor: player.color, width: (player.length / player.score * 100) + '%'}"
           ></div>
 
