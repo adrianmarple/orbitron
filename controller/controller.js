@@ -338,6 +338,10 @@ var app = new Vue({
       }
       return items
     },
+    navBarCount() {
+      let n = this.navBarItems.length
+      return n % 2 == 1 ? n + 1 : n
+    },
 
     dimmerString() {
       let dimmerStates = this.orbInfo.dimmerStates || [1, 0]

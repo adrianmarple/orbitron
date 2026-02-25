@@ -172,6 +172,12 @@ a > .fancy-box:hover, a.fancy-box:hover {
   margin-top: 15rem;
 }
 
+#registration-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 #registration {
   border: 5.5rem solid #080808;
   font-size: 2rem;
@@ -686,6 +692,7 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
   z-index: -1;
   position: fixed;
   bottom: 10.3rem;
+  pointer-events: none;
 }
 .left.side-box {
   left: 0;

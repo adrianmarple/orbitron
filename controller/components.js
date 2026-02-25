@@ -491,7 +491,6 @@ Vue.component('vector3', {
       // Position the this.camera
       camera.position.z = 3
   
-      let self = this
       function animate() {
         self.animationFrameId = requestAnimationFrame(animate)
         renderer.setClearColor(0x333333, 0.5)

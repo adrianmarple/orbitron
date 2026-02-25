@@ -50,7 +50,8 @@
     </div>
   </div>
 
-  <div v-else-if="!orbID" id="registration" :class="{ small: registeredIDs.length > 3 }">
+  <div v-else-if="!orbID" id="registration-wrapper">
+  <div id="registration" :class="{ small: registeredIDs.length > 3 }">
     <div class="horiz-box"></div>
 
     <div v-if="registeredIDs.length == 0" class="instructions">
@@ -182,6 +183,7 @@
     <div class="bottom-fill"></div>
     <div class="overscroll top" :style="{height: overscrollTop + 'px'}"></div>
     <div class="overscroll bottom" :style="{height: overscrollBottom + 'px'}"></div>
+  </div>
   </div>
 
   <div v-else-if="connectionStatus == 'CONNECTING'" id="loading">
@@ -462,7 +464,7 @@
       <Icon v-for="(image,i) in navBarItems"
         v-if="i < navBarItems.length/2"
         :image="image"
-        :w="(innerWidth - 10*rem) / navBarItems.length" :h="10*rem"
+        :w="(innerWidth - 10*rem) / navBarCount" :h="10*rem"
         :selected="nav == image"
         @click="nav=image" >
       </Icon>
@@ -470,10 +472,17 @@
       <Icon v-for="(image,i) in navBarItems"
         v-if="i >= navBarItems.length/2"
         :image="image"
-        :w="(innerWidth - 10*rem) / navBarItems.length" :h="10*rem"
+        :w="(innerWidth - 10*rem) / navBarCount" :h="10*rem"
         :selected="nav == image"
         @click="nav=image" >
       </Icon>
+      <div v-if="navBarItems.length % 2 == 1" class="icon"
+        :style="{
+          width: (innerWidth - 10*rem) / navBarCount + 'px',
+          height: 10*rem + 'px',
+          background: '#080808',
+        }">
+      </div>
     </div>
   </div>
 
