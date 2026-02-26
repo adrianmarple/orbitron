@@ -86,6 +86,7 @@ module.exports = () => {
 
 
   printPostProcessingFunction = printInfo => {
+    if (printInfo.prints.length < 8) return
     
     printInfo.prints = [
       printInfo.prints[0],

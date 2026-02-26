@@ -2,6 +2,12 @@
   "name": "wall",
   "SIZE": 648,
   "isWall": true,
+  "centerOffset": [
+    0,
+    0,
+    0
+  ],
+  "stlScale": 0.0023101355085764167,
   "coords": [
     [
       0.07669649888473701,

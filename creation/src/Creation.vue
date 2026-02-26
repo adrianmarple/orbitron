@@ -210,7 +210,7 @@ export default {
     },
 
     async downloadGitFiles() {
-      this.downloadJSON()
+      await this.downloadJSON()
       await this.genModel('simple')
       await this.genModel('simplest')
     },
@@ -219,10 +219,11 @@ export default {
       this.removeFile(`../stls/${this.fullProjectName}.stl`)
       this.removeFile(`../stls/${this.fullProjectName}_full.stl`)
     },
-    downloadJSON() {
+    async downloadJSON() {
       let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
       let fileName = this.fullProjectName + '.json'
-      this.download(fileName, fileContent)
+      console.log(fileContent)
+      //await this.download(fileName, fileContent)
       console.log("Downloaded " + fileName)
     },
     genPrints() {

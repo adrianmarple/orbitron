@@ -293,7 +293,7 @@ var app = new Vue({
         for (let point of this.pixelData.coords) {
           point[0] *= scale
           point[1] *= scale
-          point[2] *= scale
+          point[2] *= -scale
           centroid.add(new THREE.Vector3(...point))
         }
       }
@@ -319,18 +319,18 @@ var app = new Vue({
         if (self.pixelData.stlScale) {
           geometry.translate(new THREE.Vector3(
             self.pixelData.centerOffset[0],
-            self.pixelData.centerOffset[2],
             self.pixelData.centerOffset[1],
+            self.pixelData.centerOffset[2],
           ))
           let stlScale = scale * self.pixelData.stlScale * SCALE
           geometry.scale(stlScale, stlScale, stlScale)
-          geometry.rotateX(Math.PI/2)
-          geometry.rotateZ(-Math.PI/2)
+          geometry.rotateX(-Math.PI/2)
           geometry.translate(centroid.multiplyScalar(SCALE).negate())
         }
         else {
           geometry.computeBoundingSphere()
           const r = geometry.boundingSphere.radius * 0.2 / scale
+          geometry.rotateX(-Math.PI/2)
           geometry.translate(geometry.boundingSphere.center.negate())
           geometry.scale(1/r, 1/r, 1/r)
         }

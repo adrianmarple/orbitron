@@ -397,7 +397,7 @@ async function generateGCode(info, print) {
     console.log(await execute(`/Applications/Blender.app/Contents/MacOS/Blender --background --python simplifymesh.py -- ${stlFilePath} ${stlFilePath}`))
   }
 
-  if (info.additionalSavePath && info.dir != "test") {
+  if (info.additionalSavePath) {
     console.log("Copying to additional save path " + info.additionalSavePath)
     let additionalSuffix = info.additionalSavePathSuffix ?? ""
     await execute(`mkdir -p ${info.additionalSavePath}`)
