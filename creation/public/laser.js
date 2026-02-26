@@ -1198,6 +1198,12 @@ function wallPrint(wall, isLeft) {
   let portPartNumber = portPartID ? portPartID.match(/\d+/)[0] : null
   let isPortRelated = print.suffix.match(/\d+/)[0] == portPartNumber
 
+  let portOffset = lengthOffset + wall.extraLEDSupportOffset
+  if (PORT_POSITION == "start") portOffset += USBC_WIDTH/2 + 1
+  else if (PORT_POSITION == "center") portOffset += topLength/2
+  else if (PORT_POSITION == "end") portOffset += Math.min(topLength, bottomLength) - USBC_WIDTH/2 - 1
+  else if (PORT_POSITION == "fold") portOffset += (topLength + bottomLength)/2
+
   let path = ""
   
   let rotationAngle = wall.zRotationAngle * (isLeft ? 1 : -1)
@@ -1451,8 +1457,7 @@ function wallPrint(wall, isLeft) {
       }
     }
   }
-  if (LED_SUPPORT_TYPE == "all" && RENDER_MODE == "standard" &&
-      !(isPortRelated && PORT_TYPE == "USBC_INTEGRATED")) {
+  if (LED_SUPPORT_TYPE == "all" && RENDER_MODE == "standard") {
     let v0 = endVertex.ogCoords
     let v1 = vertex1.ogCoords
     let e = v1.sub(v0).normalize()
@@ -1472,34 +1477,48 @@ function wallPrint(wall, isLeft) {
       maxOffset = Math.min(maxOffset, v0.sub(v1).length() - 0.1)
     }
 
-    while (supportOffset < maxOffset) {
-      if (supportOffset < minOffset) {
-        supportOffset += PIXEL_DISTANCE
-        continue
-      }
-
-      let worldPosition = v0.addScaledVector(e, supportOffset / PIXEL_DISTANCE)
-      let shouldAddSupport = true
-      for (let wp of ledWorldPositions) {
-        if (wp.equals(worldPosition)) {
-          shouldAddSupport = false
+    if (hasPort && PORT_TYPE.startsWith("USBC")) {
+      let portBlockMin = portOffset - USBC_WIDTH/2 - LED_SUPPORT_WIDTH/2
+      let portBlockMax = portOffset + USBC_WIDTH/2 + LED_SUPPORT_WIDTH/2
+      let testOffset = supportOffset
+      while (testOffset < maxOffset) {
+        if (testOffset >= portBlockMin && testOffset <= portBlockMax) {
+          ledWorldPositions.push(v0.addScaledVector(e, testOffset / PIXEL_DISTANCE))
         }
+        testOffset += PIXEL_DISTANCE
       }
-      if (shouldAddSupport) {
-        ledWorldPositions.push(worldPosition)
-        position = startV.addScaledVector(E, -supportOffset)
-        print.components.push({
-          type: "ledSupport",
-          position: [position.x, -position.y, WALL_THICKNESS],
-          width: LED_SUPPORT_WIDTH,
-          height: LED_SUPPORT_HEIGHT(),
-          thickness: LED_SUPPORT_THICKNESS,
-          gap: LED_SUPPORT_GAP,
-          rotationAngle: -rotationAngle,
-        })
-      }
+    }
 
-      supportOffset += PIXEL_DISTANCE
+    if (!(isPortRelated && PORT_TYPE == "USBC_INTEGRATED")) {
+      while (supportOffset < maxOffset) {
+        if (supportOffset < minOffset) {
+          supportOffset += PIXEL_DISTANCE
+          continue
+        }
+
+        let worldPosition = v0.addScaledVector(e, supportOffset / PIXEL_DISTANCE)
+        let shouldAddSupport = true
+        for (let wp of ledWorldPositions) {
+          if (wp.equals(worldPosition)) {
+            shouldAddSupport = false
+          }
+        }
+        if (shouldAddSupport) {
+          ledWorldPositions.push(worldPosition)
+          position = startV.addScaledVector(E, -supportOffset)
+          print.components.push({
+            type: "ledSupport",
+            position: [position.x, -position.y, WALL_THICKNESS],
+            width: LED_SUPPORT_WIDTH,
+            height: LED_SUPPORT_HEIGHT(),
+            thickness: LED_SUPPORT_THICKNESS,
+            gap: LED_SUPPORT_GAP,
+            rotationAngle: -rotationAngle,
+          })
+        }
+
+        supportOffset += PIXEL_DISTANCE
+      }
     }
   }
 
@@ -1541,20 +1560,7 @@ function wallPrint(wall, isLeft) {
 
   // Port hole
   if (hasPort || (PORT_POSITION == "fold" && isPortRelated)) {
-    let portCenter = wallStart
-    if (PORT_POSITION == "start") {
-      portCenter = portCenter.addScaledVector(E, -USBC_WIDTH/2 - 1)
-    }
-    if (PORT_POSITION == "center") {
-      portCenter = portCenter.addScaledVector(E, -topLength/2)
-    }
-    if (PORT_POSITION == "end") {
-      portCenter = portCenter.addScaledVector(E,
-        -Math.min(topLength, bottomLength) + USBC_WIDTH/2 + 1)
-    }
-    if (PORT_POSITION == "fold") {
-      portCenter = portCenter.addScaledVector(E, -(topLength + bottomLength)/2)
-    }
+    let portCenter = startV.addScaledVector(E, -portOffset)
 
     if (PORT_TYPE == "USBC") {
       let portStart = portCenter.addScaledVector(E, -USBC_WIDTH/2)
