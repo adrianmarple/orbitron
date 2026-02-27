@@ -1,8 +1,16 @@
 <template>
 <div class="type-buttons">
-  <div v-for="project in projects" class="button" @click="openProject(project)">
+  <div v-for="project in activeProjects" class="button" @click="openProject(project)">
     {{ project.shortName }}
   </div>
+  <div v-if="skippedProjects.length" class="skip-toggle" @click="showSkipped = !showSkipped">
+    {{ showSkipped ? '▾' : '▸' }} Skipped
+  </div>
+  <template v-if="showSkipped">
+    <div v-for="project in skippedProjects" class="button skipped" @click="openProject(project)">
+      {{ project.shortName }}
+    </div>
+  </template>
 </div>
 <div class="actions">
   <div class="button" @click="toggleCoverMode">Toggle Cover Mode ({{ coverMode[0] }})</div>
@@ -79,6 +87,7 @@ export default {
         },
       ],
       projects: [],
+      showSkipped: false,
 
       // Rendering
       zoom: 1,
@@ -120,6 +129,12 @@ export default {
     },
     fullProjectName() {
       return this.currentProject.name
+    },
+    activeProjects() {
+      return this.projects.filter(p => !p.skip)
+    },
+    skippedProjects() {
+      return this.projects.filter(p => p.skip)
     },
   },
   methods: {
@@ -371,6 +386,7 @@ export default {
       }
     },
     onwheel(e) {
+      if (e.target.closest('.type-buttons')) return
       this.zoom *= Math.exp(-e.deltaY * 0.001)
     },
 
@@ -539,5 +555,22 @@ export default {
   font-size: 2rem;
   color: white;
   z-index: 1;
+}
+.type-buttons {
+  overflow-x: hidden;
+}
+.type-buttons .button {
+  max-width: 200px;
+  height: 33px;
+}
+
+.skip-toggle {
+  font-size: 24px;
+  color: white;
+  cursor: pointer;
+}
+.button.skipped {
+  background-color: #f5f5f5;
+  color: #999;
 }
 </style>
