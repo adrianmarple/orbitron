@@ -825,7 +825,7 @@ function createFullModel() {
       PROCESS_STOP: "stl",
     }
   }
-
+  
   let completedParts = {}
   for (let edge of edges) {
     if (edge.isDupe) continue
@@ -833,27 +833,25 @@ function createFullModel() {
       if (completedParts[wall.partID]) continue
       if (wall.isFoldWall) {
         let wallPrint1 = wallPrint(wall, true)
-        wallPrint1.operations = [...wall.worldPlacementOperations1]
+        wallPrint1.operations = [...wall.left.worldPlacementOperations]
         wallPrint1.operations[2] = {...wallPrint1.operations[2]}
         wallPrint1.operations[2].angle += wall.zRotationAngle
         if (wall.aoiComplement < -0.0001) {
-          let sign = Math.sign(Math.cos(wallPrint1.operations[2].angle)) // This is probably not right
           wallPrint1.operations.splice(3, 0, {
             type: "translate",
-            position: [sign * Math.tan(wall.aoiComplement) * WALL_THICKNESS, 0, 0],
+            position: [Math.tan(wall.aoiComplement) * WALL_THICKNESS, 0, 0],
           })
         }
         print.components.push(wallPrint1)
 
         let wallPrint2 = wallPrint(wall, false)
-        wallPrint2.operations = [...wall.worldPlacementOperations2]
+        wallPrint2.operations = [...wall.right.worldPlacementOperations]
         wallPrint2.operations[2] = {...wallPrint2.operations[2]}
         wallPrint2.operations[2].angle -= wall.zRotationAngle
         if (wall.aoiComplement < -0.0001) {
-          let sign = -Math.sign(Math.cos(wallPrint2.operations[2].angle)) // This is probably not right
           wallPrint2.operations.splice(3, 0, {
             type: "translate",
-            position: [sign * Math.tan(wall.aoiComplement) * WALL_THICKNESS, 0, 0],
+            position: [-Math.tan(wall.aoiComplement) * WALL_THICKNESS, 0, 0],
           })
         }
         print.components.push(wallPrint2)
