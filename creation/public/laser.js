@@ -1799,6 +1799,8 @@ async function generateManufacturingInfo() {
     console.log(`Overall dimensions approx ${dims.x.toFixed(1)}" x ${dims.y.toFixed(1)}" x ${dims.z.toFixed(1)}"`)
 
 
-    createPrintInfo3D()
+    if (RENDER_MODE != "simple" && RENDER_MODE != "simplest") {
+      createPrintInfo3D()
+    }
   }
 }

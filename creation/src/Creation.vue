@@ -214,17 +214,19 @@ export default {
       await this.genModel('simple')
       await this.genModel('simplest')
     },
-    async removeGitFiles() {
-      this.removeFile(`../pixels/${this.fullProjectName}.json`)
-      this.removeFile(`../stls/${this.fullProjectName}.stl`)
-      this.removeFile(`../stls/${this.fullProjectName}_full.stl`)
-    },
     async downloadJSON() {
       let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
       let fileName = this.fullProjectName + '.json'
       console.log(fileContent)
-      //await this.download(fileName, fileContent)
+      if (versionAtLeast("1.0.1", VERSION)) {
+        await this.download(fileName, fileContent)
+      }
       console.log("Downloaded " + fileName)
+    },
+    async removeGitFiles() {
+      this.removeFile(`../pixels/${this.fullProjectName}.json`)
+      this.removeFile(`../stls/${this.fullProjectName}.stl`)
+      this.removeFile(`../stls/${this.fullProjectName}_full.stl`)
     },
     genPrints() {
       let printInfo = createPrintInfo3D()
