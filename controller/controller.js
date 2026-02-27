@@ -62,6 +62,8 @@ var app = new Vue({
     blurred: false,
     renamingSave: "",
     saveNames: [],
+    prefModalName: null,
+    prefModalOriginalName: "",
     activeDropdown: null,
 
     startLocation: null,
@@ -783,6 +785,39 @@ var app = new Vue({
       this.prefs.weeklySchedule.sort((a,b) => {
         return a.time.localeCompare(b.time) + 1e6 * (a.weekday - b.weekday)
       })
+    },
+
+    openPrefModal(name) {
+      this.prefModalName = name
+      this.prefModalOriginalName = name
+    },
+    closePrefModal() {
+      this.prefModalName = null
+      this.prefModalOriginalName = ""
+    },
+    savePrefModalRename() {
+      let newName = this.prefModalName
+      let originalName = this.prefModalOriginalName
+      if (!newName || newName === originalName) return
+      let self = this
+      let i = this.saveNames.indexOf(originalName)
+      if (this.saveNames.includes(newName)) {
+        this.prefModalName = originalName
+        this.speedbumpMessage = `The save name "${newName}" is already being used.`
+      } else {
+        this.speedbumpMessage = `Would you like to rename ${originalName} to ${newName}?`
+        this.speedbumpCallback = () => {
+          self.send({ type: "renamePref", originalName, newName })
+          if (i >= 0) self.saveNames[i] = newName
+          self.prefModalOriginalName = newName
+        }
+      }
+    },
+
+    toggleIncludedInCycles(name, value) {
+      let updated = Object.assign({}, this.prefs.includedInCycles)
+      updated[name] = value
+      this.send({ type: "prefs", update: { includedInCycles: updated } })
     },
 
     saveFocused(name) {

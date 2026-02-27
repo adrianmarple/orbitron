@@ -1023,6 +1023,7 @@ input[type="range"]::-moz-range-thumb {
   font-size: 3rem;
   border: 0.5rem solid #080808;
   border-right-width: 1rem;
+  cursor: pointer;
 }
 .pref-list-item > .fancy-box {
   display: flex;
@@ -1034,13 +1035,6 @@ input[type="range"]::-moz-range-thumb {
 }
 .pref-list-item > .horiz-box {
   min-height: 1rem;
-}
-.pref-list-item .buttons-container {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 15rem;
-  margin-right: -1rem;
 }
 .pref-list-item.selected .fancy-box {
   background-color: rgba(8,8,8, 0.8);
@@ -1054,6 +1048,97 @@ input[type="range"]::-moz-range-thumb {
   height: 4rem;
   filter: invert();
   cursor: pointer;
+}
+
+#pref-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+#pref-modal.visible {
+  pointer-events: all;
+  opacity: 1;
+}
+#pref-modal-box {
+  position: relative;
+  background: rgba(8,8,8, 0.9);
+  border: 0.25rem solid rgba(255,255,255,0.25);
+  padding: 8rem 4rem 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 36rem;
+  gap: 2rem;
+  margin: 2rem;
+}
+#pref-modal .button {
+  align-self: center;
+  width: fit-content;
+}
+.pref-modal-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 4rem;
+  height: 4rem;
+  cursor: pointer;
+}
+#pref-modal-name-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+.pref-modal-name {
+  flex: 1;
+  font-size: 3rem;
+  background: transparent;
+  color: white;
+  border: none;
+  border-bottom: 0.2rem solid #555;
+  resize: none;
+  outline: none;
+  padding: 0.2rem 0;
+}
+.pref-modal-edit {
+  width: 3.5rem;
+  height: 3.5rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.pref-modal-edit:hover {
+  opacity: 1;
+}
+
+.pref-modal-checkbox.pure-material-checkbox {
+  border-color: transparent;
+}
+.pref-modal-checkbox.pure-material-checkbox > span {
+  padding-right: 1.5rem;
+  background-color: transparent;
+}
+.pref-modal-checkbox.pure-material-checkbox .checkbox {
+  background-color: white;
+}
+.pref-modal-checkbox.pure-material-checkbox .checkbox > .inner {
+  background-color: black;
+}
+.pref-modal-checkbox.pure-material-checkbox > input:checked + .checkbox > .inner,
+.pref-modal-checkbox.pure-material-checkbox > input:indeterminate + .checkbox > .inner {
+  box-shadow: 0 0 1.2rem rgba(255,255,255, 0.4);
+  background-color: #222;
+}
+
+.pref-modal-delete {
+  align-self: center;
+  margin-top: 1rem;
 }
 
 #save-bottom-stuff {

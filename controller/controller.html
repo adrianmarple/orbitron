@@ -33,6 +33,31 @@
     </div>
   </div>
 
+  <div :class="{visible: prefModalName !== null}" id="pref-modal" @click.self="closePrefModal">
+    <div id="pref-modal-box">
+      <img class="pref-modal-close" src="/controller/images/close_white.svg" @click="closePrefModal"/>
+      <div id="pref-modal-name-row">
+        <textarea class="pref-modal-name" :value="prefModalName"
+            @input="prefModalName=stripSaveName($event.target.value)"
+            @focus="prefModalOriginalName=prefModalName"
+            @blur="savePrefModalRename"
+            ref="prefModalNameInput"></textarea>
+        <img class="pref-modal-edit" src="/controller/images/edit_white.svg" @click="$refs.prefModalNameInput.focus()"/>
+      </div>
+      <div v-if="orbInfo.hasCycle" class="pure-material-checkbox pref-modal-checkbox">
+        <input type="checkbox"
+            :checked="(prefs.includedInCycles || {})[prefModalName]"
+            @change="toggleIncludedInCycles(prefModalName, $event.target.checked)">
+        <div class="checkbox" @click="toggleIncludedInCycles(prefModalName, !(prefs.includedInCycles || {})[prefModalName])">
+          <div class="inner"><div class="checkmark"></div></div>
+        </div>
+        <span>Include in cycles</span>
+      </div>
+      <div class="button" @click="loadPrefs(prefModalName); closePrefModal()">Load</div>
+      <img class="delete pref-modal-delete" src="/controller/images/delete.svg" @click="deletePrefs(prefModalName); closePrefModal()"/>
+    </div>
+  </div>
+
   <div v-if="speedbumpCallback" id="speedbump" @click="clearSpeedbump">
     <p>{{speedbumpMessage}}</p>
     <p>Are you sure?</p>
@@ -236,17 +261,11 @@
         <div v-for="name, i in saveNames"
             class="pref-list-item"
             :class="{selected: name == state.currentPrefName}"
-            @click="prefName=name"
+            @click="openPrefModal(name)"
         >
           <div class="fancy-box">
-            <textarea :value="name" @input="saveNames[i]=stripSaveName($event.target.value)"
-                @focus="saveFocused(name)" @blur="saveBlurred(name, i)"></textarea>
-            <div class="buttons-container">
-              <div class="button" @click="loadPrefs(name)" >
-                Load
-              </div>
-              <img class="delete" src="/controller/images/delete.svg" @click="deletePrefs(name)"/>
-            </div>
+            <span>{{ name }}</span>
+            <div class="button" @click.stop="loadPrefs(name)">Load</div>
           </div>
         </div>
         <div v-if="saveNames.length == 0" class="zero-state">

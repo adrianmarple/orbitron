@@ -88,6 +88,7 @@ timing_prefs = {
   ],
   "weeklySchedule": [],
   "dimmer": 1.0,
+  "includedInCycles": {},
 }
 default_prefs["idlePattern"] = config.get("IDLE", default_prefs["idlePattern"])
 
@@ -291,6 +292,7 @@ def delete(name):
   if os.path.exists(path):
     os.remove(path)
     pref_names.remove(name)
+    timing_prefs["includedInCycles"].pop(name, None)
   else:
     print("Tried to delete non-existant pref: %s" % name, file=sys.stderr)
 
@@ -310,6 +312,10 @@ def rename(original_name, new_name):
   for event in timing_prefs["schedule"]:
     if event["prefName"] == original_name:
       event["prefName"] = new_name
+
+  included = timing_prefs["includedInCycles"]
+  if original_name in included:
+    included[new_name] = included.pop(original_name)
   
   os.rename(pref_path_from_name(original_name), pref_path_from_name(new_name))
   f = open(timing_pref_path, "w")
@@ -401,15 +407,19 @@ def advance_manual_fade():
   update({"dimmer": steps[index]})
 
 def advance_preset():
+  included = timing_prefs["includedInCycles"]
+  cycle_names = [n for n in pref_names if included.get(n, False)]
+  if not cycle_names:
+    cycle_names = pref_names
   print("Advancing from %s" % last_known_pref_name, file=sys.stderr)
   index = -1
   try:
-    index = pref_names.index(last_known_pref_name)
+    index = cycle_names.index(last_known_pref_name)
   except ValueError:
     pass
-  index = (index + 1) % len(pref_names)
-  print("Cycling to %s" % pref_names[index], file=sys.stderr)
-  load(pref_names[index])
+  index = (index + 1) % len(cycle_names)
+  print("Cycling to %s" % cycle_names[index], file=sys.stderr)
+  load(cycle_names[index])
 
 def update_schedule():
   schedule = get_pref("weeklySchedule") if get_pref("weeklyTimer") else get_pref("schedule")
