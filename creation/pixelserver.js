@@ -245,6 +245,32 @@ function replaceScadVariable(content, variable, value) {
 }
 
 addPOSTListener(async (response, body) => {
+  if (!body || body.type != "arduino") return false
+
+  let templatePath = path.join(__dirname, "../arduino/template.ino")
+  let template = (await fs.promises.readFile(templatePath)).toString()
+
+  let content = template
+    .replace("{{SIZE}}", body.SIZE)
+    .replace("{{RAW_SIZE}}", body.RAW_SIZE)
+    .replace("{{MAX_NEIGHBORS}}", body.maxNeighbors)
+    .replace("{{DUPES_TO_UNIQUES}}", body.dupeToUniques)
+    .replace("{{NEIGHBORS}}", body.neighbors)
+
+  let dirPath = path.join(__dirname, "../arduino", body.subname)
+  if (!fs.existsSync(dirPath)) {
+    await fs.promises.mkdir(dirPath)
+  }
+  let outputPath = path.join(dirPath, body.subname + ".ino")
+  await fs.promises.writeFile(outputPath, content)
+
+  response.writeHead(200)
+  response.end("Created " + outputPath)
+  console.log("Created Arduino file: " + outputPath)
+  return true
+})
+
+addPOSTListener(async (response, body) => {
   if (!body || body.type != "qr") return false
 
   response.writeHead(200)

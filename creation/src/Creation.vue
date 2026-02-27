@@ -320,13 +320,20 @@ export default {
         return JSON.stringify(array)
             .replaceAll('"', '')
             .replaceAll("[", "{")
-            .replaceAll("]", "}") + ";"
+            .replaceAll("]", "}")
       }
 
-      console.log(convertToArduinoArrayString(dupeToUniquesConverted))
-      console.log(maxNeighbors)
-      console.log(convertToArduinoArrayString(neighborsConverted))
-      // [TODO] send info to server (where it can inject into arduino file)
+      let subname = this.fullProjectName.split("/").pop()
+      console.log("Creating Arduino file for " + subname)
+      this.$root.post({
+        type: "arduino",
+        subname,
+        SIZE: info.SIZE,
+        RAW_SIZE: info.RAW_SIZE,
+        maxNeighbors,
+        dupeToUniques: convertToArduinoArrayString(dupeToUniquesConverted),
+        neighbors: convertToArduinoArrayString(neighborsConverted),
+      })
     },
 
     onmousedown(e) {

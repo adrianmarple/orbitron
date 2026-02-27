@@ -99,7 +99,7 @@ module.exports = () => {
         }
       }
     }
-    printInfo.prints = newPrintsq
+    printInfo.prints = newPrints
 
     h = 10
     printInfo.prints[connectorIndex] = {
