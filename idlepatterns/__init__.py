@@ -92,15 +92,11 @@ class Idle(Game):
 
     self.wait_for_frame_end()
     self.init_values()
-    if get_pref("applyIdleMinBefore"):
-      self.apply_min()
     self.render_values *= prefs.fade()
     self.target_values = self.render_values.copy()
     self.blend_pixels()
     self.apply_color()
     self.apply_brightness()
-    if not get_pref("applyIdleMinBefore"):
-      self.apply_min()
 
     self.render_birthday()
 
@@ -147,10 +143,6 @@ class Idle(Game):
 
     new_heads = []
     for head in self.fluid_heads:
-      if random() < 0.1:
-        new_heads.append(head)
-        continue
-
       for n in neighbors[head]:
         x = self.fluid_values[dupe_to_uniques[n][0]] + 0.01
         x /= get_pref("idleDensity") * 0.03
@@ -227,9 +219,6 @@ class Idle(Game):
     X = 1 - np.absolute(X*3 - 1)
     X = np.maximum(X, 0)
     return np.multiply(X, self.render_values)
-
-  def apply_min(self):
-    self.render_values = np.maximum(self.render_values, get_pref("idleMin")/255)
 
   def apply_brightness(self):
     brightness = get_pref("brightness") / 100

@@ -72,8 +72,6 @@ default_prefs = {
   "tricolorThreshold1": 50,
   "tricolorThreshold2": 100,
 
-  "idleMin": 0,
-  "applyIdleMinBefore": False,
 }
 timing_prefs = {
   "useTimer": False,
