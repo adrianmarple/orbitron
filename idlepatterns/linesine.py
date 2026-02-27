@@ -15,12 +15,12 @@ class LineSine(Idle):
     Idle.__init__(self)
     self.positions = None
     if any(len(neighbors[i]) > 2 for i in range(SIZE)):
-      print("LineSine: topology is not a line or ring (pixel with >2 neighbors found)", file=sys.stderr, flush=True)
+      print("LineSine: topology is not a line or ring (pixel with >2 neighbors found)", file=sys.stderr)
       return
     endpoints = [i for i in range(SIZE) if len(neighbors[i]) == 1]
     is_ring = len(endpoints) == 0
     if not is_ring and len(endpoints) != 2:
-      print(f"LineSine: topology is not a line or ring (found {len(endpoints)} endpoints)", file=sys.stderr, flush=True)
+      print(f"LineSine: topology is not a line or ring (found {len(endpoints)} endpoints)", file=sys.stderr)
       return
 
     start = 0 if is_ring else endpoints[0]
@@ -34,7 +34,7 @@ class LineSine(Idle):
       order.append(nexts[0])
 
     if len(order) != SIZE:
-      print(f"LineSine: traversal reached {len(order)} pixels, expected {SIZE}", file=sys.stderr, flush=True)
+      print(f"LineSine: traversal reached {len(order)} pixels, expected {SIZE}", file=sys.stderr)
       return
 
     positions = np.zeros(RAW_SIZE)

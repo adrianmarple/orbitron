@@ -556,10 +556,10 @@ export default {
   color: white;
   z-index: 1;
 }
-.type-buttons {
+#meta-container > div > .type-buttons {
   overflow-x: hidden;
 }
-.type-buttons .button {
+#meta-container > div > .type-buttons .button {
   max-width: 200px;
   height: 33px;
 }
