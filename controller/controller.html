@@ -412,6 +412,9 @@
           help="The wave always peaks at a value of 255. This detemines how low the trough of the wave goes.
           Negative values get rendered as black, but will still effect the rest of the non-peak colors."></slider>
 
+      <slider v-if="prefs.idlePattern == 'linesine'"
+          title="Cycles" key="sinWaveCycles" :min="1" :max="10"></slider>
+
       <vector v-if="prefs.idlePattern == 'hourglass'" title="Direction" key="staticDirection"
         :size="0.9"></vector>
       <div v-if="prefs.idlePattern == 'hourglass'" class="horiz-box">
@@ -423,7 +426,7 @@
         <input type="time" v-model="prefs.hourglassEnd"></input>
       </div>
 
-      <slider v-if="!['weather', 'static', 'lightfield'].includes(prefs.idlePattern)" 
+      <slider v-if="!['weather', 'static', 'lightfield', 'linesine'].includes(prefs.idlePattern)"
           title="Density" key="idleDensity"
           :min="10"></slider>
       <slider v-if="!['weather', 'static'].includes(prefs.idlePattern)" 

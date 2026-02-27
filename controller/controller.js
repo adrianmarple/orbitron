@@ -390,6 +390,7 @@ var app = new Vue({
 
       let includibleOptions = [
         ['hourglass', 'Hourglass'],
+        ['linesine', 'Line Sine'],
       ]
       for (let option of includibleOptions) {
         if (this.include[option[0]]) {

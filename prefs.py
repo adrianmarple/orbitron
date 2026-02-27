@@ -48,6 +48,7 @@ default_prefs = {
   "sinMin": 25,
   "sinRadial": False,
   "sinRadialReverse": False,
+  "sinWaveCycles": 4,
   "disableBeatMode": False,
 
   "hourglassStart": "00:00",
