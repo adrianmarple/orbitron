@@ -94,6 +94,44 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 - `coords`: 3D coordinates of each pixel
 - `uniqueToDupe`: mapping from raw LED index to unique coordinate index
 
+## Arduino Standalone Mode (`arduino/`)
+
+`template.ino` is a C++ template for running idle patterns directly on an RP2040 microcontroller (no Raspberry Pi). The `creation/` tool injects geometry-specific data by replacing `{{MARKER}}` placeholders and writing the result to a `.ino` file ready to flash.
+
+### Template markers
+- `{{SIZE}}` / `{{RAW_SIZE}}` — unique pixel count / raw LED count
+- `{{MAX_NEIGHBORS}}` — max neighbors per pixel
+- `{{DUPES_TO_UNIQUES}}` — packed int array: `low 16 bits` = first unique index, `high 16 bits` = second unique index
+- `{{NEIGHBORS}}` — packed `long long` per raw pixel, 16 bits per neighbor, `0xffff` sentinel
+- `{{COORDS_X/Y/Z}}` — 3D coords per unique pixel
+
+### Rendering pipeline
+Each `loop()` call runs one pattern function then calls `strip.show()`. Frame rate is `idleFrameRate` for DEFAULT and FIREFLIES, 30fps for all others.
+
+Pattern functions write pixel colors directly to the strip. Two shared helpers exist for patterns that compute per-unique-pixel values:
+- `applyTargetValues(brightness_scale)` — reads `pattern_target[SIZE]` (per-unique), alpha-blends into `render_values[RAW_SIZE]`, applies gradient color
+- `applyFluidValues(fv, brightness_scale)` — reads a per-raw array directly, no alpha blend
+
+**Critical RAM constraint**: The RP2040 has limited RAM. Avoid large global arrays. Prefer:
+- Inline hash functions (Knuth multiplicative: `2654435761u`, `2246822519u`, `3266489917u`) over stored per-pixel lookup tables
+- `int16_t` instead of `int` for index arrays
+- The shared `pattern_target[SIZE]` scratch buffer instead of stack-allocated arrays
+- Computing values on the fly from a single time scalar rather than per-pixel accumulated state
+
+### Gradient color formula
+Given `target_v` (0–1 brightness), `tv = min(1, target_v * 100 / gradientThreshold)`, color = `end + (start − end) * tv`, scaled by `render_v * brightness_factor`.
+
+### Patterns implemented
+| Pattern | Key idea |
+|---|---|
+| DEFAULT | Fluid fire spreading via `neighbors`, squared brightness |
+| FIREFLIES | Like DEFAULT but directionally biased toward `patternBias` |
+| STATIC | Dot product of pixel coord with direction vector |
+| SIN | Sine wave advancing along `sinDir` over time |
+| PULSES | Expanding rings from random sphere points |
+| LIGHTFIELD | Per-pixel sine oscillator; speed/brightness/phase from Knuth hash of index + single global time |
+| LIGHTNING | BFS spanning tree from random sink; traces paths from sources |
+
 ## The `creation/` Folder — Hardware Manufacturing Toolchain
 
 This is a separate system for physically building LED sculpture fixtures. It is not part of the game runtime.

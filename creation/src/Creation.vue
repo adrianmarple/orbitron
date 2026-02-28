@@ -294,25 +294,16 @@ export default {
 
     makeForArduino() {
       let info = generatePixelInfo()
-      // For now assume dupeToUniques is always of lists of length 2
-      let dupeToUniquesConverted = info.dupeToUniques.map(uniques => {
-        return "0x" + uniques[1].toString(16).padStart(4, '0') + uniques[0].toString(16).padStart(4, '0')
-      })
-
       let maxNeighbors = 0
       for (let ns of info.neighbors) {
         maxNeighbors = Math.max(maxNeighbors, ns.length)
       }
       let neighborsConverted = info.neighbors.map(neighbors => {
-        let neighborString = "0x"
-        for (let i = maxNeighbors-1; i >= 0; i--) {
-          if (neighbors.length <= i) {
-            neighborString += "ffff"
-          } else {
-            neighborString += neighbors[i].toString(16).padStart(4, '0')
-          }
+        let padded = []
+        for (let i = 0; i < maxNeighbors; i++) {
+          padded.push(i < neighbors.length ? neighbors[i] : 0xffff)
         }
-        return neighborString
+        return padded
       })
 
 
@@ -331,8 +322,10 @@ export default {
         SIZE: info.SIZE,
         RAW_SIZE: info.RAW_SIZE,
         maxNeighbors,
-        dupeToUniques: convertToArduinoArrayString(dupeToUniquesConverted),
+        dupeToUniques: convertToArduinoArrayString(info.dupeToUniques),
         neighbors: convertToArduinoArrayString(neighborsConverted),
+        rawToUnique: convertToArduinoArrayString(info.uniqueToDupe),
+        coords: convertToArduinoArrayString(info.coords),
       })
     },
 

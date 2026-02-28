@@ -256,6 +256,8 @@ addPOSTListener(async (response, body) => {
     .replace("{{MAX_NEIGHBORS}}", body.maxNeighbors)
     .replace("{{DUPES_TO_UNIQUES}}", body.dupeToUniques)
     .replace("{{NEIGHBORS}}", body.neighbors)
+    .replace("{{RAW_TO_UNIQUE}}", body.rawToUnique)
+    .replace("{{COORDS}}", body.coords)
 
   let dirPath = path.join(__dirname, "../arduino", body.subname)
   if (!fs.existsSync(dirPath)) {
