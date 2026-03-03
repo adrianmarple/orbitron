@@ -67,6 +67,7 @@ orbinfocache.json
 config.js
 *prefs.json
 .env
+.venv
 
 ._*
 .DS_Store

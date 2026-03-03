@@ -148,8 +148,7 @@ async function closeRootServer() {
   })
 }
 
-MANUFACTURING_FOLDER = "LumatronManufacturing/" // Move to .env?
-MANUFACTURING_FOLDER = path.join(process.env.HOME, MANUFACTURING_FOLDER)
+MANUFACTURING_FOLDER = process.env.MANUFACTURING_FOLDER || path.join(process.env.HOME, "LumatronManufacturing")
 
 addGETListener((response, request) => {
   if (request.url.endsWith("masterkey")) {
@@ -422,7 +421,7 @@ async function generateGCode(info, print) {
     // console.log("Converting .stl to binary using admesh")
     // await execute(`admesh -c ${stlFilePath} -b ${stlFilePath}`)
     console.log("Simplifying mesh with blender")
-    console.log(await execute(`/Applications/Blender.app/Contents/MacOS/Blender --background --python simplifymesh.py -- ${stlFilePath} ${stlFilePath}`))
+    console.log(await execute(`${process.env.BLENDER} --background --python simplifymesh.py -- ${stlFilePath} ${stlFilePath}`))
   }
 
   if (info.additionalSavePath) {

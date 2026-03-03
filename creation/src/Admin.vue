@@ -44,7 +44,7 @@
     Issue Commands
   </div>
   <div class="button" @click="viewBackups">All Backups</div>
-  <div class="button" @click="genBoxTop">Generate Box Top</div>
+  <!-- <div class="button" @click="genBoxTop">Generate Box Top</div> -->
   <div class="button" @click="showCalibration">Power Calibration</div>
   <div class="button" @click="restartOrb">Restart</div>
   <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
@@ -74,9 +74,12 @@
     <div class="back button" @click="logDaysAgo = 0; updateLog()">FF</div>
   </div>
 </div>
-<div v-if="viewing=='command'" class="main-text">
+<div v-if="viewing=='command'" class="main-text" id="command">
   <textarea class="main-text" v-model="commandResponses" readonly></textarea>
-  <textarea class="command-prompt" v-model="command" @keydown="onCommandKeydown"></textarea>
+  <div style="display: flex">
+    <textarea class="command-prompt" v-model="command" @keydown="onCommandKeydown"></textarea>
+    <div class="button" @click="unlockOrb">Unlock Orb</div>
+  </div>
 </div>
 <div v-if="viewing=='backups'" id="backups">
   <div class="list">
@@ -292,6 +295,11 @@ export default {
       let orbID = readFromConfig(this.config, 'ORB_ID')
       let orbKey = await this.getOrbKey(orbID)
       this.config = upsertKeyValueInConfig(this.config, 'ORB_KEY', orbKey, 'ORB_ID')
+    },
+    async unlockOrb() {
+      let command = "sudo bash -c \"echo pi:lumatron | chpasswd\""
+      let response = await this.sendCommand({ type: "run", command })
+      this.commandResponses += "% " + command + "\n" + (response.trim() || "(success)") + "\n"
     },
     async saveConfig(dontRestart) {
       await this.sendCommand({
@@ -691,14 +699,29 @@ function removeLineInConfig(config, key) {
   background-color: var(--bg-color);
   width: 100%;
   height: calc(100% - 24px);
-  margin: 12px;
+  margin: 12px 0;
   display: flex;
   flex-direction: column;
+}
+
+#command.main-text {
+  margin: 0;
+}
+#command > div {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .command-prompt {
   background-color: var(--bg-color);
   color: white;
-  width: 100%;
+  width: 80%;
+  height: 24px;
+}
+#command .button {
+  font-size: 16px;
+  padding: 8px;
 }
 
 .orb.button {

@@ -27,4 +27,11 @@ npm install
 
 # cp config.js.template config.js
 
+# Set up pm2
+sudo npm install -g pm2
+sudo pm2 install pm2-logrotate
+sudo pm2 start ~/orbitron/startscript.sh
+sudo pm2 startup
+sudo pm2 save
+
 echo "BASE INSTALL DONE!"

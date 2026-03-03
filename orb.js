@@ -95,13 +95,9 @@ let orbToRelaySocket = null
 function connectOrbToRelay(){
   try {
     displayText("CONNECTING")
-    let relayURL
-    if (config.DEV_MODE) {
-      relayURL = "ws://0.0.0.0"
-    } else {
-      relayURL = "wss://my.lumatron.art"
-    }
-    relayURL += `:7777/relay/${config.ORB_ID}`
+    let relayDomain = config.RELAY_HOST || (config.DEV_MODE ? "0.0.0.0" : "my.lumatron.art")
+    let relayProtocol = config.DEV_MODE && !config.RELAY_HOST ? "ws" : "wss"
+    let relayURL = `${relayProtocol}://${relayDomain}:7777/relay/${config.ORB_ID}`
     orbToRelaySocket = new WebSocket.WebSocket(relayURL)
     orbToRelaySocket.lastPingReceived = Date.now()
 
@@ -135,16 +131,6 @@ function connectOrbToRelay(){
         if (config.CONTINUOUS_INTEGRATION) {
           displayText("RESTARTING")
           pullAndRestart()
-        }
-        return
-      }
-      if(data == "GET_LOGS"){
-        try {
-          await execute(`${__dirname}/utility_scripts/zip_logs.sh`)
-          let logfile = fs.readFileSync(`${homedir}/logs.zip`)
-          orbToRelaySocket.send(logfile)
-        } catch(error) {
-          console.log("Error sending logs", error)
         }
         return
       }
@@ -553,7 +539,8 @@ function tether(broadcastMessage) {
 function createTether() {
   if (!config.TETHER_ORB_ID) return
 
-  tethereeSocket = new WebSocket(`wss://my.lumatron.art:7777/${config.TETHER_ORB_ID}/${tetherClientID}`)
+  let relayDomain = config.RELAY_HOST || "my.lumatron.art"
+  tethereeSocket = new WebSocket(`wss://${relayDomain}:7777/${config.TETHER_ORB_ID}/${tetherClientID}`)
   tethereeSocket.onclose = _ => {
     setTimeout(destroyTether)
   }

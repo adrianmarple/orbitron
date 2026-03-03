@@ -1,5 +1,12 @@
 # How to make a new game
 
+## Disclaimer
+
+As of now, by default, games are not accessible to a Lumatron piece. To make them accessible you'll need to modify its config.js file by either adding:
+- `INCLUDE: {games: true}` (or just `games: true,` if INCLUDE is already present) to make the
+games icon appear in the nav bar
+- `AUTO_GAME: true,` to make it so users immediately start playing a game on connecting
+
 ## TL:DR
 
 - Copy `colorwar.py` and rename to your game's name.
@@ -24,7 +31,7 @@ The default `update()` just runs `play_update()` during the "play" state and not
 
 The `ontimeout()` function is split into five parts one for each state (`start_ontimeout()`, `countdown_ontimeout()`, `play_ontimeout()`, `previctory_ontimeout()`, `victory_ontimeout()`). You'll probably only want to alter `countdown_ontimeout()` since this happens at the beginning of a match.
 
-In order to make your own game you simply need to make a new python module (i.e. file) within the games folder (this one!). You should just copy colorwar.py as boilerplayer since it's the simplest game. Any python file in this folder will automatically get added to the Super Orbitron game rotation.
+In order to make your own game you simply need to make a new python module (i.e. file) within the games folder (this one!). You should just copy colorwar.py as boilerplate since it's the simplest game. Any python file in this folder will automatically get added to the Super Orbitron game rotation.
 
 Here are the relevant fields that a game has:
  - `statuses`: A list of 420 entries representing the status of each pixel. Generally populated with strings. Defaults to all "blank"
@@ -76,7 +83,7 @@ class Inkling(Player):
 game = ColorWar()
 game.generate_players(Inkling)
 ```
-This function will generate the six player instances (a requirement for every Super Orbitron game) using the your new superclass and add each to the `player` field of that game.
+This function will generate the six player instances (a requirement for every Super Orbitron game) using your new subclass and add each to the `player` field of that game.
 
 Relevant `Player` fields:
 - `is_ready`: set to true when a player finished reading the rules. A game automatically starts when there are at least two players and all players have `is_ready` set to `True`
@@ -102,15 +109,20 @@ Other `Player` methods:
 
 ### Pixel Info
 
-Information about pixels resides in a handful of data structures at the root level of engine.py. In particular note that while there are 480 LEDs, because LEDs overlap at vertices, there are only 420 uniqure coordinates. All positions and indices are based on these 420 unique coordinates. For instance `player.position` represents an index that is used for all the pixel info lists.
+Pixel data is loaded from a JSON file in `pixels/` (selected by `PIXELS` in `config.js`) and exposed as globals at the top of `engine.py`.
 
-The pixel info you might need are:
-- `SIZE`: 420, the number of unique pixels.
-- `coords`: A list of np.arrays with the 3D coordinates of each.
-- `coord_matrix`: Same as `coords`, but in matrix form.
-- `neightbors`: A list of lists each with the index of adjacent pixels. All of these list are of length 2 or 4.
-- `next_pixel`: A map from tuples of adjacent pixels turned into strings (i.e. `(2,3)`) to next adjacent index that would come next in the series (i.e. `4`). This is used for continuous movement, like in snektron or kicked bombs.
-- `unique_antipodes`: A map from index to index of the complete opposite pixel.
+The most useful fields in a pixel JSON are:
+- `SIZE`: Number of unique pixel coordinates.
+- `RAW_SIZE`: Total number of physical LEDs (may be larger than `SIZE` due to duplicate LEDs at shared vertices).
+- `coords`: A list of np.arrays with the 3D coordinates of each unique pixel.
+- `neighbors`: A list of lists each containing the indices of adjacent pixels.
+- `next_pixel`: A dict mapping `"(a,b)"` → `c`, the next index continuing in the direction from `a` to `b`. Used for continuous movement in games like snektron.
+
+Some other potentially useful fields are:
+- `antipodes`: A list mapping each unique index to the index of the diametrically opposite pixel. Only set for some topologies with this symmetry.
+- `north_pole` / `south_pole`: Lists of pixel indices near the top/bottom of the geometry (automatically generated if not present).
+- `INITIAL_POSITIONS` / `SOUTHERLY_INITIAL_POSITIONS`: Lists of 6 suggested spawn positions for players. Generated randomly if not defined in the pixel file.
+- `IS_WALL`: Boolean; `True` for flat/wall-mounted geometries (affects some rendering logic).
 
 ### The Controller
 
@@ -123,7 +135,7 @@ A Super Orbitron controller is governed by the code in `controller` folder. Howe
 - `tapInstruction`: don't include if your game doesn't use tap, otherwise a brief couple words for what tap does in your game
 - `victoryCondition`: this displays during countdown; should convey what it takes to win sussinctly
 - `statusDisplay`: how the game state is shown. Honestly this is pretty much bespoke for every game and you may have to alter the code elsewhere to get what you want
-   - current options are: "rankedscore", "cooperativescore", and "battleroyale" 
+   - current options are: `{ type: "rankedscore" }`, `{ type: "rankedscore", innerScore: true }`, `{ type: "cooperative" }`, `{ type: "battleroyale" }`
 
 ### Game settings
 
@@ -138,26 +150,17 @@ Note that you can override existing config settings such as `MOVE_FREQ` and it w
 
 ### Command line args for startscript.sh/main.js
 
-- `-t`: no timeout. Controllers will not disconnect after 60 seconds nor when they loose focus and the normally do. Important for testing multiple controllers at once with one browser.
+- `-t`: no timeout. Controllers will not disconnect after 60 seconds nor when they lose focus as they normally do. Important for testing multiple controllers at once with one browser.
 
 ### Set default game
 
 - Add `DEFAULT_GAME: [game name],` to the config (and restart)
 
-### Audio
-
-There are two arrys to import from `audio.py`, `sounds` and `music`. If you want to do something speical with `music` talk to Adrian or Mana first (the default behaviour is handled by the engine and this is subject to change in the near future). For SFX you have a bank of sounds to work from which you involve simply by calling the `play()` method on one of them (i.e. ). The full list is as follows:
-- 'hurt': Use for conveying a negative state change.
-- 'death': Basically as a stronger version of 'hurt'.
-- 'kick': A low key sound used for simple feedback that something relatively neutral happened.
-- 'explosion': Something happened that might negatively affect players.
-- 'placeBomb': Use it if you feel like it.
-
 ### engine.py helper functions
 
  - `color_pixel`: Set a pixel to a specific color.
  - `add_color_to_pixel`: Name says it all.
- - `render_pulse`: Renders a pulse that spans the entire sphere (used for instance in the ready pulse, countdown, and explostion shockwaves)
+ - `render_pulse`: Renders a pulse that spans the entire sphere (used for instance in the ready pulse, countdown, and explosion shockwaves)
  - `render_ring`: Renders a solid ring on the sphere (used in the victory sequence)
  - `weighted_random`: Chooses a random entry from a list of values according to a corresponding list of weights (or using a dict mapping values to weights). For example, if the values are `['a', 'b', 'c']` and the weights `[0.5, 0, 1]`. It will never choose `'b'`, will have a 1 in 3 chance of choosing `'a'`, and likewise a 2 in 3 chance of choosing `'c'`.
 

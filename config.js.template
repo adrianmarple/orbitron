@@ -9,6 +9,7 @@ module.exports={
   DEV_MODE: false,
   HAS_EMULATION: false,
   IS_RELAY: false,
+  // RELAY_HOST: "my.lumatron.art",  // Defaults to official relay (or 0.0.0.0 in DEV_MODE); can be a domain or IP
   CLEAR_PREFS_ON_DISCONNECT: false,
   //CERT_LOCATION: "",
   //KEY_LOCATION: "",
@@ -21,7 +22,7 @@ module.exports={
   CONTINUOUS_INTEGRATION: false,
   SHOW_FRAME_INFO: false,
   // IDLE: "lamp",
-  // PYTHON_EXECUTABLE: "python3",
+  // PYTHON_EXECUTABLE: "python3",  // Override if venv is not at .venv/ or .env/ (e.g. Pi installs)
   // DEFAULT_TEXT_DISPLAY: "HELLO WORLD",
   // DEFAULT_TEXT_DISPLAY: [0b111001, 0b1001, 0b1001, 0b1111],
   // DEFAULT_TEXT_DISPLAY: "$LOADING",

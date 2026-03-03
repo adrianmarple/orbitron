@@ -1,19 +1,91 @@
+# Basics
+
+Lumatron is a LED sculpture system. You are free to play with this code, but as per the license you may not make money from it.
+
+# Contributions Welcome
+
+Contributions are encouraged! The easiest ways to contribute:
+
+- **New idle patterns** — See [idlepatterns/README.md](idlepatterns/README.md) for details.
+- **New games** — See [games/README.md](games/README.md) for details.
+- Clarifications or other improvements to any READMEs
+- General optimizations or improvements
+
+## Connecting an existing piece to the internet
+
+- If you have never connected a piece before the following instructions can be viewed by visiting `https://my.lumatron.art`
+  - Plug in the Lumatron box into the power source and the box into the piece (do not plug the piece directly into the usb-c wall plug)
+  - Wait for a few minutes for the box to boot up (until pink light is flashing)
+  - Join the wifi named Lumatron
+  - Once on that wifi, the visit url http://10.42.0.1
+  - Enter the wifi name (SSID) and password in the page that loads
+  - Refresh the page once the first pixel turns off
+
+## Controlling a piece
+
+- Visit `https://my.lumatron.art`
+- Turn into a progressive web app by following the instructions at the bottom
+
 # Using the Emulator
 
-- Clone the repo somewhere for you to work from
-- Copy `config.js.template` to `config.js` and edit to have `DEV_MODE: true` and `ORB_ID: <your unique ID>`
-- Run `npm install`
-- Install python libraries
-  - `pip3 install adafruit-circuitpython-neopixel websockets numpy pygame`
-- Run `sudo node server.js`
-- Open `http://localhost:1337/dev` for the emulator
+- Clone this repo (`git clone https://github.com/adrianmarple/orbitron`) on your local machine (Windows not supported)
+- Run `utility_scripts/admin_install.sh` from the repo directory (should be named "orbitron")
+- Start the emulator by running `sudo ./startscript.sh`
+- Open `http://localhost:1337/view` for the emulator
 - Open `http://<localhost or your IP address>:1337` to open one or more controllers on either your desktop or your phone
-- Edit, commit, create pull requests as you would for any Git project
 
-# Getting Pi Hardware Set Up
+## The admin console
 
-- Download [SD card image](https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/lumatron.zip) from dropbox
-- Burn to SD card using `dd` or Balena Etcher (https://etcher.balena.io/)
+- In terminal `cd` to `creation` folder
+- Install node dependencies `npm install`
+- Run `node pixelserver.js`
+- Visit url `http://localhost:8080/?local`
+- More details in [the creation folder README](creation)
+
+## Controlling a piece
+
+- Same as above, replacing `my.lumatron.art` with your server
+
+# Designing a new pattern
+
+See [the idlepatterns folder README](idlepatterns)
+
+# Making a new Game
+
+See [the games folder README](games)
+
+
+# Setting up your own server
+
+- Create an ubuntu server, for instance the lumatron.art is currently hosted through [Digital Ocean](https://www.digitalocean.com/)
+- Open a console into root of your new server
+- Clone this repo: `git clone https://github.com/adrianmarple/orbitron`
+- Run `utility_scripts/admin_install.sh` from the repo directory (should be named "orbitron")
+
+## Connect a piece to your own server
+
+- Request an unlocked SD along with a piece, email adrian@marplebot.com an request it be unlocked remotely, or follow the **Micro SD card setup** instructions below
+- Get local IP address `sudo nmap -sn 192.168.1.0/24` (once the admin console is set up, you'll be able to get the ip address directly from there)
+- `ssh pi@<IP address>` (password `lumatron`) into the piece and change the password
+- Edit `config.js` to add the line `RELAY_HOST: "your-domain-or-ip",`
+- Run `sudo pm2 restart all`
+
+## The admin console
+
+- Same as with a local admin console, in terminal `cd` to `creation` folder
+- Install node dependencies `npm install`
+- Run `node pixelserver.js`
+- Visit url `http://localhost:8080/` (without the `?local`)
+- If in creation mode, click the "LUMATRON CREATION" button at the bottom to switch to admin mode
+- I recommend hitting the "Set ORB_KEY" button followed by the "Save config.js" button for all connected orbs (including the server itself - default named "demo")
+  - Note: if this button is not visible hit the "config" button first
+- Again see [the creation folder README](creation) for more details
+
+
+# Micro SD card setup
+
+- Download [an unlocked SD card image](https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/lumatron.zip) from dropbox
+- Burn to SD card using `dd` or [Balena Etcher](https://etcher.balena.io/)
 - Using `dd`
   - Update `/dev/disk4` or `/dev/sda` below with the correct drive as determined from `diskutil list` or `lsblk` on Linux
   - `diskutil unmountDisk /dev/disk4` or `sudo umount /dev/sda1 && sudo umount /dev/sda2` on Linux
@@ -22,38 +94,13 @@
   - On MacOS use `gdd` instead
     - Install with `brew install coreutils`
     - `sudo gdd if=lumatron.img of=/dev/disk4 status=progress`
+- Insert SD card into raspberry pi and power on
+- Connect via `ssh pi@<<IP_ADDRESS>>` password `lumatron`
+- Change to your own password
 
-# Making a new Game
+## (alternative) Fresh Setup
 
-See [the games folder README](games)
-
-# Editing on the Pi
-
-## Running on PI hardware
-
-- `ssh pi@orbitron.local` or get IP address from `avahi-browse -ar` or `sudo nmap -sn 192.168.1.0/24` and go to `ssh pi@<IP address>`
-- `cd orbitron`
-- `sudo pm2 restart all`
-- Visit `http://orbitron.local:1337` or get IP address from `avahi-browse -ar` and go to `http://<IP address>:1337`
-- `sudo pm2 log` to tail logs. Log files are stored in `/root/.pm2/logs`
-
-## Saving
-- Just use normal git commands within directory `~/orbitron`
-- If you edit outside the version controlled directory create a new SD card image
-- Update `/dev/disk4` below with the correct drive as determined from `diskutil list` or `lsblk`
-- `sudo dd if=/dev/disk4 of=lumatron.img bs=8M count=820 status=progress`
-- On MacOS use `gdd` instead
-  - Install with `brew install coreutils`
-  - `sudo gdd if=/dev/disk4 of=lumatron.img bs=8M count=820 status=progress`
-
-## Adding WiFi network to Pi for auto connect
-- Connect to unsecure Wifi with SSID "Super Orbitron"
-- Visit url `10.42.0.1`
-- Enter SSID and password of desired wifi and submit
-
-# Fresh Setup on Pi Hardware
-
-### Image an SSD
+### Image an SD card
 
 - Download Raspberry Pi Imager: https://www.raspberrypi.org/software/
 - Select the latest 64-bit Raspberry PI OS
@@ -75,13 +122,6 @@ See [the games folder README](games)
 - You should see `orbitron login:` when it is ready
 - Login with the username and password you set
 
-### Connect to WiFi
-
-- Run `sudo raspi-config`
-- Select `System Options` and `Wireless LAN`
-- Select the appropriate country from the list
-- Enter SSID and password of wifi network
-
 ### Install git
 
 - `sudo apt install git`
@@ -89,23 +129,13 @@ See [the games folder README](games)
 ### Clone Repo and run installer
 
 - `git clone https://github.com/adrianmarple/orbitron`
-- `~/orbitron/utility_scripts/base_install.sh`
+- `~/orbitron/utility_scripts/pi_install.sh`
 
+# Additional useful things of note
 
-# Other useful things
-
-## Circuit Python on Feather RP2040 SCORPIO
-
-- Follow instructions here: https://learn.adafruit.com/introducing-feather-rp2040-scorpio/overview
-
-## 14 segment display wiring diagram
-
-- https://learn.adafruit.com/adafruit-led-backpack/0-54-alphanumeric-python-wiring-and-setup#wiring-original-version-3128023
-
-## SSHFS
-
-- Download sshfs from https://osxfuse.github.io/ and install
-- `mkdir ~/orbitron`
-- `sshfs pi@orbitron.local:/home/pi/orbitron ~/orbitron`
-
-- `~/orbitron/utility_scripts/pm2_setup.sh`
+## Ripping a new SD card version
+- Update `/dev/disk4` below with the correct drive as determined from `diskutil list` or `lsblk`
+- `sudo dd if=/dev/disk4 of=lumatron.img bs=8M count=820 status=progress`
+- On MacOS use `gdd` instead
+  - Install with `brew install coreutils`
+  - `sudo gdd if=/dev/disk4 of=lumatron.img bs=8M count=820 status=progress`

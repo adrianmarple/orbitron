@@ -4,18 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Project Is
 
-Lumatron is a Raspberry Pi-based LED light sculpture system supporting a wide variety of 3D shapes (spheres, walls, boxes, helmets, etc.). The primary focus is idle pattern lighting — customizable animations, colors, brightness, and timer schedules controlled via a phone/browser controller over WebSockets. The system also supports multiplayer games played on the LED surface. It can run locally on a Raspberry Pi or in dev/emulation mode on any machine.
+Lumatron is an LED light sculpture system supporting a wide variety of shapes (spheres, walls, boxes, helmets, etc.). The primary focus is idle pattern lighting — customizable animations, colors, brightness, and timer schedules controlled via a phone/browser controller over WebSockets. The system also supports multiplayer games played on the LED surface. It can run locally on a Raspberry Pi or in dev/emulation mode on any machine.
 
 ## Setup and Running
 
 ```bash
-# Initial setup
-cp config.js.template config.js   # Then edit: set DEV_MODE: true and ORB_ID to something unique
-npm install
-pip3 install adafruit-circuitpython-neopixel websockets numpy pygame
+# Initial setup (admin/dev machine)
+bash utility_scripts/admin_install.sh   # generates config.js, creation/.env, installs npm + Python deps
 
 # Run
 sudo node server.js      # or: npm start (runs main.js instead, which checks for updates)
+# Python is run via the venv created by admin_install.sh at .venv/
 ```
 
 - Emulator UI: `http://localhost:1337/dev`
@@ -101,9 +100,10 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 ### Template markers
 - `{{SIZE}}` / `{{RAW_SIZE}}` — unique pixel count / raw LED count
 - `{{MAX_NEIGHBORS}}` — max neighbors per pixel
-- `{{DUPES_TO_UNIQUES}}` — packed int array: `low 16 bits` = first unique index, `high 16 bits` = second unique index
-- `{{NEIGHBORS}}` — packed `long long` per raw pixel, 16 bits per neighbor, `0xffff` sentinel
-- `{{COORDS_X/Y/Z}}` — 3D coords per unique pixel
+- `{{DUPES_TO_UNIQUES}}` — `uint16_t[SIZE][2]`: each entry is `[raw0, raw1]` for that unique pixel
+- `{{NEIGHBORS}}` — `uint16_t[SIZE][MAX_NEIGHBORS]`: unique neighbor indices, `0xffff` sentinel
+- `{{RAW_TO_UNIQUE}}` — `uint16_t[RAW_SIZE]`: maps each raw LED index to its unique pixel index
+- `{{COORDS}}` — `float[SIZE][3]`: 3D coords per unique pixel
 
 ### Rendering pipeline
 Each `loop()` call runs one pattern function then calls `strip.show()`. Frame rate is `idleFrameRate` for DEFAULT and FIREFLIES, 30fps for all others.
