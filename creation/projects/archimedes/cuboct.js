@@ -99,6 +99,11 @@ module.exports = () => {
         }
       }
     }
+    for (let print of printInfo.prints) {
+      if (print.suffix.includes("sleeve")) {
+        newPrints.unshift(print)
+      }
+    }
     printInfo.prints = newPrints
 
     h = 10

@@ -948,6 +948,33 @@ function createPrintInfo3D() {
     hasReachedEnd = hasReachedEnd || print.suffix.startsWith(ENDING_PART_ID + "")
   }
   printInfo.prints = prints
+
+  if (SLEEVE_TYPE != null) {
+    let uniqueSleeveWalls = []
+    for (let wall of completedWalls) {
+      if (!wall.isFoldWall) continue
+      let isNew = !uniqueSleeveWalls.some(({dihedralAngle, aoiComplement}) =>
+        epsilonEquals(dihedralAngle, wall.dihedralAngle) &&
+        epsilonEquals(aoiComplement, wall.aoiComplement))
+      if (isNew) {
+        uniqueSleeveWalls.push(wall)
+      }
+    }
+    for (let wall of uniqueSleeveWalls) {
+      // [TODO] for now, I'm assuming an angle of incidence of 90deg, make more general later
+      if (epsilonEquals(wall.aoiComplement, 0)) {
+        if (SLEEVE_TYPE == "OUTER") {
+          printInfo.prints.push(createOuterSleevePrint(wall.dihedralAngle))
+          printInfo.prints.push(createOuterSleevePrint(-wall.dihedralAngle))
+        } else if (SLEEVE_TYPE == "INNER") {
+          printInfo.prints.push(createInnerSleevePrint(wall.dihedralAngle))
+        }
+      } else {
+        console.error("Trying to make sleeves for wall with non-zero aoiComplement", wall)
+      }
+    }
+  }
+
   if (window.printPostProcessingFunction) {
     printPostProcessingFunction(printInfo)
   }
@@ -1165,6 +1192,113 @@ function foldWallCreation(foldWall, printInfo) {
   }
 }
 
+
+function createOuterSleevePrint(dihedralAngle) {
+  let coverWidth = CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER)
+  let coverThickness = THICKNESS + EXTRA_COVER_THICKNESS
+  let outerY = coverWidth + 2*SLEEVE_THICKNESS
+  let outerZ = coverThickness + 2*SLEEVE_THICKNESS
+  let transX = SLEEVE_LENGTH/2
+
+  let arm = {
+    type: "difference",
+    position: [0, 0, -Math.sign(dihedralAngle) * outerZ/2], // Adjust so arms rotate about wedge tip
+    components: [
+      {
+        type: "union",
+        components: [
+          { // Outer shell
+            type: "cube",
+            dimensions: [SLEEVE_LENGTH, outerY, outerZ],
+            operations: [{ type: "translate", position: [transX, 0, 0] }],
+          },
+          { // Wedge at seam end (X=0)
+            type: "wedge",
+            angle: dihedralAngle / 2,
+            rotationAngle: Math.PI,
+            width: outerY,
+            thickness: outerZ,
+            position: [0, 0, -outerZ/2],
+          },
+        ]
+      },
+      { // Inner hollow where the cover plate sits.
+        type: "cube",
+        dimensions: [SLEEVE_LENGTH + 10, coverWidth, coverThickness],
+        operations: [{ type: "translate", position: [transX, 0, 0] }],
+      },
+      { // Gap for where walls and channel sit.
+        type: "cube",
+        dimensions: [SLEEVE_LENGTH + 10, CHANNEL_WIDTH + 2*WALL_THICKNESS, SLEEVE_THICKNESS+0.1],
+        operations: [{ type: "translate", position: [transX, 0, coverThickness/2 + SLEEVE_THICKNESS/2] }],
+      },
+    ]
+  }
+
+  return {
+    type: "union",
+    suffix: `outersleeve_dihedral${(dihedralAngle * 180 / Math.PI).toFixed(1)}`,
+    operations: [
+      { type: "rotate", axis: [0, 1, 0], angle: Math.PI/2 },
+    ],
+    components: [
+      arm,
+      { ...arm,
+        operations: [
+          { type: "mirror", normal: [1, 0, 0] },
+          { type: "rotate", axis: [0, 1, 0], angle: dihedralAngle },
+        ]
+      },
+    ],
+  }
+}
+function createInnerSleevePrint(dihedralAngle) {
+  let skew = Math.tan(dihedralAngle/2)
+  let depth = CHANNEL_DEPTH / Math.cos(dihedralAngle/2)
+  let innerY = CHANNEL_WIDTH - 2*SLEEVE_THICKNESS
+  let innerZ = depth- 2*SLEEVE_THICKNESS
+  let transX = SLEEVE_LENGTH/2
+
+  let arm =  {
+    type: "difference",
+    operations: [
+      { type: "matrix3", M: [1,0,skew, 0,1,0, 0,0,1] },
+      { type: "translate", position: [transX, 0, 0] },
+    ],
+    components: [
+      {
+        type: "cube",
+        dimensions: [SLEEVE_LENGTH, CHANNEL_WIDTH, depth],
+      },
+
+      {
+        type: "cube",
+        dimensions: [SLEEVE_LENGTH+1, innerY, innerZ],
+      },
+      {
+        type: "cube",
+        dimensions: [SLEEVE_LENGTH+1, SLEEVE_THICKNESS+1, depth/2],
+        position: [0, CHANNEL_WIDTH/2, 0]
+      },
+    ]
+  }
+
+  return {
+    type: "union",
+    suffix: `innersleeve_dihedral${(dihedralAngle * 180 / Math.PI).toFixed(1)}`,
+    operations: [
+      { type: "rotate", axis: [0, 1, 0], angle: Math.PI/2 },
+    ],
+    components: [
+      arm,
+      {
+        type: "union",
+        operations: [{ type: "mirror", normal: [1, 0, 0] }],
+        components: [arm]
+      },
+    ]
+  }
+}
 
 function wallPrint(wall, isLeft) {
   let side = wall

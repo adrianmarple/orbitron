@@ -149,6 +149,9 @@ async function closeRootServer() {
 }
 
 MANUFACTURING_FOLDER = process.env.MANUFACTURING_FOLDER || path.join(process.env.HOME, "LumatronManufacturing")
+if (!MANUFACTURING_FOLDER.endsWith("/")) {
+  MANUFACTURING_FOLDER += "/"
+}
 
 addGETListener((response, request) => {
   if (request.url.endsWith("masterkey")) {
