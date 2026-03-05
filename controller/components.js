@@ -582,109 +582,101 @@ Vue.component('vector3', {
   <div class="side"></div>
 </div>`})
 
+// Shared WebGL renderer for all stlviewer instances — avoids hitting browser context limits.
+// Renders each scene into the shared renderer then blits to per-component 2D canvases,
+// so each component's canvas stays in the normal DOM flow (z-index works correctly).
+const RENDER_SIZE = 256
+let sharedRenderer = null
+const stlViews = new Map() // component instance -> view record
+
+function initSharedRenderer() {
+  if (sharedRenderer) return
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true })
+  renderer.setSize(RENDER_SIZE, RENDER_SIZE)
+  sharedRenderer = renderer
+
+  ;(function animate() {
+    requestAnimationFrame(animate)
+    for (const view of stlViews.values()) {
+      if (!view.scene || !view.camera || !view.ctx) continue
+      const connected = view.isConnected()
+      if (view.mesh && connected) {
+        view.mesh.rotation.y += 0.007
+        view.mesh.rotation.z = Math.sin(Date.now() / 5000) * 0.1
+      }
+      renderer.setClearColor(0x333333, connected ? 0.5 : 0.9)
+      renderer.render(view.scene, view.camera)
+      view.ctx.clearRect(0, 0, RENDER_SIZE, RENDER_SIZE)
+      view.ctx.drawImage(renderer.domElement, 0, 0)
+    }
+  })()
+}
+
 Vue.component('stlviewer', {
   props: ['info'],
-  data() {
-    return {
-      renderer: null,
-      animationFrameId: null,
-    }
-  },
   watch: {
     "info.topology": function() {
       this.load()
     },
-    "$root.registeredIDs": function() {
-      this.resize()
-    },
   },
   mounted() {
+    this.viewRecord = { scene: null, camera: null, mesh: null, ctx: null, isConnected: () => this.$root.isConnected(this.info.id) }
+    stlViews.set(this, this.viewRecord)
+    initSharedRenderer()
     this.load()
-    window.addEventListener('resize', this.resize)
   },
   unmounted() {
-    window.removeEventListener('resize', this.resize)
-    cancelAnimationFrame(this.animationFrameId)
-  },
-  computed: {
-    isConnected() {
-      return this.$root.isConnected(this.info.id)
-    },
+    stlViews.delete(this)
   },
   methods: {
-    resize() {
-      if (!this.renderer) return
-      let boundingRect = this.$el.getBoundingClientRect()
-      this.renderer.setSize(boundingRect.width, boundingRect.height)
-    },
     load() {
       if (!this.info.topology) return
-      cancelAnimationFrame(this.animationFrameId)
       this.$el.innerHTML = ""
 
-      // Create a scene, camera, and renderer
+      const canvas = document.createElement('canvas')
+      canvas.width = RENDER_SIZE
+      canvas.height = RENDER_SIZE
+      canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:-1'
+      this.$el.style.position = 'relative'
+      this.$el.appendChild(canvas)
+      this.viewRecord.ctx = canvas.getContext('2d')
+
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000)
-      const renderer = new THREE.WebGLRenderer({alpha: true, antialias: true })
-      this.renderer = renderer
-      renderer.setClearColor(0x333333, 0.5)
-      this.resize()
-      renderer.domElement.style.zIndex = -1
-      this.$el.appendChild(renderer.domElement)
-  
-      // Add a light sources
+      camera.position.z = 2.1
       const sun = new THREE.DirectionalLight(0xffffff, 1.8)
       sun.position.set(10, 10, 10).normalize()
-      const ambient = new THREE.AmbientLight(0xffffff, 0.7)
       scene.add(sun)
-      scene.add(ambient)
-  
-      // Load the STL file
-      const loader = new STLLoader()
-      let mesh = null
+      scene.add(new THREE.AmbientLight(0xffffff, 0.7))
 
+      const view = this.viewRecord
+      view.scene = scene
+      view.camera = camera
+      view.mesh = null
+
+      const loader = new STLLoader()
       function loadGeometry(geometry) {
-        let vertices = geometry.attributes.position.array
-        let centroid = new THREE.Vector3(0,0,0)
+        const vertices = geometry.attributes.position.array
+        const centroid = new THREE.Vector3(0, 0, 0)
         for (let i = 0; i < geometry.attributes.position.count; i++) {
-          centroid.add(new THREE.Vector3(vertices[3*i], vertices[3*i + 1], vertices[3*i + 2]))
+          centroid.add(new THREE.Vector3(vertices[3*i], vertices[3*i+1], vertices[3*i+2]))
         }
         centroid.divideScalar(geometry.attributes.position.count)
         geometry.translate(centroid.negate())
-        
         geometry.computeBoundingSphere()
         const r = geometry.boundingSphere.radius
         geometry.scale(1/r, 1/r, 1/r)
         geometry.rotateX(-Math.PI / 2)
-        
-        const material = new THREE.MeshStandardMaterial({ color: 0xffffff })
-        mesh = new THREE.Mesh(geometry, material)
+        const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xffffff }))
         mesh.rotation.y = Math.random() * Math.PI * 2
         scene.add(mesh)
+        view.mesh = mesh
       }
-
       loader.load("stls/" + this.info.topology + ".stl", loadGeometry, undefined, _ => {
-        // Assume stl file just doesn't exist
         loader.load("stls/default.stl", loadGeometry, undefined, error => {
           console.error('An error happened while loading the STL file.', error)
         })
       })
-  
-      // Position the camera
-      camera.position.z = 2.1
-  
-      // Animate the scene
-      let self = this
-      function animate() {
-        self.animationFrameId = requestAnimationFrame(animate)
-        if (mesh && self.isConnected) {
-          mesh.rotation.y += 0.007
-          mesh.rotation.z = Math.sin(Date.now() / 5000) * 0.1
-        }
-        renderer.setClearColor(0x333333, self.isConnected ? 0.5 : 0.9)
-        renderer.render(scene, camera)
-      }
-      animate();
     }
   },
   template: `
