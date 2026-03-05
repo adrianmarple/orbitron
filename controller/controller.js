@@ -602,6 +602,7 @@ var app = new Vue({
         this.$set(this.idToOrb, orb.orbID, orb)
         orb.id = orb.orbID
         orb.ws = null
+        orb.latestMessage = 0
         this.$set(orb, 'state', {})
         orb.socketStatus = "DISCONNECTED"
       }
@@ -1057,10 +1058,10 @@ var app = new Vue({
         return
       }
       let message = JSON.parse(data)
-      if(message.timestamp <= this.latestMessage){
+      if(message.timestamp <= this.idToOrb[orbID].latestMessage){
         return
       }
-      this.latestMessage = message.timestamp
+      this.idToOrb[orbID].latestMessage = message.timestamp
       if (message.self != this.state.self) {
         window.parent.postMessage({this: message.self}, '*')
       }
