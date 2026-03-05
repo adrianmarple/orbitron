@@ -604,7 +604,7 @@ var app = new Vue({
         orb.ws = null
         orb.latestMessage = 0
         this.$set(orb, 'state', {})
-        orb.socketStatus = "DISCONNECTED"
+        this.$set(orb, 'socketStatus', 'DISCONNECTED')
       }
     },
     async updateLocalOrbs() {
@@ -1018,7 +1018,7 @@ var app = new Vue({
         }
         orb.ws = null
       }
-      this.idToOrb[orbID].socketStatus = "DISCONNECTED"
+      this.$set(this.idToOrb[orbID], 'socketStatus', 'DISCONNECTED')
     },
     startWebsocket(orbID) {
       orbID = orbID ?? this.orbID
