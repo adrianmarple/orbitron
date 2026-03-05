@@ -164,6 +164,7 @@ def select_random_game():
   return games[selection]
 
 def start(new_game):
+  print(new_game)
   if not new_game:
     return
 

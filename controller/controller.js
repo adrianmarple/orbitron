@@ -70,6 +70,7 @@ var app = new Vue({
     delta: null,
     isDragging: false,
     isMoving: false,
+    movePending: false,
     isReadyLocal: false,
     loadingDotCount: 1,
     move: [0,0],
@@ -161,8 +162,8 @@ var app = new Vue({
     })
     addEventListener("DOMContentLoaded", this.setRem)
     // So hacky, but this seems relatively robust and necessary for things like firefox on iOS
-    for (let i = 0; i < 20; i++) {
-      setTimeout(this.setRem, 100*i)
+    for (let i = 0; i < 5; i++) {
+      setTimeout(this.setRem, 300*i)
     }
 
     this.nav = this.navBarItems[0]
@@ -601,7 +602,7 @@ var app = new Vue({
         this.$set(this.idToOrb, orb.orbID, orb)
         orb.id = orb.orbID
         orb.ws = null
-        orb.state = {}
+        this.$set(orb, 'state', {})
         orb.socketStatus = "DISCONNECTED"
       }
     },
@@ -1063,12 +1064,9 @@ var app = new Vue({
       if (message.self != this.state.self) {
         window.parent.postMessage({this: message.self}, '*')
       }
-      let orb = {...this.idToOrb[orbID]}
-      orb.state = message
-      this.$set(this.idToOrb, orbID, orb)
-      
       this.dontSendUpdates = true
-      await this.$forceUpdate()
+      this.$set(this.idToOrb[orbID], 'state', message)
+      await this.$nextTick()
       this.dontSendUpdates = false
     },
 
@@ -1170,12 +1168,17 @@ var app = new Vue({
           this.startLocation[1] = Math.min(this.startLocation[1], innerHeight - joystickWidth/2)
         }
 
-        let [x,y] = this.move
-        if (searchParams.has("mirror") | searchParams.has("m")) {
-          x *= -1
+        if (!this.movePending) {
+          this.movePending = true
+          requestAnimationFrame(() => {
+            this.movePending = false
+            let [x, y] = this.move
+            if (searchParams.has("mirror") || searchParams.has("m")) {
+              x *= -1
+            }
+            this.send({type: "move", move: [x, y]})
+          })
         }
-
-        this.send({type: "move", move: [x,y]})
       }
     },
 
@@ -1217,7 +1220,7 @@ var app = new Vue({
         if (this.carouselCurrentX < -(this.carouselSize - 0.1) * innerWidth) {
           this.dismissRules()
         }
-        if (Math.abs(this.carouselCurrentX - this.targetX) < 0.1) {
+        if (Math.abs(this.carouselCurrentX - targetX) < 0.1) {
           clearInterval(this.carouselInterval)
           this.carouselInterval = null
         }

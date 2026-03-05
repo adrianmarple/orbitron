@@ -49,11 +49,13 @@ Vue.component('boolean', {
 Vue.component('slider', {
   props: ['title', 'min', 'max', 'help'],
   data() { return { value: 0 }},
-  watch: {  
-    "$root.prefs": function() { this.value = this.$root.prefs[this.name] },
+  watch: {
     value() { this.$root.prefs[this.name] = this.value },
   },
-  mounted() { this.value = this.$root.prefs[this.name] },
+  mounted() {
+    this.value = this.$root.prefs[this.name]
+    this.$watch(() => this.$root.prefs[this.name], v => { this.value = v })
+  },
   computed: {
     trueMin() { return this.min || 0 },
     trueMax() { return this.max || 100 },
@@ -88,12 +90,12 @@ Vue.component('color', {
   mounted() {
     this.value = this.$root.prefs[this.name]
     this.updateFromPrefs()
+    this.$watch(() => this.$root.prefs[this.name], () => { this.updateFromPrefs() })
   },
   computed: {
     name() { return this.$vnode.key },
   },
   watch: {
-    "$root.prefs": function() { this.updateFromPrefs() },
     vector: {
       handler: function({red, green, blue}) {
         this.$root.prefs[this.name] = "#" + (1 << 24 | red << 16 | green << 8 | blue).toString(16).slice(1)
@@ -273,6 +275,7 @@ Vue.component('vector2', {
   },
   mounted() {
     this.updateFromPrefs()
+    this.$watch(() => this.$root.prefs[this.name], () => { this.updateFromPrefs() })
   },
   computed: {
     halfWidth() {
@@ -280,7 +283,6 @@ Vue.component('vector2', {
     }
   },
   watch: {
-    "$root.prefs": function() { this.updateFromPrefs() },
     value() {
       let angle = -this.value.angle
       let mag = this.value.magnitude
@@ -375,13 +377,11 @@ Vue.component('vector3', {
       animationFrameId: null,
     }
   },
-  watch: {
-    "$root.prefs": function () { this.updateFromPrefs() },
-  },
   mounted() {
     this.load()
     this.updateFromPrefs()
     window.addEventListener('resize', this.resize)
+    this.$watch(() => this.$root.prefs[this.name], () => { this.updateFromPrefs() })
   },
   unmounted() {
     window.removeEventListener('resize', this.resize)
