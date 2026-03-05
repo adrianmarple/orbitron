@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import numpy as np
+from collections import deque
 from math import exp
 from random import randrange, random, sample
 from time import time
@@ -27,10 +28,10 @@ class Lightning(Idle):
     for unique in dupe_to_uniques[sink]:
       self.fluid_values[unique] = 1
     to_sink = {}
-    nodesToProcess = [sink]
+    nodesToProcess = deque([sink])
     distance_to_sink = {sink: 0}
     while len(nodesToProcess) > 0:
-      node = nodesToProcess.pop(0)
+      node = nodesToProcess.popleft()
       ns = neighbors[node]
       for n in sample(ns, len(ns)):
         if n not in to_sink:

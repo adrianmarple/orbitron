@@ -40,6 +40,7 @@ BAD_COLOR = np.array((255, 0, 0))
 BAD_COLOR_STRING = "#ff0000"
 FRAMERATE = 30
 SWITCH_GRACE_FRAMES = 3
+POWER_DRAW_COEFFICIENTS = np.array([0.00013, 0.00013, 0.00013])
 
 cur_switch_grace_frames = 0
 
@@ -216,7 +217,7 @@ def update():
 
     max_power_draw = config.get("MAX_POWER_DRAW")
     if max_power_draw is not None:
-      power_draw = np.sum(np.matmul(raw_pixels, np.array([0.00013, 0.00013, 0.00013])))
+      power_draw = np.sum(np.matmul(raw_pixels, POWER_DRAW_COEFFICIENTS))
       if power_draw > max_power_draw:
         raw_pixels *= max_power_draw / power_draw
     max_pixel = config.get("MAX_AVG_PIXEL_BRIGHTNESS")
@@ -864,8 +865,7 @@ class Game:
   # Game utils
 
   def clear(self):
-    for i in range(len(self.statuses)):
-      self.statuses[i] = "blank"
+    self.statuses = ["blank"] * SIZE
 
   def update_settings(self, update):
     for (key, value) in update.items():
@@ -904,8 +904,9 @@ def color_pixel(index, color):
     raw_pixels[unique] = color
 
 def add_color_to_pixel(index, color):
+  color = np.array(color, dtype="<u1")
   for unique in dupe_to_uniques[index]:
-    raw_pixels[unique] += np.array(color,dtype="<u1")
+    raw_pixels[unique] += color
 
 def latlong_delta(ll0, ll1):
   delta = [ll0[0] - ll1[0], ll0[1] - ll1[1]]

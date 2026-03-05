@@ -187,8 +187,7 @@ class Idle(Game):
       end = get_pref("gradientEndColor")/255
       end_colors = np.outer(1 - rectified_target_values, end)
       colors = start_colors + end_colors
-      self.render_values = np.outer(self.render_values, np.ones(3))
-      self.render_values = np.multiply(self.render_values, colors)
+      self.render_values = self.render_values.reshape(-1, 1) * colors
     elif get_pref("idleColor") == "tricolor":
       thresh1 = get_pref("tricolorThreshold1") / 100.0
       thresh2 = get_pref("tricolorThreshold2") / 100.0
@@ -206,8 +205,7 @@ class Idle(Game):
       end = get_pref("tricolor3")/255
       end_colors = np.outer(end_values, end)
       colors = start_colors + end_colors + mid_colors
-      self.render_values = np.outer(self.render_values, np.ones(3))
-      self.render_values = np.multiply(self.render_values, colors)
+      self.render_values = self.render_values.reshape(-1, 1) * colors
     else:
       self.render_values = np.outer(self.render_values, self.color())
 
@@ -226,10 +224,11 @@ class Idle(Game):
     self.render_values *= brightness * self.beat_factor()
 
   def blend_pixels(self):
-    frame_delta = (time() - self.previous_render_time)
+    now = time()
+    frame_delta = (now - self.previous_render_time)
     frame_delta *= get_pref("idleFrameRate") / 15
     frame_delta *= exp(2.7 - get_pref("idleBlend")/17)
-    if time() - self.previous_beat_time < 0.05:
+    if now - self.previous_beat_time < 0.05:
       frame_delta = 2
 
     if frame_delta < 1:
