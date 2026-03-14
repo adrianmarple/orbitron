@@ -144,7 +144,7 @@ node pixelserver.js   # starts on port 8000, also launches the Vue dev server
 ```
 
 ### What it does
-- **Vue.js design tool** (`src/`, `public/`) — a browser-based CAD app for designing LED fixture layouts. Core math is in `public/topology.js` (vertex/edge/face graph), `public/data.js` (generates pixel JSON), and `public/laser.js` (generates SVG/3D print geometry).
+- **Vue.js design tool** (`src/`, `public/`) — a browser-based CAD app for designing LED fixture layouts. Core math is in `public/topology.js` (vertex/edge/face graph), `public/data.js` (generates pixel JSON), and `public/construction.js` (generates SVG/3D print geometry).
 - **`pixelserver.js`** — Node.js server that drives the full fabrication pipeline from a design: generates OpenSCAD → STL (via `openscad`) → simplified mesh (via Blender) → g-code (via Prusa slicer) → uploads directly to a networked 3D printer. Also saves pixel geometry JSON to `../pixels/` for use by the game engine.
 - **`projects/`** — One `.js` file per fixture design (e.g. `archimedes/rhombicosidodecahedron.js`), each defining vertex positions and edge connections for that shape.
 - **`pcb/`** — KiCad PCB projects: "pi interface" (Raspberry Pi → LED strips) and "strip start" (LED strip connector board).
