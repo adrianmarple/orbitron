@@ -44,6 +44,13 @@ var app = new Vue({
     idToOrb: {},
     registeredIDs: [],
     draggingID: null,
+    draggingTargetID: null,
+    dragGhost: null,
+    dragSourceID: null,
+    dragSourceEl: null,
+    dragPointerStart: null,
+    dragPointerId: null,
+    dragCleanup: null,
     excludedIDs: [],
     excludedNameMap: {},
     manuallingRegistering: false,
@@ -706,9 +713,6 @@ var app = new Vue({
       this.overscrollBottom = 0
       this.overscrollTop = 0
     },
-    onDragStart(id) {
-      this.draggingID = id
-    },
     onDrop(targetID) {
       if (this.draggingID === targetID) return
       const from = this.registeredIDs.indexOf(this.draggingID)
@@ -716,6 +720,84 @@ var app = new Vue({
       this.registeredIDs.splice(from, 1)
       this.registeredIDs.splice(to, 0, this.draggingID)
       localStorage.setItem("registeredIDs", JSON.stringify(this.registeredIDs))
+      this.draggingID = null
+    },
+    dragTargetID(event) {
+      const el = document.elementFromPoint(event.clientX, event.clientY)
+      const orbEl = el && el.closest('.orb-wrapper')
+      if (!orbEl) return null
+      const index = Array.from(orbEl.parentElement.children).indexOf(orbEl)
+      return this.registeredIDs[index] ?? null
+    },
+    onPointerDragStart(event, id) {
+      if (this.dragCleanup) this.dragCleanup()
+
+      this.dragSourceEl = event.currentTarget
+      this.dragSourceID = id
+      this.dragPointerId = event.pointerId
+      this.dragPointerStart = { x: event.clientX, y: event.clientY }
+
+      const onMove = (e) => {
+        if (e.pointerId !== this.dragPointerId) return
+        this.onPointerDragMove(e)
+      }
+      const onUp = (e) => {
+        if (e.pointerId !== this.dragPointerId) return
+        this.onPointerDrop(e)
+        cleanup()
+      }
+      const cleanup = () => {
+        document.removeEventListener('pointermove', onMove)
+        document.removeEventListener('pointerup', onUp)
+        document.removeEventListener('pointercancel', onUp)
+        this.dragCleanup = null
+      }
+      this.dragCleanup = cleanup
+      document.addEventListener('pointermove', onMove, { passive: false })
+      document.addEventListener('pointerup', onUp)
+      document.addEventListener('pointercancel', onUp)
+    },
+    onPointerDragMove(event) {
+      if (!this.dragGhost) {
+        const dx = event.clientX - this.dragPointerStart.x
+        const dy = event.clientY - this.dragPointerStart.y
+        if (Math.sqrt(dx*dx + dy*dy) < 8) return
+        this.draggingID = this.dragSourceID
+        const rect = this.dragSourceEl.getBoundingClientRect()
+        const ghost = this.dragSourceEl.cloneNode(true)
+        ghost.style.cssText = `position:fixed;width:${rect.width}px;height:${rect.height}px;` +
+          `left:${event.clientX - rect.width/2}px;top:${event.clientY - rect.height/2}px;` +
+          `pointer-events:none;z-index:1000;transform:scale(1.05);`
+        const overlay = document.createElement('div')
+        overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.2);z-index:1;pointer-events:none;'
+        ghost.appendChild(overlay)
+        const srcCanvas = this.dragSourceEl.querySelector('canvas')
+        const dstCanvas = ghost.querySelector('canvas')
+        if (srcCanvas && dstCanvas) {
+          dstCanvas.getContext('2d').drawImage(srcCanvas, 0, 0)
+          if (this.isConnected(this.dragSourceID)) {
+            window.addGhostView(this.dragSourceID, dstCanvas)
+          }
+        }
+        document.querySelector('#registration').appendChild(ghost)
+        this.dragGhost = ghost
+      }
+      event.preventDefault()
+      this.draggingTargetID = this.dragTargetID(event)
+      const ghost = this.dragGhost
+      ghost.style.left = (event.clientX - ghost.offsetWidth/2) + 'px'
+      ghost.style.top  = (event.clientY - ghost.offsetHeight/2) + 'px'
+    },
+    onPointerDrop(event) {
+      if (this.dragGhost) {
+        window.removeGhostView()
+        this.dragGhost.remove()
+        this.dragGhost = null
+        this.draggingTargetID = null
+        const targetID = this.dragTargetID(event)
+        this.onDrop(targetID || this.draggingID)
+        document.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true })
+      }
       this.draggingID = null
     },
     deleteRegistration(id) {

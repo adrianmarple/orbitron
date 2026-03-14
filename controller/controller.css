@@ -262,8 +262,31 @@ a > .fancy-box:hover, a.fancy-box:hover {
   border-color: transparent;
 }
 
+#registration .orb {
+  touch-action: none;
+}
+
 #registration .orb.dragging {
-  opacity: 0.4;
+  border-color: #aaa;
+}
+#registration .orb.dragging > img,
+#registration .orb.dragging > div {
+  opacity: 0.3;
+}
+#registration .orb.dragging::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(51,51,51,0.9);
+  z-index: -1;
+}
+#registration .orb.active.dragging::after {
+  background: rgba(51,51,51,0.5);
+}
+
+#registration .orb.dragover {
+  outline: 0.25rem solid white;
+  outline-offset: -0.25rem;
 }
 
 #registration .orb-wrapper {

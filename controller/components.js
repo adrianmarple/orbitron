@@ -588,6 +588,27 @@ Vue.component('vector3', {
 const RENDER_SIZE = 256
 let sharedRenderer = null
 const stlViews = new Map() // component instance -> view record
+const GHOST_KEY = Symbol('ghost')
+
+window.addGhostView = function(orbID, canvas) {
+  for (const view of stlViews.values()) {
+    if (view.orbID === orbID && view.scene && view.camera) {
+      stlViews.set(GHOST_KEY, {
+        scene: view.scene,
+        camera: view.camera,
+        mesh: view.mesh,
+        ctx: canvas.getContext('2d'),
+        orbID: null,
+        isConnected: () => true,
+      })
+      return
+    }
+  }
+}
+
+window.removeGhostView = function() {
+  stlViews.delete(GHOST_KEY)
+}
 
 function initSharedRenderer() {
   if (sharedRenderer) return
@@ -620,7 +641,8 @@ Vue.component('stlviewer', {
     },
   },
   mounted() {
-    this.viewRecord = { scene: null, camera: null, mesh: null, ctx: null, isConnected: () => this.$root.isConnected(this.info.id) }
+    const self = this
+    this.viewRecord = { scene: null, camera: null, mesh: null, ctx: null, get orbID() { return self.info.orbID }, isConnected: () => self.$root.isConnected(self.info.orbID) }
     stlViews.set(this, this.viewRecord)
     initSharedRenderer()
     this.load()
