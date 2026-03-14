@@ -422,6 +422,9 @@ function addDodecagon(center, edgeLengths) {
   return addPolygon(12, center, edgeLengths)
 }
 function addPolygon(sideCount, center, edgeLengths) {
+  if (!center) {
+    center = ZERO
+  }
   if (!center.isVector) {
     center = new Vector(...center)
   }

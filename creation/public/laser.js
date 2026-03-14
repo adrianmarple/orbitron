@@ -1721,16 +1721,16 @@ function wallPrint(wall, isLeft) {
     if (PORT_TYPE == "USBC_INTEGRATED") {
       portCenter.y = -portCenter.y
 
-      let port_width = 9.2
-      let port_length = 10.6
-      let port_radius = 1.6
+      let port_width = 9.5
+      let port_radius = 1.63
 
-      // let pcb_width = 9.1
-      let pcb_thickness = 1
-      let pcb_cover_length = 1
+      let pcb_width = 16.2
+      let pcb_depth = 2
+      let pcb_thickness = 1.6
+      let usbc_pcb_thickness = 1
+      let pcb_offset = (pcb_thickness - usbc_pcb_thickness)/2
 
-      let top_gap = 0.4
-      let top_thickness = 8.2
+      let top_thickness = 9.6
       let top_border = 3
       let top_width = port_width + 2*top_border+1
       let top_radius = port_radius + top_border
@@ -1771,12 +1771,12 @@ module pillinder(width, radius, height) {
             position: portCenter.toArray(),
             rotationAngle: portRotation,
             code: `
-difference() {
+{
   translate([0, 0, ${-top_thickness}])
-  pillinder(${port_width}, ${port_radius}, ${port_length + top_gap});
+  pillinder(${port_width}, ${port_radius}, ${top_thickness + WALL_THICKNESS});
 
-  translate([0, ${(pcb_thickness + port_radius)/2}, ${port_length -top_thickness -top_gap + pcb_cover_length/2+1}])
-  cube([${port_width}, ${port_radius}, ${pcb_cover_length+2}], center=true);
+  translate([0, ${-pcb_offset}, ${WALL_THICKNESS - pcb_depth/2}])
+  cube([${pcb_width}, ${pcb_thickness}, ${pcb_depth}], center=true);
 }`
           }
         ]
