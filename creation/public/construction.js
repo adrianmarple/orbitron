@@ -1730,7 +1730,7 @@ function wallPrint(wall, isLeft) {
       let usbc_pcb_thickness = 1
       let pcb_offset = (pcb_thickness - usbc_pcb_thickness)/2
 
-      let top_thickness = 7 + WALL_THICKNESS
+      let top_thickness = 12.2 - WALL_THICKNESS
       let top_border = 3
       let top_width = port_width + 2*top_border+1
       let top_radius = port_radius + top_border

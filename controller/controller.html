@@ -75,7 +75,7 @@
     </div>
   </div>
 
-  <div v-else-if="!orbID" id="registration-wrapper">
+  <div v-else-if="!orbID" id="registration-wrapper" @pointerdown="onScrollPointerDown">
   <div id="registration" :class="{ small: registeredIDs.length > 3 }">
     <div class="horiz-box"></div>
 
