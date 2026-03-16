@@ -54,6 +54,7 @@ var app = new Vue({
     dragTimer: null,
     dragScrolling: false,
     dragEdgeScrollRAF: null,
+    momentumAnimationFrame: null,
     excludedIDs: [],
     excludedNameMap: {},
     manuallingRegistering: false,
@@ -731,13 +732,42 @@ var app = new Vue({
       const index = Array.from(orbEl.parentElement.children).indexOf(orbEl)
       return this.registeredIDs[index] ?? null
     },
+    startMomentumScroll(app, velocity) {
+      if (this.momentumAnimationFrame) cancelAnimationFrame(this.momentumAnimationFrame)
+      const FRICTION = 0.995 // per ms — reaches ~1% in ~1s at 60fps
+      let v = velocity
+      let lastTime = null
+      const animate = (time) => {
+        if (lastTime === null) { lastTime = time; this.momentumAnimationFrame = requestAnimationFrame(animate); return }
+        const dt = Math.min(time - lastTime, 32)
+        lastTime = time
+        v *= Math.pow(FRICTION, dt)
+        if (Math.abs(v) < 0.02) { this.momentumAnimationFrame = null; return }
+        app.scrollBy(0, v * dt)
+        this.momentumAnimationFrame = requestAnimationFrame(animate)
+      }
+      this.momentumAnimationFrame = requestAnimationFrame(animate)
+    },
+    velocityFromMoves(recentMoves) {
+      if (recentMoves.length < 2) return 0
+      const first = recentMoves[0]
+      const last = recentMoves[recentMoves.length - 1]
+      const dt = last.time - first.time
+      return dt > 0 ? (first.y - last.y) / dt : 0
+    },
+    trackScrollMove(recentMoves, e) {
+      recentMoves.push({ y: e.clientY, time: e.timeStamp })
+      while (recentMoves.length > 1 && e.timeStamp - recentMoves[0].time > 100) recentMoves.shift()
+    },
     onScrollPointerDown(event) {
       if (event.pointerType === 'mouse') return
       if (event.target.closest('.orb')) return // Handles scrolling separately
+      if (this.momentumAnimationFrame) { cancelAnimationFrame(this.momentumAnimationFrame); this.momentumAnimationFrame = null }
       const pointerId = event.pointerId
       const startY = event.clientY
       const app = document.getElementById('app')
       const startScrollTop = app.scrollTop
+      const recentMoves = []
       let scrolling = false
       const onMove = (e) => {
         if (e.pointerId !== pointerId) return
@@ -746,6 +776,7 @@ var app = new Vue({
           if (Math.abs(e.clientY - startY) < 8) return
           scrolling = true
         }
+        this.trackScrollMove(recentMoves, e)
         app.scrollTop = startScrollTop - (e.clientY - startY)
       }
       const onUp = (e) => {
@@ -753,12 +784,17 @@ var app = new Vue({
         document.removeEventListener('pointermove', onMove)
         document.removeEventListener('pointerup', onUp)
         document.removeEventListener('pointercancel', onUp)
+        if (scrolling) {
+          const v = this.velocityFromMoves(recentMoves)
+          if (Math.abs(v) > 0.05) this.startMomentumScroll(app, v)
+        }
       }
       document.addEventListener('pointermove', onMove, { passive: false })
       document.addEventListener('pointerup', onUp)
       document.addEventListener('pointercancel', onUp)
     },
     onPointerDragStart(event, id) {
+      if (this.momentumAnimationFrame) { cancelAnimationFrame(this.momentumAnimationFrame); this.momentumAnimationFrame = null }
       if (this.dragCleanup) this.dragCleanup()
 
       this.dragSourceEl = event.currentTarget
@@ -789,6 +825,14 @@ var app = new Vue({
       document.addEventListener('pointercancel', onUp)
 
       if (event.pointerType === 'mouse') return
+      if (this.registeredIDs.length <= 1) {
+        this.dragScrolling = {
+          startY: event.clientY,
+          startScrollTop: document.getElementById('app').scrollTop,
+          recentMoves: [{ y: event.clientY, time: event.timeStamp }],
+        }
+        return
+      }
       this.dragTimer = setTimeout(() => {
         this.dragTimer = null
         this.startDragGhost()
@@ -841,10 +885,12 @@ var app = new Vue({
             this.dragScrolling = {
               startY: event.clientY,
               startScrollTop: document.getElementById('app').scrollTop,
+              recentMoves: [{ y: event.clientY, time: event.timeStamp }],
             }
           }
         } else if (this.dragScrolling) {
           const app = document.getElementById('app')
+          this.trackScrollMove(this.dragScrolling.recentMoves, event)
           app.scrollTop = this.dragScrolling.startScrollTop - (event.clientY - this.dragScrolling.startY)
         }
         return
@@ -889,6 +935,10 @@ var app = new Vue({
         document.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true })
       }
       this.draggingID = null
+      if (this.dragScrolling) {
+        const v = this.velocityFromMoves(this.dragScrolling.recentMoves)
+        if (Math.abs(v) > 0.05) this.startMomentumScroll(document.getElementById('app'), v)
+      }
       this.dragScrolling = false
     },
     deleteRegistration(id) {
