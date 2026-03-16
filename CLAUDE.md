@@ -36,7 +36,6 @@ The system has two main processes that communicate via stdin/stdout:
 - `main.py`: Entry point — auto-imports all `games/*.py` modules, starts input-reading thread, then calls `engine.run_core_loop()`
 - `engine.py`: The game engine — runs at 30fps, calls `game.update()`, `game.ontimeout()`, `game.render()` each frame. Defines `Game` and `Player` base classes. Outputs pixel data as hex to stdout (`raw_pixels=<hex>;`) and game state as JSON.
 - `prefs.py`: Handles lighting preferences (colors, patterns, brightness, timers), persisted to `prefs.json` and `savedprefs/`
-- `audio.py`: Sound and music management via pygame mixer
 - `idlepatterns/`: Idle LED animation patterns (shown when no game is active)
 
 ### Communication Protocol

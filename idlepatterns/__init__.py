@@ -45,7 +45,6 @@ def beat_mode():
 
 class Idle(Game):
   name = "idle"
-  waiting_music = "idle"
   render_values = None
   previous_values = None
   previous_time = 0

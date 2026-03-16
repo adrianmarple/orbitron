@@ -11,7 +11,6 @@ from time import time, sleep
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from audio import sounds, music
 import engine
 Game = engine.Game
 Player = engine.Player
@@ -130,7 +129,6 @@ class Bomberman(Player):
           if bomb.move(self.position):
             # Successful bomb kick!
             bomb.owner = self
-            sounds["kick"].play()
           else:
             return True
 
@@ -156,7 +154,6 @@ class Bomberman(Player):
       killer = game.explosion_providence[pos]
       if killer is not None and killer != self:
         killer.score += 1
-      sounds["hurt"].play()
 
     # Try to place bomb if tapped
     tap = self.tap
@@ -168,10 +165,9 @@ class Bomberman(Player):
         if pos == bomb.position:
           can_place_bomb = False
           if game.TAP_BOMB_KICK and bomb.move(self.prev_pos):
-            sounds["kick"].play()
+            pass
 
       if can_place_bomb:
-        sounds["placeBomb"].play()
         bomb = Bomb(self)
         self.bombs.append(bomb)
 
@@ -313,7 +309,6 @@ class Bomb:
     if self.has_exploded:
       return
 
-    sounds["explosion"].play()
     finish_time = time() + game.BOMB_EXPLOSION_TIME
 
     game.statuses[self.position] = finish_time

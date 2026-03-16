@@ -10,7 +10,6 @@ from time import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from audio import sounds
 import engine
 Game = engine.Game
 Player = engine.Player
@@ -27,7 +26,7 @@ additional_settings = {
 }
 
 class Snektron(Game):
-  battle_music = "snekBattle"
+
 
   def countdown_ontimeout(self):
     Game.countdown_ontimeout(self)
@@ -86,7 +85,6 @@ class Snek(Player):
   def die(self):
     if not self.shrinking and len(self.tail) > game.START_LENGTH:
       self.shrinking = time()
-      sounds["hurt"].play()
 
   def move_delay(self):
     # Speed up the longer your snake gets

@@ -10,7 +10,6 @@ from time import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from audio import sounds
 import engine
 Game = engine.Game
 Player = engine.Player
@@ -122,8 +121,6 @@ class Runner(Player):
     if game.red_light and time() - self.last_move_time < 0.01:
       self.position = self.initial_position
       self.prev_pos = self.position
-      if starting_position != self.initial_position:
-        sounds["hurt"].play()
 
     if self.position in game.goals:
       game.goals.remove(self.position)

@@ -10,13 +10,9 @@ import traceback
 
 from datetime import datetime
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
-from pygame import mixer  # https://www.pygame.org/docs/ref/mixer.html
 from random import randrange, random
 from threading import Thread
 from time import sleep, time
-
-from audio import music, prewarm_audio, remoteMusicActions, remoteSoundActions
-prewarm_audio()
 
 import prefs
 get_pref = prefs.get_pref
@@ -165,7 +161,6 @@ def select_random_game():
   return games[selection]
 
 def start(new_game):
-  print(new_game)
   if not new_game:
     return
 
@@ -177,8 +172,6 @@ def start(new_game):
 
   game = new_game
   game.restart()
-  music["any"].fadeout(duration=2000)
-  music[game.waiting_music].fadein(duration=4500)
   for (i, player) in enumerate(game.players):
     if i < len(claimed):
       player.is_claimed = claimed[i]
@@ -645,8 +638,6 @@ ENEMY_TEAM = [Player(
 
 class Game:
   players = []
-  waiting_music = "waiting"
-  battle_music = "battle1"
 
   victors = []
   data = {}
@@ -741,18 +732,15 @@ class Game:
     self.clear()
     self.state = "countdown"
     self.end_time = time() + 4
-    music[self.waiting_music].fadeout(duration=3500)
 
   def countdown_ontimeout(self):
     self.end_time = time() + self.ROUND_TIME
     self.state = "play"
-    music[self.battle_music].play()
     for player in self.claimed_players():
       player.tap = 0 # Prevent bombs from being placed due to taps during countdown
 
 
   def play_ontimeout(self):
-    music[self.battle_music].fadeout(duration=1000)
     self.state = "previctory"
     self.end_time = time() + 1
     top_score = 0
@@ -767,10 +755,6 @@ class Game:
   def previctory_ontimeout(self):
     self.state = "victory"
     self.end_time = time() + self.VICTORY_TIMEOUT
-    if self.victors == ENEMY_TEAM:
-      music["lose"].play()
-    else:
-      music["victory"].play()
 
     global next_game
     next_game = select_random_game()

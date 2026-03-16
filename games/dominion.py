@@ -9,7 +9,6 @@ import numpy as np
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from audio import sounds
 import engine
 Game = engine.Game
 Player = engine.Player
@@ -70,7 +69,6 @@ class Domineer(Player):
           player_in_way = player
 
       if player_in_way is not None:
-        sounds["kick"].play()
         player_in_way.push_count = game.PUSH_DISTANCE
         player_in_way.prev_pos = self.position
         self.push_count = 0

@@ -10,7 +10,6 @@ from time import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from audio import sounds
 import engine
 Game = engine.Game
 Player = engine.Player
@@ -143,7 +142,6 @@ class Pacman(Player):
     for ghost in game.ghosts:
       if ghost.position == self.position:
         if ghost.is_scared():
-          sounds["kick"].play()
           ghost.position = choice(engine.north_pole)
           ghost.hit_time = time()
           ghost.power_pellet_end_time = 0 # ghost no longer scared
@@ -152,12 +150,10 @@ class Pacman(Player):
         elif time() - self.hit_time > game.INVULNERABILITY_TIME:
           self.hit_time = time()
           game.data["lives"] -= 1
-          sounds["hurt"].play()
           break
 
     # Pacman consumes pellets as they move
     if game.statuses[self.position] == "power":
-      sounds["explosion"].play()
       power_pellet_end_time = time() + game.POWER_PELLET_DURATION
       for player in game.claimed_players():
         player.power_pellet_end_time = power_pellet_end_time

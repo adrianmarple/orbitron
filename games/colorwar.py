@@ -8,7 +8,6 @@ from time import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from audio import sounds
 import engine
 Game = engine.Game
 Player = engine.Player
