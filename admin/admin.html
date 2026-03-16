@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
 <title>Admin - Lumatron</title>
 <link rel="stylesheet" href="/admin/admin.css">
@@ -10,6 +11,21 @@
 <body>
 <div id="app">
   <div id="background"></div>
+
+  <!-- Master key modal -->
+  <div v-if="showMasterKeyModal" id="masterkey-modal">
+    <div id="masterkey-box">
+      <!-- Room for directions -->
+
+      <input v-model="masterKeyInput" placeholder="Master key"
+          @keydown.enter="submitMasterKey" ref="masterKeyInput"/>
+
+      <div>You should be able to find it in the creation/.env file</div>
+      <div class="button" :class="{ disabled: !masterKeyInput.trim() }"
+          @click="submitMasterKey">Submit</div>
+    </div>
+  </div>
+
   <div id="meta-container">
     <div class="left side-box"></div>
     <div id="container-wrapper">

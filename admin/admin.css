@@ -23,10 +23,6 @@ a { text-decoration: none; }
 a, a:visited { color: inherit; }
 
 
-.positioner {
-  position: relative;
-}
-
 @keyframes animatedBackground {
   from { background-position: 0 0; }
   to { background-position: max(100vw, 100vh) max(100vw, 100vh); }
@@ -94,40 +90,6 @@ a, a:visited { color: inherit; }
   height: 100%;
 }
 
-/* ── Horiz boxes ── */
-.horiz-box {
-  background-color: var(--bg-color);
-  width: 100%;
-  min-height: 12px;
-  display: flex;
-  justify-content: center;
-}
-.xtall { min-height: 300px; }
-.tall  { min-height: 100px; }
-.medium { min-height: 32px; }
-
-/* ── Fancy box / divider ── */
-.fancy-box {
-  margin: 2px;
-  width: calc(100% - 4px);
-  background-color: var(--bg-color);
-  transition: color .5s cubic-bezier(.08,.59,.29,.99),
-    background-color .5s cubic-bezier(.08,.59,.29,.99);
-}
-a > .fancy-box:hover, a.fancy-box:hover {
-  background-color: rgba(0,0,0,0.7);
-  color: white;
-}
-.fancy-box img {
-  width: 90%;
-  padding: 0 5%;
-}
-.fancy-divider {
-  width: 100%;
-  height: 2px;
-  border: 10px solid black;
-  box-sizing: border-box;
-}
 
 /* ── Nav bar ── */
 #nav {
@@ -315,6 +277,40 @@ a > .fancy-box:hover, a.fancy-box:hover {
 .commit-status .ok      { background-color: #4afa41; }
 .commit-status .warning { background-color: #ffe600; }
 .commit-status .error   { background-color: #ff2600; }
+
+/* ── Master key modal ── */
+#masterkey-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.7);
+}
+#masterkey-box {
+  background: var(--bg-color);
+  border: 1px solid #444;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 500px;
+  width: 90%;
+  font-size: 16px;
+  color: white;
+}
+#masterkey-box input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #1a1a1a;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 20px;
+}
 
 /* ── Log nav row ── */
 .back.button.disabled {

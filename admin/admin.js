@@ -5,6 +5,8 @@ new Vue({
     return {
       innerWidth,
       masterKey: "",
+      showMasterKeyModal: false,
+      masterKeyInput: "",
       commits: [],
       orbID: localStorage.getItem("orbID") || "demo",
       alias: null,
@@ -67,7 +69,15 @@ new Vue({
       }
     })
 
-    this.masterKey = await (await fetch("http://localhost:8000/admin/masterkey")).text()
+    try {
+      this.masterKey = await (await fetch("http://localhost:8000/admin/masterkey")).text()
+    } catch(_) {}
+    if (!this.masterKey) {
+      this.masterKey = localStorage.getItem("masterKey") || ""
+    }
+    if (!this.masterKey) {
+      this.masterKey = await this.promptMasterKey()
+    }
     this.commits = await (await fetch("/admin/commits")).json()
 
     await this.getOrbInfo()
@@ -301,6 +311,23 @@ new Vue({
         this.historyIndex -= 1
         this.command = this.historyIndex >= 0 ? this.commandHistory[this.historyIndex] : ""
       }
+    },
+
+    promptMasterKey() {
+      this.masterKeyInput = ""
+      this.showMasterKeyModal = true
+      return new Promise(resolve => {
+        this._masterKeyResolve = resolve
+      })
+    },
+
+    submitMasterKey() {
+      let key = this.masterKeyInput.trim()
+      if (!key) return
+      localStorage.setItem("masterKey", key)
+      this.masterKey = key
+      this.showMasterKeyModal = false
+      this._masterKeyResolve(key)
     },
 
     sendServerCommand(command) {
