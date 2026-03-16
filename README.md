@@ -59,7 +59,7 @@ See [the games folder README](games)
 
 - Create an ubuntu server, for instance the lumatron.art is currently hosted through [Digital Ocean](https://www.digitalocean.com/)
 - Open a console into root of your new server
-- Clone this repo: `git clone https://github.com/adrianmarple/orbitron`
+- Fork then clone this repo: `git clone https://github.com/adrianmarple/orbitron`
 - Run `utility_scripts/admin_install.sh` from the repo directory (should be named "orbitron")
 
 ## Connect a piece to your own server

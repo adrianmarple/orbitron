@@ -2,7 +2,7 @@
 
 sudo sh -c 'echo lumatron > /etc/hostname'
 sudo apt-get update
-sudo apt-get install python3-pip python3-numpy python3-scipy libsdl2-2.0 nodejs npm python3-websockets python3-venv python3-pil i2c-tools libgpiod-dev vim libmicrohttpd-dev build-essential iptables
+sudo apt-get install python3-pip python3-numpy python3-scipy libsdl2-2.0 nodejs npm python3-venv python3-pil i2c-tools libgpiod-dev vim libmicrohttpd-dev build-essential iptables
 
 # Set up communications
 sudo raspi-config nonint do_i2c 0
