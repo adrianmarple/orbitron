@@ -3,7 +3,7 @@ const WebSocket = require('ws')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
-const { config, processAdminCommand, noCorsHeader } = require('./lib')
+const { config, execute, processAdminCommand, noCorsHeader } = require('./lib')
 const { pullAndRestart } = require('./gitupdate')
 const homedir = require('os').homedir()
 const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
@@ -267,6 +267,23 @@ function bindClient(socket, orbID, clientID) {
   }
 } // END web socket section
 
+
+// Serve admin UI at /admin (no query params)
+addGETListener(async (response, _, filePath, queryParams) => {
+  if (filePath != "/admin") return false
+  if (Object.keys(queryParams).length > 0) return false
+  respondWithFile(response, "/admin/admin.html")
+  return true
+})
+
+// Serve git commit list for admin UI (used to show how far behind each orb is)
+addGETListener(async (response, orbID, filePath) => {
+  if (filePath != "/admin/commits") return false
+  let log = await execute("git log --pretty=format:'%H'")
+  noCorsHeader(response, 'text/json')
+  response.end(JSON.stringify(log.split("\n")))
+  return true
+})
 
 // Admin commands for this relay
 addGETListener(async (response, orbID, _, queryParams) => {

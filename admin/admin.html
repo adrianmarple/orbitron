@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no"/>
+<title>Admin - Lumatron</title>
+<link rel="stylesheet" href="/admin/admin.css">
+<script src="/thirdparty/vue.js" type="text/javascript"></script>
+</head>
+
+<body>
+<div id="app">
+  <div id="background"></div>
+  <div id="meta-container">
+    <div class="left side-box"></div>
+    <div id="container-wrapper">
+      <div id="container">
+        <div class="black-box" style="opacity:.999">
+          <div class="filler">
+
+            <!-- Orb list (right) -->
+            <div class="type-buttons">
+              <div v-for="orb in orbInfo" class="button orb" @click="setOrb(orb.id)">
+                <div>{{ orb.alias != null ? orb.alias : orb.id }}</div>
+                <div class="right">
+                  <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
+                  <div class="commit-status">
+                    <div v-if="idToCommit[orb.id] == undefined || idToCommit[orb.id] == -1" class="unknown">?</div>
+                    <div v-else-if="idToCommit[orb.id] == 0" class="ok">✓</div>
+                    <div v-else-if="idToCommit[orb.id] < 10" class="warning">{{ -idToCommit[orb.id] }}</div>
+                    <div v-else class="error">{{ -idToCommit[orb.id] }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions (left) -->
+            <div class="actions">
+              <div v-if="viewing=='config'" class="button" @click="genOrbID">Generate ORB_ID</div>
+              <div v-if="viewing=='config'" class="button" @click="setOrbKey">Set ORB_KEY</div>
+              <div v-if="viewing=='config'" class="button" @click="saveConfig">Save config.js
+                <span v-if="config != idToConfig[orbID]">*</span>
+              </div>
+              <div v-if="viewing=='prefs'" class="button" @click="savePrefs">Save prefs.json
+                <span v-if="prefs != idToPrefs[orbID]">*</span>
+              </div>
+              <div v-if="viewing=='timing'" class="button" @click="saveTimingPrefs">Save timingprefs.json
+                <span v-if="timingprefs != idToTimingPrefs[orbID]">*</span>
+              </div>
+              <div style="display:flex">
+                <div v-for="viewType in ['config', 'log']"
+                    class="button" :class="{ selected: viewing == viewType }"
+                    @click="setViewing(viewType)">
+                  {{ viewType }}
+                </div>
+              </div>
+              <div style="display:flex">
+                <div v-for="viewType in ['prefs', 'timing']"
+                    class="button" :class="{ selected: viewing == viewType }"
+                    @click="setViewing(viewType)">
+                  {{ viewType }}
+                </div>
+              </div>
+              <div class="button" :class="{ selected: viewing == 'command' }"
+                  @click="setViewing('command')">
+                Issue Commands
+              </div>
+              <div class="button" @click="viewBackups">All Backups</div>
+              <div class="button" @click="showCalibration">Power Calibration</div>
+              <div class="button" @click="restartOrb">Restart</div>
+              <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
+            </div>
+
+            <!-- Orb name + alias (top left) -->
+            <div class="names">
+              {{ orbID }}
+              <div @blur="editingAlias = false">Alias:
+                <span v-if="alias && !editingAlias" @click="editAlias">{{ alias }}</span>
+                <span v-else>
+                  <textarea v-model="newAlias"></textarea>
+                  <div class="button" @click="saveAlias">Save</div>
+                </span>
+              </div>
+            </div>
+
+            <!-- Config -->
+            <textarea v-if="viewing=='config'" class="main-text" v-model="config"></textarea>
+
+            <!-- Prefs -->
+            <textarea v-if="viewing=='prefs'" class="main-text" v-model="prefs"></textarea>
+
+            <!-- Timing prefs -->
+            <textarea v-if="viewing=='timing'" class="main-text" v-model="timingprefs"></textarea>
+
+            <!-- Log -->
+            <div v-if="viewing=='log'" class="main-text">
+              <textarea class="main-text" v-model="log" readonly></textarea>
+              <div class="row">
+                <div class="back button" @click="logDaysAgo += 1; updateLog()">Back</div>
+                <div style="font-size:2rem;margin:0.5rem 2rem;">{{ logDaysAgo }}</div>
+                <div class="back button" @click="logDaysAgo -= 1; updateLog()" :class="{ disabled: logDaysAgo <= 0 }">Forward</div>
+                <div class="back button" @click="logDaysAgo = 0; updateLog()">FF</div>
+              </div>
+            </div>
+
+            <!-- Commands -->
+            <div v-if="viewing=='command'" class="main-text" id="command">
+              <textarea class="main-text" v-model="commandResponses" readonly></textarea>
+              <div style="display:flex">
+                <textarea class="command-prompt" v-model="command" @keydown="onCommandKeydown"></textarea>
+                <div class="button" @click="unlockOrb">Unlock Orb</div>
+              </div>
+            </div>
+
+            <!-- Backups -->
+            <div v-if="viewing=='backups'" id="backups">
+              <div class="list">
+                <div v-for="fileName in backupList" class="backup"
+                    :class="{ selected: selectedBackup == fileName }"
+                    @click="selectedBackup = fileName; deleteSelected = false">
+                  {{ fileName }}
+                  <div class="button" @click.stop="selectedBackup = fileName; deleteSelected = true">Delete</div>
+                </div>
+              </div>
+              <div class="row">
+                <div v-if="deleteSelected" class="button" @click="deleteBackup">Delete Backup</div>
+                <div v-else class="button" :class="{ disabled: !selectedBackup }" @click="restoreBackup">Restore Backup</div>
+                <div class="button" @click="viewing = 'config'; deleteSelected = false">Cancel</div>
+              </div>
+              <div class="row text-with-button">
+                <textarea v-model="manualBackupName"></textarea>
+                <div class="button" :class="{ disabled: !manualBackupName }" @click="manualBackup">Manual Backup</div>
+              </div>
+            </div>
+
+            <!-- Power calibration -->
+            <div v-if="viewing=='calibration'" id="calibration">
+              <div v-if="MAX_POWER_DRAW">MAX_POWER_DRAW present</div>
+              <div v-if="MAX_AVG_PIXEL_BRIGHTNESS">MAX_AVG_PIXEL_BRIGHTNESS present</div>
+              <div v-if="MAX_POWER_DRAW || MAX_AVG_PIXEL_BRIGHTNESS" class="row">
+                <div class="button" @click="clearMaxes">Clear Maxes</div>
+              </div>
+              <div v-if="calibratingPower" class="row">
+                Do you see any dimming (i.e. part of the strip starting to turn a bit yellow)?
+              </div>
+              <div v-if="calibratingPower" class="row">
+                <div class="button" @click="nextPowerValue(true)">Good 👍</div>
+                <div class="button" @click="nextPowerValue(false)">Too Bright!</div>
+              </div>
+              <div v-if="!calibratingPower" class="row">
+                You will need to have the piece visible in front of you.
+              </div>
+              <div v-if="!calibratingPower" class="row">
+                <div class="button" @click="startPowerCalibration">Start Power Calibration</div>
+              </div>
+            </div>
+
+          </div><!-- .filler -->
+        </div><!-- .black-box -->
+        <svg id="nav">
+          <mask id="nav-mask" x="0" y="0" :width="width" height="100">
+            <rect x="0" y="0" :width="width" height="100" fill="white"></rect>
+            <text x="126" y="50" fill="black">(Lumatron admin)</text>
+          </mask>
+          <rect :width="width" height="100" mask="url(#nav-mask)" fill="var(--bg-color)"></rect>
+        </svg>
+      </div><!-- #container -->
+    </div><!-- #container-wrapper -->
+    <div class="right side-box"></div>
+  </div><!-- #meta-container -->
+</div><!-- #app -->
+
+<script src="/admin/admin.js" type="text/javascript"></script>
+</body>
+</html>
