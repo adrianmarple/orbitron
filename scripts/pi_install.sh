@@ -12,8 +12,8 @@ sudo raspi-config nonint do_ssh 0
 sudo raspi-config nonint disable_raspi_config_at_boot 0
 
 # Set up dnsmasq redirects for hotspot
-sudo cp /home/pi/orbitron/utility_scripts/00-dnsmasq.conf /etc/NetworkManager/conf.d/
-sudo cp /home/pi/orbitron/utility_scripts/00-orb.conf /etc/NetworkManager/dnsmasq-shared.d/
+sudo cp /home/pi/orbitron/scripts/00-dnsmasq.conf /etc/NetworkManager/conf.d/
+sudo cp /home/pi/orbitron/scripts/00-orb.conf /etc/NetworkManager/dnsmasq-shared.d/
 
 # Set up python
 python -m venv --system-site-packages ~/.env

@@ -2,42 +2,33 @@
 
 Lumatron is a LED sculpture system. You are free to play with this code, but as per the license you may not make money from it.
 
-# Contributions Welcome
-
-Contributions are encouraged! The easiest ways to contribute:
-
-- **New idle patterns** — See [idlepatterns/README.md](idlepatterns/README.md) for details.
-- **New games** — See [games/README.md](games/README.md) for details.
-- Clarifications or other improvements to any READMEs
-- General optimizations or improvements
-
 ## Connecting an existing piece to the internet
 
-- If you have never connected a piece before the following instructions can be viewed by visiting `https://my.lumatron.art`
-  - Plug in the Lumatron box into the power source and the box into the piece (do not plug the piece directly into the usb-c wall plug)
-  - Wait for a few minutes for the box to boot up (until pink light is flashing)
-  - Join the wifi named Lumatron
-  - Once on that wifi, the visit url http://10.42.0.1
-  - Enter the wifi name (SSID) and password in the page that loads
-  - Refresh the page once the first pixel turns off
+Here's how to connect a piece that does not already have an internet connection (if no piece is already connected to the same wifi you're on these instructions can also be viewed by visiting `https://my.lumatron.art`)
+- Plug in the Lumatron box into the power source and the box into the piece (do not plug the piece directly into the usb-c wall plug)
+- Wait for a few minutes for the box to boot up (until pink light is flashing)
+- Join the wifi named Lumatron
+- Once on that wifi, the visit url http://10.42.0.1
+- Enter the wifi name (SSID) and password in the page that loads
+- Refresh the page once the first pixel turns off
 
 ## Controlling a piece
 
 - Visit `https://my.lumatron.art`
-- Turn into a progressive web app by following the instructions at the bottom
+- (optional) Turn the site into a progressive web app by following the instructions at the bottom of the page
 
 # Using the Emulator
 
-- Clone this repo (`git clone https://github.com/adrianmarple/orbitron`) on your local machine (Windows not supported)
-- Run `utility_scripts/admin_install.sh` from the repo directory (should be named "orbitron")
+- Clone (optionally fork first) this repo (`git clone https://github.com/adrianmarple/orbitron`) on your local machine (Windows not supported)
+- Run `admin_install.sh` (in the `scripts` folder)
 - Start the emulator by running `sudo ./startscript.sh`
 - Open `http://localhost:1337/view` for the emulator
 - Open `http://<localhost or your IP address>:1337` to open one or more controllers on either your desktop or your phone
 
 ## The admin console
 
+- Make sure you've run `admin_install.sh`
 - In terminal `cd` to `creation` folder
-- Install node dependencies `npm install`
 - Run `node pixelserver.js`
 - Visit url `http://localhost:8080/?local`
 - More details in [the creation folder README](creation)
@@ -60,7 +51,7 @@ See [the games folder README](games)
 - Create an ubuntu server, for instance the lumatron.art is currently hosted through [Digital Ocean](https://www.digitalocean.com/)
 - Open a console into root of your new server
 - Fork then clone this repo: `git clone https://github.com/adrianmarple/orbitron`
-- Run `utility_scripts/admin_install.sh` from the repo directory (should be named "orbitron")
+- Run `server_install.sh` (in the `scripts` folder)
 
 ## Connect a piece to your own server
 
@@ -72,15 +63,24 @@ See [the games folder README](games)
 
 ## The admin console
 
+- Run `admin_install.sh` (in the `scripts` folder) on your local machine
 - Same as with a local admin console, in terminal `cd` to `creation` folder
-- Install node dependencies `npm install`
 - Run `node pixelserver.js`
-- Visit url `http://localhost:8080/` (without the `?local`)
+- Visit url `http://localhost:8080/` (note that for the local admin console, we used `?local`, and are not doing that here)
 - If in creation mode, click the "LUMATRON CREATION" button at the bottom to switch to admin mode
 - I recommend hitting the "Set ORB_KEY" button followed by the "Save config.js" button for all connected orbs (including the server itself - default named "demo")
   - Note: if this button is not visible hit the "config" button first
 - Again see [the creation folder README](creation) for more details
 
+# Contributions Welcome
+
+Here's a list of things I would welcome receiving PRs for.
+
+- New idle patterns — See [idlepatterns/README.md](idlepatterns/README.md) for details
+- New games — See [games/README.md](games/README.md) for details
+- Clarifications or other improvements to any READMEs
+- UX improvements or other quality of life features for the controller
+- General optimizations or improvements
 
 # Micro SD card setup
 
@@ -129,7 +129,7 @@ See [the games folder README](games)
 ### Clone Repo and run installer
 
 - `git clone https://github.com/adrianmarple/orbitron`
-- `~/orbitron/utility_scripts/pi_install.sh`
+- `~/orbitron/scripts/pi_install.sh`
 
 # Additional useful things of note
 

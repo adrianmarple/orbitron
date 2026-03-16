@@ -10,7 +10,7 @@ Lumatron is an LED light sculpture system supporting a wide variety of shapes (s
 
 ```bash
 # Initial setup (admin/dev machine)
-bash utility_scripts/admin_install.sh   # generates config.js, creation/.env, installs npm + Python deps
+bash scripts/admin_install.sh   # generates config.js, creation/.env, installs npm + Python deps
 
 # Run
 sudo node server.js      # or: npm start (runs main.js instead, which checks for updates)

@@ -3,7 +3,19 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+ROOT_DIR="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+
+# Generate a random master key
+MASTER_KEY=$(openssl rand -hex 48)
+
+# Write creation/.env
+ENV_FILE="$ROOT_DIR/creation/.env"
+if [ -f "$ENV_FILE" ]; then
+  echo "WARNING: $ENV_FILE already exists. Skipping."
+else
+  echo "MASTER_KEY=$MASTER_KEY" > "$ENV_FILE"
+  echo "Created $ENV_FILE"
+fi
 
 # Write config.js
 CONFIG_FILE="$ROOT_DIR/config.js"
@@ -12,21 +24,10 @@ if [ -f "$CONFIG_FILE" ]; then
 else
   cat > "$CONFIG_FILE" << 'EOF'
 module.exports={
-  ORB_ID:"demo",
-  ORB_KEY: "302695c58cda528101d1bbb4fcc437dde33b168dc0ff9104029ea93639a0c09f",
-  DEV_MODE: false,
+  ORB_ID: "test",
+  DEV_MODE: true,
   HAS_EMULATION: true,
-  CLEAR_PREFS_ON_DISCONNECT: true,
-  PIXELS: "sixfold/ravenstear",
-  HTTP_SERVER_PORT: 443,
-  WEBHOOK_SECRET: "rhomberman",
   IS_RELAY: true,
-  KEY_LOCATION: '/etc/letsencrypt/live/orbitron.games/privkey.pem',
-  CERT_LOCATION: '/etc/letsencrypt/live/orbitron.games/fullchain.pem',
-  EXCLUDE: {
-    save: true,
-    timing: true,
-  },
 }
 EOF
   echo "Created $CONFIG_FILE"
@@ -35,6 +36,7 @@ fi
 # Install Node dependencies
 echo "Installing Node dependencies..."
 npm --prefix "$ROOT_DIR" install
+npm --prefix "$ROOT_DIR/creation" install
 
 # Set up Python virtual environment
 VENV_DIR="$ROOT_DIR/.venv"
@@ -45,12 +47,4 @@ fi
 echo "Installing Python dependencies..."
 "$VENV_DIR/bin/pip" install -r "$ROOT_DIR/requirements.txt"
 
-# Set up pm2
-echo "Setting up pm2..."
-sudo npm install -g pm2
-sudo pm2 install pm2-logrotate
-sudo pm2 start "$ROOT_DIR/startscript.sh"
-sudo pm2 startup
-sudo pm2 save
-
-echo "Server install complete."
+echo "Admin install complete."

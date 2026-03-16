@@ -1,5 +1,6 @@
 # Basic setup
 
+- Run `admin_install.sh` (in the `scripts` folder)
 - In terminal `cd` to this (`creation`) folder
 - Install node dependencies `npm install`
 - Run `node pixelserver.js`
@@ -17,7 +18,7 @@ The right side features a list of all orbs connected to the relay (or local rela
 
 ### Editing local files
 
-There are 3 files that can be edited directly by clicking on the corresponding button and either typing ctrl-s or hitting the corresponding "Save [[X]]" button (which will restart the corresponding orb).
+There are 3 files that can be edited directly by clicking on the corresponding button and either typing ctrl-s or hitting the corresponding "Save [X]" button (which will restart the corresponding orb).
 - config: this is the most important one. It lets you change the fundamentals of the orb. Check `config.js.template` in the repo root for examples.
   - When in this view there are "Generate ORB_ID" and "Set ORB_KEY" buttons visible.
     These edit the scratch `config.js` in the center, but you still need to save for them to take any effect.

@@ -8,8 +8,6 @@ const { pullAndRestart } = require('./gitupdate')
 const homedir = require('os').homedir()
 const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 const { startOrb } = require('./orb')
-const { PIXELS } = require('./config')
-const path = require('path')
 
 const connectedOrbs = {}
 const orbToIP = {}
