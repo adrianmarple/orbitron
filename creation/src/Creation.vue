@@ -1,62 +1,81 @@
 <template>
-<div class="type-buttons">
-  <div v-for="project in activeProjects" class="button" @click="openProject(project)">
-    {{ project.shortName }}
-  </div>
-  <div v-if="skippedProjects.length" class="skip-toggle" @click="showSkipped = !showSkipped">
-    {{ showSkipped ? '▾' : '▸' }} Skipped
-  </div>
-  <template v-if="showSkipped">
-    <div v-for="project in skippedProjects" class="button skipped" @click="openProject(project)">
+<div id="background"></div>
+
+<div id="meta-container">
+  <div class="type-buttons">
+    <div v-for="project in activeProjects" class="button" @click="openProject(project)">
       {{ project.shortName }}
     </div>
-  </template>
-</div>
-<div class="actions">
-  <div class="button" @click="toggleCoverMode">Toggle Cover Mode ({{ coverMode[0] }})</div>
-  <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
-  <div class="button" @click="downloadGitFiles">Create git files</div>
-  <div class="button" @click="removeGitFiles">Remove git files</div>
-  <div class="button" @click="genPrints">Generate Prints</div>
-  <!-- <div class="button" @click="genModel('simple')">Simple 3D Model</div> -->
-  <!-- <div class="button" @click="genModel('simplest')">Ultra Simple 3D Model</div> -->
-  <div class="button" @click="genModel('parts')">3D Model with part IDs</div>
-  <div class="button" @click="makeForArduino">Create Arudino file</div>
-  <div class="button" @click="cleanup">Cleanup Printer Files</div>
-  <!-- <div class="button" @click="configure">Configure Default Orb</div> -->
-</div>
+    <div v-if="skippedProjects.length" class="skip-toggle" @click="showSkipped = !showSkipped">
+      {{ showSkipped ? '▾' : '▸' }} Skipped
+    </div>
+    <template v-if="showSkipped">
+      <div v-for="project in skippedProjects" class="button skipped" @click="openProject(project)">
+        {{ project.shortName }}
+      </div>
+    </template>
+  </div>
+  <div class="actions">
+    <div class="button" @click="toggleCoverMode">Toggle Cover Mode ({{ coverMode[0] }})</div>
+    <div class="button" @click="advanceCoverIndex">Next Cover ({{ coverIndex }})</div>
+    <div class="button" @click="downloadGitFiles">Create git files</div>
+    <div class="button" @click="removeGitFiles">Remove git files</div>
+    <div class="button" @click="genPrints">Generate Prints</div>
+    <!-- <div class="button" @click="genModel('simple')">Simple 3D Model</div> -->
+    <!-- <div class="button" @click="genModel('simplest')">Ultra Simple 3D Model</div> -->
+    <div class="button" @click="genModel('parts')">3D Model with part IDs</div>
+    <div class="button" @click="makeForArduino">Create Arudino file</div>
+    <div class="button" @click="cleanup">Cleanup Printer Files</div>
+    <!-- <div class="button" @click="configure">Configure Default Orb</div> -->
+  </div>
 
-<div id="settings">
-  <div v-for="setting in settings">
-    <div v-if="setting.type == 'bool'" @click="setting.value = !setting.value; updateSetting(setting)">
-      <input type="checkbox" v-model="setting.value">
-      {{ setting.name }}
-    </div>
-    <div v-if="setting.type == 'int'">
-      <input type="number" @change="updateSetting(setting)"
-          v-model="setting.value">
-      {{ setting.name }}
-    </div>
-    <div v-if="setting.type == 'select'">
-      <select @change="updateSetting(setting)" v-model="setting.value">
-        <option v-for="option in setting.options"
-            :value="option[0]">
-          {{ option[1] }}
-        </option>
-      </select>
+  <div id="settings">
+    <div v-for="setting in settings">
+      <div v-if="setting.type == 'bool'" @click="setting.value = !setting.value; updateSetting(setting)">
+        <input type="checkbox" v-model="setting.value">
+        {{ setting.name }}
+      </div>
+      <div v-if="setting.type == 'int'">
+        <input type="number" @change="updateSetting(setting)"
+            v-model="setting.value">
+        {{ setting.name }}
+      </div>
+      <div v-if="setting.type == 'select'">
+        <select @change="updateSetting(setting)" v-model="setting.value">
+          <option v-for="option in setting.options"
+              :value="option[0]">
+            {{ option[1] }}
+          </option>
+        </select>
+      </div>
     </div>
   </div>
+
+  <div id="full-name">{{ fullProjectName }}</div>
+
+  <canvas id="path" width="1000" height="1000"></canvas>
+  <svg id="wall" class="laser" width=1000 height=100 viewBox="0 0 1000 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path stroke="#808080"/>
+  </svg>
+  <svg id="cover" class="laser" width=0 height=0 viewBox="-1000 -1000 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scaleY(-1)">
+    <path stroke="#808080"/>
+  </svg>
+
+  <div class="left side-box"></div>
+  <div id="container-wrapper">
+    <div id="container">
+      <div class="black-box" style="opacity: .999;"></div>
+      <svg id="nav">
+        <mask id="nav-mask" x="0" y="0" :width="width" height=100>
+          <rect x=0 y=0 :width="width" height=100 fill="white"></rect>
+          <text :x="navTextX" y=50 fill="black">(Lumatron creation)</text>
+        </mask>
+        <rect :width="width" height=100 mask="url(#nav-mask)" fill="var(--bg-color)"></rect>
+      </svg>
+    </div>
+  </div>
+  <div class="right side-box"></div>
 </div>
-
-<div id="full-name">{{ fullProjectName }}</div>
-
-<canvas id="path" width="1000" height="1000"></canvas>
-<svg id="wall" class="laser" width=1000 height=100 viewBox="0 0 1000 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path stroke="#808080"/>
-</svg>
-<svg id="cover" class="laser" width=0 height=0 viewBox="-1000 -1000 1000 1000" fill="none" xmlns="http://www.w3.org/2000/svg" style="transform: scaleY(-1)">
-  <path stroke="#808080"/>
-</svg>
 </template>
 
 <script>
@@ -64,9 +83,8 @@ export default {
   name: 'Creation',
   data() {
     return {
-      renderInterval: null,
       innerWidth,
-      mode: "creation",
+      renderInterval: null,
       currentProject: {name: ""},
       coverMode: "bottom",
       coverIndex: 0,
@@ -97,6 +115,13 @@ export default {
       pathIndex: -1,
     }
   },
+  created() {
+    let self = this
+    addEventListener('resize', () => {
+      self.innerWidth = innerWidth
+      self.$forceUpdate()
+    })
+  },
   mounted() {
     for (var setting of this.settings) {
       setting.value = localStorage.getItem(setting.name) || setting.value
@@ -108,15 +133,7 @@ export default {
 
     let eventTypes = ['onmousedown', 'onmousemove', 'onmouseup', 'onkeydown', 'onwheel']
     for (let eventType of eventTypes) {
-      document[eventType] = (e) => {
-        if (this.$root.mode == 'creation') {
-          this[eventType](e)
-        } else {
-          this.isDragging = false
-          this.previousXY = null
-        }
-
-      }
+      document[eventType] = (e) => this[eventType](e)
     }
     this.renderInterval = setInterval(this.render, 30)
   },
@@ -126,6 +143,9 @@ export default {
   computed: {
     width() {
       return Math.min(700, this.innerWidth)
+    },
+    navTextX() {
+      return 196 - "creation".length * 14
     },
     fullProjectName() {
       return this.currentProject.name
@@ -138,6 +158,17 @@ export default {
     },
   },
   methods: {
+    post(bodyJSON) {
+      return fetch("http://localhost:8000/", {
+        method: "POST",
+        mode: 'no-cors',
+        body: JSON.stringify(bodyJSON),
+        headers: {
+          "Content-type": "application/json; charset=UTF-8"
+        }
+      })
+    },
+
     updateSetting(setting) {
       localStorage.setItem(setting.name, setting.value)
       window[setting.name] = setting.value
@@ -202,7 +233,7 @@ export default {
     },
 
     cleanup() {
-      this.$root.post({
+      this.post({
         fullProjectName: this.fullProjectName,
         type: "cleanup",
       })
@@ -210,7 +241,7 @@ export default {
     },
     download(fileName, data) {
       console.log(`Downloading ${fileName}`, data)
-      return this.$root.post({
+      return this.post({
         type: "download",
         fileName,
         data,
@@ -218,7 +249,7 @@ export default {
     },
     removeFile(fileName) {
       console.log(`Removing ${fileName}`)
-      return this.$root.post({
+      return this.post({
         type: "remove",
         fileName,
       })
@@ -246,7 +277,7 @@ export default {
     genPrints() {
       let printInfo = createPrintInfo3D()
       printInfo.fullProjectName = fullProjectName
-      this.$root.post(printInfo)
+      this.post(printInfo)
       console.log("Generating prints")
     },
     async genModel(renderMode) {
@@ -255,7 +286,7 @@ export default {
       await generateManufacturingInfo()
       let printInfo = createFullModel()
       printInfo.prints[0].suffix = "_" + renderMode
-      
+
       if (renderMode == "simple" || renderMode == "simplest") {
         let oldDepth = CHANNEL_DEPTH
         let oldThickness = THICKNESS
@@ -274,7 +305,7 @@ export default {
         THICKNESS = oldThickness
         BORDER = oldBorder
         COVER_TYPES = ["top", "bottom"]
-        
+
         printInfo.additionalSavePath = "../stls"
         if (renderMode == "simple") {
           printInfo.additionalSavePathSuffix = "_full"
@@ -282,14 +313,9 @@ export default {
       }
       RENDER_MODE = oldMode
       printInfo.fullProjectName = fullProjectName
-      this.$root.post(printInfo)
+      this.post(printInfo)
       console.log("Generating " + renderMode)
       generateManufacturingInfo() // Restore old svgs and such
-    },
-
-    configure() {
-      this.$root.$refs.admin.configureDefault(this.fullProjectName)
-      this.$root.toggleMode()
     },
 
     makeForArduino() {
@@ -306,7 +332,6 @@ export default {
         return padded
       })
 
-
       function convertToArduinoArrayString(array) {
         return JSON.stringify(array)
             .replaceAll('"', '')
@@ -316,7 +341,7 @@ export default {
 
       let subname = this.fullProjectName.split("/").pop()
       console.log("Creating Arduino file for " + subname)
-      this.$root.post({
+      this.post({
         type: "arduino",
         subname,
         SIZE: info.SIZE,
@@ -364,7 +389,7 @@ export default {
       }
       let edge = edges[path[this.pathIndex-1]]
       if (!edge) return
-      
+
       if (edge.isDupe) {
         edge = edge.dual
       }
@@ -486,7 +511,141 @@ export default {
 </script>
 
 <style>
+@font-face {
+  font-family: "Lumatron";
+  font-display: auto;
+  src: url('/barcade.otf');
+}
 
+html, body, #app {
+  width: 100%;
+  min-height: 100vh;
+}
+body {
+  margin: 0;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  --bg-color: #080808;
+}
+
+@keyframes animatedBackground {
+  from { background-position: 0 0; }
+  to { background-position: max(100vw, 100vh) max(100vw, 100vh); }
+}
+#background {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: -10;
+  font-size: max(100vw, 100vh);
+  width: 1em;
+  height: 1em;
+  background-image: repeating-linear-gradient(
+      -45deg,
+      #00f 0,
+      #a0a 12.5%,
+      #f00 25%,
+      #a0a 37.5%,
+      #00f 50%,
+      #a0a 62.5%,
+      #f00 75%,
+      #a0a 87.5%,
+      #00f 100%
+    );
+  animation: animatedBackground 20s linear infinite;
+}
+
+.button {
+  z-index: 1;
+  padding: 10px 20px;
+  margin: 6px 2px;
+  font-size: 24px;
+  border: 1px solid black;
+  border-radius: 12px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+}
+.type-buttons {
+  position: fixed;
+  right:  24px;
+  top: 24px;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  height: 95vh;
+  overflow-y: scroll;
+}
+.actions {
+  z-index: 10;
+  position: fixed;
+  left:  24px;
+  bottom: 24px;
+}
+
+#nav {
+  width: 100%;
+  display: flex;
+  height: 100px;
+  font-weight: 700;
+}
+#nav text {
+  font-size: 6em;
+  font-family: Lumatron;
+}
+
+#meta-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.side-box {
+  width: calc(50% - 300px);
+  min-width: 50px;
+  height: 100vh;
+  z-index: -1;
+  position: fixed;
+}
+.left.side-box {
+  left: -50px;
+  background-image: linear-gradient(to right, rgba(8,8,8,0.9) 0, var(--bg-color) 80%);
+}
+.right.side-box {
+  right: -50px;
+  background-image: linear-gradient(to left, rgba(8,8,8,0.9) 0, var(--bg-color) 80%);
+}
+
+#container-wrapper {
+  max-width: 700px;
+  width: 100vw;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: 100vh;
+  position: fixed;
+}
+
+#container {
+  width: 100%;
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #f5f5f5;
+  font-size: .5em;
+  letter-spacing: 0.1em;
+}
+
+.black-box {
+  background-color: var(--bg-color);
+  width: 100%;
+  height: 100%;
+}
 #path {
   padding: 0 calc(50vw - 50vh);
   left: 0;
@@ -523,14 +682,6 @@ export default {
   width: 3em;
   margin: 0 12px;
 }
-#settings textarea {
-  margin-left: 12px;
-  font-size: 1em;
-  width: 200px;
-  resize: none;
-  overflow: hidden;
-}
-
 #wall, #cover {
   position: absolute;
   pointer-events: none;
@@ -556,10 +707,10 @@ export default {
   color: white;
   z-index: 1;
 }
-#meta-container > div > .type-buttons {
+#meta-container > .type-buttons {
   overflow-x: hidden;
 }
-#meta-container > div > .type-buttons .button {
+#meta-container > .type-buttons .button {
   max-width: 200px;
   height: 33px;
 }

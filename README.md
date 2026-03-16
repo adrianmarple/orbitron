@@ -28,10 +28,10 @@ Here's how to connect a piece that does not already have an internet connection 
 ## The admin console
 
 - Make sure you've run `admin_install.sh`
-- In terminal `cd` to `creation` folder
-- Run `node pixelserver.js`
-- Visit url `http://localhost:8080/?local`
-- More details in [the creation folder README](creation)
+- Ensure the local server (`sudo ./startscript.sh`) is running
+- Visit url `http://localhost:1337/admin`
+- Follow instructions for entering a master key
+- More details in [the admin folder README](admin)
 
 ## Controlling a piece
 
@@ -63,14 +63,11 @@ See [the games folder README](games)
 
 ## The admin console
 
-- Run `admin_install.sh` (in the `scripts` folder) on your local machine
-- Same as with a local admin console, in terminal `cd` to `creation` folder
-- Run `node pixelserver.js`
-- Visit url `http://localhost:8080/` (note that for the local admin console, we used `?local`, and are not doing that here)
-- If in creation mode, click the "LUMATRON CREATION" button at the bottom to switch to admin mode
+- Ensure your server is properly set up
+- Visit url `https://your-domain-or-ip/admin`
 - I recommend hitting the "Set ORB_KEY" button followed by the "Save config.js" button for all connected orbs (including the server itself - default named "demo")
   - Note: if this button is not visible hit the "config" button first
-- Again see [the creation folder README](creation) for more details
+- Again see [the admin folder README](admin) for more details
 
 # Contributions Welcome
 

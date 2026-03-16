@@ -100,8 +100,8 @@
             <div v-else-if="idToCommit[orb.id] < 10" class="warning">{{ -idToCommit[orb.id] }}</div>
             <div v-else class="error">{{ -idToCommit[orb.id] }}</div>
           </div>
+          <div>{{ orb.alias != null ? orb.alias : orb.id }}</div>
         </div>
-        <div>{{ orb.alias != null ? orb.alias : orb.id }}</div>
         <div class="right">
           <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
         </div>

@@ -229,9 +229,34 @@ a, a:visited { color: inherit; }
 .type-buttons .button {
   padding: 10px;
 }
+.type-buttons .left {
+  display: flex;
+  align-items: center;
+}
 .type-buttons .right {
   font-size: 0.6em;
 }
+
+/* ── Commit status badges ── */
+.commit-status {
+  width: 26px;
+  height: 26px;
+  margin-right: 8px;
+}
+.commit-status > div {
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.9em;
+}
+.commit-status .unknown { background-color: #00f; }
+.commit-status .ok      { background-color: #4afa41; }
+.commit-status .warning { background-color: #ffe600; }
+.commit-status .error   { background-color: #ff2600; }
+
 
 /* ── Main content textarea ── */
 .main-text {
@@ -323,26 +348,6 @@ a, a:visited { color: inherit; }
 #calibration .row {
   margin-bottom: 2rem;
 }
-
-/* ── Commit status badges ── */
-.commit-status {
-  width: 26px;
-  height: 26px;
-}
-.commit-status > div {
-  border-radius: 50%;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 0.9em;
-}
-.commit-status .unknown { background-color: #00f; }
-.commit-status .ok      { background-color: #4afa41; }
-.commit-status .warning { background-color: #ffe600; }
-.commit-status .error   { background-color: #ff2600; }
-
 /* ── Master key modal ── */
 #masterkey-modal {
   position: fixed;
