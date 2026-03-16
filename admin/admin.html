@@ -26,77 +26,101 @@
     </div>
   </div>
 
+  <!-- Overlay to close drawers on narrow screens -->
+  <div v-if="drawerOverlay" id="drawer-overlay"
+      @click="leftOpen = false; rightOpen = false"></div>
+
+  <!-- Left drawer: orb name/alias + actions -->
+  <div id="left-drawer" :class="{ closed: !leftOpen }">
+    <div class="drawer-tab" id="left-tab" @click="leftOpen = !leftOpen">
+      {{ leftOpen ? '◀' : '▶' }}
+    </div>
+
+    <div class="names">
+      {{ orbID }}
+      <div @blur="editingAlias = false">Alias:
+        <span v-if="alias && !editingAlias" @click="editAlias">{{ alias }}</span>
+        <span v-else>
+          <textarea v-model="newAlias"></textarea>
+          <div class="button" @click="saveAlias">Save</div>
+        </span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <div v-if="viewing=='config'" class="button" @click="genOrbID">Generate ORB_ID</div>
+      <div v-if="viewing=='config'" class="button" @click="setOrbKey">Set ORB_KEY</div>
+      <div v-if="viewing=='config'" class="button" @click="saveConfig">Save config.js
+        <span v-if="config != idToConfig[orbID]">*</span>
+      </div>
+      <div v-if="viewing=='prefs'" class="button" @click="savePrefs">Save prefs.json
+        <span v-if="prefs != idToPrefs[orbID]">*</span>
+      </div>
+      <div v-if="viewing=='timing'" class="button" @click="saveTimingPrefs">Save timingprefs.json
+        <span v-if="timingprefs != idToTimingPrefs[orbID]">*</span>
+      </div>
+      <div style="display:flex">
+        <div v-for="viewType in ['config', 'log']"
+            class="button" :class="{ selected: viewing == viewType }"
+            @click="setViewing(viewType)">
+          {{ viewType }}
+        </div>
+      </div>
+      <div style="display:flex">
+        <div v-for="viewType in ['prefs', 'timing']"
+            class="button" :class="{ selected: viewing == viewType }"
+            @click="setViewing(viewType)">
+          {{ viewType }}
+        </div>
+      </div>
+      <div class="button" :class="{ selected: viewing == 'command' }"
+          @click="setViewing('command')">
+        Issue Commands
+      </div>
+      <div class="button" @click="viewBackups">All Backups</div>
+      <div class="button" @click="showCalibration">Power Calibration</div>
+      <div class="button" @click="restartOrb">Restart</div>
+      <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
+    </div>
+  </div>
+
+  <!-- Right drawer: orb list -->
+  <div id="right-drawer" :class="{ closed: !rightOpen }">
+    <div class="drawer-tab" id="right-tab" @click="rightOpen = !rightOpen">
+      {{ rightOpen ? '▶' : '◀' }}
+    </div>
+
+    <div class="type-buttons">
+      <div v-for="orb in orbInfo" class="button orb" @click="setOrb(orb.id)">
+        <div class="left">
+          <div class="commit-status">
+            <div v-if="idToCommit[orb.id] == undefined || idToCommit[orb.id] == -1" class="unknown">?</div>
+            <div v-else-if="idToCommit[orb.id] == 0" class="ok">✓</div>
+            <div v-else-if="idToCommit[orb.id] < 10" class="warning">{{ -idToCommit[orb.id] }}</div>
+            <div v-else class="error">{{ -idToCommit[orb.id] }}</div>
+          </div>
+        </div>
+        <div>{{ orb.alias != null ? orb.alias : orb.id }}</div>
+        <div class="right">
+          <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="meta-container">
     <div class="left side-box"></div>
     <div id="container-wrapper">
       <div id="container">
+        <svg id="nav">
+          <mask id="nav-mask" x="0" y="0" :width="width" height="100">
+            <rect x="0" y="0" :width="width" height="100" fill="white"></rect>
+            <text :x="navTextX" y="50" :font-size="navFontSize" fill="black">(Lumatron admin)</text>
+          </mask>
+          <rect :width="width" height="100" mask="url(#nav-mask)" fill="var(--bg-color)"></rect>
+        </svg>
         <div class="black-box" style="opacity:.999">
           <div class="filler">
-
-            <!-- Orb list (right) -->
-            <div class="type-buttons">
-              <div v-for="orb in orbInfo" class="button orb" @click="setOrb(orb.id)">
-                <div>{{ orb.alias != null ? orb.alias : orb.id }}</div>
-                <div class="right">
-                  <span v-if="idToIP[orb.id]">({{ idToIP[orb.id] }})</span>
-                  <div class="commit-status">
-                    <div v-if="idToCommit[orb.id] == undefined || idToCommit[orb.id] == -1" class="unknown">?</div>
-                    <div v-else-if="idToCommit[orb.id] == 0" class="ok">✓</div>
-                    <div v-else-if="idToCommit[orb.id] < 10" class="warning">{{ -idToCommit[orb.id] }}</div>
-                    <div v-else class="error">{{ -idToCommit[orb.id] }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Actions (left) -->
-            <div class="actions">
-              <div v-if="viewing=='config'" class="button" @click="genOrbID">Generate ORB_ID</div>
-              <div v-if="viewing=='config'" class="button" @click="setOrbKey">Set ORB_KEY</div>
-              <div v-if="viewing=='config'" class="button" @click="saveConfig">Save config.js
-                <span v-if="config != idToConfig[orbID]">*</span>
-              </div>
-              <div v-if="viewing=='prefs'" class="button" @click="savePrefs">Save prefs.json
-                <span v-if="prefs != idToPrefs[orbID]">*</span>
-              </div>
-              <div v-if="viewing=='timing'" class="button" @click="saveTimingPrefs">Save timingprefs.json
-                <span v-if="timingprefs != idToTimingPrefs[orbID]">*</span>
-              </div>
-              <div style="display:flex">
-                <div v-for="viewType in ['config', 'log']"
-                    class="button" :class="{ selected: viewing == viewType }"
-                    @click="setViewing(viewType)">
-                  {{ viewType }}
-                </div>
-              </div>
-              <div style="display:flex">
-                <div v-for="viewType in ['prefs', 'timing']"
-                    class="button" :class="{ selected: viewing == viewType }"
-                    @click="setViewing(viewType)">
-                  {{ viewType }}
-                </div>
-              </div>
-              <div class="button" :class="{ selected: viewing == 'command' }"
-                  @click="setViewing('command')">
-                Issue Commands
-              </div>
-              <div class="button" @click="viewBackups">All Backups</div>
-              <div class="button" @click="showCalibration">Power Calibration</div>
-              <div class="button" @click="restartOrb">Restart</div>
-              <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
-            </div>
-
-            <!-- Orb name + alias (top left) -->
-            <div class="names">
-              {{ orbID }}
-              <div @blur="editingAlias = false">Alias:
-                <span v-if="alias && !editingAlias" @click="editAlias">{{ alias }}</span>
-                <span v-else>
-                  <textarea v-model="newAlias"></textarea>
-                  <div class="button" @click="saveAlias">Save</div>
-                </span>
-              </div>
-            </div>
 
             <!-- Config -->
             <textarea v-if="viewing=='config'" class="main-text" v-model="config"></textarea>
@@ -172,13 +196,6 @@
 
           </div><!-- .filler -->
         </div><!-- .black-box -->
-        <svg id="nav">
-          <mask id="nav-mask" x="0" y="0" :width="width" height="100">
-            <rect x="0" y="0" :width="width" height="100" fill="white"></rect>
-            <text x="126" y="50" fill="black">(Lumatron admin)</text>
-          </mask>
-          <rect :width="width" height="100" mask="url(#nav-mask)" fill="var(--bg-color)"></rect>
-        </svg>
       </div><!-- #container -->
     </div><!-- #container-wrapper -->
     <div class="right side-box"></div>

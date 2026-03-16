@@ -4,6 +4,8 @@ new Vue({
   data() {
     return {
       innerWidth,
+      leftOpen: innerWidth >= 1100,
+      rightOpen: innerWidth >= 1100,
       masterKey: "",
       showMasterKeyModal: false,
       masterKeyInput: "",
@@ -54,12 +56,34 @@ new Vue({
     width() {
       return Math.min(700, this.innerWidth)
     },
+    navTextX() {
+      const fontScale = Math.min(1, this.width / 500)
+      return this.width / 2 - 224 * fontScale
+    },
+    navFontSize() {
+      return (Math.min(6, this.width / 500 * 6)).toFixed(2) + 'em'
+    },
+    isNarrow() {
+      return this.innerWidth < 1100
+    },
+    drawerOverlay() {
+      return this.isNarrow && (this.leftOpen || this.rightOpen)
+    },
   },
 
   async created() {
     let self = this
 
-    addEventListener('resize', () => { self.innerWidth = innerWidth })
+    addEventListener('resize', () => {
+      self.innerWidth = innerWidth
+      if (innerWidth < 1100) {
+        self.leftOpen = false
+        self.rightOpen = false
+      } else {
+        self.leftOpen = true
+        self.rightOpen = true
+      }
+    })
     addEventListener('keydown', event => {
       if (event.key == 's' && (event.metaKey || event.ctrlKey)) {
         if (self.viewing == 'config') self.saveConfig()
