@@ -1,0 +1,167 @@
+  <div v-else-if="!hasClaimed" id="queue" class="header">
+    <div class="scrim"></div>
+    All the play slots have been claimed.
+    <br/>
+    <br/>
+    Position in queue: {{state.queuePosition}}
+  </div>
+
+  <div v-else-if="!isReadyLocal" id="rules-splash">
+    <div class="close" @click="dismissRules">
+      <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="#fff"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+    </div>
+    <div class="carousel" :style="carouselStyle">
+      <div v-if="gameInfo" v-for="rule in rules" class="slide">
+        <p v-for="paragraph in rule.words" v-html="substitute(paragraph)"></p>
+        <img v-if="rule.image" :src="rule.image" />
+      </div>
+    </div>
+
+    <div class="carousel-dots">
+      <div class="dot"
+          v-for="i in carouselSize"
+          @click="carouselPosition = i-1; updateCarousel()"
+      >
+        <div class="inner"
+          :style="{background: carouselPosition >= i-1 ? 'white' : '#666'}">
+        </div>
+      </div>
+    </div>
+
+    <div class="button" @click="advanceCarousel">
+      {{carouselPosition >= carouselSize-1 ? "Dismiss" : "Next"}}
+    </div>
+  </div>
+
+  <div v-else-if="showSettings" id="settings">
+    <span style="font-size: 4em">Settings</span>
+    <div id="settings-alignment-guide">
+      <div v-for="(item, key, index) in settings" class="setting">
+        {{prettifySettingName(key)}}
+        <input
+          v-if="typeof item == 'boolean'"
+          type="checkbox"
+          v-model.number="settings[key]"
+          @change="updateSettings(key)"
+        >
+        <textarea
+          v-else
+          type="number"
+          v-model.number="settings[key]"
+          @keydown="settingsKeydown"
+          @change="updateSettings(key)"
+        ></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-stuff" v-else>
+  <div id="player-background"></div>
+<!--   <div id="playerMarker"
+    :style="{ backgroundColor: self.color }"
+  ></div>
+  <div v-if="BOMBERMAN" id="bombPower">
+    <span>{{self.bombPower}}</span>
+    <img src="controller/images/explosion.png" />
+  </div> -->
+
+  <div id="header">
+    <div id="label">{{gameMeta.label}}</div>
+    <div id="header-buttons">
+      <div class="button" style="width: 8rem" @click="showRules()">RULES</div>
+      <div class="button" @click.stop="skip">SKIP GAME</div>
+      <div v-if="!exclude.leaveButton" class="button" @click.stop="leave">LEAVE</div>
+    </div>
+  </div>
+
+  <div v-if="mode=='play' && self.isAlive"
+    class="joystick-bg unselectable"
+    :style="joystickBGStyle"
+  >
+    <div class="joystick-nub" :style="joystickNubStyle"></div>
+  </div>
+
+
+  <div v-if="mode=='start'" class="main">
+    <div class="header">
+      <div v-if="claimedPlayers.length <= 1">Waiting for another player.</div>
+      <div v-else>Waiting for everyone to read the rules.</div>
+    </div>
+    <div class="buttons">
+      <div class="button" @click.stop="startAnyway">Start anyway</div>
+      <div class="button" @click.stop="pulse">Pulse</div>
+    </div>
+  </div>
+
+  <div v-else-if="mode=='countdown'" class="main">
+    <div class="header">
+      <div v-if="gameInfo.timeRemaining > 0" class="banner" style="font-size: 3em">{{Math.round(gameInfo.timeRemaining)}}</div>
+      <div v-html="substitute(gameMeta.victoryCondition)"></div>
+    </div>
+  </div>
+
+  <div v-else class="main">
+    <div class="header card">
+      <div v-if="gameInfo.timeRemaining > 0" class="banner" style="font-size: 2em">{{mode=='previctory' ? 0 : Math.round(gameInfo.timeRemaining)}}</div>
+      <div v-if="mode=='victory'" >
+        <div v-if="iAmVictorious">
+          Victory!
+        </div>
+        <div v-else>
+          You lost...
+        </div>
+        <br/>
+        <div class="button" @click.stop="skipvictory">Continue</div>
+        <div class="button" @click.stop="playagain">Play again</div>
+        <div>Next game is {{nextGameName}}</div>
+        <br/>
+      </div>
+
+      <div v-if="gameMeta.statusDisplay.type == 'battleroyale'">
+        Live players:
+        <div class="players">
+          <div v-for="player in livePlayers"
+            class="player"
+            :style="{backgroundColor: player.color}"
+          ></div>
+        </div>
+      </div>
+
+      <div v-if="gameMeta.statusDisplay.type == 'cooperative'">
+        <div v-if="gameMeta.statusDisplay.showScore">
+          Score: {{gameInfo.data.score}}/{{gameInfo.data.victory_score}}
+        </div>
+        <div v-if="gameMeta.statusDisplay.showLives">
+          Lives left: {{gameInfo.data.lives}}
+        </div>
+      </div>
+
+      <div v-else-if="gameMeta.statusDisplay.type == 'rankedscore'">
+        <div v-if="self.isPlaying">
+          {{position}} ({{self.score}})
+        </div>
+        <div v-for="player in playersByRanking" class="snek-container"
+          :style="{ width: (player.score / maxScore * 100) + '%', minWidth: '9%' }">
+          <div class="snek"
+            :style="{ backgroundColor: player.color }"
+          ></div>
+          <div v-if="gameMeta.statusDisplay.innerScore" class="background-darkener"></div>
+          <div v-if="gameMeta.statusDisplay.innerScore" class="inner-snek"
+            :style="{backgroundColor: player.color, width: (player.length / player.score * 100) + '%'}"
+          ></div>
+
+          <div class="snek-score">{{player.score}}</div>
+        </div>
+      </div>
+      <div v-else-if="!self.isAlive">
+        You died...
+      </div>
+    </div>
+  </div>
+</div>
+
+<svg v-if="gameStarted && include.gameSettings"
+    id="settings-button" @click="showSettings = !showSettings"
+    xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 0 24 24" width="48px" fill="#000000">
+  <path d="M0 0h24v24H0V0z" fill="none"/><path d="M19.43 12.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.09-.16-.26-.25-.44-.25-.06 0-.12.01-.17.03l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.06-.02-.12-.03-.18-.03-.17 0-.34.09-.43.25l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.09.16.26.25.44.25.06 0 .12-.01.17-.03l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.06.02.12.03.18.03.17 0 .34-.09.43-.25l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zm-1.98-1.71c.04.31.05.52.05.73 0 .21-.02.43-.05.73l-.14 1.13.89.7 1.08.84-.7 1.21-1.27-.51-1.04-.42-.9.68c-.43.32-.84.56-1.25.73l-1.06.43-.16 1.13-.2 1.35h-1.4l-.19-1.35-.16-1.13-1.06-.43c-.43-.18-.83-.41-1.23-.71l-.91-.7-1.06.43-1.27.51-.7-1.21 1.08-.84.89-.7-.14-1.13c-.03-.31-.05-.54-.05-.74s.02-.43.05-.73l.14-1.13-.89-.7-1.08-.84.7-1.21 1.27.51 1.04.42.9-.68c.43-.32.84-.56 1.25-.73l1.06-.43.16-1.13.2-1.35h1.39l.19 1.35.16 1.13 1.06.43c.43.18.83.41 1.23.71l.91.7 1.06-.43 1.27-.51.7 1.21-1.07.85-.89.7.14 1.13zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+</svg>
