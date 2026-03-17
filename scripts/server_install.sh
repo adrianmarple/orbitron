@@ -14,15 +14,14 @@ else
 module.exports={
   ORB_ID:"demo",
   ORB_KEY: "302695c58cda528101d1bbb4fcc437dde33b168dc0ff9104029ea93639a0c09f",
-  DEV_MODE: false,
+  DEV_MODE: true,
+  // KEY_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/privkey.pem',
+  // CERT_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/fullchain.pem',
   HAS_EMULATION: true,
   CLEAR_PREFS_ON_DISCONNECT: true,
   PIXELS: "sixfold/ravenstear",
   HTTP_SERVER_PORT: 443,
-  WEBHOOK_SECRET: "rhomberman",
   IS_RELAY: true,
-  KEY_LOCATION: '/etc/letsencrypt/live/orbitron.games/privkey.pem',
-  CERT_LOCATION: '/etc/letsencrypt/live/orbitron.games/fullchain.pem',
   EXCLUDE: {
     save: true,
     timing: true,
@@ -52,6 +51,10 @@ if [ ! -d "$VENV_DIR" ]; then
 fi
 echo "Installing Python dependencies..."
 "$VENV_DIR/bin/pip" install -r "$ROOT_DIR/requirements.txt"
+
+# Install certbot
+echo "Installing certbot..."
+sudo apt-get install -y certbot
 
 # Set up pm2
 echo "Setting up pm2..."

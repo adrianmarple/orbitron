@@ -54,6 +54,13 @@ See [the games folder README](games)
 - Open a console into root of your new server
 - Clone your forked repo, i.e. `git clone https://github.com/YOUR_GITHUB_NAME/orbitron`
 - Run `cd orbitron/scripts` then `./server_install.sh`
+- Test by visiting `http://your-ip:1337`
+- (optional) Configure to add your own domain
+  - Add domain in server's admin console
+  - Edit the server's `config.js` to remove the `DEV_MODE: true,` line and uncomment and edit the lines to use your domain:
+    - `// KEY_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/privkey.pem',`
+    - `// CERT_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/fullchain.pem',`
+  - Install and run certbot `sudo certbot certonly --standalone -d YOUR_DOMAIN.NAME`
 
 ## Connect a piece to your own server
 
@@ -68,7 +75,7 @@ See [the games folder README](games)
 ## The admin console
 
 - Ensure your server is properly set up
-- Visit url `https://your-domain-or-ip/admin`
+- Visit url `http://your-ip:1337/admin` or `http://your-domain/admin`
 - I recommend hitting the "Set ORB_KEY" button followed by the "Save config.js" button for all connected orbs (including the server itself - default named "demo")
   - Note: if this button is not visible hit the "config" button first
 - Again see [the admin folder README](admin) for more details
