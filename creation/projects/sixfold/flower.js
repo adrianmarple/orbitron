@@ -1,4 +1,3 @@
-// SKIP
 function processDodec(dodecEdges, parity) {
   parity = parity || 0
   let center = ZERO

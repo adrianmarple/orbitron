@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   for (let i = -6; i <= 6; i++) {
     for (let j = -6; j <= 6; j++) {

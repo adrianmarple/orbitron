@@ -1,4 +1,3 @@
-// SKIP
 addButton("test/starofdavid", () => {
   let hexEdges = addPolygon(6, [0,0,0])
   for (let edge of hexEdges) {

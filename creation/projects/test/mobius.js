@@ -1,4 +1,3 @@
-// SKI
 // v2.0
 module.exports = () => {
   LED_SUPPORT_GAP = 3

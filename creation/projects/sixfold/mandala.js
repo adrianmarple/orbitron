@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   function tieFighter(dodecEdges, parity) {
     parity = parity || 0

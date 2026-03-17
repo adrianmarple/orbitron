@@ -1,4 +1,3 @@
-// SKIP
 addButton("test/simple", function() {
   for (let i = -3; i <= 3; i++) {
     for (let j = -3; j <= 3; j++) {

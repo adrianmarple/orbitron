@@ -1,4 +1,3 @@
-// SKI
 
 module.exports = () => {
   // exteriorOnly = true

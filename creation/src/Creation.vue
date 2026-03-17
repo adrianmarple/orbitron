@@ -3,15 +3,17 @@
 
 <div id="meta-container">
   <div class="type-buttons">
-    <div v-for="project in activeProjects" class="button" @click="openProject(project)">
-      {{ project.shortName }}
+    <div v-for="project in activeProjects" class="button project-row" @click="openProject(project)">
+      <span>{{ project.shortName }}</span>
+      <span class="skip-icon" @click.stop="toggleSkip(project)" title="Skip">⏭</span>
     </div>
     <div v-if="skippedProjects.length" class="skip-toggle" @click="showSkipped = !showSkipped">
       {{ showSkipped ? '▾' : '▸' }} Skipped
     </div>
     <template v-if="showSkipped">
-      <div v-for="project in skippedProjects" class="button skipped" @click="openProject(project)">
-        {{ project.shortName }}
+      <div v-for="project in skippedProjects" class="button skipped project-row" @click="openProject(project)">
+        <span>{{ project.shortName }}</span>
+        <span class="skip-icon" @click.stop="toggleSkip(project)" title="Restore">↺</span>
       </div>
     </template>
   </div>
@@ -106,6 +108,7 @@ export default {
       ],
       projects: [],
       showSkipped: false,
+      skippedNames: JSON.parse(localStorage.getItem('skippedProjects') || '[]'),
 
       // Rendering
       zoom: 1,
@@ -151,10 +154,10 @@ export default {
       return this.currentProject.name
     },
     activeProjects() {
-      return this.projects.filter(p => !p.skip)
+      return this.projects.filter(p => !this.skippedNames.includes(p.name))
     },
     skippedProjects() {
-      return this.projects.filter(p => p.skip)
+      return this.projects.filter(p => this.skippedNames.includes(p.name))
     },
   },
   methods: {
@@ -167,6 +170,16 @@ export default {
           "Content-type": "application/json; charset=UTF-8"
         }
       })
+    },
+
+    toggleSkip(project) {
+      const idx = this.skippedNames.indexOf(project.name)
+      if (idx === -1) {
+        this.skippedNames.push(project.name)
+      } else {
+        this.skippedNames.splice(idx, 1)
+      }
+      localStorage.setItem('skippedProjects', JSON.stringify(this.skippedNames))
     },
 
     updateSetting(setting) {
@@ -711,8 +724,8 @@ body {
   overflow-x: hidden;
 }
 #meta-container > .type-buttons .button {
-  max-width: 200px;
-  height: 33px;
+  width: 200px;
+  min-height: 33px;
 }
 
 .skip-toggle {
@@ -723,5 +736,29 @@ body {
 .button.skipped {
   background-color: #f5f5f5;
   color: #999;
+}
+.project-row {
+  position: relative;
+}
+.skip-icon {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.7;
+  color: black;
+  line-height: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  background-color: white;
+  border: 1px solid black;
+  border-radius: 50%;
+}
+.skip-icon:hover {
+  opacity: 1;
 }
 </style>

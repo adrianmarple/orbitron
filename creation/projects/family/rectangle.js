@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   portPartID = "2L"
   ZERO_FOLD_LENGTH_THRESHOLD = 19

@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   let v0 = addVertex(new Vector(0,0,0))
   spiral(v0, 29, true)

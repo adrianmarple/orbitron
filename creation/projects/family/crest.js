@@ -1,4 +1,3 @@
-// SKIP
 
 // Large
 a = 9.1

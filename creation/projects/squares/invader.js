@@ -1,4 +1,3 @@
-// SKIP
 module.exports = async () => {
   WOOD_KERF = 0.12 * MM_TO_96DPI
   minimalInnerBorder = true

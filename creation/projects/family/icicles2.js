@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   MAX_WALL_LENGTH = 150
   portPartID = "2"

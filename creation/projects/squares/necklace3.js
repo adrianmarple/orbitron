@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   let theta =  Math.PI/2 + 0.2 //2
   let k = Math.cos(theta/2)

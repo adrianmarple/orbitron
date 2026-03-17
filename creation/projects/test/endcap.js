@@ -1,4 +1,3 @@
-// SKIP
 
 addButton("test/endcap", async () => {
   ledAtVertex = false

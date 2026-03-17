@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
 
   wallPostProcessingFunction = printInfo => {

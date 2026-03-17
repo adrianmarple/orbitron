@@ -1,4 +1,3 @@
-// SKI
 // v1.0.1
 module.exports = () => {  
   BORDER = 6

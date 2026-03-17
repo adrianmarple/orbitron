@@ -1,4 +1,3 @@
-// SKI
 module.exports = async () => {
   // portPartID = "1L"
   CENTER = new Vector(3, 3, 3)

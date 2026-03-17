@@ -1,4 +1,3 @@
-// SKIP
 module.exports = async () => {
 
   // imageUrl = "signs/made2D (old).png"

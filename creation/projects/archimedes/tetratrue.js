@@ -1,4 +1,3 @@
-// SKI
 module.exports = () => {
   NO_EMBOSSING = true
   const EDGE_LENGTH = 10

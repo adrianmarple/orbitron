@@ -1,4 +1,3 @@
-// SKI
 module.exports = () => {
   PIXEL_DISTANCE = 16.5
   BORDER = 4

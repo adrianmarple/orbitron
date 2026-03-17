@@ -1,4 +1,3 @@
-// SKIP
 
 addButton("test/channeltest", () => {
   isWall = true

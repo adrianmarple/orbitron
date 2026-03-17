@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   portPartID = "2"
   PORT_POSITION = "center"

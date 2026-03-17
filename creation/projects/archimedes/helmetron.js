@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   CHANNEL_DEPTH = 5
 

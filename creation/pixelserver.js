@@ -607,15 +607,12 @@ async function findAllButtons() {
       const fullName = dirName + "/" + shortName
       const path = "projects/" + fullName + ".js"
       const fileContents = (await fs.promises.readFile(path)).toString()
-      const skip = /\/\/\s*SKIP/.test(fileContents)
-
       const match = fileContents.match(/\/\/.*v(\d+(\.\d+)+)/)
       const version = match ? match[1] : "1"
       projects.push({
         name: fullName,
         shortName,
         version,
-        skip,
       })
     }
   }

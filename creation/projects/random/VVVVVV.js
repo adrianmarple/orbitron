@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   ledAtVertex = false
 

@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   let hedges = addPolygon(6, [0,0,0], 4)
   for (let i = 0; i < hedges.length; i++) {

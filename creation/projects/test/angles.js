@@ -1,4 +1,3 @@
-// SKI
 
 module.exports = () => {
   MAX_WALL_LENGTH = 1000

@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   minimalInnerBorder = true
 

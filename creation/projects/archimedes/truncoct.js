@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   NO_EMBOSSING = true
   CHANNEL_LATCH_ANGLE = -6

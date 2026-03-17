@@ -1,4 +1,3 @@
-// SKI
 module.exports = () => {
   NO_EMBOSSING = true
   NOTCH_DEPTH = 5

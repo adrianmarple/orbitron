@@ -1,4 +1,3 @@
-// SKIP
 
 addButton("test/letters", async () => {
   ledAtVertex = false

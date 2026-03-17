@@ -1,4 +1,3 @@
-// SKIP
 module.exports = async () => {
 
   await addFromSVG("signs/hive.svg")

@@ -1,4 +1,3 @@
-// SKIP
 module.exports = async () => {
   exteriorOnly = true
   PORT_POSITION = "center"

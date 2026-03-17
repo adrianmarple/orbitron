@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   PORT_POSITION = "center"
   EXTRA_SCALE = 1.0025

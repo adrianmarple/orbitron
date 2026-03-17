@@ -1,4 +1,3 @@
-// SKIP
 module.exports = () => {
   PORT_POSITION = "center"
   // NOTCH_DEPTH = 4
