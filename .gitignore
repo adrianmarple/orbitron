@@ -68,6 +68,7 @@ config.js
 *prefs.json
 .env
 .venv
+masterkey.txt
 
 ._*
 .DS_Store

@@ -6,15 +6,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 
 # Generate a random master key
-MASTER_KEY=$(openssl rand -hex 48)
-
-# Write creation/.env
-ENV_FILE="$ROOT_DIR/creation/.env"
-if [ -f "$ENV_FILE" ]; then
-  echo "WARNING: $ENV_FILE already exists. Skipping."
+MASTERKEY_FILE="$ROOT_DIR/masterkey.txt"
+if [ -f "$MASTERKEY_FILE" ]; then
+  echo "WARNING: $MASTERKEY_FILE already exists. Skipping."
 else
-  echo "MASTER_KEY=$MASTER_KEY" > "$ENV_FILE"
-  echo "Created $ENV_FILE"
+  openssl rand -hex 48 > "$MASTERKEY_FILE"
+  echo "Created $MASTERKEY_FILE"
 fi
 
 # Write config.js

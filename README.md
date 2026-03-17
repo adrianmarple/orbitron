@@ -51,7 +51,7 @@ See [the games folder README](games)
 
 - Fork this repo
 - Create an ubuntu server, for instance the lumatron.art is currently hosted through [Digital Ocean](https://www.digitalocean.com/)
-- Add a domain to the server (this is required to serve over https)
+- Add a domain or subdomain to the server (this is required to serve over https)
 - Wait and make sure the domain's DNS is pointing to the server's IP before continuing
 - Open a console into root of your new server
 - Clone your forked repo, i.e. `git clone https://github.com/YOUR_GITHUB_NAME/orbitron`
@@ -73,6 +73,7 @@ See [the games folder README](games)
 
 - Ensure your server is properly set up
 - Visit url `http://your-domain.com/admin`
+- Enter the masterkey (from your server's console) as prompted
 - I recommend hitting the "Set ORB_KEY" button followed by the "Save config.js" button for all connected orbs (including the server itself - default named "demo")
   - Note: if this button is not visible hit the "config" button first
 - Again see [the admin folder README](admin) for more details

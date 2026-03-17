@@ -5,6 +5,15 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 
+# Generate a random master key
+MASTERKEY_FILE="$ROOT_DIR/masterkey.txt"
+if [ -f "$MASTERKEY_FILE" ]; then
+  echo "WARNING: $MASTERKEY_FILE already exists. Skipping."
+else
+  openssl rand -hex 48 > "$MASTERKEY_FILE"
+  echo "Created $MASTERKEY_FILE"
+fi
+
 # Get domain name
 read -p "Enter your domain name (e.g. my.lumatron.art): " DOMAIN
 

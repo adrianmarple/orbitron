@@ -16,12 +16,9 @@
   <!-- Master key modal -->
   <div v-if="showMasterKeyModal" id="masterkey-modal">
     <div id="masterkey-box">
-      <!-- Room for directions -->
-
       <input v-model="masterKeyInput" placeholder="Master key"
           @keydown.enter="submitMasterKey" ref="masterKeyInput"/>
-
-      <div>You should be able to find it in the creation/.env file</div>
+      <div>Get it from your server's "orbitron" repo at masterkey.txt.</div>
       <div class="button" :class="{ disabled: !masterKeyInput.trim() }"
           @click="submitMasterKey">Submit</div>
     </div>

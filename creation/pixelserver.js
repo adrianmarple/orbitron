@@ -156,7 +156,9 @@ if (!MANUFACTURING_FOLDER.endsWith("/")) {
 addGETListener((response, request) => {
   if (request.url.endsWith("masterkey")) {
     noCorsHeader(response, 'text/plain')
-    response.end(process.env.MASTER_KEY, 'utf-8')
+    let masterKey = ""
+    try { masterKey = fs.readFileSync(path.join(__dirname, "../masterkey.txt"), "utf8").trim() } catch(_) {}
+    response.end(masterKey, 'utf-8')
     return true
   } else {
     return false
