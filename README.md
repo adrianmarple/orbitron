@@ -51,18 +51,12 @@ See [the games folder README](games)
 
 - Fork this repo
 - Create an ubuntu server, for instance the lumatron.art is currently hosted through [Digital Ocean](https://www.digitalocean.com/)
+- Add a domain to the server (this is required to serve over https)
+- Wait and make sure the domain's DNS is pointing to the server's IP before continuing
 - Open a console into root of your new server
 - Clone your forked repo, i.e. `git clone https://github.com/YOUR_GITHUB_NAME/orbitron`
-- Run `cd orbitron/scripts` then `./server_install.sh`
-- Test by visiting `http://your-ip:1337`
-- (optional) Configure to add your own domain
-  - Add domain in server's admin console
-  - Install and run certbot `sudo certbot certonly --standalone -d YOUR_DOMAIN.NAME`
-  - Edit the server's `config.js` to remove the `DEV_MODE: true,` line and uncomment and edit the lines to use your domain:
-    - `// KEY_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/privkey.pem',`
-    - `// CERT_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/fullchain.pem',`
-  - Run `pm2 restart all`
-  - Test by visiting `https://YOUR_DOMAIN.NAME`
+- Run `cd orbitron/scripts` then `./server_install.sh` and enter your domain
+- Test by visiting `http://your_domain.com`
 
 ## Connect a piece to your own server
 
@@ -70,14 +64,15 @@ See [the games folder README](games)
 - Get local IP address (once the admin console is set up, you'll be able to get the ip address directly from there)
   - MacOS: `sudo nmap -sn $(ipconfig getifaddr en0)/24`
   - Linux: `sudo nmap -sn $(hostname -I | cut -d' ' -f1)/24`
-- `ssh pi@<IP address>` (password `lumatron`) into the piece and change the password
+- `ssh pi@<IP address>` (password `lumatron`) into the piece
+- Change the password `passwd`
 - Edit `config.js` to add the line `RELAY_HOST: "your-domain-or-ip",`
 - Run `sudo pm2 restart all`
 
 ## The admin console
 
 - Ensure your server is properly set up
-- Visit url `http://your-ip:1337/admin` or `http://your-domain/admin`
+- Visit url `http://your-domain.com/admin`
 - I recommend hitting the "Set ORB_KEY" button followed by the "Save config.js" button for all connected orbs (including the server itself - default named "demo")
   - Note: if this button is not visible hit the "config" button first
 - Again see [the admin folder README](admin) for more details

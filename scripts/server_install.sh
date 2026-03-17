@@ -5,17 +5,19 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 
+# Get domain name
+read -p "Enter your domain name (e.g. my.lumatron.art): " DOMAIN
+
 # Write config.js
 CONFIG_FILE="$ROOT_DIR/config.js"
 if [ -f "$CONFIG_FILE" ]; then
   echo "WARNING: $CONFIG_FILE already exists. Skipping."
 else
-  cat > "$CONFIG_FILE" << 'EOF'
+  cat > "$CONFIG_FILE" << EOF
 module.exports={
   ORB_ID:"demo",
-  DEV_MODE: true,
-  // KEY_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/privkey.pem',
-  // CERT_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/fullchain.pem',
+  KEY_LOCATION: '/etc/letsencrypt/live/${DOMAIN}/privkey.pem',
+  CERT_LOCATION: '/etc/letsencrypt/live/${DOMAIN}/fullchain.pem',
   HAS_EMULATION: true,
   CLEAR_PREFS_ON_DISCONNECT: true,
   PIXELS: "sixfold/ravenstear",
@@ -51,9 +53,11 @@ fi
 echo "Installing Python dependencies..."
 "$VENV_DIR/bin/pip" install -r "$ROOT_DIR/requirements.txt"
 
-# Install certbot
+# Install certbot and get cert
 echo "Installing certbot..."
 sudo apt-get install -y certbot
+echo "Obtaining SSL certificate for ${DOMAIN}..."
+sudo certbot certonly --standalone -d "$DOMAIN"
 
 # Set up pm2
 echo "Setting up pm2..."
