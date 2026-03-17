@@ -46,6 +46,7 @@ npm --prefix "$ROOT_DIR" install
 # Set up Python virtual environment
 VENV_DIR="$ROOT_DIR/.venv"
 if [ ! -d "$VENV_DIR" ]; then
+  sudo apt-get install -y python3-venv
   python3 -m venv "$VENV_DIR"
   echo "Created Python venv at $VENV_DIR"
 fi
@@ -54,7 +55,7 @@ echo "Installing Python dependencies..."
 
 # Set up pm2
 echo "Setting up pm2..."
-sudo "$(which npm)" install -g pm2
+sudo npm install -g pm2
 sudo pm2 install pm2-logrotate
 sudo pm2 start "$ROOT_DIR/startscript.sh"
 sudo pm2 startup

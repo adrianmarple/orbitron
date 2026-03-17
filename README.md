@@ -20,14 +20,15 @@ Here's how to connect a piece that does not already have an internet connection 
 # Using the Emulator
 
 - Clone (optionally fork first) this repo (`git clone https://github.com/adrianmarple/orbitron`) on your local machine (Windows not supported)
-- Run `admin_install.sh` (in the `scripts` folder)
+- Install node if you haven't already
+- Run `./admin_install.sh` (in the `scripts` folder)
 - Start the emulator by running `sudo ./startscript.sh`
 - Open `http://localhost:1337/view` for the emulator
 - Open `http://<localhost or your IP address>:1337` to open one or more controllers on either your desktop or your phone
 
 ## The admin console
 
-- Make sure you've run `admin_install.sh`
+- Make sure you've run `./admin_install.sh`
 - Ensure the local server (`sudo ./startscript.sh`) is running
 - Visit url `http://localhost:1337/admin`
 - Follow instructions for entering a master key

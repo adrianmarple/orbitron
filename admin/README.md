@@ -1,6 +1,6 @@
 # Basic setup
 
-- Run `admin_install.sh` (in the `scripts` folder)
+- Run `./admin_install.sh` (in the `scripts` folder)
 - Local version:
   - Run the local server `sudo ./startscript.sh` in the repo root
   - Visit url `http://localhost:1337/admin`
