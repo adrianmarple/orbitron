@@ -32,6 +32,13 @@ EOF
   echo "Created $CONFIG_FILE"
 fi
 
+# Install Node.js if not present
+if ! command -v node &> /dev/null; then
+  echo "Installing Node.js..."
+  curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+  sudo apt-get install -y nodejs
+fi
+
 # Install Node dependencies
 echo "Installing Node dependencies..."
 npm --prefix "$ROOT_DIR" install
@@ -47,7 +54,7 @@ echo "Installing Python dependencies..."
 
 # Set up pm2
 echo "Setting up pm2..."
-sudo npm install -g pm2
+sudo "$(which npm)" install -g pm2
 sudo pm2 install pm2-logrotate
 sudo pm2 start "$ROOT_DIR/startscript.sh"
 sudo pm2 startup

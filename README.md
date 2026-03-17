@@ -48,15 +48,18 @@ See [the games folder README](games)
 
 # Setting up your own server
 
+- Fork this repo
 - Create an ubuntu server, for instance the lumatron.art is currently hosted through [Digital Ocean](https://www.digitalocean.com/)
 - Open a console into root of your new server
-- Fork then clone this repo: `git clone https://github.com/adrianmarple/orbitron`
-- Run `server_install.sh` (in the `scripts` folder)
+- Clone your forked repo, i.e. `git clone https://github.com/YOUR_GITHUB_NAME/orbitron`
+- Run `cd orbitron/scripts` then `./server_install.sh`
 
 ## Connect a piece to your own server
 
 - Request an unlocked SD along with a piece, email adrian@marplebot.com an request it be unlocked remotely, or follow the **Micro SD card setup** instructions below
-- Get local IP address `sudo nmap -sn 192.168.1.0/24` (once the admin console is set up, you'll be able to get the ip address directly from there)
+- Get local IP address (once the admin console is set up, you'll be able to get the ip address directly from there)
+  - MacOS: `sudo nmap -sn $(ipconfig getifaddr en0)/24`
+  - Linux: `sudo nmap -sn $(hostname -I | cut -d' ' -f1)/24`
 - `ssh pi@<IP address>` (password `lumatron`) into the piece and change the password
 - Edit `config.js` to add the line `RELAY_HOST: "your-domain-or-ip",`
 - Run `sudo pm2 restart all`
