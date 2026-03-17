@@ -172,6 +172,7 @@ async function runServerWithRedirect(){
 }
 
 async function updateCert(){
+  if (config.DEV_MODE) return
   console.log("UPDATING SSL CERT")
   await closeRootServer()
   await closeRedirectServer()

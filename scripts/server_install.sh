@@ -13,7 +13,6 @@ else
   cat > "$CONFIG_FILE" << 'EOF'
 module.exports={
   ORB_ID:"demo",
-  ORB_KEY: "302695c58cda528101d1bbb4fcc437dde33b168dc0ff9104029ea93639a0c09f",
   DEV_MODE: true,
   // KEY_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/privkey.pem',
   // CERT_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/fullchain.pem',

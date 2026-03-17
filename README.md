@@ -57,10 +57,12 @@ See [the games folder README](games)
 - Test by visiting `http://your-ip:1337`
 - (optional) Configure to add your own domain
   - Add domain in server's admin console
+  - Install and run certbot `sudo certbot certonly --standalone -d YOUR_DOMAIN.NAME`
   - Edit the server's `config.js` to remove the `DEV_MODE: true,` line and uncomment and edit the lines to use your domain:
     - `// KEY_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/privkey.pem',`
     - `// CERT_LOCATION: '/etc/letsencrypt/live/YOUR_DOMAIN.NAME/fullchain.pem',`
-  - Install and run certbot `sudo certbot certonly --standalone -d YOUR_DOMAIN.NAME`
+  - Run `pm2 restart all`
+  - Test by visiting `https://YOUR_DOMAIN.NAME`
 
 ## Connect a piece to your own server
 
