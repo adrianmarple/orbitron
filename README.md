@@ -20,11 +20,12 @@ Here's how to connect a piece that does not already have an internet connection 
 # Using the Emulator
 
 - Clone (optionally fork first) this repo (`git clone https://github.com/adrianmarple/orbitron`) on your local machine (Windows not supported)
+- cd to the root of the repo (folder should be named `orbitron`)
 - Install node if you haven't already
-- Run `./admin_install.sh` (in the `scripts` folder)
+- Run `scripts/admin_install.sh` (in the `scripts` folder of the newly cloned repo)
 - Start the emulator by running `sudo ./startscript.sh`
-- Open `http://localhost:1337/view` for the emulator
-- Open `http://<localhost or your IP address>:1337` to open one or more controllers on either your desktop or your phone
+- Visit `http://localhost:1337` for the controller
+- Visit `http://localhost:1337/test/view` for the emulator (which also contains a controller)
 
 ## The admin console
 
@@ -33,10 +34,6 @@ Here's how to connect a piece that does not already have an internet connection 
 - Visit url `http://localhost:1337/admin`
 - Follow instructions for entering a master key
 - More details in [the admin folder README](admin)
-
-## Controlling a piece
-
-- Same as above, replacing `my.lumatron.art` with your server
 
 # Designing a new pattern
 
@@ -52,7 +49,7 @@ See [the games folder README](games)
 - Fork this repo
 - Create an ubuntu server, for instance the lumatron.art is currently hosted through [Digital Ocean](https://www.digitalocean.com/)
 - Add a domain or subdomain to the server (this is required to serve over https)
-- Wait and make sure the domain's DNS is pointing to the server's IP before continuing
+- Wait and make sure the DNS records are in place (i.e. by checking [https://www.whatsmydns.net/](https://www.whatsmydns.net/))
 - Open a console into root of your new server
 - Clone your forked repo, i.e. `git clone https://github.com/YOUR_GITHUB_NAME/orbitron`
 - Run `cd orbitron/scripts` then `./server_install.sh` and enter your domain
@@ -72,11 +69,17 @@ See [the games folder README](games)
 ## The admin console
 
 - Ensure your server is properly set up
-- Visit url `http://your-domain.com/admin`
+- Visit url `https://your-domain.com/admin`
 - Enter the masterkey (from your server's console) as prompted
 - I recommend hitting the "Set ORB_KEY" button followed by the "Save config.js" button for all connected orbs (including the server itself - default named "demo")
   - Note: if this button is not visible hit the "config" button first
 - Again see [the admin folder README](admin) for more details
+
+## Continuous integration
+
+You can set up pieces so that pushing to github automatically triggers pieces to restart and pull changes:
+- Direct a github action to point to your server
+- Add `CONTINUOUS_INTEGRATION: true,` to the config of a piece you want to restart on receiving updates
 
 # Contributions Welcome
 

@@ -77,8 +77,8 @@
       </div>
       <div class="button" @click="viewBackups">All Backups</div>
       <div class="button" @click="showCalibration">Power Calibration</div>
-      <div class="button" @click="restartOrb">Restart</div>
-      <a :href="'https://my.lumatron.art/' + orbID" target="_blank"><div class="button">Controller</div></a>
+      <div class="button" :class="{ disabled: isLocal }" @click="restartOrb">Restart</div>
+      <a :href="location.origin + '/' + orbID" target="_blank"><div class="button">Controller</div></a>
     </div>
   </div>
 

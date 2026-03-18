@@ -63,6 +63,11 @@ new Vue({
     navFontSize() {
       return (Math.min(6, this.width / 500 * 6)).toFixed(2) + 'em'
     },
+    isLocal() {
+      const h = location.hostname
+      return h === 'localhost' || h === '127.0.0.1' ||
+        h.startsWith('10.') || h.startsWith('192.168.') || h.startsWith('172.')
+    },
     isNarrow() {
       return this.innerWidth < 1100
     },
