@@ -30,12 +30,14 @@ module.exports={
   HAS_EMULATION: true,
   CLEAR_PREFS_ON_DISCONNECT: true,
   PIXELS: "sixfold/ravenstear",
+  RELAY_HOST: "${DOMAIN}",
   HTTP_SERVER_PORT: 443,
   IS_RELAY: true,
   EXCLUDE: {
     save: true,
     timing: true,
   },
+  ALIASES: {},
 }
 EOF
   echo "Created $CONFIG_FILE"

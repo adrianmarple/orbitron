@@ -348,6 +348,12 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
       timestamp: Date.now(),
       resolve,
     }
+    setTimeout(() => {
+      if (awaitingMessages[queryParams.hash]) {
+        delete awaitingMessages[queryParams.hash]
+        resolve("")
+      }
+    }, 5000)
   })
   noCorsHeader(response, 'text/json')
   response.end(reply)

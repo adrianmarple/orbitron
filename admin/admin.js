@@ -184,6 +184,10 @@ new Vue({
       let command = 'sudo bash -c "echo pi:lumatron | chpasswd"'
       let response = await this.sendCommand({ type: "run", command })
       this.commandResponses += "% " + command + "\n" + (response.trim() || "(success)") + "\n"
+      this.commandResponses += "Removing ORB_KEY from config.js"
+      this.config = removeLineInConfig(this.config, "ORB_KEY")
+      await this.saveConfig()
+      this.commandResponses += "Successfully removed ORB_KEY"
     },
 
     async saveConfig(dontRestart) {
@@ -374,7 +378,9 @@ new Vue({
       let pathPrefix = isServerCommand ? "" : orbID + "/"
       let url = `${this.serverUrl}/${pathPrefix}admin?message=${message}&hash=${hash}`
       try {
-        return await (await fetch(url)).text()
+        const controller = new AbortController()
+        setTimeout(() => controller.abort(), 6000)
+        return await (await fetch(url, { signal: controller.signal })).text()
       } catch(_) {
         return ""
       }

@@ -63,7 +63,7 @@ See [the games folder README](games)
   - Linux: `sudo nmap -sn $(hostname -I | cut -d' ' -f1)/24`
 - `ssh pi@<IP address>` (password `lumatron`) into the piece
 - Change the password by running `passwd`
-- Edit `orbitron/config.js` to add the line `RELAY_HOST: "your-domain-or-ip",`
+- Edit `orbitron/config.js` to add the line `RELAY_HOST: "your-domain-or-ip",` (also remove `ORB_KEY` if it's there)
 - Run `pm2 restart all`
 - Test by visiting `https://your_domain.com` again (you should now see the piece)
 
