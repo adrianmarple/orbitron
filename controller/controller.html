@@ -34,17 +34,17 @@
   </div>
 
   <div :class="{visible: prefModalName !== null}" id="pref-modal" @click.self="closePrefModal">
-    <div id="pref-modal-box">
-      <img class="pref-modal-close" src="/controller/images/close_white.svg" @click="closePrefModal"/>
-      <div id="pref-modal-name-row">
-        <textarea class="pref-modal-name" :value="prefModalName"
+    <div class="box">
+      <img class="close" src="/controller/images/close_white.svg" @click="closePrefModal"/>
+      <div class="row">
+        <textarea class="name" :value="prefModalName"
             @input="prefModalName=stripSaveName($event.target.value)"
             @focus="prefModalOriginalName=prefModalName"
             @blur="savePrefModalRename"
             ref="prefModalNameInput"></textarea>
-        <img class="pref-modal-edit" src="/controller/images/edit_white.svg" @click="$refs.prefModalNameInput.focus()"/>
+        <img class="edit" src="/controller/images/edit_white.svg" @click="$refs.prefModalNameInput.focus()"/>
       </div>
-      <div v-if="orbInfo.hasCycle" class="pure-material-checkbox pref-modal-checkbox">
+      <div v-if="orbInfo.hasCycle" class="pure-material-checkbox checkbox">
         <input type="checkbox"
             :checked="(prefs.includedInCycles || {})[prefModalName]"
             @change="toggleIncludedInCycles(prefModalName, $event.target.checked)">
@@ -53,8 +53,11 @@
         </div>
         <span>Include in cycles</span>
       </div>
-      <div class="button" @click="loadPrefs(prefModalName); closePrefModal()">Load</div>
-      <img class="delete pref-modal-delete" src="/controller/images/delete.svg" @click="deletePrefs(prefModalName); closePrefModal()"/>
+      <div class="row">
+        <div class="button" :class="{disabled: prefModalName === state.currentPrefName}" @click="savePrefs(prefModalName); closePrefModal()">Save</div>
+        <div class="button" @click="loadPrefs(prefModalName); closePrefModal()">Load</div>
+      </div>
+      <img class="delete" src="/controller/images/delete.svg" @click="deletePrefs(prefModalName); closePrefModal()"/>
     </div>
   </div>
 

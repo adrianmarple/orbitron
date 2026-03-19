@@ -1096,7 +1096,7 @@ input[type="range"]::-moz-range-thumb {
   pointer-events: all;
   opacity: 1;
 }
-#pref-modal-box {
+#pref-modal .box {
   position: relative;
   background: rgba(8,8,8, 0.9);
   border: 0.25rem solid rgba(255,255,255,0.25);
@@ -1112,7 +1112,7 @@ input[type="range"]::-moz-range-thumb {
   align-self: center;
   width: fit-content;
 }
-.pref-modal-close {
+#pref-modal .close {
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
@@ -1120,13 +1120,14 @@ input[type="range"]::-moz-range-thumb {
   height: 4rem;
   cursor: pointer;
 }
-#pref-modal-name-row {
+#pref-modal .row {
   display: flex;
   align-items: center;
   gap: 1.5rem;
   margin-bottom: 1rem;
+  justify-content: center;
 }
-.pref-modal-name {
+#pref-modal .name {
   flex: 1;
   font-size: 3rem;
   background: transparent;
@@ -1137,36 +1138,36 @@ input[type="range"]::-moz-range-thumb {
   outline: none;
   padding: 0.2rem 0;
 }
-.pref-modal-edit {
+#pref-modal .edit {
   width: 3.5rem;
   height: 3.5rem;
   cursor: pointer;
   opacity: 0.7;
 }
-.pref-modal-edit:hover {
+#pref-modal .edit:hover {
   opacity: 1;
 }
 
-.pref-modal-checkbox.pure-material-checkbox {
+#pref-modal .pure-material-checkbox {
   border-color: transparent;
 }
-.pref-modal-checkbox.pure-material-checkbox > span {
+#pref-modal .pure-material-checkbox > span {
   padding-right: 1.5rem;
   background-color: transparent;
 }
-.pref-modal-checkbox.pure-material-checkbox .checkbox {
+#pref-modal .pure-material-checkbox .checkbox {
   background-color: white;
 }
-.pref-modal-checkbox.pure-material-checkbox .checkbox > .inner {
+#pref-modal .pure-material-checkbox .checkbox > .inner {
   background-color: black;
 }
-.pref-modal-checkbox.pure-material-checkbox > input:checked + .checkbox > .inner,
-.pref-modal-checkbox.pure-material-checkbox > input:indeterminate + .checkbox > .inner {
+#pref-modal .pure-material-checkbox > input:checked + .checkbox > .inner,
+#pref-modal .pure-material-checkbox > input:indeterminate + .checkbox > .inner {
   box-shadow: 0 0 1.2rem rgba(255,255,255, 0.4);
   background-color: #222;
 }
 
-.pref-modal-delete {
+#pref-modal .delete {
   align-self: center;
   margin-top: 1rem;
 }
