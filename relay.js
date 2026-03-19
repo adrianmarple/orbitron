@@ -461,10 +461,15 @@ addGETListener(async (response, orbID, filePath)=>{
 addGETListener((response, orbID, filePath) => {
   if(!filePath.includes('view')) return
 
+  // Validate that the pixel file exists before spinning up a temp orb
+  let pixelsPath = orbID.replace("+", "/")
+  if (!pixelsPath.includes("/")) pixelsPath = pixelsPath + "/" + pixelsPath
+  if (!fs.existsSync(`${__dirname}/pixels/${pixelsPath}.json`)) return
+
   // Spin up temp orb emulator (it will then add the get listener that will actually handle this request)
   startOrb({
     ORB_ID: orbID,
-    PIXELS: orbID.replace("+", "/"),
+    PIXELS: pixelsPath,
     DEV_MODE: config.DEV_MODE,
     PYTHON_EXECUTABLE: config.PYTHON_EXECUTABLE,
     HAS_EMULATION: true,

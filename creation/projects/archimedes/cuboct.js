@@ -93,6 +93,7 @@ module.exports = () => {
           print.suffix = mapping[suffix]
           if (mapping[suffix] == "connector_bottom") {
             connectorIndex = newPrints.length
+            console.log(connectorIndex)
           }
           newPrints.push(print)
         }
@@ -100,7 +101,7 @@ module.exports = () => {
     }
     for (let print of printInfo.prints) {
       if (print.suffix.includes("sleeve")) {
-        newPrints.unshift(print)
+        newPrints.push(print)
       }
     }
     printInfo.prints = newPrints

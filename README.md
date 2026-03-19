@@ -52,8 +52,8 @@ See [the games folder README](games)
 - Wait and make sure the DNS records are in place (i.e. by checking [https://www.whatsmydns.net/](https://www.whatsmydns.net/))
 - Open a console into root of your new server
 - Clone your forked repo, i.e. `git clone https://github.com/YOUR_GITHUB_NAME/orbitron`
-- Run `cd orbitron/scripts` then `./server_install.sh` and enter your domain
-- Test by visiting `http://your_domain.com`
+- Run `cd orbitron` then `scripts/server_install.sh` and enter your domain (and eventually email and other certbot prompts)
+- Test by visiting `https://your_domain.com` (you should see "No pieces found on the same wifi")
 
 ## Connect a piece to your own server
 
@@ -62,15 +62,16 @@ See [the games folder README](games)
   - MacOS: `sudo nmap -sn $(ipconfig getifaddr en0)/24`
   - Linux: `sudo nmap -sn $(hostname -I | cut -d' ' -f1)/24`
 - `ssh pi@<IP address>` (password `lumatron`) into the piece
-- Change the password `passwd`
-- Edit `config.js` to add the line `RELAY_HOST: "your-domain-or-ip",`
-- Run `sudo pm2 restart all`
+- Change the password by running `passwd`
+- Edit `orbitron/config.js` to add the line `RELAY_HOST: "your-domain-or-ip",`
+- Run `pm2 restart all`
+- Test by visiting `https://your_domain.com` again (you should now see the piece)
 
 ## The admin console
 
 - Ensure your server is properly set up
 - Visit url `https://your-domain.com/admin`
-- Enter the masterkey (from your server's console) as prompted
+- Enter the masterkey (from `masterkey.txt` from your server's console) as prompted
 - I recommend hitting the "Set ORB_KEY" button followed by the "Save config.js" button for all connected orbs (including the server itself - default named "demo")
   - Note: if this button is not visible hit the "config" button first
 - Again see [the admin folder README](admin) for more details

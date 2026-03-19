@@ -98,9 +98,11 @@ new Vue({
       }
     })
 
-    try {
-      this.masterKey = await (await fetch("http://localhost:8000/admin/masterkey")).text()
-    } catch(_) {}
+    if (location.protocol === 'http:') {
+      try {
+        this.masterKey = await (await fetch("http://localhost:8000/admin/masterkey")).text()
+      } catch(_) {}
+    }
     if (!this.masterKey) {
       this.masterKey = localStorage.getItem("masterKey") || ""
     }
