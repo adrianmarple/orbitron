@@ -184,10 +184,10 @@ new Vue({
       let command = 'sudo bash -c "echo pi:lumatron | chpasswd"'
       let response = await this.sendCommand({ type: "run", command })
       this.commandResponses += "% " + command + "\n" + (response.trim() || "(success)") + "\n"
-      this.commandResponses += "Removing ORB_KEY from config.js"
+      this.commandResponses += "Removing ORB_KEY from config.js\n"
       this.config = removeLineInConfig(this.config, "ORB_KEY")
       await this.saveConfig()
-      this.commandResponses += "Successfully removed ORB_KEY"
+      this.commandResponses += "Successfully removed ORB_KEY\n"
     },
 
     async saveConfig(dontRestart) {

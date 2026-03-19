@@ -144,9 +144,21 @@ Given `target_v` (0–1 brightness), `tv = min(1, target_v * 100 / gradientThres
 A standalone static Vue 2 SPA (CDN, no build step) served by `relay.js` at `/admin`. Separate from the creation tool.
 
 - `admin.html` — structure; `admin.js` — logic; `admin.css` — styles; `barcade.otf` — font
-- Authenticates via master key: fetched from `http://localhost:8000/masterkey` (pixelserver) → localStorage fallback → modal prompt
+- Authenticates via master key: fetched from `http://localhost:8000/masterkey` (pixelserver, HTTP only) → localStorage fallback → modal prompt
 - Commands are authenticated with `sha256(commandJSON + sha256(orbID + masterKey))`
 - `relay.js` serves `/admin/admin.html`, `/admin/commits` (git log), and static files under `/admin/`
+- Per-orb admin commands are routed by the relay to the orb via WebSocket; the relay awaits a response with a 5-second timeout (so unresponsive/auth-failing orbs don't hang the relay indefinitely)
+- `sendCommand` in admin.js also has a 6-second `AbortController` timeout on the fetch
+
+### Auth / ORB_KEY notes
+- Each orb's `ORB_KEY` in `config.js` = `sha256(orbID + masterKey)`. If the master key changes or a new relay is set up, existing orbs will reject admin commands (hash mismatch, silently dropped).
+- "Unlock Orb" resets the Pi password **and** removes `ORB_KEY` from config (triggering a restart), so the orb accepts commands from any master key after that.
+- On a relay server, `serverOrbID` is always `"demo"` — the relay's own local orb. The relay server's config must include `RELAY_HOST: "<domain>"` so the demo orb connects back to itself rather than to the production relay (`my.lumatron.art`).
+
+### Temp orbs (emulation via relay)
+- Visiting `/<geometry>/view` on the relay spins up a temporary emulation orb (`TEMP_ORB: true`, no save/timing) using `PIXELS` derived from the URL path segment (replacing `+` with `/`).
+- The relay validates that the pixel JSON file exists before starting the temp orb — invalid geometry names (e.g. `debug`) are silently ignored rather than crashing.
+- `orb.js` auto-expands bare pixel names: if `PIXELS` has no `/`, it becomes `PIXELS/PIXELS` (e.g. `"debug"` → `"debug/debug"`).
 
 ## The `creation/` Folder — Hardware Manufacturing Toolchain
 
