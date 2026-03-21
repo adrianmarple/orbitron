@@ -133,6 +133,9 @@ export default {
       window[setting.name] = setting.value
     }
     this.fetchButtons()
+    this.projectsInterval = setInterval(async () => {
+      this.projects = await (await fetch("http://localhost:8000/projectlist.json")).json()
+    }, 10000)
 
     let eventTypes = ['onmousedown', 'onmousemove', 'onmouseup', 'onkeydown', 'onwheel']
     for (let eventType of eventTypes) {
@@ -142,6 +145,7 @@ export default {
   },
   unmounted() {
     clearInterval(this.renderInterval)
+    clearInterval(this.projectsInterval)
   },
   computed: {
     width() {
