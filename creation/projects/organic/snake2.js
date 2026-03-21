@@ -1,12 +1,41 @@
 module.exports = async () => {
   await addFromSVG("organic/snake2.svg")
   const parallelPairs = [
-    [29,10],
     [30,9],
-    [31,8],
     [32,7],
   ]
   integerizeCustom(parallelPairs)
+
+  // Compute jogZ from edge 30 before any modifications reshuffle indices
+  const jogZ = Math.sqrt(3)
+
+  // Shift selected vertices by jogZ
+  for (const idx of [31, 32, 8, 9]) {
+    verticies[idx].ogCoords = verticies[idx].ogCoords.add(new Vector(0, 0, -jogZ))
+  }
+
+  // 60° jog at the midpoint of each edge: single inserted vertex offset in z
+  for (const edgeIdx of [32, 30, 9, 7]) {
+    const edge = edges[edgeIdx]
+    const A = edge.verticies[0]
+    const a = A.ogCoords
+    const B = edge.verticies[1]
+    const b = B.ogCoords
+    const deltaFlat = b.sub(a)
+    deltaFlat.z = 0
+    const dist = deltaFlat.length()
+    const dirFlat = deltaFlat.normalize()
+    console.log(dist, dirFlat)
+    const mid1 = a.add(dirFlat.scale(dist/2 - 0.5))
+    const mid2 = b.sub(dirFlat.scale(dist/2 - 0.5))
+    const M1 = addVertex(mid1)
+    const M2 = addVertex(mid2)
+    
+    removeEdge(edge)
+    addEdge(A, M1)
+    addEdge(M1, M2)
+    addEdge(M2, B)
+  }
 
   const spineWidths = [
     // [2.5,2.5],
