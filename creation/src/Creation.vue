@@ -281,9 +281,7 @@ export default {
       let fileContent = JSON.stringify(generatePixelInfo(), null, 2)
       let fileName = this.fullProjectName + '.json'
       console.log(fileContent)
-      if (versionAtLeast("1.0.1", VERSION)) {
-        await this.download(fileName, fileContent)
-      }
+      await this.download(fileName, fileContent)
       console.log("Downloaded " + fileName)
     },
     async removeGitFiles() {

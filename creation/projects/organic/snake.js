@@ -1,3 +1,4 @@
+// v1.0.1
 module.exports = async () => {
   await addFromSVG("organic/snake.svg")
   integerize()

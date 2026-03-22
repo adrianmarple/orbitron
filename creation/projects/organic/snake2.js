@@ -1,3 +1,4 @@
+// v1.0.1
 module.exports = async () => {
   await addFromSVG("organic/snake2.svg")
   const parallelPairs = [
@@ -6,46 +7,24 @@ module.exports = async () => {
   ]
   integerizeCustom(parallelPairs)
 
-  // Compute jogZ from edge 30 before any modifications reshuffle indices
-  const jogZ = Math.sqrt(3)
-
-  // Shift selected vertices by jogZ
-  for (const idx of [31, 32, 8, 9]) {
-    verticies[idx].ogCoords = verticies[idx].ogCoords.add(new Vector(0, 0, -jogZ))
-  }
-
-  // 60° jog at the midpoint of each edge: single inserted vertex offset in z
-  for (const edgeIdx of [32, 30, 9, 7]) {
-    const edge = edges[edgeIdx]
-    const A = edge.verticies[0]
-    const a = A.ogCoords
-    const B = edge.verticies[1]
-    const b = B.ogCoords
-    const deltaFlat = b.sub(a)
-    deltaFlat.z = 0
-    const dist = deltaFlat.length()
-    const dirFlat = deltaFlat.normalize()
-    console.log(dist, dirFlat)
-    const mid1 = a.add(dirFlat.scale(dist/2 - 0.5))
-    const mid2 = b.sub(dirFlat.scale(dist/2 - 0.5))
-    const M1 = addVertex(mid1)
-    const M2 = addVertex(mid2)
-    
-    removeEdge(edge)
-    addEdge(A, M1)
-    addEdge(M1, M2)
-    addEdge(M2, B)
-  }
 
   const spineWidths = [
-    // [2.5,2.5],
-    // [2.7,3.3],
-    // [3.0,4.0],
-    // [3.3,3.7],
-    // [4,3],
-    // [4.5,3.5],
-    // [4.6,3.4],
-    // [3.2,2.8],
+    "skip",
+    "skip", //[1.7,2.3],
+    [2.7,3.3],
+    [2.6,3.4],
+    [2.8,3.2],
+    [3.1,3.9],
+    [3,4],
+    [3,4],
+    [3,4],
+    [3,5],
+    [3.4,4.6],
+    [3.6,4.4],
+    [4.5,3.5],
+    [4.5,3.5],
+    [4.6,3.4],
+    [3.2,2.8],
   ]
   const n = spineWidths.length
   const start = verticies[20]
@@ -63,11 +42,58 @@ module.exports = async () => {
     return side
   })
 
+  const jogZ = Math.sqrt(3)
+  // Shift selected vertices by jogZ
+  for (const idx of [31, 32, 8, 9]) {
+    verticies[idx].ogCoords = verticies[idx].ogCoords.add(new Vector(0, 0, -jogZ))
+  }
+  function addJog(edge, intersectionPlain) {
+    let A = edge.verticies[0]
+    let a = A.ogCoords
+    let B = edge.verticies[1]
+    let b = B.ogCoords
+    if (a.z != 0) {
+      let T = A
+      let t = a
+      A = B
+      a = b
+      B = T
+      b = t
+    }
+    const deltaFlat = b.sub(a)
+    deltaFlat.z = 0
+    const dist = deltaFlat.length()
 
-  for (let i = 0; i < n; i++) {
-    addTriangulation(sides[1][i], sides[0][i], ...spineWidths[i])
+    let offset = dist/2
+    if (intersectionPlain) {
+      const intersection = intersectionPlain.intersection(new Line(a, deltaFlat))
+      console.log(intersection)
+      offset = a.sub(intersection).length()
+    }
+    const dirFlat = deltaFlat.normalize()
+    const mid1 = a.add(dirFlat.scale(offset))
+    const mid2 = b.sub(dirFlat.scale(dist - offset - 1))
+    const M1 = addVertex(mid1)
+    const M2 = addVertex(mid2)
+
+    removeEdge(edge)
+    addEdge(A, M1)
+    addEdge(M1, M2)
+    addEdge(M2, B)
+
+    return new Plain(mid1, mid1.sub(mid2))
+  }
+  for (const [left, right] of parallelPairs.map(([l,r]) => [edges[l], edges[r]])) {
+    const intersectionPlain = addJog(left)
+    addJog(right, intersectionPlain)
   }
 
+  for (let i = 0; i < n; i++) {
+    if (spineWidths[i] == "skip") continue
+    addTriangulation(sides[0][i], sides[1][i], ...spineWidths[i])
+  }
+
+  zeroFoldAllEdges()
   EulerianPath(0)
 }
 
