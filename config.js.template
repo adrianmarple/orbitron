@@ -47,7 +47,6 @@ module.exports={
   // MANUAL_FADE_PIN: 24, // board pin 18/GPIO pin 24
   // MANUAL_FADE_STEPS: [1, 0],
   // PIN_INPUT_TYPE: "LOW", // "HIGH"
-  // PIN_SAMPLES_PER_FRAME: 1,
   // SHORT_PRESS_ACTION: "DIM", "CYCLE"
   // LONG_PRESS_ACTION: "DIM",
   // DOUBLE_CLICK_ACTION: null,

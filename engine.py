@@ -1094,23 +1094,7 @@ def run_core_loop():
     long_action = config.get("LONG_PRESS_ACTION", "DIM")
     double_action = config.get("DOUBLE_CLICK_ACTION")
 
-    pin_value = 0
-    samples_per_frame = config.get("PIN_SAMPLES_PER_FRAME", 1)
-    PIN_MIN = 0
-    PIN_WINDOW = 4
-    if samples_per_frame > 1:
-      PIN_MIN = samples_per_frame * 0.02
-      pin_ring_buffer = [samples_per_frame] * PIN_WINDOW*2
-      ring_index = 0
-
-      def pin_loop():
-        nonlocal pin_value
-        while (True):
-          pin_value += sample()
-          sleep(1.0/ FRAMERATE / samples_per_frame)
-
-      pin_thread = Thread(target=pin_loop)
-      pin_thread.start()
+    previous_value = 0
   # end if config.get("MANUAL_FADE_PIN")
 
   while True:
@@ -1132,27 +1116,16 @@ def run_core_loop():
 
 
     if config.get("MANUAL_FADE_PIN"):
-      if samples_per_frame == 1:
-        previous_value = pin_value
-        pin_value = sample()
-        current_value = pin_value
-      else:
-        pin_ring_buffer[ring_index] = pin_value
-        current_value = 0
-        previous_value = 0
-        for i in range(PIN_WINDOW):
-          current_value += pin_ring_buffer[(ring_index + 2*PIN_WINDOW - i) % (2*PIN_WINDOW)]
-          previous_value += pin_ring_buffer[(ring_index + PIN_WINDOW - i) % (2*PIN_WINDOW)]
-        ring_index = (ring_index + 1) % (2*PIN_WINDOW)
-        pin_value = 0
-
-      started = current_value > 1.8*previous_value + PIN_MIN*PIN_WINDOW
-      stopped = previous_value > 1.5*current_value + PIN_MIN*PIN_WINDOW
+      current_value = sample()
+      started = current_value > previous_value
+      stopped = previous_value > current_value
+      previous_value = current_value
 
       if not pin_start_time and started:
-        pin_start_time = time()
         if pin_end_time:
           perform_action(double_action)
+        else:
+          pin_start_time = time()
 
       if pin_start_time and stopped:
         if not double_action:
