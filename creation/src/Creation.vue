@@ -135,7 +135,15 @@ export default {
     this.fetchButtons()
     this.projectsInterval = setInterval(async () => {
       this.projects = await (await fetch("http://localhost:8000/projectlist.json")).json()
-    }, 10000)
+      const name = this.currentProject.name
+      if (name) {
+        const code = await (await fetch(`http://localhost:8000/projects/${name}.js`)).text()
+        if (this._lastProjectCode !== undefined && code !== this._lastProjectCode) {
+          this.openProject(this.currentProject)
+        }
+        this._lastProjectCode = code
+      }
+    }, 1000)
 
     let eventTypes = ['onmousedown', 'onmousemove', 'onmouseup', 'onkeydown', 'onwheel']
     for (let eventType of eventTypes) {
@@ -204,6 +212,7 @@ export default {
     },
     async openProject(project) {
       this.currentProject = project
+      this._lastProjectCode = undefined
       const name = project.name
       if (this.fullProjectName && this.fullProjectName != name) {
         this.setSetting("STARTING_PART_ID", 1)
