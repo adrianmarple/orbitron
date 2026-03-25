@@ -830,7 +830,9 @@ function integerize(startingThreshold) {
     } else if (lowerNeighbors.length == 2) {
       let n0 = lowerNeighbors[0]
       let n1 = lowerNeighbors[1]
-      if (n0.ogCoords.x > n1.ogCoords.x) {
+      let delta0 = n0.ogCoords.sub(v.ogCoords)
+      let delta1 = n1.ogCoords.sub(v.ogCoords)
+      if (delta0.signedAngle(RIGHT) < delta1.signedAngle(RIGHT)) {
         let t = n0
         n0 = n1
         n1 = t
@@ -844,7 +846,7 @@ function integerize(startingThreshold) {
       }
       replacement = addTriangulation(n0, n1, dist1, dist0)
     } else {
-      console.error("Topology not suitable for integerization: " + v.index)
+      console.error(`Topology not suitable for integerization, vertex with ${lowerNeighbors.length} lower neighbors`, v)
       return
     }
     if (!!replacement && replacement != v) {

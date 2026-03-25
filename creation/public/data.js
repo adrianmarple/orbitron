@@ -23,9 +23,10 @@ async function EulerianPath(currentVertex, pathOverride) {
 
 function potential(edge, previousEdge, angle) {
   if (versionAtLeast("1.0.1", VERSION) &&
+      edge.dual &&
       path.includes(edge.dual.index) &&
       !path.includes(previousEdge.dual.index)) {
-    if (epsilonEquals(angle, Math.PI)) {
+    if (edge == previousEdge.dual) {
       angle = -1 // Strongly prefer doubling back when having to merge with an existing strip
     }
     angle += 100 // Avoid merges

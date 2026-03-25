@@ -214,7 +214,10 @@ export default {
 
       VERSION = project.version
       reset()
-      await require("../projects/" + name + ".js")()
+      const projectCode = await (await fetch(`http://localhost:8000/projects/${name}.js`)).text()
+      const projectModule = { exports: {} }
+      new Function('module', 'exports', projectCode)(projectModule, projectModule.exports)
+      await projectModule.exports()
       if (centerOnRender) {
         center()
       }

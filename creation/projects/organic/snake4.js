@@ -1,6 +1,6 @@
 // v1.0.1
 module.exports = async () => {
-  await addFromSVG("organic/snake2.svg")
+  await addFromSVG("organic/snake4.svg")
   const parallelPairs = [
     [30,9],
     [32,7],
@@ -24,7 +24,7 @@ module.exports = async () => {
     [4.5,3.5],
     [4.5,3.5],
     [4.6,3.4],
-    [3.2,2.8],
+    [3.7,3.3],
   ]
   const n = spineWidths.length
   const start = verticies[20]
@@ -40,7 +40,7 @@ module.exports = async () => {
       curr = nextEdge.otherVertex(curr)
     }
     return side
-  })
+  }).reverse()
 
   const jogHoriz = 1.2
   const jogHypoteneus = jogHoriz + 1 // Must add an integer

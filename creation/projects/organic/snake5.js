@@ -1,9 +1,9 @@
 // v1.0.1
 module.exports = async () => {
-  await addFromSVG("organic/snake2.svg")
+  await addFromSVG("organic/snake5.svg")
   const parallelPairs = [
-    [30,9],
-    [32,7],
+    [32,9],
+    [34,7],
   ]
   integerizeCustom(parallelPairs)
 
@@ -15,8 +15,9 @@ module.exports = async () => {
     [2.6,3.4],
     [2.8,3.2],
     [3.1,3.9],
-    [3,4],
-    [3,4],
+    [3.4,4.6],
+    [3.7,5.3],
+    [3.2,3.8],
     [3,4],
     [3,5],
     [3.4,4.6],
@@ -27,7 +28,7 @@ module.exports = async () => {
     [3.2,2.8],
   ]
   const n = spineWidths.length
-  const start = verticies[20]
+  const start = verticies[21]
   const sides = start.edges.map(startEdge => {
     const side = []
     let prev = start
@@ -47,7 +48,7 @@ module.exports = async () => {
   const jogAngle = Math.acos(jogHoriz/jogHypoteneus)
   console.log("jog angle", jogAngle * 180 / Math.PI)
   const jogZ = Math.sqrt(jogHypoteneus * jogHypoteneus - jogHoriz * jogHoriz)
-  for (const idx of [31, 32, 8, 9]) {
+  for (const idx of [34, 33, 8, 9]) {
     verticies[idx].ogCoords = verticies[idx].ogCoords.add(new Vector(0, 0, -jogZ))
   }
   function addJog(edge, intersectionPlain) {
