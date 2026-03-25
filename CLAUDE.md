@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Code Changes
+
+- When propagating changes across similar files (e.g., snake1.js, snake2.js, snake3.js, snake4.js), always check ALL related files and apply changes consistently. Use Grep to find all instances before finishing.
+- Reuse existing variables and patterns in the codebase. Before introducing new variables or approaches, check if there's already something defined that serves the same purpose.
+
 ## What This Project Is
 
 Lumatron is an LED light sculpture system supporting a wide variety of shapes (spheres, walls, boxes, helmets, etc.). The primary focus is idle pattern lighting — customizable animations, colors, brightness, and timer schedules controlled via a phone/browser controller over WebSockets. The system also supports multiplayer games played on the LED surface. It can run locally on a Raspberry Pi or in dev/emulation mode on any machine.
