@@ -18,7 +18,7 @@ sudo cp /home/pi/orbitron/scripts/00-orb.conf /etc/NetworkManager/dnsmasq-shared
 # Set up python
 python -m venv --system-site-packages ~/.env
 source ~/.env/bin/activate
-pip3 install adafruit-circuitpython-neopixel adafruit-circuitpython-ht16k33 adafruit-python-shell setuptools RPi.GPIO adafruit-blinka rpi_ws281x
+pip3 install adafruit-circuitpython-neopixel adafruit-circuitpython-ht16k33 adafruit-python-shell setuptools RPi.GPIO adafruit-blinka rpi_ws281x apa102-pi
 deactivate
 
 # Install npm stuff

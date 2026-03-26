@@ -3,9 +3,12 @@ module.exports={
   //ORB_AUDIO:"USB Audio Device, USB Audio",
   //ORB_AUDIO:"USB PnP Sound Device, USB Audio",
   //EXTERNAL_WIFI: true,
-  //EXTERNAL_PIXEL_BOARD: true,
-  //STRAND_COUNT: 1,
-  //PIXELS_PER_STRAND: 480,
+  //LED_STRIP_TYPE: "WS2812B",  // "WS2812B" (default), "APA102" (SPI via apa102-pi), or "EXTERNAL" (RP2040 Scorpio via serial)
+  //STRAND_COUNT: 1,            // EXTERNAL only: number of parallel LED strands
+  //PIXELS_PER_STRAND: 480,     // EXTERNAL only: pixels per strand
+  //APA102_BRIGHTNESS: 31,      // APA102 only: hardware brightness register (0-31, default 31)
+  //APA102_MOSI_PIN: 10,        // APA102 only: SPI MOSI GPIO pin (default 10)
+  //APA102_SCLK_PIN: 11,        // APA102 only: SPI SCLK GPIO pin (default 11)
   DEV_MODE: false,
   HAS_EMULATION: false,
   IS_RELAY: false,

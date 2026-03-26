@@ -4,31 +4,18 @@ import collections
 import json
 import numpy as np
 import os
-import shutil
 import sys
 import traceback
 
 from datetime import datetime
 from math import exp, ceil, floor, pi, cos, sin, sqrt, tan
 from random import randrange, random
-from threading import Thread
 from time import sleep, time
 
 import prefs
 get_pref = prefs.get_pref
 
 config = json.loads(os.getenv("CONFIG"))
-
-if config.get("HAS_EMULATION"):
-  def display_pixels(pixels):
-    output = np.array(pixels,dtype="<u1").tobytes()
-    print("raw_pixels=%s;" % output.hex())
-else:
-  from orbclient.orbpixel import display_pixels, start_pixel_output_process, start_external_pixel_board, start_external_pixel_board_logging
-  # start_pixel_output_process()
-  start_external_pixel_board()
-  start_external_pixel_board_logging()
-
 
 GOOD_COLOR = np.array((0, 255, 0))
 GOOD_COLOR_STRING = "#00ff00"
@@ -126,6 +113,13 @@ if south_pole is None:
 
 raw_pixels = np.zeros((RAW_SIZE, 3),dtype="<u1")
 print("Running %s pixels" % RAW_SIZE, file=sys.stderr)
+if config.get("HAS_EMULATION"):
+  def display_pixels(pixels):
+    output = np.array(pixels,dtype="<u1").tobytes()
+    print("raw_pixels=%s;" % output.hex())
+else:
+  from orbclient.orbpixel import display_pixels, start_pixels
+  start_pixels(RAW_SIZE)
 
 idle = None
 game = None
@@ -275,7 +269,7 @@ text_index = 0
 display_type = config.get("TEXT_DISPLAY", "")
 if display_type == "Seg14x4":
   try:
-    import board
+    import board  # type: ignore
     i2c = board.I2C()
     from adafruit_ht16k33.segments import Seg14x4 # type: ignore
     display = Seg14x4(i2c)

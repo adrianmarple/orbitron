@@ -1,7 +1,7 @@
 let { execute, config } = require('./lib')
 
 async function update_external_board(){
-  if(config.EXTERNAL_PIXEL_BOARD){
+  if(config.LED_STRIP_TYPE === "EXTERNAL"){
     console.log("Attempting to update external board")
     let info = (await execute("lsblk -fp | grep CIRCUITPY")).trim().split(' ')
     let label_index = info.indexOf("CIRCUITPY")
