@@ -993,7 +993,8 @@ function origami(foldPlain) {
   return newPlain
 }
 
-function zeroFoldAllEdges(linearStartingVertex) {
+function zeroFoldAllEdges(options) {
+  if (!options) options = {}
   edgeCleanup(true)
 
   plains.length = 0
@@ -1052,8 +1053,8 @@ function zeroFoldAllEdges(linearStartingVertex) {
     vertex.addPlain(new Plain(v, normal))
   }
 
-  if (linearStartingVertex) {
-    let vertex = resolveVertex(linearStartingVertex)
+  if (options.linearStartingVertex) {
+    let vertex = resolveVertex(options.linearStartingVertex)
     addSelfPlain(vertex)
     twoEdgeVertecies.remove(vertex)
   }
@@ -1121,13 +1122,14 @@ function zeroFoldAllEdges(linearStartingVertex) {
   }
 
   let edgesToZeroFold = []
+  let edgesToNotFold = (options.edgesToNotFold ?? []).map(resolveEdge)
   for (let edge of [...edges]) {
     let lengthThreshold = ZERO_FOLD_LENGTH_THRESHOLD
     if (edge.verticies[0].plains.length > 1 || edge.verticies[1].plains.length > 1) {
       lengthThreshold *= 2
     }
     
-    if (edge.length() > lengthThreshold) {
+    if (edge.length() > lengthThreshold && !edgesToNotFold.includes(edge)) {
       // zeroFold(edge)
       edgesToZeroFold.push(edge)
       continue

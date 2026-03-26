@@ -11,7 +11,7 @@ let CAMERA_Z = 17
 let CONTROLLER = "none"
 let NO_HUD = false
 let SHOWTEXT = false
-let NO_AUTO_ROTATE = false
+let AUTO_ROTATE = false
 let NO_CENTROID = false
 
 for (let param of new URLSearchParams(location.search)) {
@@ -24,7 +24,6 @@ for (let param of new URLSearchParams(location.search)) {
         DISABLE_WHEEL = true
         NO_HUD = true
         NO_CENTROID = true
-        NO_AUTO_ROTATE = true
         break
       case 'controller':
         if (param[1] == "none") {
@@ -41,8 +40,8 @@ for (let param of new URLSearchParams(location.search)) {
       case 'showtext':
         SHOWTEXT = true
         break
-      case 'noautorotate':
-        NO_AUTO_ROTATE = true
+      case 'autorotate':
+        AUTO_ROTATE = true
         break
       case 'nocentroid':
         NO_CENTROID = true
@@ -429,7 +428,7 @@ var app = new Vue({
           lastInteractionTime = Date.now()
         }
 
-        if (!NO_AUTO_ROTATE && lastInteractionTime + 10*1000 < Date.now()) {
+        if (AUTO_ROTATE && lastInteractionTime + 10*1000 < Date.now()) {
           moveVelocityY = 2
         }
 
