@@ -1144,7 +1144,12 @@ function zeroFoldAllEdges(options) {
       }
     }
   }
+  let edgeOffsets = options.edgeOffsets ?? {}
   for (let edge of edgesToZeroFold) {
+    if (edgeOffsets[edge.index]) {
+      zeroFold(edge, edgeOffsets[edge.index])
+      continue
+    }
     let shouldZeroFold = true
     for (let plain0 of edge.verticies[0].plains) {
       for (let plain1 of edge.verticies[1].plains) {
@@ -1164,7 +1169,7 @@ function zeroFoldAllEdges(options) {
     }
   }
 }
-function zeroFold(edge) {
+function zeroFold(edge, offset) {
   let plain0 = null
   let plain1 = null
   for (let p0 of edge.verticies[0].plains) {
@@ -1181,7 +1186,7 @@ function zeroFold(edge) {
     return
   }
   let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
-  let newVertex = splitEdge(edge, edge.length()/2)
+  let newVertex = splitEdge(edge, offset ?? edge.length()/2)
   newVertex.deadendPlain = new Plain(newVertex.ogCoords, foldNormal)
   newVertex.plains = []
   newVertex.addPlain(plain0)
