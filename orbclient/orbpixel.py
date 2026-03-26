@@ -12,7 +12,7 @@ LED_STRIP_TYPE = config.get("LED_STRIP_TYPE", "WS2812B").upper()
 
 match LED_STRIP_TYPE:
     case "APA102":
-        from apa102_pi.driver import APA102 as _APA102Driver  # type: ignore
+        from apa102_pi.driver.apa102 import APA102 as _APA102Driver  # type: ignore
     case "EXTERNAL":
         import serial  # type: ignore
     case _:  # WS2812B
