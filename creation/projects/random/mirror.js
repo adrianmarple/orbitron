@@ -1,9 +1,7 @@
 // v1.0.1
 module.exports = () => {  
   BORDER = 6
-  LED_SUPPORT_GAP = 2.8
   PORT_POSITION = "fold"
-
   portPartID = "1L"
 
   let longSequence = [5,6,8,10,10,8,6,5,4,4,4]

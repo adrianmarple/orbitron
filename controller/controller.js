@@ -440,7 +440,9 @@ var app = new Vue({
       
       for (let id of this.registeredIDs) {
         fetch(`${location.origin}/${id}/info`).then(async data => {
-          this.initOrb(await data.json())
+          let info = await data.json()
+          if (!info) return
+          this.initOrb(info)
           if (self.idToOrb[id].isCurrentlyConnected) {
             self.startWebsocket(id)
           }

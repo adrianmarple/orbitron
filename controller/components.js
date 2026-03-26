@@ -625,7 +625,8 @@ function initSharedRenderer() {
         view.mesh.rotation.y += 0.007
         view.mesh.rotation.z = Math.sin(Date.now() / 5000) * 0.1
       }
-      renderer.setClearColor(0x333333, connected ? 0.5 : 0.9)
+      const alpha = connected ? 0.5 : (view.hasTopology() ? 0.9 : 1.0)
+      renderer.setClearColor(0x333333, alpha)
       renderer.render(view.scene, view.camera)
       view.ctx.clearRect(0, 0, RENDER_SIZE, RENDER_SIZE)
       view.ctx.drawImage(renderer.domElement, 0, 0)
@@ -642,7 +643,7 @@ Vue.component('stlviewer', {
   },
   mounted() {
     const self = this
-    this.viewRecord = { scene: null, camera: null, mesh: null, ctx: null, get orbID() { return self.info.orbID }, isConnected: () => self.$root.isConnected(self.info.orbID) }
+    this.viewRecord = { scene: null, camera: null, mesh: null, ctx: null, get orbID() { return self.info.orbID }, isConnected: () => self.$root.isConnected(self.info.orbID), hasTopology: () => !!self.info.topology }
     stlViews.set(this, this.viewRecord)
     initSharedRenderer()
     this.load()
@@ -652,7 +653,6 @@ Vue.component('stlviewer', {
   },
   methods: {
     load() {
-      if (!this.info.topology) return
       this.$el.innerHTML = ""
 
       const canvas = document.createElement('canvas')
@@ -694,11 +694,18 @@ Vue.component('stlviewer', {
         scene.add(mesh)
         view.mesh = mesh
       }
-      loader.load("stls/" + this.info.topology + ".stl", loadGeometry, undefined, _ => {
+      const topology = this.info.topology
+      if (topology) {
+        loader.load("stls/" + topology + ".stl", loadGeometry, undefined, _ => {
+          loader.load("stls/default.stl", loadGeometry, undefined, error => {
+            console.error('An error happened while loading the STL file.', error)
+          })
+        })
+      } else {
         loader.load("stls/default.stl", loadGeometry, undefined, error => {
           console.error('An error happened while loading the STL file.', error)
         })
-      })
+      }
     }
   },
   template: `

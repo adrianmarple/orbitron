@@ -319,8 +319,6 @@ addPOSTListener(async (response, body) => {
     gcodeContents = gcodeContents.replace(chunkToReplace, chunkLines.join("\n"))
     await fs.promises.writeFile(gcodeFilePath, gcodeContents)
   }
-  
-  return
   console.log("Uploading gcode")
   let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_qr.gcode"
   await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
@@ -356,9 +354,7 @@ async function generateGCode(info, print) {
   info.prefixCode = ""
 
   let scadFilePath = `${info.tempPath}_${info.fullSuffix}.scad`
-  let stlFilePath = `${print.temp ? info.tempPath: info.fullPath}_${info.fullSuffix}.stl`.replace(" ", "_")
-  let bgcodeFilePath = `${info.tempPath}_${info.fullSuffix}.bgcode`.replace(" ", "_")
-  let bgcodePrinterFile = `${info.tempPath}_${info.fullSuffix}.bgcode`
+  let stlFilePath = `${info.fullPath}_${info.fullSuffix}.stl`.replace(" ", "_")
 
   let scadFileContents = `
   $fn=32;
@@ -436,16 +432,7 @@ async function generateGCode(info, print) {
     await execute(`mkdir -p ${info.additionalSavePath}/${info.dir}`)
     await execute(`cp ${stlFilePath} ${info.additionalSavePath}/${info.fullProjectName}${additionalSuffix}.stl`)
   }
-  if (info.PROCESS_STOP == "stl" || print.temp) return stlFilePath
-
-  console.log("Generating .bgcode " + info.fullSuffix)
-  let config = "wall_config" + (info.INFILL_100 ? "_infill100" : "") + ".ini"
-  await execute(`${process.env.SLICER} -g --load ${config} "${stlFilePath}" --output ${bgcodeFilePath}`)
-  
-  console.log("Uploading .bgcode " + info.fullSuffix)
-  await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
-  await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${bgcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${bgcodeFilePath}`)
-  if (info.PROCESS_STOP == "upload") return stlFilePath
+  return stlFilePath
 }
 
 async function generateModule(info, module) {

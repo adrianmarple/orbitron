@@ -98,13 +98,6 @@ export default {
         // {name: "showWallSVG", type: "bool"},
         {name: "STARTING_PART_ID", type: "int", value: 1},
         {name: "ENDING_PART_ID", type: "int", value: 0},
-        {name: "PROCESS_STOP", type: "select",
-          options: [
-            ["stl", "Generate .stl"],
-            ["upload", "Upload gcode"],
-          ],
-          value: "upload",
-        },
       ],
       projects: [],
       showSkipped: false,
@@ -197,7 +190,7 @@ export default {
     updateSetting(setting) {
       localStorage.setItem(setting.name, setting.value)
       window[setting.name] = setting.value
-      if (!["STARTING_PART_ID", "ENDING_PART_ID", "PROCESS_STOP"].includes(setting.name)) {
+      if (!["STARTING_PART_ID", "ENDING_PART_ID"].includes(setting.name)) {
         this.openProject(this.currentProject)
       }
     },
@@ -304,6 +297,15 @@ export default {
     genPrints() {
       let printInfo = createPrintInfo3D()
       printInfo.fullProjectName = fullProjectName
+      let hasReachedStart = false
+      let hasReachedEnd = false
+      printInfo.prints = printInfo.prints.filter(print => {
+        if (!/^\d/.test(print.suffix)) return true  // non-numbered suffix always passes
+        hasReachedStart = hasReachedStart || print.suffix.startsWith(STARTING_PART_ID + "")
+        if (hasReachedEnd || !hasReachedStart) return false
+        hasReachedEnd = print.suffix.startsWith(ENDING_PART_ID + "")
+        return true
+      })
       this.post(printInfo)
       console.log("Generating prints")
     },

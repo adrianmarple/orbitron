@@ -822,10 +822,9 @@ function createFullModel() {
     return {
       type: "gcode",
       prints: [print],
-      PROCESS_STOP: "stl",
     }
   }
-  
+
   let completedParts = {}
   for (let edge of edges) {
     if (edge.isDupe) continue
@@ -867,14 +866,12 @@ function createFullModel() {
   return {
     type: "gcode",
     prints: [print],
-    PROCESS_STOP: "stl",
   }
 }
 
 function createPrintInfo3D() {
   printInfo = {
     type: "gcode",
-    PROCESS_STOP,
     INFILL_100,
     prints: [],
   }
@@ -932,22 +929,6 @@ function createPrintInfo3D() {
       partID += 1
     }
   }
-
-  let startingPartID = STARTING_PART_ID
-  if (startingPartID < 1) {
-    startingPartID = 1
-  }
-  let prints = []
-  let hasReachedStart
-  let hasReachedEnd
-  for (let print of printInfo.prints) {
-    hasReachedStart = hasReachedStart || print.suffix.startsWith(STARTING_PART_ID + "")
-    if (hasReachedStart && !hasReachedEnd) {
-      prints.push(print)
-    }
-    hasReachedEnd = hasReachedEnd || print.suffix.startsWith(ENDING_PART_ID + "")
-  }
-  printInfo.prints = prints
 
   if (SLEEVE_TYPE != null) {
     let uniqueSleeveWalls = []

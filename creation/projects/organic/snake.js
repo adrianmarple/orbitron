@@ -1,5 +1,8 @@
 // v1.0.1
 module.exports = async () => {
+  PORT_POSITION = "fold"
+  portPartID = "1L"
+
   await addFromSVG("organic/snake5.svg")
   const parallelPairs = [
     [32,9],
@@ -96,8 +99,9 @@ module.exports = async () => {
     addTriangulation(sides[0][i], sides[1][i], ...spineWidths[i])
   }
 
+  splitEdge(19, 4)
   zeroFoldAllEdges()
-  EulerianPath(100,1)
+  EulerianPath(101)
 }
 
 function integerizeCustom(parallelPairs = []) {
