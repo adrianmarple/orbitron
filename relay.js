@@ -158,6 +158,7 @@ function bindOrb(socket, orbID) {
       data = JSON.parse(data);
 
       if (data.config) { // info dump to cache
+        if (data.config.TEMP_ORB) return
         orbInfoCache[orbID] = data
         await fs.promises.writeFile("./orbinfocache.json", JSON.stringify(orbInfoCache), "utf8")
         return
