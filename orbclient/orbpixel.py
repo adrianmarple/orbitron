@@ -158,11 +158,13 @@ def _write_external(pixels):
 def _write_apa102(pixels):
     brightness_byte = 0xE0 | _apa102_strip.global_brightness
     # leds buffer layout: 4-byte start frame, then 4 bytes per pixel [brightness, b, g, r]
-    buf = np.frombuffer(_apa102_strip.leds, dtype=np.uint8)[4:4 + len(pixels) * 4].reshape(-1, 4)
-    buf[:, 0] = brightness_byte
-    buf[:, 1] = pixels[:, 2]  # blue
-    buf[:, 2] = pixels[:, 1]  # green
-    buf[:, 3] = pixels[:, 0]  # red
+    n = len(pixels)
+    buf = np.empty(n * 4, dtype=np.uint8)
+    buf[0::4] = brightness_byte
+    buf[1::4] = pixels[:, 2]  # blue
+    buf[2::4] = pixels[:, 1]  # green
+    buf[3::4] = pixels[:, 0]  # red
+    _apa102_strip.leds[4:4 + n * 4] = buf.tolist()
     _apa102_strip.show()
 
 def _write_ws2812b(pixels):
