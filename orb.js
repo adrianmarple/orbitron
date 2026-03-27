@@ -100,8 +100,9 @@ function connectOrbToRelay(){
     let relayURL = `${relayProtocol}://${relayDomain}:7777/relay/${config.ORB_ID}`
     orbToRelaySocket = new WebSocket.WebSocket(relayURL)
     orbToRelaySocket.lastPingReceived = Date.now()
+    const socket = orbToRelaySocket
 
-    orbToRelaySocket.on("open", () => {
+    socket.on("open", () => {
       // Send over config w/o secret on socket connection
       let configCopy = { ...config }
       delete configCopy.ORB_KEY
@@ -111,19 +112,19 @@ function connectOrbToRelay(){
         config: configCopy
       }
       try {
-        orbToRelaySocket.send(JSON.stringify(message))
+        socket.send(JSON.stringify(message))
       } catch(e) {
         console.log("Error sending config to relay", e, message)
       }
     })
 
-    orbToRelaySocket.on('message', async (data, isBinary) => {
+    socket.on('message', async (data, isBinary) => {
       displayText("")
       if(!isBinary){
         data = data.toString().trim()
       }      
       if(data == "PING"){
-        orbToRelaySocket.lastPingReceived = Date.now()
+        socket.lastPingReceived = Date.now()
         return
       }
       if(data == "GIT_HAS_UPDATE"){
@@ -264,7 +265,7 @@ function connectOrbToRelay(){
         if (command.type == "manualBackup") {
           await saveBackup(command.nameOverride)
         }
-        orbToRelaySocket.send(JSON.stringify({
+        socket.send(JSON.stringify({
           messageID,
           data: returnData,
         }))
@@ -275,7 +276,7 @@ function connectOrbToRelay(){
       let clientID = data.clientID
       let clientConnection = getClientConnection(clientID)
       if(!clientConnection && !data.closed){
-        clientConnection = createClientConnection(clientID, orbToRelaySocket)
+        clientConnection = createClientConnection(clientID, socket)
       }
       if(clientConnection) {
         if(data.closed){
@@ -292,13 +293,13 @@ function connectOrbToRelay(){
         }
       }
     })
-    orbToRelaySocket.on('close', () => {
-      orbToRelaySocket = null
+    socket.on('close', () => {
+      if (orbToRelaySocket === socket) orbToRelaySocket = null
     })
-    orbToRelaySocket.on('error', (e) => {
+    socket.on('error', (e) => {
       displayText("CONNECTION ERROR")
       console.log("Orb to relay socket error", e)
-      orbToRelaySocket.close()
+      socket.close()
     })
   } catch(e) {
     displayText("CONNECTION ERROR")

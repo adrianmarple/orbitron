@@ -335,7 +335,7 @@ addPOSTListener(async (response, body) => {
   for (let i = 0; i < body.prints.length; i++) {
     let print = body.prints[i]
     print.index = i
-    await generateGCode(body, print)
+    await generateSTL(body, print)
     console.log("Done " + i)
   }
   response.writeHead(200)
@@ -344,7 +344,7 @@ addPOSTListener(async (response, body) => {
   return true
 })
 
-async function generateGCode(info, print) {
+async function generateSTL(info, print) {
   info.svgIndex = 0
   if (print.suffix) {
     info.fullSuffix = print.suffix
