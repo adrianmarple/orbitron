@@ -257,6 +257,9 @@ var app = new Vue({
   },
 
   computed: {
+    visibleIDs() {
+      return this.registeredIDs.filter(id => this.idToOrb[id])
+    },
     ws() {
       return this.orbInfo.ws ?? null
     },

@@ -128,7 +128,7 @@
     </div>
     
     <div id="orbs">
-      <div v-for="id in registeredIDs" v-if="idToOrb[id]" class="orb-wrapper" @click="openOrb(id, true)"
+      <div v-for="id in visibleIDs" class="orb-wrapper" @click="openOrb(id, true)"
       :class="{ connected: isConnected(id) }">
         <div class="orb" :class="{ dragging: draggingID === id, dragover: draggingTargetID === id && draggingID !== id, active: isConnected(id) }"
           @pointerdown="onPointerDragStart($event, id)">
@@ -146,7 +146,7 @@
           </div>
         </div>
       </div>
-      <div v-if="registeredIDs.length > 3 && registeredIDs.length % 2 == 1" class="orb-wrapper">
+      <div v-if="visibleIDs.length > 3 && visibleIDs.length % 2 == 1" class="orb-wrapper">
         <div class="orb solid"></div>
       </div>
     </div>
