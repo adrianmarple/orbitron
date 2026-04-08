@@ -276,6 +276,7 @@ addPOSTListener(async (response, body) => {
   return true
 })
 
+
 addPOSTListener(async (response, body) => {
   if (!body || body.type != "qr") return false
 

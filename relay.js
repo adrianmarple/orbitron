@@ -465,6 +465,48 @@ addGETListener(async (response, orbID, filePath)=>{
   return true
 })
 
+// Serve pixel geometry as binary for Arduino ESP32 devices
+// Format: uint16 SIZE, uint16 RAW_SIZE, dupes_to_uniques, neighbors (MAX_NEIGHBORS=6, 0xffff-padded), raw_to_unique, coords
+addGETListener((response, _, filePath) => {
+  if (!filePath.startsWith('/pixels/') || !filePath.endsWith('.bin')) return false
+  const MAX_NEIGHBORS = 6
+  const pixelsName = filePath.slice('/pixels/'.length, -'.bin'.length)
+  const jsonPath = `${__dirname}/pixels/${pixelsName}.json`
+  if (!fs.existsSync(jsonPath)) return false
+  const d = JSON.parse(fs.readFileSync(jsonPath))
+  const { SIZE, RAW_SIZE, dupeToUniques, neighbors, uniqueToDupe, coords } = d
+  const buf = Buffer.alloc(
+    2 + 2 +
+    SIZE * 2 * 2 +
+    SIZE * MAX_NEIGHBORS * 2 +
+    RAW_SIZE * 2 +
+    SIZE * 3 * 4
+  )
+  let off = 0
+  buf.writeUInt16LE(SIZE, off);    off += 2
+  buf.writeUInt16LE(RAW_SIZE, off); off += 2
+  for (let i = 0; i < SIZE; i++) {
+    buf.writeUInt16LE(dupeToUniques[i][0], off); off += 2
+    buf.writeUInt16LE(dupeToUniques[i][1], off); off += 2
+  }
+  for (let i = 0; i < SIZE; i++) {
+    for (let j = 0; j < MAX_NEIGHBORS; j++) {
+      buf.writeUInt16LE(neighbors[i][j] ?? 0xffff, off); off += 2
+    }
+  }
+  for (let i = 0; i < RAW_SIZE; i++) {
+    buf.writeUInt16LE(uniqueToDupe[i], off); off += 2
+  }
+  for (let i = 0; i < SIZE; i++) {
+    buf.writeFloatLE(coords[i][0], off); off += 4
+    buf.writeFloatLE(coords[i][1], off); off += 4
+    buf.writeFloatLE(coords[i][2], off); off += 4
+  }
+  noCorsHeader(response, 'application/octet-stream')
+  response.end(buf)
+  return true
+})
+
 addGETListener((response, orbID, filePath) => {
   if(!filePath.includes('view')) return
 

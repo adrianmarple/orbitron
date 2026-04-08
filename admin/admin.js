@@ -266,10 +266,14 @@ new Vue({
       }
     },
 
+    isArduino() {
+      return this.orbInfo.find(o => o.id == this.orbID)?.config?.ARDUINO
+    },
+
     async updateConfig() {
       let previousValue = this.idToConfig[this.orbID]
       let newConfig = await this.sendCommand({ type: "getconfig" })
-      if (newConfig.indexOf("module.exports") == -1) return
+      if (!this.isArduino() && newConfig.indexOf("module.exports") == -1) return
       if (previousValue != newConfig) {
         this.idToConfig[this.orbID] = newConfig
         this.config = newConfig
