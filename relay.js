@@ -407,6 +407,7 @@ addGETListener(async (response, orbID, filePath)=>{
       localConfig.LONG_PRESS_ACTION,
       localConfig.DOUBLE_CLICK_ACTION
     ].includes("CYCLE"),
+    isArduino: localConfig.ARDUINO || false,
     name: config.ALIASES[orbID] ?? orbID,
   }
   if (config.ALIASES[orbID]) {

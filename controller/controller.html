@@ -387,7 +387,7 @@
       <color v-if="prefs.idleColor == 'fixed'"
           key="fixedColor" title="Color"></color>
 
-      <dropdown title="Color Style" key="idleColor"
+      <dropdown v-if="!isArduino" title="Color Style" key="idleColor"
       :options="colorOptions"
       ></dropdown>
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 

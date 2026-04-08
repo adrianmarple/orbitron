@@ -397,6 +397,9 @@ var app = new Vue({
     include() {
       return this.orbInfo.include || {}
     },
+    isArduino() {
+      return this.orbInfo.isArduino || false
+    },
   },
 
   methods: {

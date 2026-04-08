@@ -113,6 +113,11 @@ unsigned long lastPingReceived = 0;
 // --- Strip (created in loadGeometry after RAW_SIZE is known) ---
 Adafruit_NeoPixel *strip = nullptr;
 
+// --- Connected controller client IDs ---
+#define MAX_CLIENTS 8
+String connectedClients[MAX_CLIENTS];
+int clientCount = 0;
+
 
 // ===================== PREFS =====================
 
@@ -141,51 +146,95 @@ void applyPrefs(Prefs& p) {
   brightness_factor = (p.brightness / 100.0f) * (p.brightness / 100.0f);
 }
 
+// Format helpers shared by prefsToJson / prefsFromJson / sendState
+const char* patternName(int p) {
+  switch (p) {
+    case PATTERN_STATIC:     return "static";
+    case PATTERN_SIN:        return "sin";
+    case PATTERN_PULSES:     return "pulses";
+    case PATTERN_FIREFLIES:  return "fireflies";
+    case PATTERN_LIGHTFIELD: return "lightfield";
+    case PATTERN_LIGHTNING:  return "lightning";
+    default:                 return "default";
+  }
+}
+int patternFromName(const char* name) {
+  if (!name) return PATTERN_DEFAULT;
+  if (strcmp(name, "static") == 0)     return PATTERN_STATIC;
+  if (strcmp(name, "sin") == 0)        return PATTERN_SIN;
+  if (strcmp(name, "pulses") == 0)     return PATTERN_PULSES;
+  if (strcmp(name, "fireflies") == 0)  return PATTERN_FIREFLIES;
+  if (strcmp(name, "lightfield") == 0) return PATTERN_LIGHTFIELD;
+  if (strcmp(name, "lightning") == 0)  return PATTERN_LIGHTNING;
+  return PATTERN_DEFAULT;
+}
+String colorToHex(long color) {
+  char buf[8]; snprintf(buf, sizeof(buf), "#%06lx", color & 0xffffff); return String(buf);
+}
+long hexToColor(const char* hex) {
+  if (!hex || hex[0] != '#') return 0; return strtol(hex + 1, nullptr, 16);
+}
+String dirToString(float x, float y, float z) {
+  char buf[64]; snprintf(buf, sizeof(buf), "%g,%g,%g", x, y, z); return String(buf);
+}
+void parseDir(const char* s, float& x, float& y, float& z) {
+  x = y = z = 0.0f; if (!s) return; sscanf(s, "%f,%f,%f", &x, &y, &z);
+}
+
+// Serialize prefs in controller-compatible (Python) format
+void buildPrefsJson(JsonObject doc, Prefs& p) {
+  doc["idleColor"]          = "gradient";  // Arduino only supports gradient
+  doc["idlePattern"]        = patternName(p.idlePattern);
+  doc["gradientStartColor"] = colorToHex(p.gradientStartColor);
+  doc["gradientEndColor"]   = colorToHex(p.gradientEndColor);
+  doc["gradientThreshold"]  = p.gradientThreshold;
+  doc["brightness"]         = p.brightness;
+  doc["dimmer"]             = 1.0;
+  doc["idleBlend"]          = p.idleBlend;
+  doc["idleDensity"]        = p.idleDensity;
+  doc["idleFrameRate"]      = p.idleFrameRate;
+  doc["staticDirection"]    = dirToString(p.staticDirX, p.staticDirY, p.staticDirZ);
+  doc["sinDirection"]       = dirToString(p.sinDirX, p.sinDirY, p.sinDirZ);
+  doc["patternBias"]        = dirToString(p.patternBiasX, p.patternBiasY, p.patternBiasZ);
+  doc["staticRotation"]     = (bool)p.staticRotation;
+  doc["staticRotationTime"] = p.staticRotationTime;
+  doc["rippleWidth"]        = p.rippleWidth;
+  doc["sinMin"]             = p.sinMin;
+}
+
 String prefsToJson(Prefs& p) {
   JsonDocument doc;
-  doc["idlePattern"] = p.idlePattern;
-  doc["gradientStartColor"] = p.gradientStartColor;
-  doc["gradientEndColor"] = p.gradientEndColor;
-  doc["gradientThreshold"] = p.gradientThreshold;
-  doc["idleDensity"] = p.idleDensity;
-  doc["idleBlend"] = p.idleBlend;
-  doc["idleFrameRate"] = p.idleFrameRate;
-  doc["brightness"] = p.brightness;
-  doc["staticDirX"] = p.staticDirX; doc["staticDirY"] = p.staticDirY; doc["staticDirZ"] = p.staticDirZ;
-  doc["staticRotation"] = p.staticRotation;
-  doc["staticRotationTime"] = p.staticRotationTime;
-  doc["sinDirX"] = p.sinDirX; doc["sinDirY"] = p.sinDirY; doc["sinDirZ"] = p.sinDirZ;
-  doc["sinMin"] = p.sinMin;
-  doc["rippleWidth"] = p.rippleWidth;
-  doc["patternBiasX"] = p.patternBiasX; doc["patternBiasY"] = p.patternBiasY; doc["patternBiasZ"] = p.patternBiasZ;
+  buildPrefsJson(doc.to<JsonObject>(), p);
   String out;
-  serializeJson(doc, out);
+  serializeJsonPretty(doc, out);
   return out;
 }
 
 Prefs prefsFromJson(JsonDocument& doc, Prefs& base) {
   Prefs p = base;
-  if (doc["idlePattern"].is<int>())         p.idlePattern = doc["idlePattern"];
-  if (doc["gradientStartColor"].is<long>())  p.gradientStartColor = doc["gradientStartColor"];
-  if (doc["gradientEndColor"].is<long>())    p.gradientEndColor = doc["gradientEndColor"];
-  if (doc["gradientThreshold"].is<int>())    p.gradientThreshold = doc["gradientThreshold"];
-  if (doc["idleDensity"].is<float>())        p.idleDensity = doc["idleDensity"];
-  if (doc["idleBlend"].is<float>())          p.idleBlend = doc["idleBlend"];
-  if (doc["idleFrameRate"].is<float>())      p.idleFrameRate = doc["idleFrameRate"];
-  if (doc["brightness"].is<int>())           p.brightness = doc["brightness"];
-  if (doc["staticDirX"].is<float>())         p.staticDirX = doc["staticDirX"];
-  if (doc["staticDirY"].is<float>())         p.staticDirY = doc["staticDirY"];
-  if (doc["staticDirZ"].is<float>())         p.staticDirZ = doc["staticDirZ"];
-  if (doc["staticRotation"].is<int>())       p.staticRotation = doc["staticRotation"];
-  if (doc["staticRotationTime"].is<float>()) p.staticRotationTime = doc["staticRotationTime"];
-  if (doc["sinDirX"].is<float>())            p.sinDirX = doc["sinDirX"];
-  if (doc["sinDirY"].is<float>())            p.sinDirY = doc["sinDirY"];
-  if (doc["sinDirZ"].is<float>())            p.sinDirZ = doc["sinDirZ"];
-  if (doc["sinMin"].is<int>())               p.sinMin = doc["sinMin"];
-  if (doc["rippleWidth"].is<int>())          p.rippleWidth = doc["rippleWidth"];
-  if (doc["patternBiasX"].is<float>())       p.patternBiasX = doc["patternBiasX"];
-  if (doc["patternBiasY"].is<float>())       p.patternBiasY = doc["patternBiasY"];
-  if (doc["patternBiasZ"].is<float>())       p.patternBiasZ = doc["patternBiasZ"];
+  // Strings must be strings (they come from our own serialization)
+  if (doc["idlePattern"].is<const char*>())
+    p.idlePattern = patternFromName(doc["idlePattern"].as<const char*>());
+  if (doc["gradientStartColor"].is<const char*>())
+    p.gradientStartColor = hexToColor(doc["gradientStartColor"].as<const char*>());
+  if (doc["gradientEndColor"].is<const char*>())
+    p.gradientEndColor = hexToColor(doc["gradientEndColor"].as<const char*>());
+  if (doc["staticDirection"].is<const char*>())
+    parseDir(doc["staticDirection"].as<const char*>(), p.staticDirX, p.staticDirY, p.staticDirZ);
+  if (doc["sinDirection"].is<const char*>())
+    parseDir(doc["sinDirection"].as<const char*>(), p.sinDirX, p.sinDirY, p.sinDirZ);
+  if (doc["patternBias"].is<const char*>())
+    parseDir(doc["patternBias"].as<const char*>(), p.patternBiasX, p.patternBiasY, p.patternBiasZ);
+  // Numerics: use as<T>() so string "42" (from HTML range inputs) coerces correctly
+  if (!doc["gradientThreshold"].isNull())  p.gradientThreshold  = doc["gradientThreshold"].as<int>();
+  if (!doc["brightness"].isNull())         p.brightness         = doc["brightness"].as<int>();
+  if (!doc["idleBlend"].isNull())          p.idleBlend          = doc["idleBlend"].as<float>();
+  if (!doc["idleDensity"].isNull())        p.idleDensity        = doc["idleDensity"].as<float>();
+  if (!doc["idleFrameRate"].isNull())      p.idleFrameRate      = doc["idleFrameRate"].as<float>();
+  if (!doc["staticRotationTime"].isNull()) p.staticRotationTime = doc["staticRotationTime"].as<float>();
+  if (!doc["rippleWidth"].isNull())        p.rippleWidth        = doc["rippleWidth"].as<int>();
+  if (!doc["sinMin"].isNull())             p.sinMin             = doc["sinMin"].as<int>();
+  if (!doc["staticRotation"].isNull())     p.staticRotation     = doc["staticRotation"].as<bool>() ? 1 : 0;
   return p;
 }
 
@@ -328,6 +377,93 @@ void sendResponse(const String& messageID, const String& data) {
   wsClient.sendTXT(out);
 }
 
+// ===================== CONTROLLER STATE =====================
+
+void sendToClient(const String& clientID, const String& message) {
+  JsonDocument envelope;
+  envelope["clientID"] = clientID;
+  envelope["message"] = message;
+  String out;
+  serializeJson(envelope, out);
+  wsClient.sendTXT(out);
+}
+
+void sendState(const String& clientID) {
+  Prefs p = loadPrefs();
+  JsonDocument state;
+  state["timestamp"] = (long)millis();
+  state["gameInfo"] = nullptr;
+  state["currentText"] = "";
+  state["currentPrefName"] = "";
+  state["prefNames"].to<JsonArray>();          // empty — no saved presets on Arduino
+  state["prefTimestamps"].to<JsonObject>();
+  state["exclude"].to<JsonObject>();
+
+  JsonObject prefs = state["prefs"].to<JsonObject>();
+  buildPrefsJson(prefs, p);
+
+  // Merge timing prefs (schedule, weeklyTimer, dimmer, etc.)
+  String timingJson = readFile("/timingprefs.json");
+  if (!timingJson.isEmpty()) {
+    JsonDocument timingDoc;
+    if (deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
+      for (JsonPair kv : timingDoc.as<JsonObject>()) prefs[kv.key()] = kv.value();
+    }
+  } else {
+    prefs["useTimer"] = false;
+    prefs["weeklyTimer"] = false;
+    prefs["dimmer"] = 1.0;
+    JsonObject evt = prefs["schedule"].to<JsonArray>().add<JsonObject>();
+    evt["prefName"] = "OFF"; evt["time"] = "00:00"; evt["fadeIn"] = 10; evt["fadeOut"] = 30;
+    prefs["weeklySchedule"].to<JsonArray>();
+    prefs["includedInCycles"].to<JsonObject>();
+  }
+
+  String stateStr;
+  serializeJson(state, stateStr);
+  sendToClient(clientID, stateStr);
+}
+
+void broadcastState() {
+  for (int i = 0; i < clientCount; i++) sendState(connectedClients[i]);
+}
+
+void handleControllerMessage(const String& clientID, const String& message) {
+  if (message == "ECHO") { sendToClient(clientID, "ECHO"); return; }
+
+  JsonDocument doc;
+  if (message.isEmpty() || deserializeJson(doc, message) != DeserializationError::Ok) return;
+  if (doc["type"].as<String>() != "prefs") return;
+
+  JsonObject update = doc["update"].as<JsonObject>();
+  if (update.isNull()) return;
+
+  // Split: regular prefs go to Prefs struct; timing prefs go to timingprefs.json
+  static const char* timingKeys[] = {
+    "useTimer","weeklyTimer","schedule","weeklySchedule","dimmer","includedInCycles", nullptr
+  };
+  JsonDocument regularDoc, timingDoc;
+  for (JsonPair kv : update) {
+    bool isTiming = false;
+    for (int i = 0; timingKeys[i]; i++) if (strcmp(kv.key().c_str(), timingKeys[i]) == 0) { isTiming = true; break; }
+    if (isTiming) timingDoc[kv.key()] = kv.value();
+    else          regularDoc[kv.key()] = kv.value();
+  }
+
+  if (!timingDoc.as<JsonObject>().isNull()) {
+    String existing = readFile("/timingprefs.json");
+    JsonDocument merged;
+    if (!existing.isEmpty()) deserializeJson(merged, existing);
+    for (JsonPair kv : timingDoc.as<JsonObject>()) merged[kv.key()] = kv.value();
+    String out; serializeJsonPretty(merged, out); writeFile("/timingprefs.json", out);
+  }
+
+  Prefs p = loadPrefs();
+  p = prefsFromJson(regularDoc, p);
+  savePrefs(p);
+  applyPrefs(p);
+}
+
 void handleAdminCommand(JsonDocument& msg) {
   String messageID = msg["hash"].as<String>();
   // Command is a JSON string embedded in msg["message"]
@@ -388,6 +524,7 @@ void handleOrbMessage(JsonDocument& msg) {
     p = prefsFromJson(wrapper, p);
     savePrefs(p);
     applyPrefs(p);
+    broadcastState();
   } else if (type == "setprefs") {
     // Bulk pref update: { type: "setprefs", prefs: { ... } }
     JsonObject prefs = msg["prefs"].as<JsonObject>();
@@ -397,6 +534,7 @@ void handleOrbMessage(JsonDocument& msg) {
     p = prefsFromJson(doc, p);
     savePrefs(p);
     applyPrefs(p);
+    broadcastState();
   }
 }
 
@@ -436,6 +574,30 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
 
       JsonDocument doc;
       if (deserializeJson(doc, msg) != DeserializationError::Ok) return;
+
+      // Relay forwards controller messages as { clientID, message, closed }
+      if (doc.containsKey("clientID")) {
+        String clientID = doc["clientID"].as<String>();
+        bool closed = doc["closed"] | false;
+        if (closed) {
+          for (int i = 0; i < clientCount; i++) {
+            if (connectedClients[i] == clientID) {
+              connectedClients[i] = connectedClients[--clientCount];
+              break;
+            }
+          }
+        } else {
+          bool found = false;
+          for (int i = 0; i < clientCount; i++) {
+            if (connectedClients[i] == clientID) { found = true; break; }
+          }
+          if (!found && clientCount < MAX_CLIENTS)
+            connectedClients[clientCount++] = clientID;
+          handleControllerMessage(clientID, doc["message"].as<String>());
+          sendState(clientID);
+        }
+        return;
+      }
 
       String msgType = doc["type"].as<String>();
       if (msgType == "admin") {
@@ -715,7 +877,7 @@ void setup() {
     doc["orbID"] = "arduino";
     doc["relayHost"] = "my.lumatron.art";
     doc["pixels"] = "archimedes/octtrue";
-    serializeJson(doc, configJson);
+    serializeJsonPretty(doc, configJson);
     writeFile("/config.json", configJson);
     Serial.println("Config created with defaults");
   }
@@ -730,7 +892,7 @@ void setup() {
 
   // Load and apply prefs (write defaults on first boot so getprefs returns something)
   Prefs p = loadPrefs();
-  if (!LittleFS.exists("/prefs.json")) savePrefs(p);
+  savePrefs(p);  // always re-save to ensure format is current
   applyPrefs(p);
   Serial.println("Prefs loaded");
 
