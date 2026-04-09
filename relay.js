@@ -33,8 +33,12 @@ function loadCompiledFirmwareVersion() {
 
 async function compileArduino() {
   try {
-    fs.mkdirSync(FIRMWARE_DIR, { recursive: true })
-    let commitCount = parseInt((await execute('git rev-list --count HEAD')).trim())
+    await fs.promises.mkdir(FIRMWARE_DIR, { recursive: true })
+    let commitCount = parseInt((await execute('git rev-list --count HEAD -- arduino/esp32/esp32.ino arduino/patterns.h')).trim())
+    if (commitCount === compiledFirmwareVersion) {
+      console.log('Arduino firmware unchanged, skipping recompile')
+      return true
+    }
     let sketchDir = path.join(__dirname, 'arduino/esp32')
     console.log(`Compiling Arduino firmware (version ${commitCount})...`)
     let result = await execute(
@@ -48,7 +52,7 @@ async function compileArduino() {
       console.error('Arduino compile failed:', result)
       return false
     }
-    fs.writeFileSync(FIRMWARE_VERSION_FILE, String(commitCount))
+    await fs.promises.writeFile(FIRMWARE_VERSION_FILE, String(commitCount))
     compiledFirmwareVersion = commitCount
     console.log('Arduino firmware compiled successfully, version:', compiledFirmwareVersion)
     return true
