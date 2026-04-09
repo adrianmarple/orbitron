@@ -304,7 +304,7 @@
             <div class="padding"></div>
           </div>
           <div v-for="event, i in prefs[scheduleType]" class="event-wrapper">
-            <div v-if="event.prefName == 'OFF'" class="fades">
+            <div v-if="event.prefName == 'OFF' && !isArduino" class="fades">
                 <div class="label">Fade out (min)</div>
                 <input type="number" v-model="event.fadeOut"></input>
             </div>
@@ -323,7 +323,7 @@
               
               <input type="time" v-model="event.time" @blur="sortSchedule"></input>
             </div>
-            <div v-if="event.prefName == 'OFF'" class="fades">
+            <div v-if="event.prefName == 'OFF' && !isArduino" class="fades">
                 <div class="label">Fade in (min)</div>
                 <input type="number" v-model="event.fadeIn"></input>
             </div>

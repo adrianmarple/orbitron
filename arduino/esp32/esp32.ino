@@ -32,53 +32,19 @@ uint16_t *raw_to_unique = nullptr;
 float (*coords)[3] = nullptr;
 
 // --- Pattern state (heap-allocated in loadGeometry) ---
-#define MAX_HEADS 64
-int head_count = 1;
-int fluid_heads[MAX_HEADS];
-int fluid_head_buffer[MAX_HEADS];
 float *fluid_values = nullptr;
-
-#define MAX_PULSES 8
-struct PulseState { float x, y, z; unsigned long start_ms, duration_ms; bool active; };
-PulseState pulses[MAX_PULSES];
-
-float lf_global_time = 0.0f;
-unsigned long lf_last_ms = 0;
-
 float *lightning_fluid = nullptr;
-float lightning_time_pressure = 0.0f;
 int16_t *lightning_to_sink = nullptr;
 int16_t *lightning_distance = nullptr;
 int16_t *lightning_bfs_queue = nullptr;
-
 float *pattern_target = nullptr;
 float *render_values = nullptr;
 
-#define PATTERN_DEFAULT     0
-#define PATTERN_STATIC      1
-#define PATTERN_SIN         2
-#define PATTERN_PULSES      3
-#define PATTERN_FIREFLIES   4
-#define PATTERN_LIGHTFIELD  5
-#define PATTERN_LIGHTNING   6
+// --- Strip (created in loadGeometry after RAW_SIZE is known) ---
+Adafruit_NeoPixel *strip = nullptr;
 
-struct Prefs {
-  int idlePattern;          // PATTERN_*, default 0
-  long gradientStartColor;  // packed 0xRRGGBB, default #25ff59
-  long gradientEndColor;    // packed 0xRRGGBB, default #00607c
-  int gradientThreshold;    // 0-100, default 66
-  float idleDensity;        // default 70.0
-  float idleBlend;          // 0-100, default 60.0
-  float idleFrameRate;      // fps, default 25.0
-  int brightness;           // 0-100, default 100
-  float staticDirX, staticDirY, staticDirZ;  // default (0.707, 0.707, 0)
-  int staticRotation;       // bool, default 0
-  float staticRotationTime; // seconds, default 8.0
-  float sinDirX, sinDirY, sinDirZ;  // default (1, 0, 0)
-  int sinMin;               // 0-255, default 25
-  int rippleWidth;          // 0-100, default 9
-  float patternBiasX, patternBiasY, patternBiasZ;  // default (0, 1, 0)
-};
+#define STRIP_SET(i, c) strip->setPixelColor(i, c)
+#include "../patterns.h"
 
 Prefs defaultPrefs = {
   PATTERN_DEFAULT, 0x25ff59, 0x00607c, 66, 70.0f, 60.0f, 25.0f, 100,
@@ -86,20 +52,6 @@ Prefs defaultPrefs = {
   1.0f, 0.0f, 0.0f, 25, 9,
   0.0f, 1.0f, 0.0f
 };
-
-// --- Prefs globals ---
-int idlePattern = PATTERN_DEFAULT;
-int start_r, start_g, start_b, end_r, end_g, end_b;
-int gradientThreshold;
-float idleDensity, idleBlend, idleFrameRate;
-int brightness;
-float staticDirX, staticDirY, staticDirZ;
-int staticRotation;
-float staticRotationTime;
-float sinDirX, sinDirY, sinDirZ;
-int sinMin, rippleWidth;
-float patternBiasX, patternBiasY, patternBiasZ;
-float alpha, brightness_factor;
 
 // --- Config ---
 String orbID;
@@ -110,41 +62,21 @@ String pixelsName;
 WebSocketsClient wsClient;
 unsigned long lastPingReceived = 0;
 
-// --- Strip (created in loadGeometry after RAW_SIZE is known) ---
-Adafruit_NeoPixel *strip = nullptr;
-
 // --- Connected controller client IDs ---
 #define MAX_CLIENTS 8
 String connectedClients[MAX_CLIENTS];
 int clientCount = 0;
+String currentPrefName = "";
+
+// --- Timing state ---
+bool useTimer = false;
+bool weeklyTimer = false;
+float dimmer = 1.0f;
+String lastTriggeredEventKey = "";
+unsigned long nextEventMs = 0;
 
 
 // ===================== PREFS =====================
-
-void applyPrefs(Prefs& p) {
-  start_r = (p.gradientStartColor >> 16) & 0xff;
-  start_g = (p.gradientStartColor >> 8) & 0xff;
-  start_b = p.gradientStartColor & 0xff;
-  end_r = (p.gradientEndColor >> 16) & 0xff;
-  end_g = (p.gradientEndColor >> 8) & 0xff;
-  end_b = p.gradientEndColor & 0xff;
-  gradientThreshold = p.gradientThreshold;
-  idleDensity = p.idleDensity;
-  idleBlend = p.idleBlend;
-  idleFrameRate = p.idleFrameRate;
-  brightness = p.brightness;
-  idlePattern = p.idlePattern;
-  staticDirX = p.staticDirX; staticDirY = p.staticDirY; staticDirZ = p.staticDirZ;
-  staticRotation = p.staticRotation;
-  staticRotationTime = p.staticRotationTime;
-  sinDirX = p.sinDirX; sinDirY = p.sinDirY; sinDirZ = p.sinDirZ;
-  sinMin = p.sinMin;
-  rippleWidth = p.rippleWidth;
-  patternBiasX = p.patternBiasX; patternBiasY = p.patternBiasY; patternBiasZ = p.patternBiasZ;
-  float frame_delta = (1.0f / p.idleFrameRate) * expf(2.7f - p.idleBlend / 17.0f);
-  alpha = 1.0f - expf(-10.0f * frame_delta);
-  brightness_factor = (p.brightness / 100.0f) * (p.brightness / 100.0f);
-}
 
 // Format helpers shared by prefsToJson / prefsFromJson / sendState
 const char* patternName(int p) {
@@ -189,7 +121,7 @@ void buildPrefsJson(JsonObject doc, Prefs& p) {
   doc["gradientEndColor"]   = colorToHex(p.gradientEndColor);
   doc["gradientThreshold"]  = p.gradientThreshold;
   doc["brightness"]         = p.brightness;
-  doc["dimmer"]             = 1.0;
+  doc["dimmer"]             = dimmer;
   doc["idleBlend"]          = p.idleBlend;
   doc["idleDensity"]        = p.idleDensity;
   doc["idleFrameRate"]      = p.idleFrameRate;
@@ -210,7 +142,7 @@ String prefsToJson(Prefs& p) {
   return out;
 }
 
-Prefs prefsFromJson(JsonDocument& doc, Prefs& base) {
+Prefs prefsFromJson(JsonVariantConst doc, Prefs& base) {
   Prefs p = base;
   // Strings must be strings (they come from our own serialization)
   if (doc["idlePattern"].is<const char*>())
@@ -239,6 +171,34 @@ Prefs prefsFromJson(JsonDocument& doc, Prefs& base) {
 }
 
 // ===================== FILE I/O =====================
+
+// Saved presets use individual files matching the Pi format: /savedprefs/<name>.prefs.json
+String savedPrefPath(const String& name) {
+  return "/savedprefs/" + name + ".prefs.json";
+}
+
+// List saved preset names from /savedprefs/ directory, sorted alphabetically.
+// Returns count written into arr (capped at maxNames).
+int listSavedPrefNames(String* arr, int maxNames) {
+  int n = 0;
+  File dir = LittleFS.open("/savedprefs");
+  if (!dir || !dir.isDirectory()) return 0;
+  File entry = dir.openNextFile();
+  while (entry && n < maxNames) {
+    String fname = String(entry.name());
+    int slash = fname.lastIndexOf('/');
+    if (slash >= 0) fname = fname.substring(slash + 1);
+    entry.close();
+    if (fname.endsWith(".prefs.json"))
+      arr[n++] = fname.substring(0, fname.length() - 11);
+    entry = dir.openNextFile();
+  }
+  dir.close();
+  for (int i = 0; i < n-1; i++)
+    for (int j = 0; j < n-1-i; j++)
+      if (arr[j] > arr[j+1]) { String t = arr[j]; arr[j] = arr[j+1]; arr[j+1] = t; }
+  return n;
+}
 
 String readFile(const char* path) {
   File f = LittleFS.open(path, "r");
@@ -392,10 +352,17 @@ void sendState(const String& clientID) {
   Prefs p = loadPrefs();
   JsonDocument state;
   state["timestamp"] = (long)millis();
+  state["isArduino"] = true;
   state["gameInfo"] = nullptr;
   state["currentText"] = "";
-  state["currentPrefName"] = "";
-  state["prefNames"].to<JsonArray>();          // empty — no saved presets on Arduino
+  state["currentPrefName"] = currentPrefName;
+  // Build sorted prefNames from /savedprefs/ directory
+  {
+    JsonArray names = state["prefNames"].to<JsonArray>();
+    String arr[16];
+    int n = listSavedPrefNames(arr, 16);
+    for (int i = 0; i < n; i++) names.add(arr[i]);
+  }
   state["prefTimestamps"].to<JsonObject>();
   state["exclude"].to<JsonObject>();
 
@@ -412,7 +379,7 @@ void sendState(const String& clientID) {
   } else {
     prefs["useTimer"] = false;
     prefs["weeklyTimer"] = false;
-    prefs["dimmer"] = 1.0;
+    prefs["dimmer"] = dimmer;
     JsonObject evt = prefs["schedule"].to<JsonArray>().add<JsonObject>();
     evt["prefName"] = "OFF"; evt["time"] = "00:00"; evt["fadeIn"] = 10; evt["fadeOut"] = 30;
     prefs["weeklySchedule"].to<JsonArray>();
@@ -428,40 +395,164 @@ void broadcastState() {
   for (int i = 0; i < clientCount; i++) sendState(connectedClients[i]);
 }
 
+void mergeTimingPrefs(JsonObjectConst timingObj) {
+  String existing = readFile("/timingprefs.json");
+  JsonDocument merged;
+  if (!existing.isEmpty()) deserializeJson(merged, existing);
+  for (JsonPairConst kv : timingObj) merged[kv.key()] = kv.value();
+
+  // If timer is being disabled, persist dimmer=1 before writing
+  if (!merged["useTimer"].as<bool>()) merged["dimmer"] = 1.0f;
+
+  // Write first so loadTimingPrefs and checkSchedule both see the updated data
+  String out; serializeJsonPretty(merged, out); writeFile("/timingprefs.json", out);
+  loadTimingPrefs();
+
+  if (useTimer) {
+    lastTriggeredEventKey = "";  // re-apply active event on any timing pref change
+    checkSchedule();
+    computeNextEventMs();
+  }
+  // When timer disabled, dimmer already set to 1 via loadTimingPrefs reading the file
+}
+
 void handleControllerMessage(const String& clientID, const String& message) {
   if (message == "ECHO") { sendToClient(clientID, "ECHO"); return; }
 
   JsonDocument doc;
   if (message.isEmpty() || deserializeJson(doc, message) != DeserializationError::Ok) return;
-  if (doc["type"].as<String>() != "prefs") return;
 
-  JsonObject update = doc["update"].as<JsonObject>();
-  if (update.isNull()) return;
+  String type = doc["type"].as<String>();
 
-  // Split: regular prefs go to Prefs struct; timing prefs go to timingprefs.json
-  static const char* timingKeys[] = {
-    "useTimer","weeklyTimer","schedule","weeklySchedule","dimmer","includedInCycles", nullptr
-  };
-  JsonDocument regularDoc, timingDoc;
-  for (JsonPair kv : update) {
-    bool isTiming = false;
-    for (int i = 0; timingKeys[i]; i++) if (strcmp(kv.key().c_str(), timingKeys[i]) == 0) { isTiming = true; break; }
-    if (isTiming) timingDoc[kv.key()] = kv.value();
-    else          regularDoc[kv.key()] = kv.value();
+  if (type == "prefs") {
+    JsonObject update = doc["update"].as<JsonObject>();
+    if (update.isNull()) return;
+
+    static const char* timingKeys[] = {
+      "useTimer","weeklyTimer","schedule","weeklySchedule","dimmer","includedInCycles", nullptr
+    };
+    JsonDocument regularDoc, timingDoc;
+    for (JsonPair kv : update) {
+      bool isTiming = false;
+      for (int i = 0; timingKeys[i]; i++) if (strcmp(kv.key().c_str(), timingKeys[i]) == 0) { isTiming = true; break; }
+      if (isTiming) timingDoc[kv.key()] = kv.value();
+      else          regularDoc[kv.key()] = kv.value();
+    }
+
+    if (!timingDoc.as<JsonObject>().isNull()) mergeTimingPrefs(timingDoc.as<JsonObject>());
+
+    Prefs p = loadPrefs();
+    p = prefsFromJson(regularDoc, p);
+    savePrefs(p); applyPrefs(p);
+    currentPrefName = "";
+    writeFile("/currentprefname.txt", "");
+    broadcastState();
+
+  } else if (type == "savePrefs") {
+    String name = doc["name"].as<String>();
+    if (name.isEmpty()) return;
+
+    Prefs p = loadPrefs();
+    JsonDocument entryDoc;
+    buildPrefsJson(entryDoc.to<JsonObject>(), p);
+    String out; serializeJsonPretty(entryDoc, out);
+    writeFile(savedPrefPath(name).c_str(), out);
+    currentPrefName = name;
+    writeFile("/currentprefname.txt", name);
+    broadcastState();
+
+  } else if (type == "loadPrefs") {
+    String name = doc["name"].as<String>();
+    if (name.isEmpty()) return;
+
+    String savedJson = readFile(savedPrefPath(name).c_str());
+    if (savedJson.isEmpty()) return;
+    JsonDocument savedDoc;
+    if (deserializeJson(savedDoc, savedJson) != DeserializationError::Ok) return;
+
+    Prefs p = prefsFromJson(savedDoc, defaultPrefs);
+    savePrefs(p); applyPrefs(p);
+    currentPrefName = name;
+    writeFile("/currentprefname.txt", name);
+    broadcastState();
+
+  } else if (type == "deletePrefs") {
+    String name = doc["name"].as<String>();
+    if (name.isEmpty()) return;
+
+    LittleFS.remove(savedPrefPath(name).c_str());
+
+    // Remove from includedInCycles in timingprefs.json
+    String timingJson = readFile("/timingprefs.json");
+    if (!timingJson.isEmpty()) {
+      JsonDocument timingDoc;
+      if (deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
+        JsonObject inc = timingDoc["includedInCycles"].as<JsonObject>();
+        if (!inc.isNull()) inc.remove(name);
+        String timingOut; serializeJsonPretty(timingDoc, timingOut);
+        writeFile("/timingprefs.json", timingOut);
+      }
+    }
+
+    if (currentPrefName == name) {
+      currentPrefName = "";
+      writeFile("/currentprefname.txt", "");
+    }
+    broadcastState();
+
+  } else if (type == "clearPrefs") {
+    Prefs p = defaultPrefs;
+    savePrefs(p); applyPrefs(p);
+    currentPrefName = "";
+    writeFile("/currentprefname.txt", "");
+    broadcastState();
+
+  } else if (type == "advanceManualFade") {
+    dimmer = (dimmer >= 0.5f) ? 0.0f : 1.0f;
+    JsonDocument timingDoc;
+    String timingJson = readFile("/timingprefs.json");
+    if (!timingJson.isEmpty()) deserializeJson(timingDoc, timingJson);
+    timingDoc["dimmer"] = dimmer;
+    String timingOut; serializeJsonPretty(timingDoc, timingOut);
+    writeFile("/timingprefs.json", timingOut);
+    broadcastState();
+
+  } else if (type == "renamePref") {
+    String originalName = doc["originalName"].as<String>();
+    String newName = doc["newName"].as<String>();
+    if (originalName.isEmpty() || newName.isEmpty() || originalName == newName) return;
+
+    String savedJson = readFile(savedPrefPath(originalName).c_str());
+    if (savedJson.isEmpty()) return;
+    writeFile(savedPrefPath(newName).c_str(), savedJson);
+    LittleFS.remove(savedPrefPath(originalName).c_str());
+
+    // Rename in timingprefs.json (includedInCycles + schedule events)
+    String timingJson = readFile("/timingprefs.json");
+    if (!timingJson.isEmpty()) {
+      JsonDocument timingDoc;
+      if (deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
+        JsonObject inc = timingDoc["includedInCycles"].as<JsonObject>();
+        if (!inc.isNull() && inc.containsKey(originalName)) {
+          bool val = inc[originalName].as<bool>();
+          inc.remove(originalName);
+          inc[newName.c_str()] = val;
+        }
+        for (JsonObject evt : timingDoc["schedule"].as<JsonArray>())
+          if (evt["prefName"].as<String>() == originalName) evt["prefName"] = newName;
+        for (JsonObject evt : timingDoc["weeklySchedule"].as<JsonArray>())
+          if (evt["prefName"].as<String>() == originalName) evt["prefName"] = newName;
+        String timingOut; serializeJsonPretty(timingDoc, timingOut);
+        writeFile("/timingprefs.json", timingOut);
+      }
+    }
+
+    if (currentPrefName == originalName) {
+      currentPrefName = newName;
+      writeFile("/currentprefname.txt", newName);
+    }
+    broadcastState();
   }
-
-  if (!timingDoc.as<JsonObject>().isNull()) {
-    String existing = readFile("/timingprefs.json");
-    JsonDocument merged;
-    if (!existing.isEmpty()) deserializeJson(merged, existing);
-    for (JsonPair kv : timingDoc.as<JsonObject>()) merged[kv.key()] = kv.value();
-    String out; serializeJsonPretty(merged, out); writeFile("/timingprefs.json", out);
-  }
-
-  Prefs p = loadPrefs();
-  p = prefsFromJson(regularDoc, p);
-  savePrefs(p);
-  applyPrefs(p);
 }
 
 void handleAdminCommand(JsonDocument& msg) {
@@ -495,6 +586,9 @@ void handleAdminCommand(JsonDocument& msg) {
     sendResponse(messageID, s.isEmpty() ? "{}" : s);
   } else if (type == "settimingprefs") {
     writeFile("/timingprefs.json", cmd["data"].as<String>());
+    loadTimingPrefs();
+    checkSchedule();
+    computeNextEventMs();
     sendResponse(messageID, "OK");
   } else if (type == "restart") {
     sendResponse(messageID, "OK");
@@ -522,8 +616,8 @@ void handleOrbMessage(JsonDocument& msg) {
     JsonDocument wrapper;
     wrapper[msg["name"].as<String>()] = msg["value"];
     p = prefsFromJson(wrapper, p);
-    savePrefs(p);
-    applyPrefs(p);
+    savePrefs(p); applyPrefs(p);
+    currentPrefName = ""; writeFile("/currentprefname.txt", "");
     broadcastState();
   } else if (type == "setprefs") {
     // Bulk pref update: { type: "setprefs", prefs: { ... } }
@@ -532,8 +626,8 @@ void handleOrbMessage(JsonDocument& msg) {
     JsonDocument doc;
     for (JsonPair kv : prefs) doc[kv.key()] = kv.value();
     p = prefsFromJson(doc, p);
-    savePrefs(p);
-    applyPrefs(p);
+    savePrefs(p); applyPrefs(p);
+    currentPrefName = ""; writeFile("/currentprefname.txt", "");
     broadcastState();
   }
 }
@@ -623,240 +717,132 @@ void checkPingTimeout() {
   }
 }
 
-// ===================== PATTERNS =====================
+// ===================== TIMING =====================
 
-void applyTargetValues(float brightness_scale) {
-  float inv_threshold = 100.0f / gradientThreshold;
-  float one_minus_alpha = 1.0f - alpha;
-  int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
-  float bf = brightness_factor * brightness_scale;
-  for (int i = 0; i < RAW_SIZE; i++) {
-    int u = raw_to_unique[i];
-    float target_v = pattern_target[u];
-    float v2 = render_values[i] * one_minus_alpha + target_v * alpha;
-    render_values[i] = v2;
-    float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = v2 * bf;
-    strip->setPixelColor(i, (int)((end_b + delta_b * tv) * scale) +
-                           ((int)((end_g + delta_g * tv) * scale) << 8) +
-                           ((int)((end_r + delta_r * tv) * scale) << 16));
-  }
+void loadTimingPrefs() {
+  String json = readFile("/timingprefs.json");
+  if (json.isEmpty()) return;
+  JsonDocument doc;
+  if (deserializeJson(doc, json) != DeserializationError::Ok) return;
+  if (!doc["useTimer"].isNull())    useTimer    = doc["useTimer"].as<bool>();
+  if (!doc["weeklyTimer"].isNull()) weeklyTimer = doc["weeklyTimer"].as<bool>();
+  if (!doc["dimmer"].isNull())      dimmer      = doc["dimmer"].as<float>();
 }
 
-void applyFluidValues(float* fv, float brightness_scale) {
-  float inv_threshold = 100.0f / gradientThreshold;
-  int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
-  float bf = brightness_factor * brightness_scale;
-  for (int i = 0; i < RAW_SIZE; i++) {
-    float v = fv[i]; render_values[i] = v;
-    float tv = v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = v * bf;
-    strip->setPixelColor(i, (int)((end_b + delta_b * tv) * scale) +
-                           ((int)((end_g + delta_g * tv) * scale) << 8) +
-                           ((int)((end_r + delta_r * tv) * scale) << 16));
-  }
+int parseTimeMinutes(const String& s) {
+  if (s.length() < 5) return 0;
+  return s.substring(0, 2).toInt() * 60 + s.substring(3, 5).toInt();
 }
 
-void runDefault() {
-  float target_head_count = SIZE * idleDensity / 1600.0f;
-  float head_ratio = head_count / target_head_count;
-  float dampening_factor = 1.0f + head_ratio * head_ratio * 5.0f;
-  float density_scale = dampening_factor / (idleDensity * 0.03f);
-  int new_head_count = 0;
-  for (int i = 0; i < head_count; i++) {
-    int head = fluid_heads[i];
-    for (int j = 0; j < MAX_NEIGHBORS; j++) {
-      if (new_head_count >= MAX_HEADS) break;
-      int n = neighbors[head][j]; if (n == 0xffff) continue;
-      float x = (fluid_values[dupes_to_uniques[n][0]] + 0.01f) * density_scale;
-      if (x * 0x10000 < random(0xffff)) fluid_head_buffer[new_head_count++] = n;
-    }
-  }
-  float scc = 0.01f / (head_ratio * head_ratio);
-  if (new_head_count < MAX_HEADS && scc * 0x10000 > random(0xffff))
-    fluid_head_buffer[new_head_count++] = random(SIZE);
-  if (new_head_count != 0) { memcpy(fluid_heads, fluid_head_buffer, sizeof(fluid_heads)); head_count = new_head_count; }
-  for (int i = 0; i < head_count; i++) {
-    fluid_values[dupes_to_uniques[fluid_heads[i]][0]] = 1.0f;
-    fluid_values[dupes_to_uniques[fluid_heads[i]][1]] = 1.0f;
-  }
-  float inv_threshold = 100.0f / gradientThreshold;
-  float one_minus_alpha = 1.0f - alpha;
-  int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
-  for (int i = 0; i < RAW_SIZE; i++) {
-    fluid_values[i] *= 0.86f;
-    float target_v = fluid_values[i] * fluid_values[i];
-    float v2 = render_values[i] * one_minus_alpha + target_v * alpha;
-    render_values[i] = v2;
-    float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = v2 * brightness_factor;
-    strip->setPixelColor(i, (int)((end_b + delta_b * tv) * scale) +
-                           ((int)((end_g + delta_g * tv) * scale) << 8) +
-                           ((int)((end_r + delta_r * tv) * scale) << 16));
-  }
-}
+void triggerScheduleEvent(JsonObject evt) {
+  String prefName = evt["prefName"].as<String>();
+  bool isOff = (prefName == "OFF");
 
-void runFireflies() {
-  int target_head_count = (int)(SIZE * idleDensity / 2000); if (target_head_count < 1) target_head_count = 1;
-  int new_head_count = 0;
-  for (int i = 0; i < head_count && new_head_count < MAX_HEADS; i++) {
-    int head = fluid_heads[i];
-    int nbrs[MAX_NEIGHBORS]; int nbr_count = 0;
-    for (int j = 0; j < MAX_NEIGHBORS; j++) { int n = neighbors[head][j]; if (n == 0xffff) break; nbrs[nbr_count++] = n; }
-    for (int j = nbr_count - 1; j > 0; j--) { int k = random(j+1); int tmp = nbrs[j]; nbrs[j] = nbrs[k]; nbrs[k] = tmp; }
-    for (int j = 0; j < nbr_count; j++) {
-      int n = nbrs[j];
-      float dx = coords[head][0]-coords[n][0], dy = coords[head][1]-coords[n][1], dz = coords[head][2]-coords[n][2];
-      float mag = sqrtf(dx*dx+dy*dy+dz*dz); if (mag > 0.001f) { dx/=mag; dy/=mag; dz/=mag; }
-      float bias = (dx*patternBiasX + dy*patternBiasY + dz*patternBiasZ) * 2.0f + 1.0f;
-      float x = (fluid_values[dupes_to_uniques[n][0]] + 0.02f) * 1.5f * bias;
-      if (x < (float)random(0x10000) / 0x10000) {
-        fluid_head_buffer[new_head_count++] = n;
-        fluid_values[dupes_to_uniques[n][0]] = 1.0f; fluid_values[dupes_to_uniques[n][1]] = 1.0f;
-        break;
+  if (!isOff) {
+    String savedJson = readFile(savedPrefPath(prefName).c_str());
+    if (!savedJson.isEmpty()) {
+      JsonDocument savedDoc;
+      if (deserializeJson(savedDoc, savedJson) == DeserializationError::Ok) {
+        Prefs p = prefsFromJson(savedDoc, defaultPrefs);
+        savePrefs(p); applyPrefs(p);
+        currentPrefName = prefName;
+        writeFile("/currentprefname.txt", prefName);
       }
     }
   }
-  while (new_head_count < target_head_count && new_head_count < MAX_HEADS) {
-    int n = random(SIZE); fluid_head_buffer[new_head_count++] = n;
-    fluid_values[dupes_to_uniques[n][0]] = 1.0f; fluid_values[dupes_to_uniques[n][1]] = 1.0f;
-  }
-  memcpy(fluid_heads, fluid_head_buffer, sizeof(fluid_heads)); head_count = new_head_count;
-  float inv_threshold = 100.0f / gradientThreshold, one_minus_alpha = 1.0f - alpha;
-  int delta_r = start_r-end_r, delta_g = start_g-end_g, delta_b = start_b-end_b;
-  for (int i = 0; i < RAW_SIZE; i++) {
-    fluid_values[i] *= 0.84f;
-    float target_v = fluid_values[i] * fluid_values[i];
-    float v2 = render_values[i] * one_minus_alpha + target_v * alpha; render_values[i] = v2;
-    float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = v2 * brightness_factor;
-    strip->setPixelColor(i, (int)((end_b+delta_b*tv)*scale) + ((int)((end_g+delta_g*tv)*scale)<<8) + ((int)((end_r+delta_r*tv)*scale)<<16));
-  }
+
+  dimmer = isOff ? 0.0f : 1.0f;
+
+  // Persist dimmer so subsequent loadTimingPrefs() calls don't override the schedule-set value
+  String timingJson = readFile("/timingprefs.json");
+  JsonDocument timingDoc;
+  if (!timingJson.isEmpty()) deserializeJson(timingDoc, timingJson);
+  timingDoc["dimmer"] = dimmer;
+  String timingOut; serializeJsonPretty(timingDoc, timingOut);
+  writeFile("/timingprefs.json", timingOut);
 }
 
-void runStatic() {
-  float dx, dy, dz;
-  if (staticRotation) { float theta = (millis()/1000.0f)*2.0f*PI/staticRotationTime; dx=sinf(theta); dy=cosf(theta); dz=0.0f; }
-  else { dx=staticDirX; dy=staticDirY; dz=staticDirZ; }
-  float inv_threshold = 100.0f/gradientThreshold;
-  int delta_r=start_r-end_r, delta_g=start_g-end_g, delta_b=start_b-end_b;
-  float ab = brightness_factor * 0.2f;
-  for (int i = 0; i < RAW_SIZE; i++) {
-    int u = raw_to_unique[i];
-    float target_v = (1.0f + dx*coords[u][0] + dy*coords[u][1] + dz*coords[u][2]) / 2.0f;
-    float tv = target_v*inv_threshold; if (tv>1.0f) tv=1.0f;
-    float scale = target_v*ab;
-    strip->setPixelColor(i, (int)((end_b+delta_b*tv)*scale) + ((int)((end_g+delta_g*tv)*scale)<<8) + ((int)((end_r+delta_r*tv)*scale)<<16));
+// Precompute when the next schedule event fires and store as millis() deadline.
+void computeNextEventMs() {
+  nextEventMs = ULONG_MAX;
+  if (!useTimer) return;
+  struct tm t;
+  if (!getLocalTime(&t)) {
+    nextEventMs = millis() + 60000UL;  // retry NTP in 60s
+    return;
   }
-}
 
-void runSin() {
-  float period = idleDensity*idleDensity/150.0f;
-  float speed = idleFrameRate*period/200.0f;
-  unsigned long period_ms = max(1UL, (unsigned long)(1000.0f/speed));
-  float phase = (float)(millis()%period_ms)/(float)period_ms*(2.0f*PI);
-  float min_val = sinMin/255.0f, denom = 2.0f+min_val;
-  float inv_threshold = 100.0f/gradientThreshold;
-  int delta_r=start_r-end_r, delta_g=start_g-end_g, delta_b=start_b-end_b;
-  for (int i = 0; i < RAW_SIZE; i++) {
-    int u = raw_to_unique[i];
-    float dot = sinDirX*coords[u][0]+sinDirY*coords[u][1]+sinDirZ*coords[u][2];
-    float target_v = (sinf(-dot*period+phase)+1.0f+min_val)/denom;
-    if (target_v<0.0f) target_v=0.0f; if (target_v>1.0f) target_v=1.0f;
-    float tv = target_v*inv_threshold; if (tv>1.0f) tv=1.0f;
-    float scale = target_v*brightness_factor;
-    strip->setPixelColor(i, (int)((end_b+delta_b*tv)*scale) + ((int)((end_g+delta_g*tv)*scale)<<8) + ((int)((end_r+delta_r*tv)*scale)<<16));
-  }
-}
+  String json = readFile("/timingprefs.json");
+  if (json.isEmpty()) return;
+  JsonDocument doc;
+  if (deserializeJson(doc, json) != DeserializationError::Ok) return;
 
-void runPulses() {
-  unsigned long now_ms = millis();
-  float width = rippleWidth/100.0f;
-  for (int i = 0; i < SIZE; i++) pattern_target[i] = 0.0f;
-  bool pulse_is_visible = false;
-  for (int p = 0; p < MAX_PULSES; p++) {
-    if (!pulses[p].active) continue;
-    unsigned long elapsed_ms = now_ms - pulses[p].start_ms;
-    if (elapsed_ms >= pulses[p].duration_ms) { pulses[p].active = false; continue; }
-    float t = (float)elapsed_ms/(float)pulses[p].duration_ms;
-    if (t < 0.5f) pulse_is_visible = true;
-    t = 1.0f - t;
-    for (int i = 0; i < SIZE; i++) {
-      float dot = pulses[p].x*coords[i][0]+pulses[p].y*coords[i][1]+pulses[p].z*coords[i][2];
-      float ds = (dot/4.0f+0.75f)/width+(-0.5f*(t+1.0f)/width+1.0f-t);
-      float v = ds*(1.0f-ds)/3.0f; if (v<0.0f) v=0.0f;
-      float vv = v*v*12.0f; pattern_target[i] += vv; if (pattern_target[i]>1.0f) pattern_target[i]=1.0f;
+  JsonArray sched = weeklyTimer
+    ? doc["weeklySchedule"].as<JsonArray>()
+    : doc["schedule"].as<JsonArray>();
+  if (sched.isNull() || sched.size() == 0) return;
+
+  int nowMin = t.tm_hour * 60 + t.tm_min;
+  const int DAY = 24 * 60;
+
+  int minDistFwd = DAY * 7 + 1;
+  for (JsonObject evt : sched) {
+    int evtMin = parseTimeMinutes(evt["time"].as<String>());
+    int dist;
+    if (weeklyTimer) {
+      int evtDay = evt["weekday"] | 0;
+      int dayDiff = (evtDay - t.tm_wday + 7) % 7;
+      dist = dayDiff * DAY + (evtMin - nowMin);
+      if (dist <= 0) dist += 7 * DAY;
+    } else {
+      dist = (evtMin - nowMin + DAY) % DAY;
+      if (dist == 0) dist = DAY;
     }
+    if (dist < minDistFwd) minDistFwd = dist;
   }
-  int active_count = 0;
-  for (int p = 0; p < MAX_PULSES; p++) if (pulses[p].active) active_count++;
-  float max_pulses = idleDensity/10.0f; if (max_pulses<2.0f) max_pulses=2.0f;
-  if (active_count < (int)max_pulses) {
-    float spawn_chance = idleDensity/50.0f/idleFrameRate;
-    if (spawn_chance*0x10000 > random(0xffff) || !pulse_is_visible) {
-      for (int p = 0; p < MAX_PULSES; p++) {
-        if (!pulses[p].active) {
-          float rx=(random(0x10001)-0x8000)/(float)0x8000, ry=(random(0x10001)-0x8000)/(float)0x8000, rz=(random(0x10001)-0x8000)/(float)0x8000;
-          float rmag=sqrtf(rx*rx+ry*ry+rz*rz); if (rmag<0.001f) rmag=1.0f;
-          pulses[p].x=rx/rmag; pulses[p].y=ry/rmag; pulses[p].z=rz/rmag;
-          pulses[p].start_ms=now_ms;
-          float dur_s = (70.0f/idleFrameRate)*(1.0f+random(0x10000)/(float)0x10000);
-          pulses[p].duration_ms=(unsigned long)(dur_s*1000.0f);
-          pulses[p].active=true; break;
-        }
-      }
-    }
-  }
-  applyTargetValues(1.0f);
+
+  if (minDistFwd < DAY * 7 + 1)
+    nextEventMs = millis() + (unsigned long)minDistFwd * 60000UL;
 }
 
-void runLightField() {
-  unsigned long now_ms = millis();
-  float dt = (now_ms-lf_last_ms)/1000.0f; lf_last_ms = now_ms;
-  lf_global_time += dt*2.0f*PI*(idleFrameRate/300.0f);
-  float inv_threshold = 100.0f/gradientThreshold;
-  int delta_r=start_r-end_r, delta_g=start_g-end_g, delta_b=start_b-end_b;
-  for (int i = 0; i < RAW_SIZE; i++) {
-    uint32_t hf=(uint32_t)(i+1)*2654435761u, hb=(uint32_t)(i+1)*2246822519u, hp=(uint32_t)(i+1)*3266489917u;
-    float factor=(hf>>16)*(10.0f/65536.0f)+0.5f, rb=(hb>>16)*(0.9f/65536.0f)+0.1f, phase=(hp>>16)*(2.0f*PI/65536.0f);
-    float v=fmaxf(sinf(fmodf(lf_global_time*factor+phase,2.0f*PI)),0.0f)*(rb*rb);
-    render_values[i]=v;
-    float tv=v*inv_threshold; if (tv>1.0f) tv=1.0f;
-    float scale=v*brightness_factor;
-    strip->setPixelColor(i, (int)((end_b+delta_b*tv)*scale) + ((int)((end_g+delta_g*tv)*scale)<<8) + ((int)((end_r+delta_r*tv)*scale)<<16));
-  }
-}
+void checkSchedule() {
+  if (!useTimer) return;
+  struct tm t;
+  if (!getLocalTime(&t)) return;
 
-void runLightning() {
-  float decay=expf(-idleFrameRate/60.0f);
-  for (int i = 0; i < RAW_SIZE; i++) lightning_fluid[i]*=decay;
-  lightning_time_pressure+=((float)random(0x10000)/0x10000)*idleFrameRate/200.0f;
-  if (lightning_time_pressure >= 1.0f) {
-    lightning_time_pressure=0.0f;
-    int sink=random(SIZE);
-    lightning_fluid[dupes_to_uniques[sink][0]]=1.0f; lightning_fluid[dupes_to_uniques[sink][1]]=1.0f;
-    for (int i=0;i<SIZE;i++) { lightning_to_sink[i]=-1; lightning_distance[i]=-1; }
-    lightning_to_sink[sink]=sink; lightning_distance[sink]=0;
-    int q_head=0,q_tail=0; lightning_bfs_queue[q_tail++]=sink;
-    while (q_head<q_tail) {
-      int node=lightning_bfs_queue[q_head++];
-      for (int j=0;j<MAX_NEIGHBORS;j++) {
-        int n=neighbors[node][j]; if (n==0xffff) break;
-        if (lightning_distance[n]<0) { lightning_distance[n]=lightning_distance[node]+1; lightning_to_sink[n]=node; lightning_bfs_queue[q_tail++]=n; }
-      }
-    }
-    int source_count=(int)(SIZE*idleDensity/1000);
-    for (int s=0;s<source_count;s++) {
-      int source=random(SIZE);
-      while (source!=sink) {
-        int parent=lightning_to_sink[source]; if (parent<0) break;
-        float value=0.5f+expf(-(float)lightning_distance[source]/SIZE*100.0f);
-        lightning_fluid[dupes_to_uniques[source][0]]=value; lightning_fluid[dupes_to_uniques[source][1]]=value;
-        source=parent;
-      }
-    }
+  String json = readFile("/timingprefs.json");
+  if (json.isEmpty()) return;
+  JsonDocument doc;
+  if (deserializeJson(doc, json) != DeserializationError::Ok) return;
+
+  JsonArray sched = weeklyTimer
+    ? doc["weeklySchedule"].as<JsonArray>()
+    : doc["schedule"].as<JsonArray>();
+  if (sched.isNull() || sched.size() == 0) return;
+
+  int nowMin = t.tm_hour * 60 + t.tm_min;
+  const int DAY = 24 * 60;
+
+  // Find the active event: most recent past event (wraps midnight)
+  int activeIdx = -1, activeDistBack = DAY + 1;
+  for (int i = 0; i < (int)sched.size(); i++) {
+    JsonObject evt = sched[i];
+    if (weeklyTimer && (evt["weekday"] | 0) != t.tm_wday) continue;
+    int dist = (nowMin - parseTimeMinutes(evt["time"].as<String>()) + DAY) % DAY;
+    if (dist < activeDistBack) { activeDistBack = dist; activeIdx = i; }
   }
-  applyFluidValues(lightning_fluid,1.0f);
+  if (activeIdx < 0) return;
+
+  JsonObject activeEvt = sched[activeIdx];
+  // Key on time only (not prefName) so editing an event's pref doesn't re-trigger it
+  String evtKey = String(weeklyTimer ? (int)(activeEvt["weekday"] | 0) : -1) + ":" +
+                  activeEvt["time"].as<String>();
+
+  if (evtKey != lastTriggeredEventKey) {
+    lastTriggeredEventKey = evtKey;
+    triggerScheduleEvent(activeEvt);
+    broadcastState();
+  }
 }
 
 // ===================== SETUP / LOOP =====================
@@ -868,6 +854,7 @@ void setup() {
   randomSeed(analogRead(0));
 
   LittleFS.begin(true);  // true = format if mount fails
+  LittleFS.mkdir("/savedprefs");
   Serial.println("LittleFS mounted");
 
   // Load config, generating defaults if missing
@@ -891,9 +878,11 @@ void setup() {
   Serial.println("Config loaded: orbID=" + orbID + " relayHost=" + relayHost);
 
   // Load and apply prefs (write defaults on first boot so getprefs returns something)
+  currentPrefName = readFile("/currentprefname.txt");
   Prefs p = loadPrefs();
   savePrefs(p);  // always re-save to ensure format is current
   applyPrefs(p);
+  loadTimingPrefs();
   Serial.println("Prefs loaded");
 
   // WiFi (blocks until connected, starts AP portal if needed)
@@ -906,8 +895,20 @@ void setup() {
   wm.autoConnect(("Lumatron-" + orbID).c_str());
   Serial.println("WiFi connected: " + WiFi.localIP().toString());
 
+  // Sync time via NTP
+  {
+    JsonDocument cfgDoc;
+    String cfgJson = readFile("/config.json");
+    deserializeJson(cfgDoc, cfgJson);
+    const char* tz = cfgDoc["timezone"] | "PST8PDT,M3.2.0,M11.1.0";  // default: Los Angeles
+    configTzTime(tz, "pool.ntp.org", "time.nist.gov");
+    Serial.println("NTP configured (tz: " + String(tz) + ")");
+  }
+
   // Load geometry (fetches from relay if /pixels.bin not cached)
   loadGeometry();
+  checkSchedule();
+  computeNextEventMs();
 
   // WebSocket
   if (!relayHost.isEmpty() && !orbID.isEmpty()) {
@@ -921,8 +922,15 @@ void setup() {
 }
 
 void loop() {
+  unsigned long loop_start = millis();
+
   wsClient.loop();
   checkPingTimeout();
+
+  if (loop_start >= nextEventMs) {
+    checkSchedule();
+    computeNextEventMs();
+  }
 
   if (!strip) return;  // geometry not yet loaded
 
@@ -936,9 +944,19 @@ void loop() {
     default:                 runDefault();    break;
   }
 
+  // Apply dimmer as post-render pixel scale
+  float d = constrain(dimmer, 0.0f, 1.0f);
+  if (d < 0.999f) {
+    for (int i = 0; i < RAW_SIZE; i++) {
+      uint32_t c = strip->getPixelColor(i);
+      uint8_t r = ((c >> 16) & 0xff) * d;
+      uint8_t g = ((c >> 8)  & 0xff) * d;
+      uint8_t b = (c & 0xff)          * d;
+      strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+    }
+  }
   strip->show();
 
-  unsigned long loop_start = millis();
   float frame_rate = 30;
   if (idlePattern == PATTERN_DEFAULT || idlePattern == PATTERN_FIREFLIES)
     frame_rate = idleFrameRate;
