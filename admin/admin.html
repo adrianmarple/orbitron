@@ -58,11 +58,10 @@
         <span v-if="timingprefs != idToTimingPrefs[orbID]">*</span>
       </div>
       <div style="display:flex">
-        <div v-for="viewType in ['config', 'log']"
-            class="button" :class="{ selected: viewing == viewType }"
-            @click="setViewing(viewType)">
-          {{ viewType }}
-        </div>
+        <div class="button" :class="{ selected: viewing == 'config' }"
+            @click="setViewing('config')">config</div>
+        <div class="button" :class="{ selected: viewing == 'log', disabled: isArduino }"
+            @click="setViewing('log')">log</div>
       </div>
       <div style="display:flex">
         <div v-for="viewType in ['prefs', 'timing']"
@@ -71,7 +70,7 @@
           {{ viewType }}
         </div>
       </div>
-      <div class="button" :class="{ selected: viewing == 'command' }"
+      <div class="button" :class="{ selected: viewing == 'command', disabled: isArduino }"
           @click="setViewing('command')">
         Issue Commands
       </div>
@@ -171,24 +170,27 @@
 
             <!-- Power calibration -->
             <div v-if="viewing=='calibration'" id="calibration">
-              <div v-if="MAX_POWER_DRAW">MAX_POWER_DRAW present</div>
-              <div v-if="MAX_AVG_PIXEL_BRIGHTNESS">MAX_AVG_PIXEL_BRIGHTNESS present</div>
-              <div v-if="MAX_POWER_DRAW || MAX_AVG_PIXEL_BRIGHTNESS" class="row">
-                <div class="button" @click="clearMaxes">Clear Maxes</div>
-              </div>
-              <div v-if="calibratingPower" class="row">
-                Do you see any dimming (i.e. part of the strip starting to turn a bit yellow)?
-              </div>
-              <div v-if="calibratingPower" class="row">
-                <div class="button" @click="nextPowerValue(true)">Good 👍</div>
-                <div class="button" @click="nextPowerValue(false)">Too Bright!</div>
-              </div>
-              <div v-if="!calibratingPower" class="row">
-                You will need to have the piece visible in front of you.
-              </div>
-              <div v-if="!calibratingPower" class="row">
-                <div class="button" @click="startPowerCalibration">Start Power Calibration</div>
-              </div>
+              <div v-if="isArduino">Power Calibration is not yet supported for Arduino devices.</div>
+              <template v-if="!isArduino">
+                <div v-if="MAX_POWER_DRAW">MAX_POWER_DRAW present</div>
+                <div v-if="MAX_AVG_PIXEL_BRIGHTNESS">MAX_AVG_PIXEL_BRIGHTNESS present</div>
+                <div v-if="MAX_POWER_DRAW || MAX_AVG_PIXEL_BRIGHTNESS" class="row">
+                  <div class="button" @click="clearMaxes">Clear Maxes</div>
+                </div>
+                <div v-if="calibratingPower" class="row">
+                  Do you see any dimming (i.e. part of the strip starting to turn a bit yellow)?
+                </div>
+                <div v-if="calibratingPower" class="row">
+                  <div class="button" @click="nextPowerValue(true)">Good 👍</div>
+                  <div class="button" @click="nextPowerValue(false)">Too Bright!</div>
+                </div>
+                <div v-if="!calibratingPower" class="row">
+                  You will need to have the piece visible in front of you.
+                </div>
+                <div v-if="!calibratingPower" class="row">
+                  <div class="button" @click="startPowerCalibration">Start Power Calibration</div>
+                </div>
+              </template>
             </div>
 
           </div><!-- .filler -->
