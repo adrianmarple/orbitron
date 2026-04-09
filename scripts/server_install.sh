@@ -82,11 +82,15 @@ fi
 
 # Set up pm2
 echo "Setting up pm2..."
-sudo npm install -g pm2
-sudo pm2 install pm2-logrotate
-sudo pm2 start "$ROOT_DIR/startscript.sh"
-sudo pm2 startup
-sudo pm2 save
+sudo env "PATH=$PATH" npm install -g pm2
+sudo env "PATH=$PATH" pm2 install pm2-logrotate
+if pm2 describe startscript &>/dev/null; then
+  pm2 restart all
+else
+  pm2 start "$ROOT_DIR/startscript.sh"
+fi
+sudo env "PATH=$PATH" pm2 startup
+pm2 save
 
 # Install Arduino CLI and dependencies for OTA firmware builds
 ARDUINO_CLI_URL="https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh"
