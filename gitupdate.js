@@ -84,5 +84,5 @@ if(runDirectly){
 }
 
 module.exports = {
-  checkForUpdates, pullAndRestart, timeUntilHour,
+  checkForUpdates, pullAndRestart, restartOrbitron, timeUntilHour,
 }

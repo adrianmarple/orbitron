@@ -3,8 +3,9 @@ const WebSocket = require('ws')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
+const path = require('path')
 const { config, execute, processAdminCommand, noCorsHeader } = require('./lib')
-const { pullAndRestart } = require('./gitupdate')
+const { pullAndRestart, restartOrbitron } = require('./gitupdate')
 const homedir = require('os').homedir()
 const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 const { startOrb } = require('./orb')
@@ -16,6 +17,46 @@ const connectedClients = {}
 const awaitingMessages = {}
 let orbInfoCache = {}
 let BACKUPS_DIR = "./backups/"
+
+// --- Arduino OTA firmware ---
+const FIRMWARE_DIR = path.join(__dirname, 'firmware')
+const FIRMWARE_BIN = path.join(FIRMWARE_DIR, 'esp32.ino.bin')
+const FIRMWARE_VERSION_FILE = path.join(FIRMWARE_DIR, 'version.txt')
+let compiledFirmwareVersion = 0
+
+function loadCompiledFirmwareVersion() {
+  try {
+    compiledFirmwareVersion = parseInt(fs.readFileSync(FIRMWARE_VERSION_FILE, 'utf8').trim()) || 0
+    console.log('Loaded compiled firmware version:', compiledFirmwareVersion)
+  } catch(_) {}
+}
+
+async function compileArduino() {
+  try {
+    fs.mkdirSync(FIRMWARE_DIR, { recursive: true })
+    let commitCount = parseInt((await execute('git rev-list --count HEAD')).trim())
+    let sketchDir = path.join(__dirname, 'arduino/esp32')
+    console.log(`Compiling Arduino firmware (version ${commitCount})...`)
+    let result = await execute(
+      `arduino-cli compile` +
+      ` --fqbn esp32:esp32:esp32c3` +
+      ` --build-property "build.extra_flags=-DFIRMWARE_VERSION_NUM=${commitCount}"` +
+      ` --output-dir ${FIRMWARE_DIR}` +
+      ` ${sketchDir}`
+    )
+    if (result.toLowerCase().includes('error')) {
+      console.error('Arduino compile failed:', result)
+      return false
+    }
+    fs.writeFileSync(FIRMWARE_VERSION_FILE, String(commitCount))
+    compiledFirmwareVersion = commitCount
+    console.log('Arduino firmware compiled successfully, version:', compiledFirmwareVersion)
+    return true
+  } catch(e) {
+    console.error('Arduino compile exception:', e)
+    return false
+  }
+}
 
 // Convert Arduino JSON config to Pi JS module format
 function arduinoConfigToPiConfig(jsonStr) {
@@ -423,6 +464,29 @@ addGETListener(async (response, _, filePath, __, request)=>{
   return true
 })
 
+// Serve compiled Arduino firmware binary
+addGETListener(async (response, _, filePath, queryParams) => {
+  if (!filePath.startsWith('/firmware/') || !filePath.endsWith('.bin')) return
+  if (!fs.existsSync(FIRMWARE_BIN)) {
+    response.writeHead(404)
+    response.end('No firmware available')
+    return true
+  }
+  let clientVersion = parseInt(queryParams.version || '0')
+  if (clientVersion >= compiledFirmwareVersion) {
+    response.writeHead(304)
+    response.end()
+    return true
+  }
+  let bin = fs.readFileSync(FIRMWARE_BIN)
+  response.writeHead(200, {
+    'Content-Type': 'application/octet-stream',
+    'Content-Length': bin.length,
+  })
+  response.end(bin)
+  return true
+})
+
 // Get basic info on orb
 addGETListener(async (response, orbID, filePath)=>{
   if (!filePath.includes("/info")) return
@@ -624,11 +688,16 @@ addPOSTListener(async (response, body) => {
     response.writeHead(200)
     response.end('post received')
 
-    for (let orbID in connectedOrbs) {
-      let socket = connectedOrbs[orbID]
-      socket.send("GIT_HAS_UPDATE")
-    }
-    pullAndRestart()
+    // Pull new code, compile Arduino firmware, then broadcast update to all orbs
+    ;(async () => {
+      await execute('git config pull.ff only')
+      await execute('git pull')
+      await compileArduino()
+      for (let orbID in connectedOrbs) {
+        connectedOrbs[orbID].send("GIT_HAS_UPDATE")
+      }
+      restartOrbitron()
+    })()
     return true
   } catch(e) {
     console.log("POST data didn't parse as JSON", e)
@@ -639,3 +708,4 @@ addPOSTListener(async (response, body) => {
 })
 
 loadOrbInfoCache()
+loadCompiledFirmwareVersion()

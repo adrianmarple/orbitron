@@ -20,7 +20,10 @@
 #include <HTTPUpdate.h>
 
 #define PIN D10
-#define FIRMWARE_VERSION "1.0.0"
+#ifndef FIRMWARE_VERSION_NUM
+#define FIRMWARE_VERSION_NUM 0
+#endif
+#define FIRMWARE_VERSION (String(FIRMWARE_VERSION_NUM))
 #define PING_TIMEOUT_MS 30000
 #define MAX_NEIGHBORS 6  // compile-time max; actual neighbor count per pixel determined by pixels.bin
 
@@ -59,6 +62,7 @@ String orbID;
 String relayHost;
 String pixelsName;
 String orbKey;  // sha256(orbID + masterKey); empty = no auth required
+bool continuousIntegration = false;
 
 // --- WebSocket ---
 WebSocketsClient wsClient;
@@ -745,7 +749,7 @@ void handleOrbMessage(JsonDocument& msg) {
 }
 
 void performOTA() {
-  String url = "https://" + relayHost + "/firmware/" + orbID + ".bin";
+  String url = "https://" + relayHost + "/firmware/" + orbID + ".bin?version=" + FIRMWARE_VERSION_NUM;
   WiFiClientSecure client;
   client.setInsecure();  // replace with setCACert() once cert is pinned
   wsClient.disconnect();
@@ -777,7 +781,7 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         lastPingReceived = millis();
         return;
       }
-      if (msg == "GIT_HAS_UPDATE") { performOTA(); return; }
+      if (msg == "GIT_HAS_UPDATE") { if (continuousIntegration) performOTA(); return; }
 
       JsonDocument doc;
       if (deserializeJson(doc, msg) != DeserializationError::Ok) return;
@@ -1005,6 +1009,7 @@ void setup() {
     relayHost = doc["RELAY_HOST"].as<String>();
     pixelsName = doc["PIXELS"].as<String>();
     orbKey = doc["ORB_KEY"] | "";
+    continuousIntegration = doc["CONTINUOUS_INTEGRATION"] | false;
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 
@@ -1066,6 +1071,7 @@ void loop() {
 
   if (loop_start >= nextBackupMs) {
     sendBackup("");  // sendBackup calls computeNextBackupMs() to reschedule
+    performOTA();
   }
 
   if (!strip) return;  // geometry not yet loaded
