@@ -175,9 +175,17 @@ new Vue({
     },
 
     async setOrbKey() {
-      let orbID = readFromConfig(this.config, 'ORB_ID')
-      let orbKey = await this.getOrbKey(orbID)
-      this.config = upsertKeyValueInConfig(this.config, 'ORB_KEY', orbKey, 'ORB_ID')
+      if (this.config.trim().startsWith('{')) {
+        // Arduino: JSON config
+        let cfg = JSON.parse(this.config)
+        cfg.ORB_KEY = await this.getOrbKey(cfg.orbID)
+        this.config = JSON.stringify(cfg, null, 2)
+      } else {
+        // Pi: JS module config
+        let orbID = readFromConfig(this.config, 'ORB_ID')
+        let orbKey = await this.getOrbKey(orbID)
+        this.config = upsertKeyValueInConfig(this.config, 'ORB_KEY', orbKey, 'ORB_ID')
+      }
     },
 
     async unlockOrb() {

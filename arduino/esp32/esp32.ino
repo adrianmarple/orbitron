@@ -9,6 +9,7 @@
 
 #include <Adafruit_NeoPixel.h>
 #include <math.h>
+#include "mbedtls/sha256.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <WiFiManager.h>
@@ -57,6 +58,7 @@ Prefs defaultPrefs = {
 String orbID;
 String relayHost;
 String pixelsName;
+String orbKey;  // sha256(orbID + masterKey); empty = no auth required
 
 // --- WebSocket ---
 WebSocketsClient wsClient;
@@ -555,11 +557,33 @@ void handleControllerMessage(const String& clientID, const String& message) {
   }
 }
 
+String sha256hex(const String& input) {
+  unsigned char hash[32];
+  mbedtls_sha256((const unsigned char*)input.c_str(), input.length(), hash, 0);
+  char buf[65];
+  for (int i = 0; i < 32; i++) snprintf(buf + i*2, 3, "%02x", hash[i]);
+  buf[64] = '\0';
+  return String(buf);
+}
+
 void handleAdminCommand(JsonDocument& msg) {
   String messageID = msg["hash"].as<String>();
-  // Command is a JSON string embedded in msg["message"]
+  String messageStr = msg["message"].as<String>();
+
+  // Validate hash if ORB_KEY is configured (silently drop on failure, same as Pi)
+  if (orbKey.length() > 0 && sha256hex(messageStr + orbKey) != messageID) return;
+
   JsonDocument cmdDoc;
-  if (deserializeJson(cmdDoc, msg["message"].as<String>()) != DeserializationError::Ok) return;
+  if (deserializeJson(cmdDoc, messageStr) != DeserializationError::Ok) return;
+
+  // Validate timestamp if NTP is synced (Unix time > 2024-01-01)
+  long long timestamp = cmdDoc["timestamp"] | 0LL;
+  time_t now = time(nullptr);
+  if (now > 1704067200L && timestamp > 0LL) {
+    long long nowMs = (long long)now * 1000LL;
+    if (nowMs > timestamp + 10000LL || timestamp > nowMs + 10000LL) return;
+  }
+
   JsonObject cmd = cmdDoc.as<JsonObject>();
   String type = cmd["type"].as<String>();
 
@@ -874,6 +898,7 @@ void setup() {
     orbID = doc["orbID"].as<String>();
     relayHost = doc["relayHost"].as<String>();
     pixelsName = doc["pixels"].as<String>();
+    orbKey = doc["ORB_KEY"] | "";
   }
   Serial.println("Config loaded: orbID=" + orbID + " relayHost=" + relayHost);
 
