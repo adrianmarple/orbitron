@@ -987,33 +987,6 @@ void setup() {
   LittleFS.mkdir("/savedprefs");
   Serial.println("LittleFS mounted");
 
-  // One-off migration: rename old camelCase config keys to ALL_CAPS
-  {
-    String raw = readFile("/config.json");
-    if (!raw.isEmpty()) {
-      JsonDocument doc;
-      if (deserializeJson(doc, raw) == DeserializationError::Ok) {
-        bool changed = false;
-        auto migrate = [&](const char* oldKey, const char* newKey) {
-          if (doc[oldKey].isNull()) return;
-          doc[newKey] = doc[oldKey];
-          doc.remove(oldKey);
-          changed = true;
-        };
-        migrate("orbID",      "ORB_ID");
-        migrate("relayHost",  "RELAY_HOST");
-        migrate("pixelsName", "PIXELS");
-        migrate("orbKey",     "ORB_KEY");
-        migrate("timezone",   "TIMEZONE");
-        if (changed) {
-          String out; serializeJsonPretty(doc, out);
-          writeFile("/config.json", out);
-          Serial.println("Config migrated to ALL_CAPS keys");
-        }
-      }
-    }
-  }
-
   // Load config, generating defaults if missing
   String configJson = readFile("/config.json");
   if (configJson.isEmpty()) {
