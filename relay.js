@@ -17,34 +17,6 @@ const awaitingMessages = {}
 let orbInfoCache = {}
 let BACKUPS_DIR = "./backups/"
 
-// Convert Arduino JSON config to Pi JS module format
-function arduinoConfigToPiConfig(jsonStr) {
-  let cfg = {}
-  try { cfg = JSON.parse(jsonStr) } catch(e) { return 'module.exports = {}' }
-  let lines = ['module.exports = {']
-
-  for (let [k, v] of Object.entries(cfg)) {
-    if (skip.has(k)) continue
-    lines.push(`  ${k}: ${typeof v === 'string' ? `"${v}"` : JSON.stringify(v)},`)
-  }
-  lines.push('}')
-  return lines.join('\n')
-}
-
-// Convert Pi JS module config to Arduino JSON format
-function piConfigToArduinoConfig(jsStr) {
-  let cfg = {}
-  try {
-    let match = jsStr.match(/module\.exports\s*=\s*(\{[\s\S]*\})\s*;?\s*$/)
-    if (match) cfg = eval('(' + match[1] + ')')
-  } catch(e) { return '{}' }
-  // Keep only fields relevant to Arduino; drop Pi-specific runtime options
-  const keep = new Set(['ORB_ID', 'PIXELS', 'ORB_KEY', 'RELAY_HOST', 'TIMEZONE'])
-  let result = {}
-  for (let k of keep) { if (cfg[k] !== undefined) result[k] = cfg[k] }
-  return JSON.stringify(result, null, 2)
-}
-
 
 let server
 if (config.DEV_MODE) {
@@ -89,7 +61,6 @@ wsServer.on('connection', (socket, request) => {
 let serverPingHandler = () => {
   for (const orbID in connectedOrbs) {
     connectedOrbs[orbID].send("PING")
-    connectedOrbs[orbID].lastActivityTime = Date.now()
   }
 }
 setInterval(serverPingHandler, 3000)  
@@ -346,25 +317,13 @@ addGETListener(async (response, orbID, _, queryParams) => {
       try {
         backup = JSON.parse(await fs.promises.readFile(BACKUPS_DIR + command.fileName))
       } catch(e) {
-        response.end("Error reading backup.")
-        return true
+        response.end("Error restoring backup.")
       }
-      let restoreOrb = connectedOrbs[command.orbID]
-      if (!restoreOrb) {
-        response.end("Orb not connected.")
-        return true
-      }
-      // Convert config format if backup type and target type differ
-      if (backup.config) {
-        let backupIsArduino = backup.config.trim().startsWith('{')
-        let targetIsArduino = !!(orbInfoCache[command.orbID]?.config?.ARDUINO)
-        if (backupIsArduino !== targetIsArduino) {
-          backup.config = backupIsArduino
-            ? arduinoConfigToPiConfig(backup.config)
-            : piConfigToArduinoConfig(backup.config)
-        }
-      }
-      restoreOrb.send(JSON.stringify({ type: "restoreFromBackup", backup }))
+      let orb = connectedOrbs[command.orbID]
+      orb.send(JSON.stringify({
+        type: "restoreFromBackup",
+        backup,
+      }))
       response.end("OK")
       return true
     case "deleteBackup":

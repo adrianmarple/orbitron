@@ -4,7 +4,7 @@
 // Pixel geometry fetched automatically from https://<relayHost>/pixels/<pixelsName>.bin
 //
 // On first boot with no /pixels.bin on flash:
-//   set config.json: { "ORB_ID": "myorb", "RELAY_HOST": "my.lumatron.art", "PIXELS": "archimedes/rhombicosidodecahedron" }
+//   set config.json: { "orbID": "myorb", "relayHost": "my.lumatron.art", "pixels": "archimedes/rhombicosidodecahedron" }
 //   the device will download geometry on first WiFi connect and cache it to /pixels.bin
 
 #include <Adafruit_NeoPixel.h>
@@ -76,9 +76,6 @@ bool weeklyTimer = false;
 float dimmer = 1.0f;
 String lastTriggeredEventKey = "";
 unsigned long nextEventMs = 0;
-
-// --- Backup state ---
-unsigned long nextBackupMs = ULONG_MAX;
 
 
 // ===================== PREFS =====================
@@ -205,26 +202,6 @@ int listSavedPrefNames(String* arr, int maxNames) {
   return n;
 }
 
-// Delete all files in a directory (non-recursive)
-void clearDirectory(const char* dirPath) {
-  File dir = LittleFS.open(dirPath);
-  if (!dir || !dir.isDirectory()) return;
-  String paths[32];
-  int count = 0;
-  File entry = dir.openNextFile();
-  while (entry && count < 32) {
-    if (!entry.isDirectory()) {
-      String name = String(entry.name());
-      if (!name.startsWith("/")) name = String(dirPath) + "/" + name;
-      paths[count++] = name;
-    }
-    entry.close();
-    entry = dir.openNextFile();
-  }
-  dir.close();
-  for (int i = 0; i < count; i++) LittleFS.remove(paths[i].c_str());
-}
-
 String readFile(const char* path) {
   File f = LittleFS.open(path, "r");
   if (!f) return "";
@@ -248,68 +225,6 @@ Prefs loadPrefs() {
 
 void savePrefs(Prefs& p) {
   writeFile("/prefs.json", prefsToJson(p));
-}
-
-// ===================== BACKUP =====================
-
-void sendBackup(const String& nameOverride) {
-  JsonDocument doc;
-  JsonObject backup = doc["backup"].to<JsonObject>();
-  if (nameOverride.length() > 0) backup["nameOverride"] = nameOverride;
-  backup["config"]  = readFile("/config.json");
-  backup["prefs"]   = readFile("/prefs.json");
-  String timingJson = readFile("/timingprefs.json");
-  if (!timingJson.isEmpty()) backup["timingprefs"] = timingJson;
-
-  JsonObject savedPrefsObj = backup["savedPrefs"].to<JsonObject>();
-  File dir = LittleFS.open("/savedprefs");
-  if (dir && dir.isDirectory()) {
-    File entry = dir.openNextFile();
-    while (entry) {
-      if (!entry.isDirectory()) {
-        String fname = String(entry.name());
-        int slash = fname.lastIndexOf('/');
-        if (slash >= 0) fname = fname.substring(slash + 1);
-        if (fname.endsWith(".prefs.json"))
-          savedPrefsObj[fname] = entry.readString();
-      }
-      entry.close();
-      entry = dir.openNextFile();
-    }
-    dir.close();
-  }
-
-  String out;
-  serializeJson(doc, out);
-  wsClient.sendTXT(out);
-  Serial.println("Backup sent");
-  computeNextBackupMs();
-}
-
-void handleRestoreFromBackup(JsonDocument& msg) {
-  JsonObject backup = msg["backup"].as<JsonObject>();
-
-  String configStr = backup["config"].as<String>();
-  if (!configStr.isEmpty()) writeFile("/config.json", configStr);
-
-  String prefsStr = backup["prefs"].as<String>();
-  if (!prefsStr.isEmpty()) writeFile("/prefs.json", prefsStr);
-
-  String timingStr = backup["timingprefs"].as<String>();
-  if (!timingStr.isEmpty()) writeFile("/timingprefs.json", timingStr);
-
-  // Replace all saved prefs
-  clearDirectory("/savedprefs");
-  JsonObjectConst savedPrefs = backup["savedPrefs"].as<JsonObjectConst>();
-  for (JsonPairConst kv : savedPrefs) {
-    String path = "/savedprefs/" + String(kv.key().c_str());
-    writeFile(path.c_str(), kv.value().as<String>());
-  }
-
-  writeFile("/currentprefname.txt", "");
-  Serial.println("Backup restored, restarting...");
-  delay(500);
-  ESP.restart();
 }
 
 // ===================== GEOMETRY =====================
@@ -339,7 +254,7 @@ void loadGeometry() {
     }
     root.close();
 
-    if (!pixelsName.isEmpty() && pixelsName != "null" && !relayHost.isEmpty()) {
+    if (!pixelsName.isEmpty() && !relayHost.isEmpty()) {
       WiFiClientSecure client;
       client.setInsecure();
       HTTPClient http;
@@ -699,9 +614,6 @@ void handleAdminCommand(JsonDocument& msg) {
     checkSchedule();
     computeNextEventMs();
     sendResponse(messageID, "OK");
-  } else if (type == "manualBackup") {
-    sendBackup(cmd["nameOverride"] | "");
-    sendResponse(messageID, "OK");
   } else if (type == "restart") {
     sendResponse(messageID, "OK");
     delay(500);
@@ -766,7 +678,6 @@ void performOTA() {
 void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
   switch (type) {
     case WStype_CONNECTED:
-      Serial.println("WebSocket connected");
       lastPingReceived = millis();
       sendInfoDump();
       break;
@@ -809,8 +720,6 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       String msgType = doc["type"].as<String>();
       if (msgType == "admin") {
         handleAdminCommand(doc);
-      } else if (msgType == "restoreFromBackup") {
-        handleRestoreFromBackup(doc);
       } else {
         handleOrbMessage(doc);
       }
@@ -818,7 +727,6 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
     }
 
     case WStype_DISCONNECTED:
-      Serial.println("WebSocket disconnected");
       break;
 
     default:
@@ -921,20 +829,6 @@ void computeNextEventMs() {
     nextEventMs = millis() + (unsigned long)minDistFwd * 60000UL;
 }
 
-// Precompute millis() deadline for the next 2am auto-backup.
-void computeNextBackupMs() {
-  struct tm t;
-  if (!getLocalTime(&t)) {
-    nextBackupMs = millis() + 3600000UL;  // retry in 1h if NTP not ready
-    return;
-  }
-  int nowMin = t.tm_hour * 60 + t.tm_min;
-  const int TARGET = 2 * 60;  // 2:00am in minutes
-  int minsUntil = (TARGET - nowMin + 24 * 60) % (24 * 60);
-  if (minsUntil == 0) minsUntil = 24 * 60;
-  nextBackupMs = millis() + (unsigned long)minsUntil * 60000UL;
-}
-
 void checkSchedule() {
   if (!useTimer) return;
   struct tm t;
@@ -987,40 +881,13 @@ void setup() {
   LittleFS.mkdir("/savedprefs");
   Serial.println("LittleFS mounted");
 
-  // One-off migration: rename old camelCase config keys to ALL_CAPS
-  {
-    String raw = readFile("/config.json");
-    if (!raw.isEmpty()) {
-      JsonDocument doc;
-      if (deserializeJson(doc, raw) == DeserializationError::Ok) {
-        bool changed = false;
-        auto migrate = [&](const char* oldKey, const char* newKey) {
-          if (doc[oldKey].isNull()) return;
-          doc[newKey] = doc[oldKey];
-          doc.remove(oldKey);
-          changed = true;
-        };
-        migrate("orbID",      "ORB_ID");
-        migrate("relayHost",  "RELAY_HOST");
-        migrate("pixelsName", "PIXELS");
-        migrate("orbKey",     "ORB_KEY");
-        migrate("timezone",   "TIMEZONE");
-        if (changed) {
-          String out; serializeJsonPretty(doc, out);
-          writeFile("/config.json", out);
-          Serial.println("Config migrated to ALL_CAPS keys");
-        }
-      }
-    }
-  }
-
   // Load config, generating defaults if missing
   String configJson = readFile("/config.json");
   if (configJson.isEmpty()) {
     JsonDocument doc;
-    doc["ORB_ID"] = "arduino";
-    doc["RELAY_HOST"] = "my.lumatron.art";
-    doc["PIXELS"] = "archimedes/octtrue";
+    doc["orbID"] = "arduino";
+    doc["relayHost"] = "my.lumatron.art";
+    doc["pixels"] = "archimedes/octtrue";
     serializeJsonPretty(doc, configJson);
     writeFile("/config.json", configJson);
     Serial.println("Config created with defaults");
@@ -1028,12 +895,12 @@ void setup() {
   {
     JsonDocument doc;
     deserializeJson(doc, configJson);
-    orbID = doc["ORB_ID"].as<String>();
-    relayHost = doc["RELAY_HOST"].as<String>();
-    pixelsName = doc["PIXELS"].as<String>();
+    orbID = doc["orbID"].as<String>();
+    relayHost = doc["relayHost"].as<String>();
+    pixelsName = doc["pixels"].as<String>();
     orbKey = doc["ORB_KEY"] | "";
   }
-  Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
+  Serial.println("Config loaded: orbID=" + orbID + " relayHost=" + relayHost);
 
   // Load and apply prefs (write defaults on first boot so getprefs returns something)
   currentPrefName = readFile("/currentprefname.txt");
@@ -1058,24 +925,23 @@ void setup() {
     JsonDocument cfgDoc;
     String cfgJson = readFile("/config.json");
     deserializeJson(cfgDoc, cfgJson);
-    const char* tz = cfgDoc["TIMEZONE"] | "PST8PDT,M3.2.0,M11.1.0";  // default: Los Angeles
+    const char* tz = cfgDoc["timezone"] | "PST8PDT,M3.2.0,M11.1.0";  // default: Los Angeles
     configTzTime(tz, "pool.ntp.org", "time.nist.gov");
     Serial.println("NTP configured (tz: " + String(tz) + ")");
   }
 
-  // WebSocket — start before geometry so admin commands work even if geometry fails
+  // Load geometry (fetches from relay if /pixels.bin not cached)
+  loadGeometry();
+  checkSchedule();
+  computeNextEventMs();
+
+  // WebSocket
   if (!relayHost.isEmpty() && !orbID.isEmpty()) {
     wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
     wsClient.onEvent(webSocketEvent);
     wsClient.setReconnectInterval(5000);
     Serial.println("WebSocket connecting to " + relayHost);
   }
-
-  // Load geometry (fetches from relay if not cached; skipped if PIXELS is unset)
-  loadGeometry();
-  checkSchedule();
-  computeNextEventMs();
-  computeNextBackupMs();
 
   lastPingReceived = millis();
 }
@@ -1089,10 +955,6 @@ void loop() {
   if (loop_start >= nextEventMs) {
     checkSchedule();
     computeNextEventMs();
-  }
-
-  if (loop_start >= nextBackupMs) {
-    sendBackup("");  // sendBackup calls computeNextBackupMs() to reschedule
   }
 
   if (!strip) return;  // geometry not yet loaded
