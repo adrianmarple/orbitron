@@ -286,7 +286,7 @@ void sendBackup(const String& nameOverride) {
   String out;
   serializeJson(doc, out);
   wsClient.sendTXT(out);
-  Serial.println("Backup sent");
+  Serial.println("Backup sent" + (nameOverride.length() > 0 ? " (name: " + nameOverride + ")" : ""));
   computeNextBackupMs();
 }
 
@@ -750,17 +750,22 @@ void handleOrbMessage(JsonDocument& msg) {
 
 void performOTA() {
   String url = "https://" + relayHost + "/firmware/" + orbID + ".bin?version=" + FIRMWARE_VERSION_NUM;
+  Serial.println("OTA check: " + url);
   WiFiClientSecure client;
   client.setInsecure();  // replace with setCACert() once cert is pinned
   wsClient.disconnect();
   t_httpUpdate_return ret = httpUpdate.update(client, url);
   switch (ret) {
     case HTTP_UPDATE_OK:
+      Serial.println("OTA update applied, restarting");
       ESP.restart();  // shouldn't be reached; httpUpdate restarts automatically
       break;
     case HTTP_UPDATE_NO_UPDATES:
+      Serial.println("OTA: already up to date");
+      wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
       break;
     case HTTP_UPDATE_FAILED:
+      Serial.println("OTA failed: " + httpUpdate.getLastErrorString());
       // reconnect and carry on
       wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
       break;
@@ -781,7 +786,11 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         lastPingReceived = millis();
         return;
       }
-      if (msg == "GIT_HAS_UPDATE") { if (continuousIntegration) performOTA(); return; }
+      if (msg == "GIT_HAS_UPDATE") {
+        Serial.println("GIT_HAS_UPDATE received, CI=" + String(continuousIntegration ? "true" : "false"));
+        if (continuousIntegration) performOTA();
+        return;
+      }
 
       JsonDocument doc;
       if (deserializeJson(doc, msg) != DeserializationError::Ok) return;
@@ -930,6 +939,7 @@ void computeNextBackupMs() {
   struct tm t;
   if (!getLocalTime(&t)) {
     nextBackupMs = millis() + 3600000UL;  // retry in 1h if NTP not ready
+    Serial.println("computeNextBackupMs: NTP not ready, retrying in 1h");
     return;
   }
   int nowMin = t.tm_hour * 60 + t.tm_min;
@@ -937,6 +947,7 @@ void computeNextBackupMs() {
   int minsUntil = (TARGET - nowMin + 24 * 60) % (24 * 60);
   if (minsUntil == 0) minsUntil = 24 * 60;
   nextBackupMs = millis() + (unsigned long)minsUntil * 60000UL;
+  Serial.println("Next backup/OTA in " + String(minsUntil) + " min");
 }
 
 void checkSchedule() {
@@ -1065,11 +1076,13 @@ void loop() {
   checkPingTimeout();
 
   if (loop_start >= nextEventMs) {
+    Serial.println("Timer event triggered");
     checkSchedule();
     computeNextEventMs();
   }
 
   if (loop_start >= nextBackupMs) {
+    Serial.println("2am backup/OTA triggered");
     sendBackup("");  // sendBackup calls computeNextBackupMs() to reschedule
     performOTA();
   }
