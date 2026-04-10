@@ -62,6 +62,7 @@ String orbID;
 String relayHost;
 String pixelsName;
 String orbKey;  // sha256(orbID + masterKey); empty = no auth required
+String timezone;
 bool continuousIntegration = false;
 
 // --- WebSocket ---
@@ -333,15 +334,21 @@ void loadGeometry() {
   File f = LittleFS.open(cachePath, "r");
   if (!f) {
     // Clean up any stale .bin files from previous pixel configs
-    File root = LittleFS.open("/");
-    File entry = root.openNextFile();
-    while (entry) {
-      String entryPath = "/" + String(entry.name());
-      entry.close();
-      if (entryPath.endsWith(".bin")) LittleFS.remove(entryPath.c_str());
-      entry = root.openNextFile();
+    {
+      String stalePaths[16];
+      int staleCount = 0;
+      File root = LittleFS.open("/");
+      File entry = root.openNextFile();
+      while (entry && staleCount < 16) {
+        String name = String(entry.name());
+        if (!name.startsWith("/")) name = "/" + name;
+        entry.close();
+        if (name.endsWith(".bin")) stalePaths[staleCount++] = name;
+        entry = root.openNextFile();
+      }
+      root.close();
+      for (int i = 0; i < staleCount; i++) LittleFS.remove(stalePaths[i].c_str());
     }
-    root.close();
 
     if (!pixelsName.isEmpty() && pixelsName != "null" && !relayHost.isEmpty()) {
       WiFiClientSecure client;
@@ -530,7 +537,8 @@ void handleControllerMessage(const String& clientID, const String& message) {
       else          regularDoc[kv.key()] = kv.value();
     }
 
-    if (!timingDoc.as<JsonObject>().isNull()) mergeTimingPrefs(timingDoc.as<JsonObject>());
+    JsonObject timingObj = timingDoc.as<JsonObject>();
+    if (!timingObj.isNull()) mergeTimingPrefs(timingObj);
 
     Prefs p = loadPrefs();
     p = prefsFromJson(regularDoc, p);
@@ -1037,6 +1045,7 @@ void setup() {
     relayHost = doc["RELAY_HOST"].as<String>();
     pixelsName = doc["PIXELS"].as<String>();
     orbKey = doc["ORB_KEY"] | "";
+    timezone = doc["TIMEZONE"] | "PST8PDT,M3.2.0,M11.1.0";
     continuousIntegration = doc["CONTINUOUS_INTEGRATION"] | false;
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
@@ -1060,14 +1069,8 @@ void setup() {
   Serial.println("WiFi connected: " + WiFi.localIP().toString());
 
   // Sync time via NTP
-  {
-    JsonDocument cfgDoc;
-    String cfgJson = readFile("/config.json");
-    deserializeJson(cfgDoc, cfgJson);
-    const char* tz = cfgDoc["TIMEZONE"] | "PST8PDT,M3.2.0,M11.1.0";  // default: Los Angeles
-    configTzTime(tz, "pool.ntp.org", "time.nist.gov");
-    Serial.println("NTP configured (tz: " + String(tz) + ")");
-  }
+  configTzTime(timezone.c_str(), "pool.ntp.org", "time.nist.gov");
+  Serial.println("NTP configured (tz: " + timezone + ")");
 
   // WebSocket — start before geometry so admin commands work even if geometry fails
   if (!relayHost.isEmpty() && !orbID.isEmpty()) {
