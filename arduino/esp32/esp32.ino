@@ -788,7 +788,24 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       }
       if (msg == "GIT_HAS_UPDATE") {
         Serial.println("GIT_HAS_UPDATE received, CI=" + String(continuousIntegration ? "true" : "false"));
-        if (continuousIntegration) performOTA();
+        if (continuousIntegration) {
+          Serial.println("Polling for server restart before OTA...");
+          WiFiClientSecure pollClient;
+          pollClient.setInsecure();
+          bool serverUp = false;
+          for (int i = 0; i < 24; i++) {  // up to ~2 min
+            delay(5000);
+            if (pollClient.connect(relayHost.c_str(), 443)) {
+              pollClient.stop();
+              Serial.println("Server is up after " + String((i + 1) * 5) + "s, starting OTA");
+              serverUp = true;
+              break;
+            }
+            Serial.println("Server not yet up (" + String((i + 1) * 5) + "s)...");
+          }
+          if (serverUp) performOTA();
+          else Serial.println("Server did not come up in time, skipping OTA");
+        }
         return;
       }
 
