@@ -773,7 +773,6 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       Serial.println("WebSocket connected");
       lastPingReceived = millis();
       sendInfoDump();
-      performOTA();
       break;
 
     case WStype_TEXT: {
