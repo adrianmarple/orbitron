@@ -119,6 +119,9 @@ var yOffset = 0
 document.addEventListener("mousedown", dragStart, false)
 document.addEventListener("mouseup", dragEnd, false)
 document.addEventListener("mousemove", drag, false)
+document.addEventListener("touchstart", dragStart, false)
+document.addEventListener("touchend", dragEnd, false)
+document.addEventListener("touchmove", drag, false)
 
 function dragStart(e) {
   if (e.type === "touchstart") {
