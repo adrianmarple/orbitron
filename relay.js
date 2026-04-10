@@ -718,3 +718,4 @@ addPOSTListener(async (response, body) => {
 
 loadOrbInfoCache()
 loadCompiledFirmwareVersion()
+compileArduino()
