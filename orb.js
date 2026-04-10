@@ -226,8 +226,8 @@ function connectOrbToRelay(){
             }
           }
         }
-        if (command.type == "commit") {
-          returnData = (await execute("git log --pretty=format:'%H' -1")).replace(/[\s]/, "")
+        if (command.type == "version") {
+          returnData = (await execute("git rev-list --count HEAD")).trim()
         }
         if (command.type == "setconfig") {
           let match = command.data.match(/\s*module\.exports\s*=(.*)/s)

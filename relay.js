@@ -351,12 +351,12 @@ addGETListener(async (response, _, filePath, queryParams) => {
   return true
 })
 
-// Serve git commit list for admin UI (used to show how far behind each orb is)
+// Serve version info for admin UI (used to show how far behind each orb is)
 addGETListener(async (response, orbID, filePath) => {
-  if (filePath != "/admin/commits") return false
-  let log = await execute("git log --pretty=format:'%H'")
+  if (filePath != "/admin/versions") return false
+  let gitCount = parseInt((await execute("git rev-list --count HEAD")).trim())
   noCorsHeader(response, 'text/json')
-  response.end(JSON.stringify(log.split("\n")))
+  response.end(JSON.stringify({ gitCount, arduinoVersion: compiledFirmwareVersion }))
   return true
 })
 
@@ -374,6 +374,7 @@ addGETListener(async (response, orbID, _, queryParams) => {
         orbInfo.push({
           id,
           alias: config.ALIASES[id],
+          isArduino: !!(orbInfoCache[id]?.config?.ARDUINO),
         })
       }
       response.end(JSON.stringify(orbInfo))
@@ -422,10 +423,14 @@ addGETListener(async (response, orbID, _, queryParams) => {
 
 // Admin commands for orbs
 addGETListener(async (response, orbID, filePath, queryParams) => {
-  if(!orbID || !connectedOrbs[orbID]) return
-
   let pathParts = filePath.split("/")
   if (pathParts.length < 3 || pathParts[2] != "admin") return false
+
+  if(!orbID || !connectedOrbs[orbID]) {
+    response.writeHead(404)
+    response.end("ORB DISCONNECTED")
+    return true
+  }
   
   queryParams.type = "admin"
   let orb = connectedOrbs[orbID]

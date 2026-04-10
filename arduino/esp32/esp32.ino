@@ -712,7 +712,7 @@ void handleAdminCommand(JsonDocument& msg) {
     ESP.restart();
   } else if (type == "ip") {
     sendResponse(messageID, WiFi.localIP().toString());
-  } else if (type == "commit") {
+  } else if (type == "version") {
     sendResponse(messageID, FIRMWARE_VERSION);
   } else if (type == "getlog") {
     sendResponse(messageID, "No log on Arduino");

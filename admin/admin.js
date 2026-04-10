@@ -9,7 +9,7 @@ new Vue({
       masterKey: "",
       showMasterKeyModal: false,
       masterKeyInput: "",
-      commits: [],
+      versions: {},
       orbID: localStorage.getItem("orbID") || "demo",
       alias: null,
       serverOrbID: "demo",
@@ -112,14 +112,14 @@ new Vue({
     if (!this.masterKey) {
       this.masterKey = await this.promptMasterKey()
     }
-    this.commits = await (await fetch("/admin/commits")).json()
+    this.versions = await (await fetch("/admin/versions")).json()
 
     await this.getOrbInfo()
     this.infoInterval = setInterval(async function() {
       if (document.hasFocus()) {
         await self.getOrbInfo()
         await self.updateViewing()
-        self.commits = await (await fetch("/admin/commits")).json()
+        self.commits = await (await fetch("/admin/versions")).json()
       }
     }, 5000)
     await this.updateConfig()
@@ -257,8 +257,14 @@ new Vue({
           promises.push(this.sendCommand({ type: "ip" }, orb.id).then(ip => {
             this.idToIP[orb.id] = ip
           }))
-          promises.push(this.sendCommand({ type: "commit" }, orb.id).then(commit => {
-            this.idToCommit[orb.id] = this.commits.indexOf(commit)
+          promises.push(this.sendCommand({ type: "version" }, orb.id).then(orbVersion => {
+            orbVersion = parseInt(orbVersion)
+            if (!orbVersion) {
+              this.idToCommit[orb.id] = null
+              return
+            }
+            let serverVersion = orb.isArduino ? this.versions.arduinoVersion : this.versions.gitCount
+            this.idToCommit[orb.id] = serverVersion - orbVersion
           }))
         }
       } catch(e) {}
