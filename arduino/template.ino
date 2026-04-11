@@ -22,7 +22,7 @@ float render_values[RAW_SIZE];
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(RAW_SIZE, PIN, NEO_GRB + NEO_KHZ800);
 
 #define STRIP_SET(i, c) strip.setPixelColor(i, c)
-#include "../patterns.h"
+#include "../esp32/patterns.h"
 
 Prefs savedPrefs[] = {
   {PATTERN_DEFAULT, 0x25ff59, 0x00607c, 66, 70.0f, 60.0f, 25.0f, 100,

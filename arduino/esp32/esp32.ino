@@ -48,7 +48,7 @@ float *render_values = nullptr;
 Adafruit_NeoPixel *strip = nullptr;
 
 #define STRIP_SET(i, c) strip->setPixelColor(i, c)
-#include "../patterns.h"
+#include "patterns.h"
 
 Prefs defaultPrefs = {
   PATTERN_DEFAULT, 0x25ff59, 0x00607c, 66, 70.0f, 60.0f, 25.0f, 100,
