@@ -1,5 +1,5 @@
 // WiFi-enabled Lumatron Arduino template for ESP32-C3
-// Requires libraries: WiFiManager, WebSockets (Markus Sattler), ArduinoJson, LittleFS
+// Requires libraries: WiFiManager, WebSockets_Generic, ArduinoJson, LittleFS
 // OTA firmware URL: https://<relayHost>/firmware/<orbID>.bin
 // Pixel geometry fetched automatically from https://<relayHost>/pixels/<pixelsName>.bin
 //
@@ -19,7 +19,7 @@
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 
-#define PIN D10
+#define PIN 10  // GPIO 10 (D10 on ESP32-C3 devkits)
 #ifndef FIRMWARE_VERSION_NUM
 #define FIRMWARE_VERSION_NUM 0
 #endif

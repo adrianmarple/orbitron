@@ -40,11 +40,12 @@ async function compileArduino() {
       return true
     }
     let sketchDir = path.join(__dirname, 'arduino/esp32')
+    let arduinoDir = path.join(__dirname, 'arduino')
     console.log(`Compiling Arduino firmware (version ${commitCount})...`)
     let result = await execute(
       `arduino-cli compile` +
       ` --fqbn esp32:esp32:esp32c3` +
-      ` --build-property "build.extra_flags=-DFIRMWARE_VERSION_NUM=${commitCount}"` +
+      ` --build-property "build.extra_flags=-DFIRMWARE_VERSION_NUM=${commitCount} -I${arduinoDir}"` +
       ` --output-dir ${FIRMWARE_DIR}` +
       ` ${sketchDir}`
     )
