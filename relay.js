@@ -699,12 +699,8 @@ addPOSTListener(async (response, body) => {
 
     // Pull new code, compile Arduino firmware, then broadcast update to all orbs
     ;(async () => {
-      let pullOutput = (await execute('git pull')).toLowerCase()
-      if (pullOutput.includes('not possible to fast-forward') || pullOutput.includes('fatal')) {
-        console.log('git pull failed, forcing reset to origin/master')
-        await execute('git fetch origin')
-        await execute('git reset --hard origin/master')
-      }
+      await execute('git fetch origin')
+      await execute('git reset --hard origin/master')
       await compileArduino()
       for (let orbID in connectedOrbs) {
         connectedOrbs[orbID].send("GIT_HAS_UPDATE")

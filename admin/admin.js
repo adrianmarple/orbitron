@@ -117,9 +117,9 @@ new Vue({
     await this.getOrbInfo()
     this.infoInterval = setInterval(async function() {
       if (document.hasFocus()) {
+        self.versions = await (await fetch("/admin/versions")).json()
         await self.getOrbInfo()
         await self.updateViewing()
-        self.commits = await (await fetch("/admin/versions")).json()
       }
     }, 5000)
     await this.updateConfig()
