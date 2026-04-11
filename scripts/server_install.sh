@@ -107,7 +107,7 @@ arduino-cli core install esp32:esp32@2.0.17  # pin to 2.x; WiFiManager breaks on
 echo "Installing Arduino libraries..."
 arduino-cli lib install "Adafruit NeoPixel"
 arduino-cli lib install "WiFiManager"
-arduino-cli lib install "WebSockets_Generic"
+arduino-cli lib install "WebSockets"  # Markus Sattler
 arduino-cli lib install "ArduinoJson"
 
 echo "Server install complete."
