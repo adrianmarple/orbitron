@@ -12,6 +12,7 @@
 #include "mbedtls/sha256.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <DNSServer.h>
 #include <WebServer.h>
 #include <WiFiManager.h>
 #include <WebSocketsClient.h>

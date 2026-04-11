@@ -44,7 +44,7 @@ async function compileArduino() {
     let result = await execute(
       `arduino-cli compile` +
       ` --fqbn esp32:esp32:esp32c3` +
-      ` --build-property "build.extra_flags=-DFIRMWARE_VERSION_NUM=${commitCount}"` +
+      ` --build-property "build.extra_flags=-DFIRMWARE_VERSION_NUM=${commitCount} -DESP32"` +
       ` --output-dir ${FIRMWARE_DIR}` +
       ` ${sketchDir}`
     )
