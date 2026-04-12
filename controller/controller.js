@@ -86,6 +86,8 @@ var app = new Vue({
     unwatchers: {},
     dontSendUpdates: false,
     lastPrefUpdateTime: {},
+    pendingPrefsUpdate: {},
+    pendingPrefsTimer: null,
     prefName: "",
     uuid: uuid(),
 
@@ -217,7 +219,16 @@ var app = new Vue({
           this.unwatchers['prefs.' + key] = this.$watch('prefs.' + key, (v, vOld) => {
             if (this.dontSendUpdates) return
             if (typeof(v) == 'object' || v != vOld) {
-              this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
+              if (this.shouldDebouncePrefs) {
+                this.pendingPrefsUpdate[key] = this.prefs[key]
+                clearTimeout(this.pendingPrefsTimer)
+                this.pendingPrefsTimer = setTimeout(() => {
+                  this.send({ type: "prefs", update: this.pendingPrefsUpdate })
+                  this.pendingPrefsUpdate = {}
+                }, 100)
+              } else {
+                this.send({ type: "prefs", update: {[key]: this.prefs[key] }})
+              }
             }
           }, {deep: true})
         }
@@ -399,6 +410,9 @@ var app = new Vue({
     },
     isArduino() {
       return this.orbInfo.isArduino || this.state.isArduino || false
+    },
+    shouldDebouncePrefs() {
+      return this.isArduino
     },
   },
 

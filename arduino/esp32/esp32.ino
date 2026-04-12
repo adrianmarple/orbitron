@@ -1100,7 +1100,9 @@ void checkSchedule() {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("Starting...");
+  Serial.println("========================================");
+  Serial.println("  Firmware version: " + FIRMWARE_VERSION);
+  Serial.println("========================================");
 
   randomSeed(analogRead(0));
 
