@@ -67,6 +67,14 @@ String orbKey;  // sha256(orbID + masterKey); empty = no auth required
 String timezone;
 bool continuousIntegration = false;
 
+// --- Manual fade pin ---
+int buttonPin = -1;  // -1 = disabled
+String shortPressAction = "DIM";
+String longPressAction = "CYCLE";
+bool fadePinLastState = true;   // HIGH = not pressed (INPUT_PULLUP)
+unsigned long fadePinPressStart = 0;
+bool fadePinLongFired = false;
+
 // --- WebSocket ---
 WebSocketsClient wsClient;
 unsigned long lastPingReceived = 0;
@@ -423,6 +431,8 @@ void sendInfoDump() {
   cfg["PIXELS"] = pixelsName;
   cfg["ARDUINO"] = true;
   cfg["FIRMWARE_VERSION"] = FIRMWARE_VERSION;
+  cfg["SHORT_PRESS_ACTION"] = shortPressAction;
+  cfg["LONG_PRESS_ACTION"] = longPressAction;
   String out;
   serializeJson(msg, out);
   wsClient.sendTXT(out);
@@ -476,6 +486,8 @@ void sendState(const String& clientID) {
     if (deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
       for (JsonPair kv : timingDoc.as<JsonObject>()) prefs[kv.key()] = kv.value();
     }
+    // Ensure includedInCycles is always present (may be absent in older timingprefs.json)
+    if (!prefs["includedInCycles"].is<JsonObject>()) prefs["includedInCycles"].to<JsonObject>();
   } else {
     prefs["useTimer"] = false;
     prefs["weeklyTimer"] = false;
@@ -542,11 +554,13 @@ void handleControllerMessage(const String& clientID, const String& message) {
     JsonObject timingObj = timingDoc.as<JsonObject>();
     if (!timingObj.isNull()) mergeTimingPrefs(timingObj);
 
-    Prefs p = loadPrefs();
-    p = prefsFromJson(regularDoc, p);
-    savePrefs(p); applyPrefs(p);
-    currentPrefName = "";
-    writeFile("/currentprefname.txt", "");
+    if (!regularDoc.as<JsonObject>().isNull()) {
+      Prefs p = loadPrefs();
+      p = prefsFromJson(regularDoc, p);
+      savePrefs(p); applyPrefs(p);
+      currentPrefName = "";
+      writeFile("/currentprefname.txt", "");
+    }
     broadcastState();
 
   } else if (type == "savePrefs") {
@@ -609,14 +623,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
     broadcastState();
 
   } else if (type == "advanceManualFade") {
-    dimmer = (dimmer >= 0.5f) ? 0.0f : 1.0f;
-    JsonDocument timingDoc;
-    String timingJson = readFile("/timingprefs.json");
-    if (!timingJson.isEmpty()) deserializeJson(timingDoc, timingJson);
-    timingDoc["dimmer"] = dimmer;
-    String timingOut; serializeJsonPretty(timingDoc, timingOut);
-    writeFile("/timingprefs.json", timingOut);
-    broadcastState();
+    advanceDim();
 
   } else if (type == "renamePref") {
     String originalName = doc["originalName"].as<String>();
@@ -873,6 +880,78 @@ void checkPingTimeout() {
   }
 }
 
+// ===================== MANUAL FADE PIN =====================
+
+void advanceDim() {
+  dimmer = (dimmer >= 0.5f) ? 0.0f : 1.0f;
+  JsonDocument timingDoc;
+  String timingJson = readFile("/timingprefs.json");
+  if (!timingJson.isEmpty()) deserializeJson(timingDoc, timingJson);
+  timingDoc["dimmer"] = dimmer;
+  String timingOut; serializeJsonPretty(timingDoc, timingOut);
+  writeFile("/timingprefs.json", timingOut);
+  broadcastState();
+}
+
+// Load next saved preset that has includedInCycles=true, cycling from currentPrefName.
+void advanceCycle() {
+  String timingJson = readFile("/timingprefs.json");
+  JsonDocument timingDoc;
+  if (!timingJson.isEmpty()) deserializeJson(timingDoc, timingJson);
+  JsonObject inc = timingDoc["includedInCycles"].as<JsonObject>();
+
+  String names[16];
+  int n = listSavedPrefNames(names, 16);
+  String cyclable[16];
+  int cycleCount = 0;
+  for (int i = 0; i < n; i++) {
+    if (!inc.isNull() && inc[names[i]].as<bool>()) cyclable[cycleCount++] = names[i];
+  }
+  if (cycleCount == 0) return;
+
+  int currentIdx = -1;
+  for (int i = 0; i < cycleCount; i++) {
+    if (cyclable[i] == currentPrefName) { currentIdx = i; break; }
+  }
+  String nextName = cyclable[(currentIdx + 1) % cycleCount];
+
+  String savedJson = readFile(savedPrefPath(nextName).c_str());
+  if (savedJson.isEmpty()) return;
+  JsonDocument savedDoc;
+  if (deserializeJson(savedDoc, savedJson) != DeserializationError::Ok) return;
+  Prefs p = prefsFromJson(savedDoc, defaultPrefs);
+  savePrefs(p); applyPrefs(p);
+  currentPrefName = nextName;
+  writeFile("/currentprefname.txt", currentPrefName);
+  broadcastState();
+}
+
+void performPinAction(const String& action) {
+  if (action == "DIM") advanceDim();
+  else if (action == "CYCLE") advanceCycle();
+}
+
+// Poll fade pin each loop(). Fires short press on release (<700ms), long press at threshold.
+void checkFadePin() {
+  if (buttonPin < 0) return;
+  bool state = digitalRead(buttonPin);  // LOW = pressed (INPUT_PULLUP)
+  unsigned long now = millis();
+
+  if (fadePinLastState && !state) {
+    // Falling edge: press started
+    fadePinPressStart = now;
+    fadePinLongFired = false;
+  } else if (!fadePinLastState && state) {
+    // Rising edge: released
+    if (!fadePinLongFired) performPinAction(shortPressAction);
+  } else if (!state && !fadePinLongFired && (now - fadePinPressStart >= 700)) {
+    // Still held past long-press threshold
+    fadePinLongFired = true;
+    performPinAction(longPressAction);
+  }
+  fadePinLastState = state;
+}
+
 // ===================== TIMING =====================
 
 void loadTimingPrefs() {
@@ -1049,6 +1128,9 @@ void setup() {
     orbKey = doc["ORB_KEY"] | "";
     timezone = doc["TIMEZONE"] | "PST8PDT,M3.2.0,M11.1.0";
     continuousIntegration = doc["CONTINUOUS_INTEGRATION"] | false;
+    buttonPin = doc["BUTTON_PIN"] | -1;
+    shortPressAction = doc["SHORT_PRESS_ACTION"] | "DIM";
+    longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 
@@ -1059,6 +1141,12 @@ void setup() {
   applyPrefs(p);
   loadTimingPrefs();
   Serial.println("Prefs loaded");
+
+  if (buttonPin >= 0) {
+    pinMode(buttonPin, INPUT_PULLUP);
+    fadePinLastState = digitalRead(buttonPin);
+    Serial.println("Button pin: GPIO " + String(buttonPin));
+  }
 
   // WiFi (blocks until connected, starts AP portal if needed)
   Serial.println("Starting WiFiManager...");
@@ -1096,6 +1184,7 @@ void loop() {
 
   wsClient.loop();
   checkPingTimeout();
+  checkFadePin();
 
   if (loop_start >= nextEventMs) {
     Serial.println("Timer event triggered");

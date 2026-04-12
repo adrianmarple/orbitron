@@ -16,35 +16,61 @@ module.exports = async () => {
   LATCH_TYPE = "hook"
   HOOK_OVERHANG = 0.5
 
+  let standoffX = 23/2
+  let standoffYDist = 58
+  let standoffLength1 = 11.2
+  let standoffLength2 = 19.2
+  let standoffHeight = 4 //5.6 (with capacitor)
+
   let innerWidth = 32
-  let innerLength = 74
-  let endWallBuffer = 4
-  innerLength += 2*endWallBuffer
+  let innerLength = standoffYDist + standoffLength1 + standoffLength2
   addPolygon(4, [0,0,0], [innerWidth, innerLength])
 
   let portHeight = 3.2
-  let portWidth = 9.3
-  let portZOffset = 5.6
+  let portWidth = 9.5
   let portLength = 6.6 + 2
 
-  let topPortKerf = 0.4
-  let sleaveThickness = 2
+  let sleaveThickness = 1.8
+  let sleaveHeight = 1.4
 
-  let piAndPcbThickness =  2.8 // TODO I think this can be made smaller (but remember to increase portZOffset)
-  let standoffHeight = 3.8 
-  CHANNEL_DEPTH = (standoffHeight + piAndPcbThickness)*2 + portHeight - portZOffset
+  let pcbThickness = 1.6
+  let usbcPCBThickness = 1
+  CHANNEL_DEPTH = (standoffHeight + 2*pcbThickness)*2 - usbcPCBThickness
   let standoffRadius = 2.5
-  let nubHeight = piAndPcbThickness
-  let nubRadius = 1.33
-  let standoffX = 23/2
-  let standoffY = 58/2
-  let standoffOffsetY = 0
+  let nubHeight = pcbThickness * 2
+  let nubRadius = 1.2
+
+  let position = [-16 - WALL_THICKNESS, 0, -sleaveHeight]
 
   printPostProcessingFunction = printInfo => {
-    let position = [-16 - WALL_THICKNESS, portZOffset/2, WALL_THICKNESS - portLength + endWallBuffer]
-
 
     for (let index of [3,5]) {
+      let standoffLength = index == 3 ? standoffLength1 : standoffLength2
+      let standoff = {
+        type: "union",
+        components: [
+          {
+            type: "cube",
+            position: [
+              position[0],
+              (CHANNEL_DEPTH - standoffHeight)/2,
+              WALL_THICKNESS + (standoffLength + standoffRadius)/2
+            ],
+            dimensions: [standoffRadius*2, standoffHeight, standoffLength + standoffRadius],
+          },
+          {
+            position: [
+              position[0],
+              CHANNEL_DEPTH/2 - standoffHeight,
+              WALL_THICKNESS + standoffLength
+            ],
+            code: `
+              rotate([90,0,0])
+              cylinder(h=${nubHeight}, r=${nubRadius});`,
+          },
+        ]
+      }
+
       printInfo.prints[index] = {
         type: "difference",
         suffix: printInfo.prints[index].suffix,
@@ -55,19 +81,22 @@ module.exports = async () => {
             components: [
               printInfo.prints[index],
               {
+                position: [standoffX, 0, 0],
+                ...standoff,
+              },
+              {
+                position: [-standoffX, 0, 0],
+                ...standoff,
+              },
+              {
                 position,
                 code: `
                 hull() {
                   translate([${(portWidth - portHeight)/2}, 0, 0])
-                  cylinder(h=${portLength}, r=${portHeight/2 + sleaveThickness});
+                  cylinder(h=${sleaveHeight}, r=${portHeight/2 + sleaveThickness});
                   translate([${-(portWidth - portHeight)/2}, 0, 0])
-                  cylinder(h=${portLength}, r=${portHeight/2 + sleaveThickness});
+                  cylinder(h=${sleaveHeight}, r=${portHeight/2 + sleaveThickness});
                 };`
-              },
-              {
-                type: "cube",
-                position: [position[0], 0, endWallBuffer/2 + WALL_THICKNESS],
-                dimensions: [innerWidth, CHANNEL_DEPTH, endWallBuffer],
               },
             ]
           },
@@ -86,93 +115,35 @@ module.exports = async () => {
     }
 
 
-
-    let standoffCode = `
-    union() {
-      cylinder(h=${THICKNESS + standoffHeight}, r=${standoffRadius});
-      cylinder(h=${THICKNESS + standoffHeight + nubHeight}, r=${nubRadius});
-    }`
-
-    printInfo.prints[1] = {
-      type: "union",
-      suffix: printInfo.prints[1].suffix,
-      components: [
-        printInfo.prints[1],
-        {
-          position: [standoffX, standoffOffsetY + standoffY, 0],
-          code: standoffCode,
-        },
-        {
-          position: [standoffX, standoffOffsetY - standoffY, 0],
-          code: standoffCode,
-        },
-        {
-          position: [-standoffX, standoffOffsetY + standoffY, 0],
-          code: standoffCode,
-        },
-        {
-          position: [-standoffX, standoffOffsetY - standoffY, 0],
-          code: standoffCode,
-        },
-      ]
-    }
-
-    // Notches cut out of top for USB-C sleeves
-    let cylinderH = endWallBuffer + WALL_THICKNESS + BORDER + 0.2
-    let notchCode = `
-    translate([0, 0, ${THICKNESS + (CHANNEL_DEPTH - portZOffset)/2 + topPortKerf}])
-    rotate([-90,0,0])
-    hull() {
-      translate([${(portWidth - portHeight)/2}, 0, 0])
-      cylinder(h=${cylinderH}, r=${portHeight/2 + sleaveThickness});
-      translate([${-(portWidth - portHeight)/2}, 0, 0])
-      cylinder(h=${cylinderH}, r=${portHeight/2 + sleaveThickness});
-    };`
-    printInfo.prints[2] = {
-      type: "difference",
-      suffix: printInfo.prints[2].suffix,
-      components: [
-        printInfo.prints[2],
-        {
-          position: [0, innerLength/2 - endWallBuffer - 0.2, 0],
-          code: notchCode,
-        },
-        {
-          position: [0, -innerLength/2 + endWallBuffer + 0.2 - cylinderH, 0],
-          code: notchCode,
-        },
-      ]
-    }
-
-    holder_thickness = 2
-    dims = [innerWidth + 1, 44, 8]
-    printInfo.prints.push({
-      type: "union",
-      suffix: printInfo.prints[2].suffix + "+cardholder",
-      operations: [{type: "rotate", axis: [0,1,0], angle: Math.PI}],
-      components: [
-        printInfo.prints[2],
-        {
-          position: [0, -innerLength/2 -0.5 + dims[1]/2, -dims[2]/2],
-          type: "difference",
-          components: [
-            {
-              type: "cube",
-              dimensions: dims
-            },
-            {
-              type: "cube",
-              position: [0, holder_thickness/2, holder_thickness/2],
-              dimensions: [
-                dims[0] - 2*holder_thickness,
-                dims[1] - holder_thickness,
-                dims[2] - holder_thickness,
-              ]
-            },
-          ]
-        },
-      ]
-    })
+    // holder_thickness = 2
+    // dims = [innerWidth + 1, 44, 8]
+    // printInfo.prints.push({
+    //   type: "union",
+    //   suffix: printInfo.prints[2].suffix + "+cardholder",
+    //   operations: [{type: "rotate", axis: [0,1,0], angle: Math.PI}],
+    //   components: [
+    //     printInfo.prints[2],
+    //     {
+    //       position: [0, -innerLength/2 -0.5 + dims[1]/2, -dims[2]/2],
+    //       type: "difference",
+    //       components: [
+    //         {
+    //           type: "cube",
+    //           dimensions: dims
+    //         },
+    //         {
+    //           type: "cube",
+    //           position: [0, holder_thickness/2, holder_thickness/2],
+    //           dimensions: [
+    //             dims[0] - 2*holder_thickness,
+    //             dims[1] - holder_thickness,
+    //             dims[2] - holder_thickness,
+    //           ]
+    //         },
+    //       ]
+    //     },
+    //   ]
+    // })
 
     // Wordmark deboss
     for (let index of [1,2]) {
