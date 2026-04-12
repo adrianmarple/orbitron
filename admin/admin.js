@@ -181,7 +181,7 @@ new Vue({
       if (this.config.trim().startsWith('{')) {
         // Arduino: JSON config
         let cfg = JSON.parse(this.config)
-        cfg.ORB_KEY = await this.getOrbKey(cfg.orbID)
+        cfg.ORB_KEY = await this.getOrbKey(cfg.ORB_ID)
         this.config = JSON.stringify(cfg, null, 2)
       } else {
         // Pi: JS module config
