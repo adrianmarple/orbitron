@@ -113,11 +113,10 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 - **LED data pin**: GPIO 10 (hardcoded as `#define PIN 10`)
 - **Button pin**: set `BUTTON_PIN` in config.json to the GPIO number (e.g. `4` = D2 on Seeed XIAO ESP32-C3). Button must be wired to GND; pin uses `INPUT_PULLUP`.
 - **Recommended board**: Seeed XIAO ESP32-C3 or similar ESP32-C3 devkit
-- **arduino-cli board**: `esp32:esp32:esp32c3` with core `esp32:esp32@2.0.17` (pinned — WiFiManager breaks on 3.x)
+- **arduino-cli board**: `esp32:esp32:esp32c3`
 
 ### Required Arduino libraries
 - Adafruit NeoPixel
-- WiFiManager
 - WebSockets (Markus Sattler — **not** WebSockets_Generic)
 - ArduinoJson
 - LittleFS (built into ESP32 core)
@@ -133,6 +132,13 @@ JSON file written directly to the device. Key fields:
 - `BUTTON_PIN` — GPIO number for hardware button (hardware-specific, unlike Pi's `MANUAL_FADE_PIN`)
 - `SHORT_PRESS_ACTION` — `"DIM"` (default) or `"CYCLE"`
 - `LONG_PRESS_ACTION` — `"CYCLE"` (default) or `"DIM"`
+
+### WiFi / Captive Portal
+- On boot, `connectWiFi()` tries saved NVS credentials (10s timeout). If that fails, `runCaptivePortal()` spins up an AP (`Lumatron-<orbID>`) with a captive portal.
+- Portal served from `accesspoint/captiveportal.html` (embedded in flash as `arduino/esp32/portal_html.h` via `scripts/gen_portal_header.py`). **Run the script after editing the HTML**: `python3 scripts/gen_portal_header.py`
+- Portal routes: `GET /` (HTML), `GET /info` (orbID+version), `GET /scan` (network list JSON), `POST /connect` (WiFi.begin + wait), plus OS probe redirects (`/generate_204`, `/hotspot-detect.html`, `/ncsi.txt`).
+- Credentials are saved automatically to NVS by `WiFi.begin(ssid, pass)` — no config.json involvement.
+- The portal appears on every boot when WiFi fails (not just first boot).
 
 ### OTA firmware updates
 - The relay server compiles `arduino/esp32/esp32.ino` via `arduino-cli` on each git update, with build flags `-DFIRMWARE_VERSION_NUM=<gitCount> -DESP32`

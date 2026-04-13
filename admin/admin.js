@@ -244,6 +244,10 @@ new Vue({
       await this.sendCommand({ type: "restart" })
     },
 
+    async clearWifi() {
+      await this.sendCommand({ type: "clearwifi" })
+    },
+
     async getOrbInfo() {
       let promises = []
       try {

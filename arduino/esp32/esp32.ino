@@ -1,5 +1,5 @@
 // WiFi-enabled Lumatron Arduino template for ESP32-C3
-// Requires libraries: WiFiManager, WebSockets by Markus Sattler, ArduinoJson, LittleFS
+// Requires libraries: WebSockets by Markus Sattler, ArduinoJson, LittleFS
 // OTA firmware URL: https://<relayHost>/firmware/<orbID>.bin
 // Pixel geometry fetched automatically from https://<relayHost>/pixels/<pixelsName>.bin
 //
@@ -14,7 +14,7 @@
 #include <WiFiClientSecure.h>
 #include <DNSServer.h>
 #include <WebServer.h>
-#include <WiFiManager.h>
+#include "portal_html.h"
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
@@ -723,6 +723,12 @@ void handleAdminCommand(JsonDocument& msg) {
   } else if (type == "manualBackup") {
     sendBackup(cmd["nameOverride"] | "");
     sendResponse(messageID, "OK");
+  } else if (type == "clearwifi") {
+    sendResponse(messageID, "OK");
+    delay(200);
+    WiFi.disconnect(/*wifioff=*/false, /*eraseap=*/true);
+    delay(300);
+    ESP.restart();
   } else if (type == "restart") {
     sendResponse(messageID, "OK");
     delay(500);
@@ -1096,6 +1102,124 @@ void checkSchedule() {
   }
 }
 
+// ===================== CAPTIVE PORTAL =====================
+
+// Try to connect using saved NVS credentials. If unavailable or timed out,
+// spin up a captive portal AP so the user can enter WiFi credentials.
+// Blocks until connected (either from NVS or portal entry).
+
+static DNSServer portalDNS;
+static WebServer portalHTTP(80);
+
+// Start AP, DNS catch-all, and HTTP server. Loop until WiFi connects.
+void runCaptivePortal() {
+  Serial.println("Starting captive portal AP...");
+  WiFi.mode(WIFI_AP_STA);
+  String apName = "Lumatron-" + orbID;
+  WiFi.softAP(apName.c_str());
+  IPAddress apIP = WiFi.softAPIP();
+  Serial.println("AP: " + apName + " IP: " + apIP.toString());
+
+  // Start async scan immediately
+  WiFi.scanNetworks(/*async=*/true);
+
+  // DNS: redirect all queries to the AP IP
+  portalDNS.start(53, "*", apIP);
+
+  // Serve captive-portal redirect for OS probes
+  auto redirectToRoot = []() {
+    portalHTTP.sendHeader("Location", "http://192.168.4.1/");
+    portalHTTP.send(302, "text/plain", "");
+  };
+  portalHTTP.on("/generate_204", HTTP_GET, redirectToRoot);       // Android
+  portalHTTP.on("/hotspot-detect.html", HTTP_GET, redirectToRoot); // iOS
+  portalHTTP.on("/ncsi.txt", HTTP_GET, redirectToRoot);            // Windows
+
+  // Serve the portal HTML
+  portalHTTP.on("/", HTTP_GET, []() {
+    portalHTTP.send_P(200, "text/html", PORTAL_HTML);
+  });
+
+  // Orb info (orbID + firmware version)
+  portalHTTP.on("/info", HTTP_GET, []() {
+    String json = "{\"orbID\":\"" + orbID + "\",\"version\":\"" + FIRMWARE_VERSION + "\"}";
+    portalHTTP.send(200, "application/json", json);
+  });
+
+  // WiFi scan results; kicks off a new async scan for next request
+  portalHTTP.on("/scan", HTTP_GET, []() {
+    int n = WiFi.scanComplete();
+    String json = "[";
+    if (n > 0) {
+      for (int i = 0; i < n; i++) {
+        if (i) json += ",";
+        String ssid = WiFi.SSID(i);
+        ssid.replace("\\", "\\\\");
+        ssid.replace("\"", "\\\"");
+        json += "{\"ssid\":\"" + ssid + "\",\"rssi\":" + WiFi.RSSI(i) +
+                ",\"open\":" + (WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "true" : "false") + "}";
+      }
+    }
+    json += "]";
+    portalHTTP.send(200, "application/json", json);
+    // Kick off next scan for next refresh
+    WiFi.scanNetworks(/*async=*/true);
+  });
+
+  // Connect handler: WiFi.begin with supplied creds, wait up to 15s
+  portalHTTP.on("/connect", HTTP_POST, []() {
+    String ssid = portalHTTP.arg("ssid");
+    String password = portalHTTP.arg("password");
+    Serial.println("Portal: connecting to SSID: " + ssid);
+    WiFi.begin(ssid.c_str(), password.c_str());
+    unsigned long t0 = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - t0 < 15000) {
+      delay(200);
+      portalDNS.processNextRequest();
+    }
+    if (WiFi.status() == WL_CONNECTED) {
+      String ip = WiFi.localIP().toString();
+      portalHTTP.send(200, "application/json", "{\"success\":true,\"ip\":\"" + ip + "\"}");
+      Serial.println("Portal: connected, IP=" + ip);
+    } else {
+      WiFi.disconnect();
+      portalHTTP.send(200, "application/json", "{\"success\":false}");
+      Serial.println("Portal: connection failed");
+    }
+  });
+
+  portalHTTP.begin();
+  Serial.println("Portal HTTP server started");
+
+  // Loop until connected
+  while (WiFi.status() != WL_CONNECTED) {
+    portalDNS.processNextRequest();
+    portalHTTP.handleClient();
+  }
+
+  portalHTTP.stop();
+  portalDNS.stop();
+  WiFi.mode(WIFI_STA);
+  Serial.println("Portal: WiFi connected, IP=" + WiFi.localIP().toString());
+}
+
+// Try NVS creds first; fall back to portal.
+void connectWiFi() {
+  Serial.println("Connecting to WiFi (NVS)...");
+  WiFi.mode(WIFI_STA);
+  WiFi.begin();  // uses last credentials stored in NVS
+  unsigned long t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 10000) {
+    delay(200);
+  }
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("WiFi connected: " + WiFi.localIP().toString());
+    return;
+  }
+  Serial.println("NVS connect failed, launching portal");
+  runCaptivePortal();
+}
+
 // ===================== SETUP / LOOP =====================
 
 void setup() {
@@ -1150,15 +1274,8 @@ void setup() {
     Serial.println("Button pin: GPIO " + String(buttonPin));
   }
 
-  // WiFi (blocks until connected, starts AP portal if needed)
-  Serial.println("Starting WiFiManager...");
-  WiFiManager wm;
-  wm.setAPCallback([](WiFiManager* wm) {
-    Serial.println("AP portal started");
-    // strip not yet initialized here — geometry loads after WiFi connects
-  });
-  wm.autoConnect(("Lumatron-" + orbID).c_str());
-  Serial.println("WiFi connected: " + WiFi.localIP().toString());
+  // WiFi (blocks until connected, starts captive portal AP if NVS creds fail)
+  connectWiFi();
 
   // Sync time via NTP
   configTzTime(timezone.c_str(), "pool.ntp.org", "time.nist.gov");
