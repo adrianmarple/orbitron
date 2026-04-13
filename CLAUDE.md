@@ -105,9 +105,49 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 - `coords`: 3D coordinates of each pixel
 - `uniqueToDupe`: mapping from raw LED index to unique coordinate index
 
+## Arduino ESP32 WiFi Mode (`arduino/esp32/`)
+
+`esp32.ino` runs idle patterns on an ESP32-C3 with full WiFi connectivity — connects to the relay server, supports admin commands, OTA firmware updates, saved presets, timer schedules, and a hardware button. It is a standalone alternative to the Raspberry Pi + Python stack.
+
+### Hardware
+- **LED data pin**: GPIO 10 (hardcoded as `#define PIN 10`)
+- **Button pin**: set `BUTTON_PIN` in config.json to the GPIO number (e.g. `4` = D2 on Seeed XIAO ESP32-C3). Button must be wired to GND; pin uses `INPUT_PULLUP`.
+- **Recommended board**: Seeed XIAO ESP32-C3 or similar ESP32-C3 devkit
+- **arduino-cli board**: `esp32:esp32:esp32c3` with core `esp32:esp32@2.0.17` (pinned — WiFiManager breaks on 3.x)
+
+### Required Arduino libraries
+- Adafruit NeoPixel
+- WiFiManager
+- WebSockets (Markus Sattler — **not** WebSockets_Generic)
+- ArduinoJson
+- LittleFS (built into ESP32 core)
+
+### Config (`/config.json` on LittleFS)
+JSON file written directly to the device. Key fields:
+- `ORB_ID` — unique orb identifier
+- `RELAY_HOST` — relay server domain (e.g. `"my.lumatron.art"`)
+- `PIXELS` — pixel geometry name (e.g. `"archimedes/rhombicosidodecahedron"`)
+- `ORB_KEY` — `sha256(orbID + masterKey)`; set via admin UI "Set ORB_KEY" button
+- `TIMEZONE` — POSIX tz string (e.g. `"PST8PDT,M3.2.0,M11.1.0"`)
+- `CONTINUOUS_INTEGRATION` — if true, polls for server restart then OTAs at 2am
+- `BUTTON_PIN` — GPIO number for hardware button (hardware-specific, unlike Pi's `MANUAL_FADE_PIN`)
+- `SHORT_PRESS_ACTION` — `"DIM"` (default) or `"CYCLE"`
+- `LONG_PRESS_ACTION` — `"CYCLE"` (default) or `"DIM"`
+
+### OTA firmware updates
+- The relay server compiles `arduino/esp32/esp32.ino` via `arduino-cli` on each git update, with build flags `-DFIRMWARE_VERSION_NUM=<gitCount> -DESP32`
+- Compiled binary served at `https://<relay>/firmware/<orbID>.bin`
+- Device checks for updates at 2am daily; if `CONTINUOUS_INTEGRATION: true`, also polls after receiving `GIT_HAS_UPDATE` from relay
+
+### Pixel geometry
+- Geometry is fetched from `https://<relay>/pixels/<pixelsName>.bin` on first connect and cached to LittleFS as `/<name>.bin`
+- `patterns.h` (shared with the RP2040 template) lives in `arduino/esp32/patterns.h`
+
+---
+
 ## Arduino Standalone Mode (`arduino/`)
 
-`template.ino` is a C++ template for running idle patterns directly on an RP2040 microcontroller (no Raspberry Pi). The `creation/` tool injects geometry-specific data by replacing `{{MARKER}}` placeholders and writing the result to a `.ino` file ready to flash.
+`template.ino` is a C++ template for running idle patterns directly on an RP2040 microcontroller (no Raspberry Pi, no WiFi). The `creation/` tool injects geometry-specific data by replacing `{{MARKER}}` placeholders and writing the result to a `.ino` file ready to flash. It includes `../esp32/patterns.h` for shared pattern code.
 
 ### Template markers
 - `{{SIZE}}` / `{{RAW_SIZE}}` — unique pixel count / raw LED count

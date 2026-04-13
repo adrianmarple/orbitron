@@ -3,8 +3,8 @@ $fn=128;
 use <utils.scad>
 
 r = 142.4/2;
-outer_r = 151/2;
-h = 22;
+outer_r = 150/2;
+h = 23;
 base_h = 2;
 wall = 2;
 
@@ -15,22 +15,22 @@ hole_r = 3;
 hole_kerf = 0.1;
 roundness = 2;
 
-side_hole_z = 14.5;
-side_hole_d = 12;//10.2;
+side_hole_z = 13.6;
+side_hole_d = 14;//10.2;
 
 arduino_w = 18;
 arduino_l = 21.5;
 arduino_pcb = 1.3;
 
 usbc_offset = 2;
-usbc_h = 3.4;
+usbc_h = 3.6;
 usbc_w = 9.3;
 
 //bottom();
 intersection() {
 insert();
-translate([0,r,0])
-cube([40, 50, 50], center=true);
+//translate([0,r,0])
+//cube([40, 50, 50], center=true);
 }
 
 module bottom() {
@@ -80,8 +80,8 @@ difference() {
     
   }
   
-  // Solder hole
-  translate([r/2, 0, 0])
+  // Button hole
+  translate([-r/2, 0, 0])
   cylinder(h=h, r=nut_r);
   
   // Bottom connection holes
