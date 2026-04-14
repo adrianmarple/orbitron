@@ -6,26 +6,62 @@
   <title>Lumatron WiFi Setup</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @keyframes animatedBackground {
+      from { background-position: 0 0; }
+      to { background-position: max(100vw, 100vh) max(100vw, 100vh); }
+    }
+    #background {
+      position: fixed;
+      left: 0; top: 0;
+      z-index: -10;
+      font-size: max(100vw, 100vh);
+      width: 1em; height: 1em;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        #00f 0, #a0a 12.5%, #f00 25%, #a0a 37.5%,
+        #00f 50%, #a0a 62.5%, #f00 75%, #a0a 87.5%, #00f 100%
+      );
+      animation: animatedBackground 20s linear infinite;
+    }
+    .horiz-box {
+      background-color: #080808;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      min-height: 1rem;
+    }
+    .fancy-box {
+      margin: 2px;
+      width: calc(100% - 4px);
+      background-color: #080808;
+    }
     body {
-      background: #121212;
       color: #e0e0e0;
-      font-family: sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       font-size: 16px;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       min-height: 100vh;
-      padding: 2rem 1rem;
     }
-    h1 { font-size: 2rem; margin-bottom: 0.25rem; color: #fff; }
-    #orb-info { color: #888; font-size: 0.85rem; margin-bottom: 2rem; }
-    .card {
-      background: #1e1e1e;
-      border-radius: 12px;
-      padding: 1.5rem;
+    #main {
       width: 100%;
-      max-width: 420px;
-      margin-bottom: 1rem;
+      max-width: calc(420px - 2rem);
+      border-color: #080808;
+      display: flex;
+      flex-direction: column;
+    }
+    .side {
+      width: calc(50vw - 210px + 1rem);
+      background-color: #080808;
+    }
+    .bottom {
+      flex: 1;
+      background-color: #080808;
+    }
+    h1 { font-size: 2rem; color: #fff; }
+    #orb-info { color: #888; font-size: 0.85rem; }
+    .card {
+      padding: 1.5rem;
     }
     .card h2 { font-size: 1rem; color: #aaa; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; }
     #network-list { list-style: none; }
@@ -63,31 +99,33 @@
       cursor: pointer;
       user-select: none;
     }
-    .btn {
-      display: block;
+    .button {
       width: 100%;
-      padding: 0.75rem;
-      margin-top: 1.25rem;
-      border-radius: 8px;
+      border-radius: 0.5rem;
+      padding: 0.25rem 1rem;
+      margin-top: 2.5rem;
+      font-size: 1.2rem;
+      text-align: center;
+      cursor: pointer;
+      background: white;
+      color: #121212;
+      position: relative;
       border: none;
-      background: #3a7a3a;
-      color: #fff;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.15s;
     }
-    .btn:hover { background: #4a9a4a; }
-    .btn:disabled { background: #333; color: #666; cursor: default; }
-    .btn-sm {
-      background: none;
-      border: 1px solid #444;
-      color: #aaa;
-      font-size: 0.75rem;
-      padding: 0.2rem 0.6rem;
-      border-radius: 6px;
-      cursor: pointer;
+    .button:hover {
+      box-shadow: 0 0.15rem 0.325rem 0.15rem rgba(255, 255, 255, 0.2);
+      color: #555;
     }
-    .btn-sm:hover { border-color: #666; color: #ccc; }
+    .button:active {
+      box-shadow: 0 0 0.325rem 0.15rem rgba(255, 255, 255, 0.2);
+      color: #666;
+      transform: translateY(0.2rem);
+    }
+    .button.disabled {
+      background-color: #ccc;
+      color: #666;
+      pointer-events: none;
+    }
     #status {
       margin-top: 0.75rem;
       font-size: 0.9rem;
@@ -100,28 +138,40 @@
   </style>
 </head>
 <body>
-  <h1>Lumatron WiFi Setup</h1>
-  <div id="orb-info">Loading...</div>
+  <div id="background"></div>
 
-  <div class="card">
-    <h2>
-      Networks
-      <button class="btn-sm" id="refresh-btn" onclick="doScan()">Refresh</button>
-    </h2>
-    <ul id="network-list"><li id="scan-status">Scanning...</li></ul>
-  </div>
+  <div class="side"></div>
+  <div id="main">
+    <div class="horiz-box"></div>
+    <h1 class="horiz-box">Lumatron WiFi Setup</h1>
+    <div id="orb-info" class="horiz-box">Loading...</div>
+    <div class="horiz-box"></div>
+    <div class="horiz-box"></div>
 
-  <div class="card">
-    <label for="ssid">SSID</label>
-    <input type="text" id="ssid" placeholder="Network name" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
-    <label for="password">Password</label>
-    <input type="password" id="password" placeholder="Leave blank if open"/>
-    <label class="show-pw">
-      <input type="checkbox" id="show-pw" onchange="togglePw()"/> Show password
-    </label>
-    <button class="btn" id="connect-btn" onclick="doConnect()">Connect</button>
-    <div id="status"></div>
+    <div class="card fancy-box">
+      <h2>
+        Networks
+        <button class="btn-sm" id="refresh-btn" onclick="doScan()">Refresh</button>
+      </h2>
+      <ul id="network-list"><li id="scan-status">Scanning...</li></ul>
+    </div>
+    <div class="horiz-box"></div>
+
+    <div class="card fancy-box">
+      <label for="ssid">SSID</label>
+      <input type="text" id="ssid" placeholder="Network name" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Leave blank if open"/>
+      <label class="show-pw">
+        <input type="checkbox" id="show-pw" onchange="togglePw()"/> Show password
+      </label>
+      <button class="button" id="connect-btn" onclick="doConnect()">Connect</button>
+      <div id="status"></div>
+    </div>
+    <div class="horiz-box"></div>
+    <div class="bottom"></div>
   </div>
+  <div class="side"></div>
 
   <script>
     const ssidInput = document.getElementById('ssid')
@@ -155,14 +205,19 @@
       document.getElementById('refresh-btn').disabled = false
     }
 
-    function renderNetworks(nets) {
+    const NETWORKS_COLLAPSED = 4
+    let allNetworks = []
+
+    function renderNetworks(nets, expanded) {
       const list = document.getElementById('network-list')
       if (!nets || nets.length === 0) {
         list.innerHTML = '<li id="scan-status">No networks found</li>'
         return
       }
+      allNetworks = nets
       list.innerHTML = ''
-      nets.forEach(n => {
+      const visible = expanded ? nets : nets.slice(0, NETWORKS_COLLAPSED)
+      visible.forEach(n => {
         const li = document.createElement('li')
         const bars = signalBars(n.rssi)
         li.innerHTML = '<span>' + escHtml(n.ssid) + (n.open ? '' : ' 🔒') + '</span><span class="signal">' + bars + ' ' + n.rssi + ' dBm</span>'
@@ -174,6 +229,13 @@
         }
         list.appendChild(li)
       })
+      if (!expanded && nets.length > NETWORKS_COLLAPSED) {
+        const li = document.createElement('li')
+        li.style.cssText = 'color:#888;font-size:0.85rem;justify-content:center;'
+        li.textContent = 'Show ' + (nets.length - NETWORKS_COLLAPSED) + ' more…'
+        li.onclick = () => renderNetworks(allNetworks, true)
+        list.appendChild(li)
+      }
     }
 
     function signalBars(rssi) {
