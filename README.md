@@ -7,10 +7,9 @@ Lumatron is a LED sculpture system. You are free to play with this code, but as 
 Here's how to connect a piece that does not already have an internet connection (if no piece is already connected to the same wifi you're on these instructions can also be viewed by visiting `https://my.lumatron.art`)
 - Plug in the Lumatron box into the power source and the box into the piece (do not plug the piece directly into the usb-c wall plug)
 - Wait for a few minutes for the box to boot up (until pink light is flashing)
-- Join the wifi named Lumatron
-- Once on that wifi, the visit url http://10.42.0.1
-- Enter the wifi name (SSID) and password in the page that loads
-- Refresh the page once the first pixel turns off
+- Join the wifi named Lumatron-*name*
+- Enter the wifi name (SSID) and password in the captive portal
+- Visit or refresh `https://my.lumatron.art` once the first pixel turns off
 
 ## Controlling a piece
 

@@ -145,6 +145,7 @@ const char PORTAL_HTML[] PROGMEM = R"EOF(
   </style>
 </head>
 <body>
+  <input style="position:absolute;opacity:0;pointer-events:none;width:0;height:0;" tabindex="-1"/>
   <div id="background"></div>
 
   <div class="side"></div>
@@ -232,7 +233,6 @@ const char PORTAL_HTML[] PROGMEM = R"EOF(
           document.querySelectorAll('#network-list li').forEach(x => x.classList.remove('selected'))
           li.classList.add('selected')
           ssidInput.value = n.ssid
-          pwInput.focus()
         }
         list.appendChild(li)
       })
