@@ -77,7 +77,7 @@
       <div class="button" @click="viewBackups">All Backups</div>
       <div class="button" @click="showCalibration">Power Calibration</div>
       <div class="button" :class="{ disabled: isLocal }" @click="restartOrb">Restart</div>
-      <div v-if="isArduino" class="button" :class="{ disabled: isLocal }" @click="clearWifi">Clear WiFi</div>
+      <div class="button" :class="{ disabled: isLocal }" @click="clearWifi">Clear WiFi</div>
       <a :href="location.origin + '/' + orbID" target="_blank"><div class="button">Controller</div></a>
     </div>
   </div>

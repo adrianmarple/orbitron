@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 const http = require('http')
 const qs = require('querystring')
+const fs = require('fs')
+const path = require('path')
 const { checkConnection, execute, delay, config } = require('../lib')
 const { displayText } = require('../orb')
-const { respondWithFile } = require('../server')
+
+const PORTAL_HTML_PATH = path.join(__dirname, 'captiveportal.html')
+const AP_SSID = `Lumatron-${config.ORB_ID}`
 
 // ---Wifi Setup Code---
 let numTimesNetworkCheckFailed = 0
@@ -15,13 +19,13 @@ let someoneConnectedToAccessPoint = false
 let forceExitAccessPointLoop = false
 
 async function startAccessPoint() {
-  if(!(await execute("ifconfig")).includes("wlan")){
+  if (!(await execute("ifconfig")).includes("wlan")) {
     console.log("No wifi devices, cannot start access point")
     stopAccessPoint()
     return
   }
   removeWifiProfile("OrbHotspot")
-  await execute('nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "Lumatron" ipv4.method shared ipv6.method shared')
+  await execute(`nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "${AP_SSID}" ipv4.method shared ipv6.method shared`)
   await execute('nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
   forceExitAccessPointLoop = false
@@ -29,7 +33,7 @@ async function startAccessPoint() {
   accessPointLoop()
 }
 
-async function accessPointLoop(){
+async function accessPointLoop() {
   let connected = await checkConnection()
   if (connected || forceExitAccessPointLoop) {
     return
@@ -38,7 +42,7 @@ async function accessPointLoop(){
   someoneConnectedToAccessPoint = out.includes("Station")
 
   if (!someoneConnectedToAccessPoint) {
-    displayText("JOIN WIFI LUMATRON")
+    displayText(`JOIN WIFI ${AP_SSID}`)
   } else if (Date.now() - accessedFormTime > 5 * 60 * 1000) {
     displayText("VISIT URL 10.42.0.1")
   } else {
@@ -51,36 +55,112 @@ async function stopAccessPoint(ssid, password) {
   forceExitAccessPointLoop = true
   someoneConnectedToAccessPoint = false
   removeWifiProfile("OrbHotspot")
-  if(ssid){
+  if (ssid) {
     displayText(`ADDING SSID ${ssid}`)
     await removeWifiProfile(ssid)
-    if(password != ""){
-      password =  `802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk ${password}`
+    let securityArgs = ""
+    if (password) {
+      securityArgs = `802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk "${password}"`
     }
-    await execute(`nmcli connection add con-name "${ssid}" type wifi ssid "${ssid}" ${password} autoconnect yes save yes`)
+    await execute(`nmcli connection add con-name "${ssid}" type wifi ssid "${ssid}" ${securityArgs} autoconnect yes save yes`)
     await execute(`nmcli connection up "${ssid}"`)
   }
 }
 
-async function removeWifiProfile(connectionName){
+async function removeWifiProfile(connectionName) {
   let connectionExists = (await execute("nmcli connection show")).indexOf(connectionName) >= 0
-  if(connectionExists){
+  if (connectionExists) {
     console.log("Removed Wifi Profile: ", connectionName)
-    await execute(`nmcli connection delete ${connectionName}`)
+    await execute(`nmcli connection delete "${connectionName}"`)
   }
 }
 
-async function submitSSID(formData) {
-  let ssid = formData.ssid.replace(/'/g, "\\'")
-  console.log("ADDING SSID: ", ssid)
-  let password = formData.password.replace(/'/g, "\\'").trim()
-  await stopAccessPoint(ssid, password)
+async function scanNetworks() {
+  try {
+    const out = await execute('nmcli -t -f SSID,SIGNAL,SECURITY device wifi list')
+    const seen = new Set()
+    return out.trim().split('\n')
+      .filter(l => l.trim())
+      .map(line => {
+        // nmcli -t escapes colons as \: — swap them out before splitting
+        const parts = line.replace(/\\:/g, '\x00').split(':').map(p => p.replace(/\x00/g, ':'))
+        const ssid = parts[0]
+        const signal = parseInt(parts[1]) || 0
+        const security = parts[2] || ''
+        return { ssid, rssi: Math.round(signal / 2) - 100, open: !security || security === '--' }
+      })
+      .filter(n => n.ssid && !seen.has(n.ssid) && seen.add(n.ssid))
+      .sort((a, b) => b.rssi - a.rssi)
+  } catch (e) {
+    return []
+  }
 }
+
+async function getVersion() {
+  try {
+    return (await execute('git rev-list --count HEAD')).trim()
+  } catch (e) {
+    return '?'
+  }
+}
+
+function redirect(res, location) {
+  res.writeHead(302, { Location: location })
+  res.end()
+}
+
+function sendJSON(res, obj) {
+  res.writeHead(200, { 'Content-Type': 'application/json' })
+  res.end(JSON.stringify(obj))
+}
+
+let wifiSetupServer = http.createServer(async function (req, res) {
+  const url = req.url.split('?')[0]
+
+  // Captive portal OS probes → redirect to portal
+  if (url === '/generate_204' || url === '/hotspot-detect.html' || url === '/ncsi.txt') {
+    return redirect(res, 'http://10.42.0.1/')
+  }
+
+  if (req.method === 'GET') {
+    if (url === '/') {
+      accessedFormTime = Date.now()
+      res.writeHead(200, { 'Content-Type': 'text/html' })
+      res.end(fs.readFileSync(PORTAL_HTML_PATH))
+    } else if (url === '/info') {
+      sendJSON(res, { orbID: config.ORB_ID, version: await getVersion() })
+    } else if (url === '/scan') {
+      sendJSON(res, await scanNetworks())
+    } else {
+      res.writeHead(404)
+      res.end()
+    }
+  } else if (req.method === 'POST' && url === '/connect') {
+    let body = ''
+    req.on('data', d => body += d)
+    req.on('end', async () => {
+      const { ssid, password } = qs.parse(body)
+      console.log("Portal: connecting to SSID:", ssid)
+      try {
+        await stopAccessPoint(ssid, password || '')
+        // Give nmcli a moment then check
+        await delay(3000)
+        const connected = await checkConnection()
+        sendJSON(res, { success: connected })
+      } catch (e) {
+        sendJSON(res, { success: false })
+      }
+    })
+  } else {
+    res.writeHead(405)
+    res.end()
+  }
+})
 
 let isFirstNetworkCheck = true
 async function networkCheck() {
   let connected = await checkConnection()
-  if(connected) {
+  if (connected) {
     isFirstNetworkCheck = false
     setTimeout(networkCheck, 120e3)
     return
@@ -107,35 +187,9 @@ async function networkCheck() {
   }
 }
 
-let wifiSetupServer = http.createServer(function (req, res) {
-  if (req.method === 'GET') {
-    let filepath = req.url
-    if (filepath == "/" || filepath.includes("form")) {
-      accessedFormTime = Date.now()
-      respondWithFile(res, "/accesspoint/form.html")
-    } else {
-      respondWithFile(res, filepath)
-    }
-  } else if (req.method === 'POST') {
-    let body = ""
-    req.on('data', function(data) {
-      body += data
-    })
-    req.on('end', function() {
-      let formData = qs.parse(body)
-      res.writeHead(200, { 'Content-Type': 'application/json' })
-      let responseData = {
-        redirect: `https://my.lumatron.art`
-      }
-      res.end(JSON.stringify(responseData), 'utf-8')
-      submitSSID(formData)
-    })
-  }
-})
-
 if (!config.NO_ACCESS_POINT) {
-  wifiSetupServer.listen(80,() => {
-    console.log("wifi setup Listening on port 80")
+  wifiSetupServer.listen(80, () => {
+    console.log("wifi setup listening on port 80")
   })
   setTimeout(networkCheck, 5e3)
 }

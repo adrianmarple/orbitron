@@ -34,7 +34,7 @@ function loadCompiledFirmwareVersion() {
 async function compileArduino() {
   try {
     await fs.promises.mkdir(FIRMWARE_DIR, { recursive: true })
-    let commitCount = parseInt((await execute('git rev-list --count HEAD -- arduino/esp32/esp32.ino arduino/patterns.h')).trim())
+    let commitCount = parseInt((await execute('git rev-list --count HEAD -- arduino/esp32/')).trim())
     if (commitCount === compiledFirmwareVersion) {
       console.log('Arduino firmware unchanged, skipping recompile')
       return true

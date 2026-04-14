@@ -175,6 +175,10 @@ function connectOrbToRelay(){
         if (command.type == "restart") {
           restartOrbitron()
         }
+        if (command.type == "clearwifi") {
+          await execute(`nmcli -g NAME,TYPE connection show | awk -F: '$2 == "802-11-wireless" && $1 != "OrbHotspot" {print $1}' | xargs -I{} nmcli connection delete "{}"`)
+          restartOrbitron()
+        }
         if (command.type == "getconfig") {
           returnData = (await fs.promises.readFile("config.js")).toString()
         }
