@@ -40,6 +40,9 @@ const char PORTAL_HTML[] PROGMEM = R"EOF(
       width: calc(100% - 4px);
       background-color: #080808;
     }
+    html, body {
+      overscroll-behavior: none;
+    }
     body {
       color: #e0e0e0;
       font-family: Arial, Helvetica, sans-serif;
@@ -270,14 +273,14 @@ const char PORTAL_HTML[] PROGMEM = R"EOF(
         })
         const d = await r.json()
         if (d.success) {
-          setStatus('Connected! IP: ' + d.ip + '. You can close this page.', 'ok')
+          setStatus(d.ip ? 'Connected! IP: ' + d.ip + '. You can close this page.' : 'Connecting… reconnect to your normal network.', 'ok')
         } else {
           setStatus('Failed to connect. Check credentials.', 'err')
           connectBtn.disabled = false
         }
       } catch(e) {
-        setStatus('Request failed. Try again.', 'err')
-        connectBtn.disabled = false
+        // AP dropping mid-response is expected on Pi — treat as connecting
+        setStatus('Connecting… reconnect to your normal network.', 'ok')
       }
     }
 

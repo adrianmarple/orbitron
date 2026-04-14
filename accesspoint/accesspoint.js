@@ -2,6 +2,7 @@
 const http = require('http')
 const qs = require('querystring')
 const fs = require('fs')
+const { execFile } = require('child_process')
 const path = require('path')
 const { checkConnection, execute, delay, config } = require('../lib')
 const { displayText } = require('../orb')
@@ -51,19 +52,28 @@ async function accessPointLoop() {
   setTimeout(accessPointLoop, 500)
 }
 
+function nmcli(...args) {
+  return new Promise((resolve, reject) => {
+    execFile('nmcli', args, (err, stdout, stderr) => {
+      if (err) reject(new Error(stderr || err.message))
+      else resolve(stdout)
+    })
+  })
+}
+
 async function stopAccessPoint(ssid, password) {
   forceExitAccessPointLoop = true
   someoneConnectedToAccessPoint = false
-  removeWifiProfile("OrbHotspot")
+  await removeWifiProfile("OrbHotspot")
   if (ssid) {
     displayText(`ADDING SSID ${ssid}`)
     await removeWifiProfile(ssid)
-    let securityArgs = ""
+    const args = ['connection', 'add', 'con-name', ssid, 'type', 'wifi', 'ssid', ssid, 'autoconnect', 'yes', 'save', 'yes']
     if (password) {
-      securityArgs = `802-11-wireless-security.key-mgmt WPA-PSK 802-11-wireless-security.psk "${password}"`
+      args.push('802-11-wireless-security.key-mgmt', 'WPA-PSK', '802-11-wireless-security.psk', password)
     }
-    await execute(`nmcli connection add con-name "${ssid}" type wifi ssid "${ssid}" ${securityArgs} autoconnect yes save yes`)
-    await execute(`nmcli connection up "${ssid}"`)
+    await nmcli(...args)
+    await nmcli('connection', 'up', ssid)
   }
 }
 
@@ -141,15 +151,11 @@ let wifiSetupServer = http.createServer(async function (req, res) {
     req.on('end', async () => {
       const { ssid, password } = qs.parse(body)
       console.log("Portal: connecting to SSID:", ssid)
-      try {
-        await stopAccessPoint(ssid, password || '')
-        // Give nmcli a moment then check
-        await delay(3000)
-        const connected = await checkConnection()
-        sendJSON(res, { success: connected })
-      } catch (e) {
-        sendJSON(res, { success: false })
-      }
+      // Respond before tearing down the AP — removing OrbHotspot drops the
+      // client's connection, so the response would never arrive otherwise.
+      sendJSON(res, { success: true })
+      await delay(500)
+      await stopAccessPoint(ssid, password || '')
     })
   } else {
     res.writeHead(405)
