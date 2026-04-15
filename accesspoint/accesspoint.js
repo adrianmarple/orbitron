@@ -25,7 +25,7 @@ async function startAccessPoint() {
     stopAccessPoint()
     return
   }
-  removeWifiProfile("OrbHotspot")
+  await removeWifiProfile("OrbHotspot")
   await execute(`nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "${AP_SSID}" ipv4.method shared ipv6.method shared`)
   await execute('nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
@@ -163,31 +163,36 @@ let wifiSetupServer = http.createServer(async function (req, res) {
 
 let isFirstNetworkCheck = true
 async function networkCheck() {
-  let connected = await checkConnection()
-  if (connected) {
-    isFirstNetworkCheck = false
-    setTimeout(networkCheck, 120e3)
-    return
-  }
-
-  displayText("CHECKING FOR INTERNET")
-  numTimesNetworkCheckFailed += 1
-  await stopAccessPoint()
-  await delay(isFirstNetworkCheck ? 15e3 : 60e3)
-
-  isFirstNetworkCheck = false
-  connected = await checkConnection()
-  if (connected) {
-    numTimesNetworkRestartWorked += 1
-    setTimeout(networkCheck, 120e3)
-  } else {
-    numTimesAccessPointStarted += 1
-    await startAccessPoint()
-    await delay(120e3)
-    while (someoneConnectedToAccessPoint) {
-      await delay(10e3)
+  try {
+    let connected = await checkConnection()
+    if (connected) {
+      isFirstNetworkCheck = false
+      setTimeout(networkCheck, 120e3)
+      return
     }
-    setTimeout(networkCheck, 1e3)
+
+    displayText("CHECKING FOR INTERNET")
+    numTimesNetworkCheckFailed += 1
+    await stopAccessPoint()
+    await delay(isFirstNetworkCheck ? 15e3 : 60e3)
+
+    isFirstNetworkCheck = false
+    connected = await checkConnection()
+    if (connected) {
+      numTimesNetworkRestartWorked += 1
+      setTimeout(networkCheck, 120e3)
+    } else {
+      numTimesAccessPointStarted += 1
+      await startAccessPoint()
+      await delay(120e3)
+      while (someoneConnectedToAccessPoint) {
+        await delay(10e3)
+      }
+      setTimeout(networkCheck, 1e3)
+    }
+  } catch(e) {
+    console.error("networkCheck error:", e)
+    setTimeout(networkCheck, 30e3)
   }
 }
 

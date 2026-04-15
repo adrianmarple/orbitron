@@ -115,10 +115,16 @@ new Vue({
     this.versions = await (await fetch("/admin/versions")).json()
 
     await this.getOrbInfo()
+    for (let orb of this.orbInfo) this.fetchOrbVersionAndIP(orb)
+    let pollCount = 0
     this.infoInterval = setInterval(async function() {
       if (document.hasFocus()) {
         self.versions = await (await fetch("/admin/versions")).json()
         await self.getOrbInfo()
+        // Refresh version/IP for all known orbs every 30s (every 6th poll)
+        if (pollCount++ % 6 === 0) {
+          for (let orb of self.orbInfo) self.fetchOrbVersionAndIP(orb)
+        }
         await self.updateViewing()
       }
     }, 5000)
@@ -248,9 +254,24 @@ new Vue({
       await this.sendCommand({ type: "clearwifi" })
     },
 
+    fetchOrbVersionAndIP(orb) {
+      this.sendCommand({ type: "ip" }, orb.id).then(ip => {
+        Vue.set(this.idToIP, orb.id, ip)
+      }).catch(() => {})
+      this.sendCommand({ type: "version" }, orb.id).then(orbVersion => {
+        orbVersion = parseInt(orbVersion)
+        if (!orbVersion) {
+          Vue.set(this.idToCommit, orb.id, null)
+          return
+        }
+        let serverVersion = orb.isArduino ? this.versions.arduinoVersion : this.versions.gitCount
+        Vue.set(this.idToCommit, orb.id, serverVersion - orbVersion)
+      }).catch(() => {})
+    },
+
     async getOrbInfo() {
-      let promises = []
       try {
+        const prevIDs = new Set(this.orbInfo.map(o => o.id))
         this.orbInfo = JSON.parse(await this.sendServerCommand({ type: "orblist" }))
         this.orbInfo = this.orbInfo.sort((a, b) => {
           let aName = a.alias != null ? a.alias : a.id
@@ -258,21 +279,11 @@ new Vue({
           return aName < bName ? -1 : 1
         })
         for (let orb of this.orbInfo) {
-          promises.push(this.sendCommand({ type: "ip" }, orb.id).then(ip => {
-            this.idToIP[orb.id] = ip
-          }))
-          promises.push(this.sendCommand({ type: "version" }, orb.id).then(orbVersion => {
-            orbVersion = parseInt(orbVersion)
-            if (!orbVersion) {
-              this.idToCommit[orb.id] = null
-              return
-            }
-            let serverVersion = orb.isArduino ? this.versions.arduinoVersion : this.versions.gitCount
-            this.idToCommit[orb.id] = serverVersion - orbVersion
-          }))
+          if (!prevIDs.has(orb.id)) {
+            this.fetchOrbVersionAndIP(orb)
+          }
         }
       } catch(e) {}
-      await Promise.all(promises)
     },
 
     async updateViewing() {

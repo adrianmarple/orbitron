@@ -176,7 +176,8 @@ function connectOrbToRelay(){
           restartOrbitron()
         }
         if (command.type == "clearwifi") {
-          await execute(`nmcli -g NAME,TYPE connection show | awk -F: '$2 == "802-11-wireless" && $1 != "OrbHotspot" {print $1}' | xargs -I{} nmcli connection delete "{}"`)
+          await execute(`nmcli -t -f DEVICE,TYPE device status | grep ':wifi' | cut -d: -f1 | xargs -I{} nmcli device disconnect {} 2>/dev/null; true`)
+          await execute(`nmcli -t -f NAME,TYPE connection show | grep ':802-11-wireless' | cut -d: -f1 | grep -v '^OrbHotspot$' | while IFS= read -r n; do nmcli connection delete "$n"; done`)
           restartOrbitron()
         }
         if (command.type == "getconfig") {
