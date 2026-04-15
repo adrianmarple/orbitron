@@ -530,6 +530,66 @@ function addPlusMinusVertex(coords) {
   }
 }
 
+// Builds the vertex/edge/plains structure for Platonic and Archimedean solids.
+//
+// baseVertices: array of [x, y, z] base coordinates before symmetry expansion.
+//
+// options.symmetry (default 'evenPerms+plusMinus'):
+//   'evenPerms+plusMinus' — for each base vertex, generates all even permutations
+//                           with all ± sign combinations (covers octahedron, cuboctahedron,
+//                           rhombicosidodecahedron, great rhombicosidodecahedron, etc.)
+//   'raw'                 — adds each base vertex directly (for tetrahedron, etc.)
+//
+// options.edgeLength (default 1): final edge length after construction.
+//
+// Caller is responsible for edgeCleanup(), EulerianPath(), doubleEdges(), rotations,
+// and any printPostProcessingFunction.
+function buildArchimedean(baseVertices, { symmetry = 'evenPerms+plusMinus', edgeLength = 1 } = {}) {
+  NO_EMBOSSING = true
+
+  if (symmetry === 'raw') {
+    for (let v of baseVertices) addVertex(v)
+  } else {
+    let permFn = symmetry === 'allPerms+plusMinus' ? permutations : evenPermutations
+    for (let v of baseVertices) {
+      for (let perm of permFn(v)) {
+        addPlusMinusVertex(perm)
+      }
+    }
+  }
+
+  // Scale so the minimum inter-vertex distance = 1
+  let minDist = Infinity
+  for (let i = 0; i < verticies.length; i++) {
+    for (let j = i + 1; j < verticies.length; j++) {
+      minDist = Math.min(minDist, verticies[i].ogCoords.distanceTo(verticies[j].ogCoords))
+    }
+  }
+  scale(1 / minDist)
+
+  // Connect all vertex pairs at unit distance (i.e. adjacent vertices)
+  for (let i = 0; i < verticies.length; i++) {
+    for (let j = i + 1; j < verticies.length; j++) {
+      if (epsilonEquals(verticies[i].ogCoords.distanceTo(verticies[j].ogCoords), 1)) {
+        addEdge(verticies[i], verticies[j])
+      }
+    }
+  }
+
+  scale(edgeLength)
+
+  // Set vertex plains from edge midpoints (used for LED channel routing)
+  for (let vertex of verticies) vertex.plains = []
+  for (let edge of edges) {
+    let v0 = edge.verticies[0]
+    let v1 = edge.verticies[1]
+    let center = v0.ogCoords.add(v1.ogCoords).scale(0.5)
+    let plain = new Plain(center, center)
+    v0.addPlain(plain)
+    v1.addPlain(plain)
+  }
+}
+
 function findEdgeFromCenter(center) {
   for (let edge of edges) {
     var edgeCenter = edge.verticies[0].ogCoords
