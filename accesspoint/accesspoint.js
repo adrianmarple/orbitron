@@ -15,6 +15,14 @@ let numTimesNetworkCheckFailed = 0
 let numTimesNetworkRestartWorked = 0
 let numTimesAccessPointStarted = 0
 
+async function checkConnectionAndCleanup() {
+  const connected = await checkConnection()
+  if (connected) await stopAccessPoint()
+  return connected
+}
+
+
+
 let accessedFormTime = 0
 let someoneConnectedToAccessPoint = false
 let forceExitAccessPointLoop = false
@@ -35,7 +43,7 @@ async function startAccessPoint() {
 }
 
 async function accessPointLoop() {
-  let connected = await checkConnection()
+  let connected = await checkConnectionAndCleanup()
   if (connected || forceExitAccessPointLoop) {
     return
   }
@@ -164,7 +172,7 @@ let wifiSetupServer = http.createServer(async function (req, res) {
 let isFirstNetworkCheck = true
 async function networkCheck() {
   try {
-    let connected = await checkConnection()
+    let connected = await checkConnectionAndCleanup()
     if (connected) {
       isFirstNetworkCheck = false
       setTimeout(networkCheck, 120e3)
@@ -177,7 +185,7 @@ async function networkCheck() {
     await delay(isFirstNetworkCheck ? 15e3 : 60e3)
 
     isFirstNetworkCheck = false
-    connected = await checkConnection()
+    connected = await checkConnectionAndCleanup()
     if (connected) {
       numTimesNetworkRestartWorked += 1
       setTimeout(networkCheck, 120e3)
