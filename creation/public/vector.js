@@ -240,6 +240,9 @@ class Plain {
       this.normal.applyMatrix(rotationMatrix),
     )
   }
+  shiftToIncludePoint(point) {
+    return new Plain(point, this.normal)
+  }
 
   angle(plain) {
     return Math.PI - this.normal.angle(plain.normal)
@@ -315,6 +318,9 @@ class Line {
   }
   isCoplanar(plain) {
     return this.offset.equals(plain.offset) && epsilonEquals(this.direction.dot(plain.normal), 0)
+  }
+  isColinear(point) {
+    return epsilonEquals(1, Math.abs(point.sub(this.offset).normalize().dot(this.direction)))
   }
 }
 

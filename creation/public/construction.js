@@ -1170,116 +1170,117 @@ function foldWallCreation(foldWall, printInfo) {
       console.log("WARNING! Untested port configuration")
     }
     printInfo.prints.push(print)
+    foldWall.print = print
   }
 }
 
 
-function createOuterSleevePrint(dihedralAngle) {
-  let coverWidth = CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER)
-  let coverThickness = THICKNESS + EXTRA_COVER_THICKNESS
-  let outerY = coverWidth + 2*SLEEVE_THICKNESS
-  let outerZ = coverThickness + 2*SLEEVE_THICKNESS
-  let transX = SLEEVE_LENGTH/2
+// function createOuterSleevePrint(dihedralAngle) {
+//   let coverWidth = CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER)
+//   let coverThickness = THICKNESS + EXTRA_COVER_THICKNESS
+//   let outerY = coverWidth + 2*SLEEVE_THICKNESS
+//   let outerZ = coverThickness + 2*SLEEVE_THICKNESS
+//   let transX = SLEEVE_LENGTH/2
 
-  let arm = {
-    type: "difference",
-    position: [0, 0, -Math.sign(dihedralAngle) * outerZ/2], // Adjust so arms rotate about wedge tip
-    components: [
-      {
-        type: "union",
-        components: [
-          { // Outer shell
-            type: "cube",
-            dimensions: [SLEEVE_LENGTH, outerY, outerZ],
-            operations: [{ type: "translate", position: [transX, 0, 0] }],
-          },
-          { // Wedge at seam end (X=0)
-            type: "wedge",
-            angle: dihedralAngle / 2,
-            rotationAngle: Math.PI,
-            width: outerY,
-            thickness: outerZ,
-            position: [0, 0, -outerZ/2],
-          },
-        ]
-      },
-      { // Inner hollow where the cover plate sits.
-        type: "cube",
-        dimensions: [SLEEVE_LENGTH + 10, coverWidth, coverThickness],
-        operations: [{ type: "translate", position: [transX, 0, 0] }],
-      },
-      { // Gap for where walls and channel sit.
-        type: "cube",
-        dimensions: [SLEEVE_LENGTH + 10, CHANNEL_WIDTH + 2*WALL_THICKNESS, SLEEVE_THICKNESS+0.1],
-        operations: [{ type: "translate", position: [transX, 0, coverThickness/2 + SLEEVE_THICKNESS/2] }],
-      },
-    ]
-  }
+//   let arm = {
+//     type: "difference",
+//     position: [0, 0, -Math.sign(dihedralAngle) * outerZ/2], // Adjust so arms rotate about wedge tip
+//     components: [
+//       {
+//         type: "union",
+//         components: [
+//           { // Outer shell
+//             type: "cube",
+//             dimensions: [SLEEVE_LENGTH, outerY, outerZ],
+//             operations: [{ type: "translate", position: [transX, 0, 0] }],
+//           },
+//           { // Wedge at seam end (X=0)
+//             type: "wedge",
+//             angle: dihedralAngle / 2,
+//             rotationAngle: Math.PI,
+//             width: outerY,
+//             thickness: outerZ,
+//             position: [0, 0, -outerZ/2],
+//           },
+//         ]
+//       },
+//       { // Inner hollow where the cover plate sits.
+//         type: "cube",
+//         dimensions: [SLEEVE_LENGTH + 10, coverWidth, coverThickness],
+//         operations: [{ type: "translate", position: [transX, 0, 0] }],
+//       },
+//       { // Gap for where walls and channel sit.
+//         type: "cube",
+//         dimensions: [SLEEVE_LENGTH + 10, CHANNEL_WIDTH + 2*WALL_THICKNESS, SLEEVE_THICKNESS+0.1],
+//         operations: [{ type: "translate", position: [transX, 0, coverThickness/2 + SLEEVE_THICKNESS/2] }],
+//       },
+//     ]
+//   }
 
-  return {
-    type: "union",
-    suffix: `outersleeve_dihedral${(dihedralAngle * 180 / Math.PI).toFixed(1)}`,
-    operations: [
-      { type: "rotate", axis: [0, 1, 0], angle: Math.PI/2 },
-    ],
-    components: [
-      arm,
-      { ...arm,
-        operations: [
-          { type: "mirror", normal: [1, 0, 0] },
-          { type: "rotate", axis: [0, 1, 0], angle: dihedralAngle },
-        ]
-      },
-    ],
-  }
-}
-function createInnerSleevePrint(dihedralAngle) {
-  let skew = Math.tan(dihedralAngle/2)
-  let depth = CHANNEL_DEPTH / Math.cos(dihedralAngle/2)
-  let innerY = CHANNEL_WIDTH - 2*SLEEVE_THICKNESS
-  let innerZ = depth- 2*SLEEVE_THICKNESS
-  let transX = SLEEVE_LENGTH/2
+//   return {
+//     type: "union",
+//     suffix: `outersleeve_dihedral${(dihedralAngle * 180 / Math.PI).toFixed(1)}`,
+//     operations: [
+//       { type: "rotate", axis: [0, 1, 0], angle: Math.PI/2 },
+//     ],
+//     components: [
+//       arm,
+//       { ...arm,
+//         operations: [
+//           { type: "mirror", normal: [1, 0, 0] },
+//           { type: "rotate", axis: [0, 1, 0], angle: dihedralAngle },
+//         ]
+//       },
+//     ],
+//   }
+// }
+// function createInnerSleevePrint(dihedralAngle) {
+//   let skew = Math.tan(dihedralAngle/2)
+//   let depth = CHANNEL_DEPTH / Math.cos(dihedralAngle/2)
+//   let innerY = CHANNEL_WIDTH - 2*SLEEVE_THICKNESS
+//   let innerZ = depth- 2*SLEEVE_THICKNESS
+//   let transX = SLEEVE_LENGTH/2
 
-  let arm =  {
-    type: "difference",
-    operations: [
-      { type: "matrix3", M: [1,0,skew, 0,1,0, 0,0,1] },
-      { type: "translate", position: [transX, 0, 0] },
-    ],
-    components: [
-      {
-        type: "cube",
-        dimensions: [SLEEVE_LENGTH, CHANNEL_WIDTH, depth],
-      },
+//   let arm =  {
+//     type: "difference",
+//     operations: [
+//       { type: "matrix3", M: [1,0,skew, 0,1,0, 0,0,1] },
+//       { type: "translate", position: [transX, 0, 0] },
+//     ],
+//     components: [
+//       {
+//         type: "cube",
+//         dimensions: [SLEEVE_LENGTH, CHANNEL_WIDTH, depth],
+//       },
 
-      {
-        type: "cube",
-        dimensions: [SLEEVE_LENGTH+1, innerY, innerZ],
-      },
-      {
-        type: "cube",
-        dimensions: [SLEEVE_LENGTH+1, SLEEVE_THICKNESS+1, depth/2],
-        position: [0, CHANNEL_WIDTH/2, 0]
-      },
-    ]
-  }
+//       {
+//         type: "cube",
+//         dimensions: [SLEEVE_LENGTH+1, innerY, innerZ],
+//       },
+//       {
+//         type: "cube",
+//         dimensions: [SLEEVE_LENGTH+1, SLEEVE_THICKNESS+1, depth/2],
+//         position: [0, CHANNEL_WIDTH/2, 0]
+//       },
+//     ]
+//   }
 
-  return {
-    type: "union",
-    suffix: `innersleeve_dihedral${(dihedralAngle * 180 / Math.PI).toFixed(1)}`,
-    operations: [
-      { type: "rotate", axis: [0, 1, 0], angle: Math.PI/2 },
-    ],
-    components: [
-      arm,
-      {
-        type: "union",
-        operations: [{ type: "mirror", normal: [1, 0, 0] }],
-        components: [arm]
-      },
-    ]
-  }
-}
+//   return {
+//     type: "union",
+//     suffix: `innersleeve_dihedral${(dihedralAngle * 180 / Math.PI).toFixed(1)}`,
+//     operations: [
+//       { type: "rotate", axis: [0, 1, 0], angle: Math.PI/2 },
+//     ],
+//     components: [
+//       arm,
+//       {
+//         type: "union",
+//         operations: [{ type: "mirror", normal: [1, 0, 0] }],
+//         components: [arm]
+//       },
+//     ]
+//   }
+// }
 
 function wallPrint(wall, isLeft) {
   let side = wall
@@ -1296,6 +1297,7 @@ function wallPrint(wall, isLeft) {
     lengthOffset *= -1
   }
   let print = blankPrint()
+  wall.print = print
   print.suffix = wall.partID + ""
 
   if (RENDER_MODE == "parts" && epsilonEquals(miterAngle, 0)) {
@@ -1862,6 +1864,159 @@ function downloadSVGAsText(id, name) {
   a.textContent = 'Download ready';
   a.style='display:none';
   a.click()
+}
+
+
+function bracketCapturePostProcessing({
+  glassT = 1.5,
+  captureWallExtra = 1.5,
+  glassROffset = 4,
+  highOverhang = 6,
+  lowOverhang = 4.8,
+  indicies = {},
+} = {}) {
+
+  console.log(glassROffset)
+
+  // Enumerate one representative face per unique n-gon type by walking nextEdge.
+  function enumerateFacesByType() {
+    let visitedFaces = new Set()
+    let facesByType = {}
+    let startVertex = verticies[0]
+    for (let startEdge of startVertex.edges) {
+      if (startEdge.isDupe) continue
+      let faceVerts = [startVertex]
+      let prevEdge = startEdge
+      let nextVertex = startEdge.otherVertex(startVertex)
+      while (nextVertex !== startVertex) {
+        faceVerts.push(nextVertex)
+        prevEdge = nextVertex.nextEdge(prevEdge)
+        nextVertex = prevEdge.otherVertex(nextVertex)
+        prevEdge.toLine()
+        if (prevEdge.toLine().isColinear(faceVerts[faceVerts.length - 2].ogCoords)) {
+          faceVerts.pop()
+        }
+      }
+      if (faceVerts.length < 3) continue
+      let key = faceVerts.map(v => verticies.indexOf(v)).sort((a, b) => a - b).join(',')
+      if (visitedFaces.has(key)) continue
+      visitedFaces.add(key)
+      let n = faceVerts.length
+      if (!facesByType[n]) facesByType[n] = faceVerts
+    }
+    return facesByType
+  }
+
+  return printInfo => {
+    let captureWall = glassT / 2 + captureWallExtra
+    let facesByType = enumerateFacesByType()
+    let newPrints = []
+
+    for (let n in facesByType) {
+      let index = indicies[n]
+      let print = printInfo.prints[index]
+
+      let faceVerts = facesByType[n]
+      let vertex = faceVerts[0]
+      let v = vertex.ogCoords
+      let v0 = faceVerts[1].ogCoords
+      let v1 = faceVerts[n - 1].ogCoords
+      let e0 = v0.sub(v).normalize()
+      let e1 = v1.sub(v).normalize()
+      let facePlain = new Plain(v, e0.cross(e1))
+      let faceCenter = facePlain.offset
+
+      let e0Plain = vertex.commonPlain(faceVerts[1])
+      let wallStart = crease(CHANNEL_WIDTH/2).intersection(e0Plain)
+      let glassPlain = facePlain.shiftToIncludePoint(wallStart)
+
+      // Angle between the two face edges in the tangent plane at this vertex.
+      let wallAngle = v.cross(e0).normalize().angleTo(
+        v.cross(e1).normalize())
+
+      function crease(creaseOffset) {
+        creaseOffset /= PIXEL_DISTANCE
+        let plain0 = new Plain(v, v.cross(e0))
+        let sign0 = Math.sign(plain0.normal.dot(e1))
+        plain0 = plain0.translate(plain0.normal.scale(creaseOffset * sign0))
+        let plain1 = new Plain(v, v.cross(e1))
+        let sign1 = Math.sign(plain1.normal.dot(e0))
+        plain1 = plain1.translate(plain1.normal.scale(creaseOffset * sign1))
+        return plain0.intersection(plain1)
+      }
+      function creaseR(creaseOffset) {
+        let cr = crease(creaseOffset)
+        let creaseInter = glassPlain.intersection(cr)
+        return glassPlain.offset.sub(creaseInter).length() * PIXEL_DISTANCE
+      }
+
+      let faceH = faceCenter.length() * PIXEL_DISTANCE
+      let faceR = faceCenter.sub(v).length() * PIXEL_DISTANCE
+      let slope = faceH / faceR
+      let outerR = creaseR(CHANNEL_WIDTH/2)
+      let innerR = creaseR(CHANNEL_WIDTH/2 + WALL_THICKNESS)
+      let glassR = innerR - glassROffset
+      let lowR = innerR + captureWall / slope
+      let highR = innerR - captureWall / slope
+      let slopeAngle = -Math.atan(slope) * 180 / Math.PI
+      // rotY bisects the wallAngle to center the bracket between the two face edges.
+      let rotY = -90 - wallAngle / 2 * 180 / Math.PI
+      let sectorAngle = 360 / n
+
+      function makeBracketCode(open) {
+        return { code:`
+            sectorPoints = concat([[0, 0]],
+                [100 * cos(${sectorAngle / 2}), 100 * sin(${sectorAngle / 2})],
+                [100 * cos(${-sectorAngle / 2}), 100 * sin(${-sectorAngle / 2})]
+                // [for(a = [${sectorAngle / 2} : 10 : 360 - ${sectorAngle / 2}])
+                //     [100 * cos(a), 100 * sin(a)]
+                // ]
+            );
+            rotate([${slopeAngle}, ${rotY}, 0])
+            translate([0, ${outerR}, 0])
+            rotate([0, 0, -90])
+            intersection() {
+              difference() {
+                cylinder(h=${2 * captureWall}, r1=${lowR}, r2=${highR}, $fn=${n}, center=true);
+
+                cylinder(h=${glassT}, r=${glassR + 0.5}, $fn=${n}, center=true);
+                if (${open}) {
+                  translate([0, 0, ${-captureWall}])
+                  cylinder(h=${captureWall}, r=${glassR + 0.5}, $fn=${n});
+                }
+
+                cylinder(h=100, r=${glassR - lowOverhang}, $fn=${n});
+                translate([0, 0, ${-captureWall} - 1])
+                cylinder(h=${captureWall} + 1, r=${glassR - highOverhang}, $fn=${n});
+              }
+              translate([0, 0, ${-captureWall} - 1])
+              linear_extrude(${2*captureWall + 2})
+              polygon([[0, 0],
+                [100 * cos(${sectorAngle / 2}), 100 * sin(${sectorAngle / 2})],
+                [100 * cos(${-sectorAngle / 2}), 100 * sin(${-sectorAngle / 2})]
+              ]);
+            }` }
+      }
+      newPrints.push({
+        type: 'union',
+        suffix: `wall${n}`,
+        components: [print, makeBracketCode(false)]
+      })
+      newPrints.push({
+        type: 'union',
+        suffix: `wall${n}_open`,
+        components: [print, makeBracketCode(true)]
+      })
+    }
+
+    for (let key in indicies) {
+      if (key < 20) continue // Terrible js hack
+      let print = printInfo.prints[indicies[key]]
+      print.suffix = key
+      newPrints.push(print)
+    }
+    printInfo.prints = newPrints
+  }
 }
 
 async function generateManufacturingInfo() {

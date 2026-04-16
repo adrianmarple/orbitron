@@ -29,6 +29,14 @@ class Vertex {
     }
   }
   
+  commonPlain(vertex) {
+    for (let plain of this.plains) {
+      if (vertex.plains.includes(plain)) {
+        return plain
+      }
+    }
+    return null
+  }
   getPlainThatContains(vector) {
     for (let plain of this.plains) {
       if (vector.isCoplanar(plain)) {
@@ -538,13 +546,18 @@ function addPlusMinusVertex(coords) {
 //   'evenPerms+plusMinus' — for each base vertex, generates all even permutations
 //                           with all ± sign combinations (covers octahedron, cuboctahedron,
 //                           rhombicosidodecahedron, great rhombicosidodecahedron, etc.)
+//   'allPerms+plusMinus'  — all 6 permutations with all ± sign combinations
 //   'raw'                 — adds each base vertex directly (for tetrahedron, etc.)
 //
 // options.edgeLength (default 1): final edge length after construction.
 //
+// options.bracketCapture: if provided, sets printPostProcessingFunction to generate
+//   glass-capture bracket OpenSCAD code for each unique face type. Pass an options
+//   object (or {} for defaults) — see setBracketCapturePostProcessing for parameters.
+//
 // Caller is responsible for edgeCleanup(), EulerianPath(), doubleEdges(), rotations,
-// and any printPostProcessingFunction.
-function buildArchimedean(baseVertices, { symmetry = 'evenPerms+plusMinus', edgeLength = 1 } = {}) {
+// and any additional printPostProcessingFunction customization.
+function buildArchimedean(baseVertices, { symmetry = 'evenPerms+plusMinus', edgeLength = 1} = {}) {
   NO_EMBOSSING = true
 
   if (symmetry === 'raw') {
@@ -589,6 +602,7 @@ function buildArchimedean(baseVertices, { symmetry = 'evenPerms+plusMinus', edge
     v1.addPlain(plain)
   }
 }
+
 
 function findEdgeFromCenter(center) {
   for (let edge of edges) {

@@ -152,6 +152,14 @@ function reset() {
 }
 reset()
 
+function setThinStrip() {
+  PIXEL_DISTANCE = 8.3
+  LED_SIZE = 3 // TODO make LED_SUPPORT_WIDTH depend on this and PIXEL_DISTANCE
+  CHANNEL_WIDTH = 4
+  CHANNEL_DEPTH = 8
+  BORDER = 1.2
+}
+
 function versionLessThan(v1, v2) {
     const parts1 = v1.split('.').map(Number);
     const parts2 = v2.split('.').map(Number);
