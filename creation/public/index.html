@@ -89,10 +89,11 @@ function reset() {
   WALL_STRAIGHT_KERF = 0 // 0.11
   WALL_MITER_KERF = 0.1
 
-  LED_SUPPORT_WIDTH = 9
+  LED_SIZE = PIXEL_DISTANCE - 9
+  LED_SUPPORT_WIDTH = () => PIXEL_DISTANCE - LED_SIZE
+  LED_SUPPORT_HEIGHT = () => CHANNEL_WIDTH - 0.2
   LED_SUPPORT_GAP = 2
   LED_SUPPORT_THICKNESS = 1.6
-  LED_SUPPORT_HEIGHT = () => CHANNEL_WIDTH - 0.2
   LED_SUPPORT_TYPE = "single" // "none", "all"
 
   PORT_TYPE = "USBC" // "CAT5"
@@ -154,10 +155,11 @@ reset()
 
 function setThinStrip() {
   PIXEL_DISTANCE = 8.3
-  LED_SIZE = 3 // TODO make LED_SUPPORT_WIDTH depend on this and PIXEL_DISTANCE
-  CHANNEL_WIDTH = 4
+  LED_SIZE = 3
+  CHANNEL_WIDTH = 6
   CHANNEL_DEPTH = 8
   BORDER = 1.2
+  WALL_THICKNESS = 2.2
 }
 
 function versionLessThan(v1, v2) {

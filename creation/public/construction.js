@@ -1527,7 +1527,7 @@ function wallPrint(wall, isLeft) {
       supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 1)
       supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
       supportOffset += wall.extraLEDSupportOffset
-      let threshold = lengthOffset + LED_SUPPORT_WIDTH/2
+      let threshold = lengthOffset + LED_SUPPORT_WIDTH()/2
       if (miterAngle < 0) {
         threshold += Math.tan(miterAngle) * WALL_THICKNESS
       }
@@ -1540,7 +1540,7 @@ function wallPrint(wall, isLeft) {
       supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
       supportOffset -= supportOffset % PIXEL_DISTANCE
       supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
-      let threshold = edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH
+      let threshold = edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH()
       while (supportOffset > threshold) {
         supportOffset -= PIXEL_DISTANCE
       }
@@ -1563,7 +1563,7 @@ function wallPrint(wall, isLeft) {
         print.components.push({
           type: "ledSupport",
           position: [position.x, -position.y, WALL_THICKNESS],
-          width: LED_SUPPORT_WIDTH,
+          width: LED_SUPPORT_WIDTH(),
           height: LED_SUPPORT_HEIGHT(),
           thickness: LED_SUPPORT_THICKNESS,
           gap: LED_SUPPORT_GAP,
@@ -1580,21 +1580,21 @@ function wallPrint(wall, isLeft) {
     supportOffset = PIXEL_DISTANCE * (ledAtVertex ? -0.5 : 0)
     supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
 
-    let minOffset = lengthOffset + LED_SUPPORT_WIDTH/2 + wall.extraLEDSupportOffset
+    let minOffset = lengthOffset + LED_SUPPORT_WIDTH()/2 + wall.extraLEDSupportOffset
     minOffset = Math.max(minOffset, 0.1)
     if (miterAngle < 0) {
       minOffset += Math.tan(miterAngle) * WALL_THICKNESS
     }
-    let maxOffset = edgeLength - LED_SUPPORT_WIDTH
+    let maxOffset = edgeLength - LED_SUPPORT_WIDTH()
     if (wall.isFoldWall && epsilonEquals(wall.dihedralAngle, 0)) {
       maxOffset += PIXEL_DISTANCE
     } else {
-      maxOffset = Math.min(maxOffset, v0.sub(v1).length() - 0.1)
+      maxOffset = Math.min(maxOffset, v0.sub(v1).length()*PIXEL_DISTANCE - 0.1)
     }
 
     if (hasPort && PORT_TYPE.startsWith("USBC")) {
-      let portBlockMin = portOffset - USBC_WIDTH/2 - LED_SUPPORT_WIDTH/2
-      let portBlockMax = portOffset + USBC_WIDTH/2 + LED_SUPPORT_WIDTH/2
+      let portBlockMin = portOffset - USBC_WIDTH/2 - LED_SUPPORT_WIDTH()/2
+      let portBlockMax = portOffset + USBC_WIDTH/2 + LED_SUPPORT_WIDTH()/2
       let testOffset = supportOffset
       while (testOffset < maxOffset) {
         if (testOffset >= portBlockMin && testOffset <= portBlockMax) {
@@ -1604,7 +1604,8 @@ function wallPrint(wall, isLeft) {
       }
     }
 
-    if (!(isPortRelated && PORT_TYPE == "USBC_INTEGRATED")) {
+    if (!(isPortRelated && PORT_TYPE == "USBC_INTEGRATED") &&
+        !(isLeft && wall.isFoldWall && wall.yRotationAngle < 0) ) {
       while (supportOffset < maxOffset) {
         if (supportOffset < minOffset) {
           supportOffset += PIXEL_DISTANCE
@@ -1624,7 +1625,7 @@ function wallPrint(wall, isLeft) {
           print.components.push({
             type: "ledSupport",
             position: [position.x, -position.y, WALL_THICKNESS],
-            width: LED_SUPPORT_WIDTH,
+            width: LED_SUPPORT_WIDTH(),
             height: LED_SUPPORT_HEIGHT(),
             thickness: LED_SUPPORT_THICKNESS,
             gap: LED_SUPPORT_GAP,
@@ -1876,8 +1877,6 @@ function bracketCapturePostProcessing({
   indicies = {},
 } = {}) {
 
-  console.log(glassROffset)
-
   // Enumerate one representative face per unique n-gon type by walking nextEdge.
   function enumerateFacesByType() {
     let visitedFaces = new Set()
@@ -1955,13 +1954,15 @@ function bracketCapturePostProcessing({
       let slope = faceH / faceR
       let outerR = creaseR(CHANNEL_WIDTH/2)
       let innerR = creaseR(CHANNEL_WIDTH/2 + WALL_THICKNESS)
-      let glassR = innerR - glassROffset
+      let glassR = Math.round(innerR - glassROffset)
       let lowR = innerR + captureWall / slope
       let highR = innerR - captureWall / slope
       let slopeAngle = -Math.atan(slope) * 180 / Math.PI
       // rotY bisects the wallAngle to center the bracket between the two face edges.
       let rotY = -90 - wallAngle / 2 * 180 / Math.PI
       let sectorAngle = 360 / n
+
+      console.log(`Glass Radius for ${n}-gon:`, glassR)
 
       function makeBracketCode(open) {
         return { code:`
