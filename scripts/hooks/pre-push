@@ -8,7 +8,7 @@ while read local_ref local_sha remote_ref remote_sha; do
     range="$remote_sha..$local_sha"
   fi
 
-  if git diff-tree --no-commit-id -r --name-only "$range" -- arduino/esp32/ | grep -q .; then
+  if git log --name-only --format="" "$range" -- arduino/esp32/ | grep -q .; then
     echo "arduino/esp32/ changed, building and uploading firmware..."
     bash scripts/arduino_build.sh || exit 1
   fi
