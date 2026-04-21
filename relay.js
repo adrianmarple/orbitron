@@ -31,6 +31,7 @@ let masterKey = ''
 try { masterKey = fs.readFileSync(MASTER_KEY_FILE, 'utf8').trim() } catch(_) {}
 
 const GIT_BRANCH = require('child_process').execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
+console.log("On branch: " + GIT_BRANCH)
 
 function sendToArduinos(message) {
   for (let id in connectedOrbs) {
@@ -695,12 +696,6 @@ addPOSTListener(async (response, body, filePath, queryParams, headers) => {
     } catch(_) {
       return false
     }
-    if (payload.ref !== `refs/heads/${GIT_BRANCH}`) {
-      response.writeHead(200)
-      response.end('post received')
-      return true
-    }
-
     if (config.WEBHOOK_SECRET) {
       const expected = 'sha256=' + crypto.createHmac('sha256', config.WEBHOOK_SECRET).update(body).digest('hex')
       if (headers['x-hub-signature-256'] !== expected) {
@@ -710,6 +705,13 @@ addPOSTListener(async (response, body, filePath, queryParams, headers) => {
         return true
       }
     }
+    console.log("Received update for " + payload.ref)
+    if (payload.ref !== `refs/heads/${GIT_BRANCH}`) {
+      response.writeHead(200)
+      response.end('post received')
+      return true
+    }
+
     response.writeHead(200)
     response.end('post received')
 
