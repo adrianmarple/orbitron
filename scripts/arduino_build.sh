@@ -6,14 +6,13 @@
 set -e
 cd "$(dirname "$0")/.."
 
-declare -A BRANCH_TO_HOST
-BRANCH_TO_HOST["master"]="my.lumatron.art"
-BRANCH_TO_HOST["staging"]="staging.lumatron.art"
-
 SERVER=${1:-}
 if [ -z "$SERVER" ]; then
   BRANCH=$(git rev-parse --abbrev-ref HEAD)
-  SERVER=${BRANCH_TO_HOST[$BRANCH]:-"my.lumatron.art"}
+  case "$BRANCH" in
+    staging) SERVER="staging.lumatron.art" ;;
+    *)       SERVER="my.lumatron.art" ;;
+  esac
 fi
 
 MASTERKEY=$(cat masterkey.txt 2>/dev/null || echo "")
