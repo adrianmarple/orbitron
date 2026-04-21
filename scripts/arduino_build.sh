@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 SERVER=${1:-}
 if [ -z "$SERVER" ]; then
-  SERVER=$(node -e "const {config}=require('./lib'); console.log(config.RELAY_HOST||'my.lumatron.art')" 2>/dev/null | tail -1 || echo "my.lumatron.art")
+  SERVER=$(node -e "const {config}=require('./lib'); process.stdout.write((config.RELAY_HOST||'my.lumatron.art')+'\n')" 2>/dev/null || echo "my.lumatron.art")
 fi
 
 MASTERKEY=$(cat masterkey.txt 2>/dev/null || echo "")
@@ -32,15 +32,14 @@ arduino-cli compile \
   --output-dir "$BUILD_DIR" \
   arduino/esp32
 
-BINARY=$(base64 < "$BUILD_DIR/esp32.ino.bin")
-PAYLOAD_FILE=$(mktemp)
-trap "rm -rf $BUILD_DIR $PAYLOAD_FILE" EXIT
-printf '{"version":%s,"binary":"%s","key":"%s"}' "$VERSION" "$BINARY" "$MASTERKEY" > "$PAYLOAD_FILE"
+CURL_ERR_FILE=$(mktemp)
+trap "rm -rf $BUILD_DIR $CURL_ERR_FILE" EXIT
 
 echo "Uploading to https://$SERVER/firmware/upload..."
-RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://$SERVER/firmware/upload" \
-  -H "Content-Type: application/json" \
-  --data @"$PAYLOAD_FILE")
+RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST \
+  "https://$SERVER/firmware/upload?version=$VERSION&key=$(printf '%s%s' "$VERSION" "$MASTERKEY" | openssl dgst -sha256 -hex | awk '{print $2}')" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary @"$BUILD_DIR/esp32.ino.bin" 2>"$CURL_ERR_FILE") || { echo "Upload failed: $(cat $CURL_ERR_FILE)" >&2; exit 1; }
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
 BODY=$(echo "$RESPONSE" | head -1)

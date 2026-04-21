@@ -96,15 +96,17 @@ function respondWithFile(response, filePath, replacements){
 async function serverHandler(request, response) {
   // Github webhook to restart pm2 after a push
   if (request.method === 'POST') {
-    let body = ''
+    let chunks = []
     request.on('data', function(data) {
-      body += data
+      chunks.push(data)
     })
     request.on('end', async function() {
+      let body = Buffer.concat(chunks)
       let handled = false
-      let [filePath] = request.url.split('?')
+      let [filePath, query] = request.url.split('?')
+      let queryParams = Object.fromEntries(new URLSearchParams(query || ''))
       for (const listener of postListeners) {
-        handled = await listener(response, body, filePath)
+        handled = await listener(response, body, filePath, queryParams)
         if(handled) break
       }
       if(!handled){

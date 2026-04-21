@@ -8,6 +8,8 @@ const { config, execute, processAdminCommand, noCorsHeader } = require('./lib')
 const { pullAndRestart, restartOrbitron } = require('./gitupdate')
 const homedir = require('os').homedir()
 const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
+const crypto = require('crypto')
+function sha256(str) { return crypto.createHash('sha256').update(str).digest('hex') }
 const { startOrb } = require('./orb')
 
 const connectedOrbs = {}
@@ -481,21 +483,17 @@ addGETListener(async (response, _, filePath, queryParams) => {
 })
 
 // Accept locally-built Arduino firmware binary and notify Arduino orbs to OTA
-addPOSTListener(async (response, body, filePath) => {
+addPOSTListener(async (response, body, filePath, queryParams) => {
   if (filePath !== '/firmware/upload') return false
-  let payload
-  try { payload = JSON.parse(body) } catch(_) {
-    response.writeHead(400); response.end('invalid JSON'); return true
-  }
-  if (!masterKey || payload.key !== masterKey) {
+  const { version, key } = queryParams
+  if (key !== sha256(version + masterKey)) {
     response.writeHead(403); response.end('forbidden'); return true
   }
-  const { version, binary } = payload
-  if (!version || !binary) {
+  if (!version || !body.length) {
     response.writeHead(400); response.end('missing version or binary'); return true
   }
   await fs.promises.mkdir(FIRMWARE_DIR, { recursive: true })
-  await fs.promises.writeFile(FIRMWARE_BIN, Buffer.from(binary, 'base64'))
+  await fs.promises.writeFile(FIRMWARE_BIN, body)
   await fs.promises.writeFile(FIRMWARE_VERSION_FILE, String(version))
   compiledFirmwareVersion = parseInt(version)
   console.log(`Firmware uploaded: version ${compiledFirmwareVersion}`)
@@ -691,10 +689,10 @@ addGETListener(async (response, orbID, filePath) => {
 addPOSTListener(async (response, body) => {
   try {
     // Ignore weird extra POST requests
-    if (body.startsWith("0x")) return false
+    if (body.toString().startsWith("0x")) return false
     let payload
     try {
-      payload = JSON.parse(body)
+      payload = JSON.parse(body.toString())
     } catch(_) {
       return false
     }
