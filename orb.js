@@ -127,7 +127,7 @@ function connectOrbToRelay(){
         socket.lastPingReceived = Date.now()
         return
       }
-      if(data == "GIT_HAS_UPDATE"){
+      if(data == "HAD_UPDATE") {
         console.log("Received notice of git update.")
         if (config.CONTINUOUS_INTEGRATION) {
           displayText("RESTARTING")

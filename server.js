@@ -102,8 +102,9 @@ async function serverHandler(request, response) {
     })
     request.on('end', async function() {
       let handled = false
+      let [filePath] = request.url.split('?')
       for (const listener of postListeners) {
-        handled = await listener(response, body)
+        handled = await listener(response, body, filePath)
         if(handled) break
       }
       if(!handled){

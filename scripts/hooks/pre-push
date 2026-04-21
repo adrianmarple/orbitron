@@ -1,0 +1,15 @@
+#!/bin/bash
+# Auto-build Arduino firmware if arduino/esp32/ files changed in this push.
+while read local_ref local_sha remote_ref remote_sha; do
+  # remote_sha is zeros when pushing a new branch (no upstream yet)
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  if git diff-tree --no-commit-id -r --name-only "$range" -- arduino/esp32/ | grep -q .; then
+    echo "arduino/esp32/ changed, building and uploading firmware..."
+    bash scripts/build_arduino.sh || exit 1
+  fi
+done

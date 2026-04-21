@@ -24,42 +24,26 @@ const FIRMWARE_BIN = path.join(FIRMWARE_DIR, 'esp32.ino.bin')
 const FIRMWARE_VERSION_FILE = path.join(FIRMWARE_DIR, 'version.txt')
 let compiledFirmwareVersion = 0
 
+const MASTER_KEY_FILE = path.join(__dirname, 'masterkey.txt')
+let masterKey = ''
+try { masterKey = fs.readFileSync(MASTER_KEY_FILE, 'utf8').trim() } catch(_) {}
+
+function sendToArduinos(message) {
+  for (let id in connectedOrbs) {
+    if (orbInfoCache[id]?.config?.ARDUINO) connectedOrbs[id].send(message)
+  }
+}
+function sendToPis(message) {
+  for (let id in connectedOrbs) {
+    if (!orbInfoCache[id]?.config?.ARDUINO) connectedOrbs[id].send(message)
+  }
+}
+
 function loadCompiledFirmwareVersion() {
   try {
     compiledFirmwareVersion = parseInt(fs.readFileSync(FIRMWARE_VERSION_FILE, 'utf8').trim()) || 0
-    console.log('Loaded compiled firmware version:', compiledFirmwareVersion)
+    console.log('Loaded firmware version:', compiledFirmwareVersion)
   } catch(_) {}
-}
-
-async function compileArduino() {
-  try {
-    await fs.promises.mkdir(FIRMWARE_DIR, { recursive: true })
-    let commitCount = parseInt((await execute('git rev-list --count HEAD -- arduino/esp32/')).trim())
-    if (commitCount === compiledFirmwareVersion) {
-      console.log('Arduino firmware unchanged, skipping recompile')
-      return true
-    }
-    let sketchDir = path.join(__dirname, 'arduino/esp32')
-    console.log(`Compiling Arduino firmware (version ${commitCount})...`)
-    let result = await execute(
-      `arduino-cli compile` +
-      ` --fqbn esp32:esp32:esp32c3` +
-      ` --build-property "build.extra_flags=-DFIRMWARE_VERSION_NUM=${commitCount} -DESP32"` +
-      ` --output-dir ${FIRMWARE_DIR}` +
-      ` ${sketchDir}`
-    )
-    if (result.toLowerCase().includes('error')) {
-      console.error('Arduino compile failed:', result)
-      return false
-    }
-    await fs.promises.writeFile(FIRMWARE_VERSION_FILE, String(commitCount))
-    compiledFirmwareVersion = commitCount
-    console.log('Arduino firmware compiled successfully, version:', compiledFirmwareVersion)
-    return true
-  } catch(e) {
-    console.error('Arduino compile exception:', e)
-    return false
-  }
 }
 
 // Convert Arduino JSON config to Pi JS module format
@@ -496,6 +480,30 @@ addGETListener(async (response, _, filePath, queryParams) => {
   return true
 })
 
+// Accept locally-built Arduino firmware binary and notify Arduino orbs to OTA
+addPOSTListener(async (response, body, filePath) => {
+  if (filePath !== '/firmware/upload') return false
+  let payload
+  try { payload = JSON.parse(body) } catch(_) {
+    response.writeHead(400); response.end('invalid JSON'); return true
+  }
+  if (!masterKey || payload.key !== masterKey) {
+    response.writeHead(403); response.end('forbidden'); return true
+  }
+  const { version, binary } = payload
+  if (!version || !binary) {
+    response.writeHead(400); response.end('missing version or binary'); return true
+  }
+  await fs.promises.mkdir(FIRMWARE_DIR, { recursive: true })
+  await fs.promises.writeFile(FIRMWARE_BIN, Buffer.from(binary, 'base64'))
+  await fs.promises.writeFile(FIRMWARE_VERSION_FILE, String(version))
+  compiledFirmwareVersion = parseInt(version)
+  console.log(`Firmware uploaded: version ${compiledFirmwareVersion}`)
+  sendToArduinos("HAS_UPDATE")
+  response.writeHead(200); response.end('OK')
+  return true
+})
+
 // Get basic info on orb
 addGETListener(async (response, orbID, filePath)=>{
   if (!filePath.includes("/info")) return
@@ -697,14 +705,11 @@ addPOSTListener(async (response, body) => {
     response.writeHead(200)
     response.end('post received')
 
-    // Pull new code, compile Arduino firmware, then broadcast update to all orbs
+    // Pull new code and notify Pi orbs (Arduinos update separately via firmware upload)
     ;(async () => {
       await execute('git fetch origin')
       await execute('git reset --hard origin/master')
-      await compileArduino()
-      for (let orbID in connectedOrbs) {
-        connectedOrbs[orbID].send("GIT_HAS_UPDATE")
-      }
+      sendToPis("HAD_UPDATE")
       restartOrbitron()
     })()
     return true
@@ -718,4 +723,3 @@ addPOSTListener(async (response, body) => {
 
 loadOrbInfoCache()
 loadCompiledFirmwareVersion()
-compileArduino()

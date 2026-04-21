@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Build Arduino firmware locally and upload to relay server.
+# Usage: bash scripts/build_arduino.sh [server-host]
+#   server-host defaults to value in config.js RELAY_HOST, or my.lumatron.art
+
+set -e
+cd "$(dirname "$0")/.."
+
+SERVER=${1:-}
+if [ -z "$SERVER" ]; then
+  SERVER=$(node -e "const {config}=require('./lib'); console.log(config.RELAY_HOST||'my.lumatron.art')" 2>/dev/null || echo "my.lumatron.art")
+fi
+
+MASTERKEY=$(cat masterkey.txt 2>/dev/null || echo "")
+if [ -z "$MASTERKEY" ]; then
+  echo "Error: masterkey.txt not found" >&2
+  exit 1
+fi
+
+echo "Regenerating portal HTML header..."
+python3 scripts/gen_portal_header.py
+
+VERSION=$(git rev-list --count HEAD -- arduino/esp32/)
+echo "Building firmware version $VERSION for $SERVER..."
+
+BUILD_DIR=$(mktemp -d)
+trap "rm -rf $BUILD_DIR" EXIT
+
+arduino-cli compile \
+  --fqbn esp32:esp32:esp32c3 \
+  --build-property "build.extra_flags=-DFIRMWARE_VERSION_NUM=$VERSION -DESP32" \
+  --output-dir "$BUILD_DIR" \
+  arduino/esp32
+
+BINARY=$(base64 < "$BUILD_DIR/esp32.ino.bin")
+
+echo "Uploading to https://$SERVER/firmware/upload..."
+RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://$SERVER/firmware/upload" \
+  -H "Content-Type: application/json" \
+  -d "{\"version\":$VERSION,\"binary\":\"$BINARY\",\"key\":\"$MASTERKEY\"}")
+
+HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+BODY=$(echo "$RESPONSE" | head -1)
+
+if [ "$HTTP_CODE" = "200" ]; then
+  echo "Firmware version $VERSION uploaded successfully."
+  echo "Arduino orbs will OTA within ~2 minutes."
+else
+  echo "Upload failed (HTTP $HTTP_CODE): $BODY" >&2
+  exit 1
+fi

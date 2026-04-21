@@ -92,21 +92,4 @@ fi
 sudo env "PATH=$PATH" pm2 startup
 pm2 save
 
-# Install Arduino CLI and dependencies for OTA firmware builds
-ARDUINO_CLI_URL="https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh"
-if ! command -v arduino-cli &> /dev/null; then
-  echo "Installing Arduino CLI..."
-  curl -fsSL "$ARDUINO_CLI_URL" | BINDIR=/usr/local/bin sh
-fi
-echo "Configuring Arduino CLI..."
-arduino-cli config init --overwrite
-arduino-cli config add board_manager.additional_urls \
-  https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-arduino-cli core update-index
-arduino-cli core install esp32:esp32
-echo "Installing Arduino libraries..."
-arduino-cli lib install "Adafruit NeoPixel"
-arduino-cli lib install "WebSockets"  # Markus Sattler
-arduino-cli lib install "ArduinoJson"
-
 echo "Server install complete."

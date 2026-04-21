@@ -809,8 +809,8 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         lastPingReceived = millis();
         return;
       }
-      if (msg == "GIT_HAS_UPDATE") {
-        Serial.println("GIT_HAS_UPDATE received, CI=" + String(continuousIntegration ? "true" : "false"));
+      if (msg == "HAS_UPDATE") {
+        Serial.println("HAS_UPDATE received, CI=" + String(continuousIntegration ? "true" : "false"));
         if (continuousIntegration) {
           Serial.println("Polling for server restart before OTA...");
           WiFiClientSecure pollClient;
