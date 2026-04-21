@@ -78,7 +78,7 @@ module.exports = async () => {
     }
     const dirFlat = deltaFlat.normalize()
     const mid1 = a.add(dirFlat.scale(offset))
-    const mid2 = b.sub(dirFlat.scale(dist - offset - 1))
+    const mid2 = b.sub(dirFlat.scale(dist - offset - jogHoriz))
     const M1 = addVertex(mid1)
     const M2 = addVertex(mid2)
 

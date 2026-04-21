@@ -190,14 +190,6 @@ function generatePixelInfo() {
   let lastEdge = edges[path.last()]
   hasSeenLastEdge = false
 
-  singleSided = true
-  for (let edge of edges) {
-    if (edge.isDupe) {
-      singleSided = false
-      break
-    }
-  }
-
   let alpha = ledAtVertex ? 0 : resizeScale/2
   for (let edgeIndex of path) {
     let edge = edges[edgeIndex]
@@ -208,16 +200,16 @@ function generatePixelInfo() {
     let e2 = v2.sub(v1)
     let edgeLength = e2.length()
     for (; true; alpha += resizeScale) {
-      
+
       if (alpha > edgeLength - resizeScale/20) {
         alpha -= edgeLength
-        // Verticies with two edges can have non-integer lengths
-        if (nextVertex.edges.length <= (singleSided ? 2 : 4)) break
-        if (ledAtVertex && epsilonEquals(alpha, 0, resizeScale/10)) {
+        // Vertices with only 2 unique edges are simple pass-throughs and can have non-integer lengths
+        if (nextVertex.edges.filter(e => !e.isDupe).length <= 2) break
+        if (ledAtVertex && epsilonEquals(alpha, 0, resizeScale/100)) {
           alpha = 0
           break
         }
-        if (!ledAtVertex && epsilonEquals(alpha, resizeScale/2, resizeScale/10)) {
+        if (!ledAtVertex && epsilonEquals(alpha, resizeScale/2, resizeScale/100)) {
           alpha = resizeScale/2
           break
         }
