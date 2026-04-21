@@ -106,11 +106,11 @@ async function serverHandler(request, response) {
       let [filePath, query] = request.url.split('?')
       let queryParams = Object.fromEntries(new URLSearchParams(query || ''))
       for (const listener of postListeners) {
-        handled = await listener(response, body, filePath, queryParams)
+        handled = await listener(response, body, filePath, queryParams, request.headers)
         if(handled) break
       }
       if(!handled){
-        console.log("UNHANDLED SERVER POST: ", request.url)
+        // console.log("UNHANDLED SERVER POST: ", request.url)
         if (!response.writableEnded) {
           response.writeHead(500)
           response.end('unhandled post')

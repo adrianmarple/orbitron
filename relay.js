@@ -687,20 +687,25 @@ addGETListener(async (response, orbID, filePath) => {
 })
 
 // Process notification of git update
-addPOSTListener(async (response, body) => {
+addPOSTListener(async (response, body, filePath, queryParams, headers) => {
   try {
-    // Ignore weird extra POST requests
-    if (body.toString().startsWith("0x")) return false
     let payload
     try {
       payload = JSON.parse(body.toString())
     } catch(_) {
       return false
     }
-    if (payload.ref !== `refs/heads/${GIT_BRANCH}`)
-      return false
+    if (payload.ref !== `refs/heads/${GIT_BRANCH}`) {
+      return true
+    }
 
-    // TODO also check secret: config.WEBHOOK_SECRET
+    if (config.WEBHOOK_SECRET) {
+      const expected = 'sha256=' + crypto.createHmac('sha256', config.WEBHOOK_SECRET).update(body).digest('hex')
+      if (headers['x-hub-signature-256'] !== expected) {
+        console.log("Received github webhook POST with invalid signature")
+        response.writeHead(403); response.end('invalid signature'); return true
+      }
+    }
     response.writeHead(200)
     response.end('post received')
 
