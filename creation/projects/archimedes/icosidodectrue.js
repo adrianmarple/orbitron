@@ -1,23 +1,24 @@
 // v1.0.1
 module.exports = () => {
   setThinStrip()
+  MAX_SLOT_SEGMENT_LENGTH = 30
 
   buildArchimedean([
     [PHI/2, 1/PHI/2, 1/2],
     [1, 0, 0],
   ], {
-    edgeLength: 12,
+    edgeLength: 10,
   })
 
   rotateZAll(0.36486382811348295)
 
   let wireAngle = edges[50].commonPlain().normal.angleTo(DOWN) * 180 / Math.PI
   console.log(wireAngle)
-  let d0 = 4
-  let d1 = 5.2
-  let d2 = 6.4
-  let h1 = 8
-  let h2 = 15
+  let d0 = 6
+  let d1 = 9.5
+  let d2 = 12.7
+  let h1 = 10
+  let h2 = 20
   printPostProcessingFunction = printInfo => {
     bracketCapturePostProcessing({
       indicies: {3: 0, 5: 1, "top": 2, "bottom": 3},
@@ -34,9 +35,9 @@ module.exports = () => {
           operations: [
             {type: "rotate", vector: [0, Math.PI, 0]}
           ],
-          rotationAngle: 110.9051574478893 / 180 * Math.PI,
+          rotationAngle: -110.9051574478893 / 180 * Math.PI,
           components: [
-            printInfo.prints[5],
+            printInfo.prints[4],
             {
               position: [0, 0, -1],
               code: `

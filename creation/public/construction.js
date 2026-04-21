@@ -1146,23 +1146,33 @@ function foldWallCreation(foldWall, printInfo) {
   }
   else { // !PRINT_WALL_HALVES_SEPARATELY
     let print = {
+      type: "difference",
       suffix: leftJoint.suffix,
-      type: "union",
-      components: [
-        leftJoint,
-        {
-          operations: [{
-            type: "rotate",
-            axis: [0,1,0],
-            angle: -foldWall.yRotationAngle * 2,
-          }],
-          ...rightJoint
+      components: [ {
+          type: "union",
+          components: [
+            leftJoint,
+            {
+              operations: [{
+                type: "rotate",
+                axis: [0,1,0],
+                angle: -foldWall.yRotationAngle * 2,
+              }],
+              ...rightJoint
+            },
+          ]
         },
+        { // Prevent and LED supports from dropping below z=0
+          position: [0,0,-5],
+          type: "cube",
+          dimensions: [100,100,10],
+        }
       ]
     }
     if (foldWall.yRotationAngle < 0) {
-      print.components[0].operations = [translation]
-      print.components[1].operations.unshift(translation)
+      print.components[0].components[0].operations = [translation]
+      print.components[0].components[1].operations.unshift(translation)
+      flipPrint(print.components[1])
       cleanForFlip(leftJoint)
       flipPrint(print)
     }
