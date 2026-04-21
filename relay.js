@@ -689,46 +689,40 @@ addGETListener(async (response, orbID, filePath) => {
 
 // Process notification of git update
 addPOSTListener(async (response, body, filePath, queryParams, headers) => {
-  try {
-    let payload
-    try {
-      payload = JSON.parse(body.toString())
-    } catch(_) {
-      return false
-    }
-    if (config.WEBHOOK_SECRET) {
-      const expected = 'sha256=' + crypto.createHmac('sha256', config.WEBHOOK_SECRET).update(body).digest('hex')
-      if (headers['x-hub-signature-256'] !== expected) {
-        console.log("Received github webhook POST with invalid signature")
-        response.writeHead(403)
-        response.end('invalid signature')
-        return true
-      }
-    }
-    console.log("Received update for " + payload.ref)
-    if (payload.ref !== `refs/heads/${GIT_BRANCH}`) {
-      response.writeHead(200)
-      response.end('post received')
+  if (!headers['x-github-event']) return false
+
+  if (config.WEBHOOK_SECRET) {
+    const expected = 'sha256=' + crypto.createHmac('sha256', config.WEBHOOK_SECRET).update(body).digest('hex')
+    if (headers['x-hub-signature-256'] !== expected) {
+      console.log("Received github webhook POST with invalid signature")
+      response.writeHead(403)
+      response.end('invalid signature')
       return true
     }
-
-    response.writeHead(200)
-    response.end('post received')
-
-    // Pull new code and notify Pi orbs (Arduinos update separately via firmware upload)
-    ;(async () => {
-      await execute('git fetch origin')
-      await execute(`git reset --hard origin/${GIT_BRANCH}`)
-      sendToPis("HAS_UPDATE")
-      restartOrbitron()
-    })()
-    return true
-  } catch(e) {
-    console.log("POST data didn't parse as JSON", e)
-    console.log("POST body:", body)
-    response.writeHead(500)
-    response.end('error parsing json')
   }
+
+  let payload
+  try {
+    payload = JSON.parse(body.toString())
+  } catch(_) {
+    response.writeHead(400)
+    response.end('invalid JSON')
+    return true
+  }
+
+  response.writeHead(200)
+  response.end('post received')
+
+  if (payload.ref !== `refs/heads/${GIT_BRANCH}`) return true
+
+  // Pull new code and notify Pi orbs (Arduinos update separately via firmware upload)
+  ;(async () => {
+    await execute('git fetch origin')
+    await execute(`git reset --hard origin/${GIT_BRANCH}`)
+    sendToPis("HAD_UPDATE")
+    restartOrbitron()
+  })()
+  return true
 })
 
 loadOrbInfoCache()
