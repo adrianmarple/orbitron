@@ -10,6 +10,6 @@ while read local_ref local_sha remote_ref remote_sha; do
 
   if git diff-tree --no-commit-id -r --name-only "$range" -- arduino/esp32/ | grep -q .; then
     echo "arduino/esp32/ changed, building and uploading firmware..."
-    bash scripts/build_arduino.sh || exit 1
+    bash scripts/arduino_build.sh || exit 1
   fi
 done

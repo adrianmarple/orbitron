@@ -68,6 +68,7 @@ module.exports = () => {
   }
 
   edgeCleanup()
+  doubleEdges()
   EulerianPath(0)
 }
  

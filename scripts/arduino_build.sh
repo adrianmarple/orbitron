@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build Arduino firmware locally and upload to relay server.
-# Usage: bash scripts/build_arduino.sh [server-host]
+# Usage: bash scripts/arduino_build.sh [server-host]
 #   server-host defaults to value in config.js RELAY_HOST, or my.lumatron.art
 
 set -e
@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 SERVER=${1:-}
 if [ -z "$SERVER" ]; then
-  SERVER=$(node -e "const {config}=require('./lib'); console.log(config.RELAY_HOST||'my.lumatron.art')" 2>/dev/null || echo "my.lumatron.art")
+  SERVER=$(node -e "const {config}=require('./lib'); console.log(config.RELAY_HOST||'my.lumatron.art')" 2>/dev/null | tail -1 || echo "my.lumatron.art")
 fi
 
 MASTERKEY=$(cat masterkey.txt 2>/dev/null || echo "")
@@ -27,17 +27,20 @@ BUILD_DIR=$(mktemp -d)
 trap "rm -rf $BUILD_DIR" EXIT
 
 arduino-cli compile \
-  --fqbn esp32:esp32:esp32c3 \
+  --fqbn esp32:esp32:esp32c3:PartitionScheme=min_spiffs \
   --build-property "build.extra_flags=-DFIRMWARE_VERSION_NUM=$VERSION -DESP32" \
   --output-dir "$BUILD_DIR" \
   arduino/esp32
 
 BINARY=$(base64 < "$BUILD_DIR/esp32.ino.bin")
+PAYLOAD_FILE=$(mktemp)
+trap "rm -rf $BUILD_DIR $PAYLOAD_FILE" EXIT
+printf '{"version":%s,"binary":"%s","key":"%s"}' "$VERSION" "$BINARY" "$MASTERKEY" > "$PAYLOAD_FILE"
 
 echo "Uploading to https://$SERVER/firmware/upload..."
 RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://$SERVER/firmware/upload" \
   -H "Content-Type: application/json" \
-  -d "{\"version\":$VERSION,\"binary\":\"$BINARY\",\"key\":\"$MASTERKEY\"}")
+  --data @"$PAYLOAD_FILE")
 
 HTTP_CODE=$(echo "$RESPONSE" | tail -1)
 BODY=$(echo "$RESPONSE" | head -1)

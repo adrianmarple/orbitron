@@ -80,6 +80,9 @@ Icon[\r]
 Icon?
 /core
 
+# Arduino build output
+arduino/esp32/build/
+
 # 3d printing files
 *.gcode
 /creation/**/*.stl
