@@ -84,7 +84,6 @@ if (config.DEV_MODE) {
   server = https.createServer(config.httpsOptions, serverHandler)
 }
 function serverHandler(request, response) {
-  //console.log('Websocket Server received request for ' + request.url)
   response.writeHead(404)
   response.end()
 }
@@ -473,7 +472,7 @@ addGETListener(async (response, _, filePath, queryParams) => {
     response.end()
     return true
   }
-  let bin = fs.readFileSync(FIRMWARE_BIN)
+  let bin = await fs.promises.readFile(FIRMWARE_BIN)
   response.writeHead(200, {
     'Content-Type': 'application/octet-stream',
     'Content-Length': bin.length,
