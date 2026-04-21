@@ -5,7 +5,7 @@ const { checkForUpdates } = require('./gitupdate')
 
 let isOrb = !config.IS_RELAY && !config.DEV_MODE && !config.HAS_EMULATION
 
-if (!config.DEV_MODE && !config.CONTINUOUS_INTEGRATION) {
+if (!config.DEV_MODE) {
   console.log("Checking for updates")
   checkForUpdates()
 }

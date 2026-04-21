@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # Build Arduino firmware locally and upload to relay server.
 # Usage: bash scripts/arduino_build.sh [server-host]
-#   server-host defaults to value in config.js RELAY_HOST, or my.lumatron.art
+#   server-host defaults to BRANCH_TO_HOST lookup on current git branch
 
 set -e
 cd "$(dirname "$0")/.."
 
+declare -A BRANCH_TO_HOST
+BRANCH_TO_HOST["master"]="my.lumatron.art"
+BRANCH_TO_HOST["staging"]="staging.lumatron.art"
+
 SERVER=${1:-}
 if [ -z "$SERVER" ]; then
-  SERVER=$(node -e "const {config}=require('./lib'); process.stdout.write((config.RELAY_HOST||'my.lumatron.art')+'\n')" 2>/dev/null || echo "my.lumatron.art")
+  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  SERVER=${BRANCH_TO_HOST[$BRANCH]:-"my.lumatron.art"}
 fi
 
 MASTERKEY=$(cat masterkey.txt 2>/dev/null || echo "")

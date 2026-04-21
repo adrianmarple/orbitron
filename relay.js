@@ -30,6 +30,8 @@ const MASTER_KEY_FILE = path.join(__dirname, 'masterkey.txt')
 let masterKey = ''
 try { masterKey = fs.readFileSync(MASTER_KEY_FILE, 'utf8').trim() } catch(_) {}
 
+const GIT_BRANCH = require('child_process').execSync('git rev-parse --abbrev-ref HEAD').toString().trim()
+
 function sendToArduinos(message) {
   for (let id in connectedOrbs) {
     if (orbInfoCache[id]?.config?.ARDUINO) connectedOrbs[id].send(message)
@@ -695,7 +697,7 @@ addPOSTListener(async (response, body) => {
     } catch(_) {
       return false
     }
-    if (payload.ref !== 'refs/heads/master')
+    if (payload.ref !== `refs/heads/${GIT_BRANCH}`)
       return false
 
     // TODO also check secret: config.WEBHOOK_SECRET
@@ -705,8 +707,8 @@ addPOSTListener(async (response, body) => {
     // Pull new code and notify Pi orbs (Arduinos update separately via firmware upload)
     ;(async () => {
       await execute('git fetch origin')
-      await execute('git reset --hard origin/master')
-      sendToPis("HAD_UPDATE")
+      await execute(`git reset --hard origin/${GIT_BRANCH}`)
+      sendToPis("HAS_UPDATE")
       restartOrbitron()
     })()
     return true

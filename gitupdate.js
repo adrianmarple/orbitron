@@ -42,7 +42,6 @@ async function checkForUpdates(){
   let connected = output.indexOf("200") >= 0
   if(!runDirectly){
     let nextUpdateTime = connected ? timeUntilHour(2) : 1e4
-    //console.log("hours until 2am", timeUntilHour(2) / 3600000)
     setTimeout(() => {
       checkForUpdates()
     }, nextUpdateTime)
