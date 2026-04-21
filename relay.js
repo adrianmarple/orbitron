@@ -696,6 +696,8 @@ addPOSTListener(async (response, body, filePath, queryParams, headers) => {
       return false
     }
     if (payload.ref !== `refs/heads/${GIT_BRANCH}`) {
+      response.writeHead(200)
+      response.end('post received')
       return true
     }
 
@@ -703,7 +705,9 @@ addPOSTListener(async (response, body, filePath, queryParams, headers) => {
       const expected = 'sha256=' + crypto.createHmac('sha256', config.WEBHOOK_SECRET).update(body).digest('hex')
       if (headers['x-hub-signature-256'] !== expected) {
         console.log("Received github webhook POST with invalid signature")
-        response.writeHead(403); response.end('invalid signature'); return true
+        response.writeHead(403)
+        response.end('invalid signature')
+        return true
       }
     }
     response.writeHead(200)
