@@ -887,7 +887,6 @@ var app = new Vue({
         return
       }
 
-      console.log(this.saveNames)
       if (this.saveNames.includes(name)) {
         this.speedbumpMessage = `The save name "${name}" is already being used.`
       } else {
