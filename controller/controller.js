@@ -156,8 +156,8 @@ var app = new Vue({
 
     if (this.orbID) {
       try {
-        let reponse = await fetch(`${location.origin}/${this.orbID}/info`)
-        let orb = await reponse.json()
+        let response = await fetch(`${location.origin}/${this.orbID}/info`)
+        let orb = await response.json()
         this.initOrb(orb)
         this.orbID = orb.id
         this.startWebsocket()

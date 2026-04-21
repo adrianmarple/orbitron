@@ -124,11 +124,11 @@ Vue.component('color', {
       <div>{{component[0]}}:{{vector[component]}}</div>
     </div>
     <div class="slider-container" :class="[component]">
-      <input type="range" min="0" max="255" class="slider""
+      <input type="range" min="0" max="255" class="slider"
         v-model="vector[component]"></input>
       <div class="left" :style="{ background: component, width: (100 / 255.0 * vector[component]) + '%'}"></div>
       <div class="right" :style="{ width: (100 - 100 / 255.0 * vector[component]) + '%'}"></div>
-    </div
+    </div>
   </div>
 </span>
 <span v-else>
