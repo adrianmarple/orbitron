@@ -381,7 +381,7 @@ void loadGeometry() {
   }
 
   if (!f) {
-    Serial.println("No geometry available, using 1-pixel stub");
+    Serial.println("Geometry unavailable, falling back to 1-pixel mode");
     SIZE = 1; RAW_SIZE = 1;
   } else {
     uint16_t s, rs;
@@ -775,7 +775,7 @@ void performOTA() {
   String url = "https://" + relayHost + "/firmware/" + orbID + ".bin?version=" + FIRMWARE_VERSION_NUM;
   Serial.println("OTA check: " + url);
   WiFiClientSecure client;
-  client.setInsecure();  // replace with setCACert() once cert is pinned
+  client.setInsecure();  // TODO: implement certificate pinning
   wsClient.disconnect();
   t_httpUpdate_return ret = httpUpdate.update(client, url);
   switch (ret) {
@@ -1345,6 +1345,6 @@ void loop() {
   float frame_rate = 30;
   if (idlePattern == PATTERN_DEFAULT || idlePattern == PATTERN_FIREFLIES)
     frame_rate = idleFrameRate;
-  int delay_time = (int)(1000.0f / frame_rate) - (int)(millis() - loop_start);
+  int delay_time = (int)(1000.0f / frame_rate - (millis() - loop_start));
   if (delay_time > 0) delay(delay_time);
 }
