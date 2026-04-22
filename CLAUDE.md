@@ -222,6 +222,14 @@ npm install
 node pixelserver.js   # starts on port 8000, also launches the Vue dev server
 ```
 
+### Integer edge length requirement
+
+LED placement in `data.js` walks the Eulerian path and places LEDs at regular intervals (`resizeScale`). For this to work correctly, every edge that is a **junction** — connected to 3 or more unique (non-dupe) edges at either endpoint — must have a length that is an integer multiple of `resizeScale`. Simple pass-through vertices (exactly 2 unique edges) are exempt because the fractional remainder just carries forward to the next edge without accumulating error.
+
+Some geometries have dupe edges (a second mirrored copy of each edge, e.g. for top/bottom covers). The integer check counts only **unique** (non-dupe) edges to determine if a vertex is a junction — a vertex with 2 unique + 2 dupe edges is still a pass-through.
+
+The check in `data.js` will error if lengths are off by more than `resizeScale/100`; errors smaller than that will silently produce singleton LEDs (raw LEDs with no matching dupe LED).
+
 ### What it does
 - **Vue.js design tool** (`src/`, `public/`) — a browser-based CAD app for designing LED fixture layouts. Core math is in `public/topology.js` (vertex/edge/face graph), `public/data.js` (generates pixel JSON), and `public/construction.js` (generates SVG/3D print geometry).
 - **`pixelserver.js`** — Node.js server that drives the full fabrication pipeline from a design: generates OpenSCAD → STL (via `openscad`) → simplified mesh (via Blender) → g-code (via Prusa slicer) → uploads directly to a networked 3D printer. Also saves pixel geometry JSON to `../pixels/` for use by the game engine.

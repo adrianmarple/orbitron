@@ -1723,6 +1723,10 @@ function wallPrint(wall, isLeft) {
       let pcb_thickness = 1.6
       let usbc_pcb_thickness = 1
       let pcb_offset = (pcb_thickness - usbc_pcb_thickness)/2
+      let firstEdge = edges[window.path[0]]
+      if (firstEdge.verticies.includes(endVertex)) {
+        pcb_offset *= -1
+      }
 
       let top_thickness = 12.2 - WALL_THICKNESS
       let top_border = 3
