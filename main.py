@@ -81,6 +81,8 @@ def consume_input():
         prefs.rename(message["originalName"], message["newName"])
       elif message["type"] == "advanceManualFade":
         prefs.advance_manual_fade()
+      elif message["type"] == "advanceCycle":
+        prefs.advance_preset()
 
       if "self" not in message or message["self"] is None:
         continue

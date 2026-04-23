@@ -514,24 +514,15 @@ addGETListener(async (response, orbID, filePath)=>{
     return true
   }
   localConfig = orbInfoCache[orbID].config
-  let info = {
-    orbID,
-    topology: localConfig.PIXELS,
-    isFlat: localConfig.IS_FLAT,
-    isCurrentlyConnected: !!connectedOrbs[orbID],
-    extraIdle: localConfig.IDLE,
-    extraStartingRules: localConfig.EXTRA_STARTING_RULES,
-    include: localConfig.INCLUDE || {},
-    exclude: localConfig.EXCLUDE || {},
-    dimmerStates: localConfig.MANUAL_FADE_STEPS,
-    hasCycle: [
-      localConfig.SHORT_PRESS_ACTION,
-      localConfig.LONG_PRESS_ACTION,
-      localConfig.DOUBLE_CLICK_ACTION
-    ].includes("CYCLE"),
-    isArduino: localConfig.ARDUINO || false,
-    name: config.ALIASES[orbID] ?? orbID,
+  const STRIP_FIELDS = ['ORB_KEY', 'MANUAL_FADE_PIN', 'BUTTON_PIN', 'KEY_LOCATION', 'CERT_LOCATION', 'httpsOptions', 'WEBHOOK_SECRET']
+  let info = { ...localConfig }
+  for (const key of STRIP_FIELDS) {
+    delete info[key]
   }
+  info.orbID = orbID
+  info.isCurrentlyConnected = !!connectedOrbs[orbID]
+  info.isArduino = localConfig.ARDUINO || false
+  info.name = config.ALIASES[orbID] ?? orbID
   if (config.ALIASES[orbID]) {
     info.alias = config.ALIASES[orbID]
   }

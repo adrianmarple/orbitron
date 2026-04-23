@@ -249,7 +249,7 @@ Vue.component('dropdown', {
 Vue.component('vector', {
   props: ['title', 'size', 'help'],
   template: `
-<vector2 v-if='$root.orbInfo.isFlat'
+<vector2 v-if='$root.orbInfo.IS_FLAT'
     :title='title'
     :help='help'
     :normalize='true'
@@ -453,7 +453,7 @@ Vue.component('vector3', {
         self.setRotation()
       }
 
-      loader.load("stls/" + this.$root.orbInfo.topology + ".stl", loadGeometry, undefined, _ => {
+      loader.load("stls/" + this.$root.orbInfo.PIXELS + ".stl", loadGeometry, undefined, _ => {
         // Assume stl file just doesn't exist
         loader.load("stls/default.stl", loadGeometry, undefined, error => {
           console.error('An error happened while loading the STL file.', error)
@@ -637,13 +637,13 @@ function initSharedRenderer() {
 Vue.component('stlviewer', {
   props: ['info'],
   watch: {
-    "info.topology": function() {
+    "info.PIXELS": function() {
       this.load()
     },
   },
   mounted() {
     const self = this
-    this.viewRecord = { scene: null, camera: null, mesh: null, ctx: null, get orbID() { return self.info.orbID }, isConnected: () => self.$root.isConnected(self.info.orbID), hasTopology: () => !!self.info.topology }
+    this.viewRecord = { scene: null, camera: null, mesh: null, ctx: null, get orbID() { return self.info.orbID }, isConnected: () => self.$root.isConnected(self.info.orbID), hasTopology: () => !!self.info.PIXELS }
     stlViews.set(this, this.viewRecord)
     initSharedRenderer()
     this.load()
@@ -694,7 +694,7 @@ Vue.component('stlviewer', {
         scene.add(mesh)
         view.mesh = mesh
       }
-      const topology = this.info.topology
+      const topology = this.info.PIXELS
       if (topology) {
         loader.load("stls/" + topology + ".stl", loadGeometry, undefined, _ => {
           loader.load("stls/default.stl", loadGeometry, undefined, error => {

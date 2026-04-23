@@ -65,6 +65,12 @@ var app = new Vue({
     loadingOrb: false,
 
 
+    buttonClickCount: 0,
+    buttonClickTimer: null,
+    buttonLongTimer: null,
+    buttonLongFired: false,
+    activeButtonOrbID: undefined,
+
     loginCode: "",
     localFlags: {},
     helpMessage: null,
@@ -320,7 +326,7 @@ var app = new Vue({
     },
 
     dimmerString() {
-      let dimmerStates = this.orbInfo.dimmerStates || [1, 0]
+      let dimmerStates = this.getOrbConfig(undefined, 'MANUAL_FADE_STEPS', [1, 0])
       let nextDimmerIndex = 0
       let closestDistance = 1
       for (let i = 0; i < dimmerStates.length; i++) {
@@ -373,7 +379,7 @@ var app = new Vue({
         }
       }
       
-      let extra = this.orbInfo.extraIdle
+      let extra = this.getOrbConfig(undefined, 'IDLE')
       if (extra) {
         let extraDisplayName = extra[0].toUpperCase() + extra.slice(1)
         options.unshift([extra, extraDisplayName])
@@ -403,10 +409,18 @@ var app = new Vue({
     },
 
     exclude() {
-      return this.orbInfo.exclude || {}
+      return this.getOrbConfig(undefined, 'EXCLUDE', {})
     },
     include() {
-      return this.orbInfo.include || {}
+      return this.getOrbConfig(undefined, 'INCLUDE', {})
+    },
+    hasCycle() {
+      return [
+        this.getOrbConfig(undefined, 'SHORT_PRESS_ACTION', 'DIM'),
+        this.getOrbConfig(undefined, 'LONG_PRESS_ACTION', 'CYCLE'),
+        this.getOrbConfig(undefined, 'DOUBLE_CLICK_ACTION', ''),
+        this.getOrbConfig(undefined, 'TRIPLE_CLICK_ACTION', 'ACCESS_POINT'),
+      ].includes('CYCLE')
     },
     isArduino() {
       return this.orbInfo.isArduino || this.state.isArduino || false
@@ -791,6 +805,10 @@ var app = new Vue({
     getOrb(id) {
       return this.idToOrb[id] ?? { orbID: id, name: id }
     },
+    getOrbConfig(id, key, defaultVal) {
+      id = id ?? this.orbID
+      return this.getOrb(id)[key] ?? defaultVal
+    },
 
     isConnected(id) {
       let orb = this.getOrb(id)
@@ -908,6 +926,51 @@ var app = new Vue({
     },
     advanceManualFade(orbID) {
       this.send({type: "advanceManualFade"}, orbID)
+    },
+    advanceCycle(orbID) {
+      this.send({type: "advanceCycle"}, orbID)
+    },
+    startAccessPoint(orbID) {
+      this.send({type: "startAccessPoint"}, orbID)
+    },
+    performOrbAction(id, action) {
+      if (!action) return
+      if (action === 'DIM') this.advanceManualFade(id)
+      else if (action === 'CYCLE') this.advanceCycle(id)
+      else if (action === 'ACCESS_POINT') this.startAccessPoint(id)
+    },
+    onButtonPointerDown(id) {
+      this.activeButtonOrbID = id
+      this.buttonLongFired = false
+      this.buttonLongTimer = setTimeout(() => {
+        this.buttonLongFired = true
+        this.buttonClickCount = 0
+        clearTimeout(this.buttonClickTimer)
+        this.buttonClickTimer = null
+        this.performOrbAction(this.activeButtonOrbID, this.getOrbConfig(this.activeButtonOrbID, 'LONG_PRESS_ACTION', 'CYCLE'))
+      }, 700)
+    },
+    onButtonPointerUp(id) {
+      clearTimeout(this.buttonLongTimer)
+      if (this.buttonLongFired) return
+      this.buttonClickCount++
+      const capturedID = this.activeButtonOrbID
+      clearTimeout(this.buttonClickTimer)
+      this.buttonClickTimer = setTimeout(() => {
+        const count = this.buttonClickCount
+        this.buttonClickCount = 0
+        this.buttonClickTimer = null
+        if (count === 1) this.performOrbAction(capturedID, this.getOrbConfig(capturedID, 'SHORT_PRESS_ACTION', 'DIM'))
+        else if (count === 2) this.performOrbAction(capturedID, this.getOrbConfig(capturedID, 'DOUBLE_CLICK_ACTION', ''))
+        else this.performOrbAction(capturedID, this.getOrbConfig(capturedID, 'TRIPLE_CLICK_ACTION', 'ACCESS_POINT'))
+      }, 400)
+    },
+    onButtonPointerCancel() {
+      clearTimeout(this.buttonLongTimer)
+      clearTimeout(this.buttonClickTimer)
+      this.buttonClickCount = 0
+      this.buttonLongFired = false
+      this.buttonClickTimer = null
     },
     // Pref commands
     clearPrefs() {

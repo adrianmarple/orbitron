@@ -179,14 +179,14 @@ window.gameMixin = {
         startingRules = []
       } else {
         startingRules = GLOBAL_RULES
-        if (this.orbInfo.extraStartingRules) {
-          startingRules = [...this.orbInfo.extraStartingRules, ...startingRules]
+        if (this.orbInfo.EXTRA_STARTING_RULES) {
+          startingRules = [...this.orbInfo.EXTRA_STARTING_RULES, ...startingRules]
         }
       }
       if (this.gameMeta && this.gameMeta.rules) {
         startingRules =  startingRules.concat(this.gameMeta.rules)
       }
-      return startingRules.filter(rule => rule.nonFlatOnly || !this.orbInfo.isFlat)
+      return startingRules.filter(rule => rule.nonFlatOnly || !this.orbInfo.IS_FLAT)
     },
     carouselSize() {
       return this.rules.length

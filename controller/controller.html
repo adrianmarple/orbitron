@@ -45,7 +45,7 @@
             ref="prefModalNameInput"></textarea>
         <img class="edit" src="/controller/images/edit_white.svg" @click="$refs.prefModalNameInput.focus()"/>
       </div>
-      <div v-if="orbInfo.hasCycle" class="pure-material-checkbox checkbox">
+      <div v-if="hasCycle" class="pure-material-checkbox checkbox">
         <input type="checkbox"
             :checked="(prefs.includedInCycles || {})[prefModalName]"
             @change="toggleIncludedInCycles(prefModalName, $event.target.checked)">
@@ -128,7 +128,9 @@
           <div class="bottom">{{ getOrb(id).name }}</div>
           <div v-if="isConnected(id)"
               class="power button"
-              @click.stop="advanceManualFade(id)">
+              @pointerdown.stop="onButtonPointerDown(id)"
+              @pointerup.stop="onButtonPointerUp(id)"
+              @pointercancel.stop="onButtonPointerCancel()">
             <img src="/controller/images/power.svg"
             :style="{filter: `invert(100%)
               drop-shadow(0 0 1.2rem rgba(255,255,255, ${Math.sqrt(dimmer(id))}))
@@ -470,7 +472,9 @@
     <div class="power-wrapper">
       <div class="power button"
             :style="{borderColor: `rgba(255,255,255, ${Math.sqrt(dimmer()) / 2 + 0.1})`}"
-            @click.stop="advanceManualFade()">
+            @pointerdown.stop="onButtonPointerDown()"
+            @pointerup.stop="onButtonPointerUp()"
+            @pointercancel.stop="onButtonPointerCancel()">
         <img src="/controller/images/power.svg"
         :style="{filter: `invert(100%)
           drop-shadow(0 0 1.2rem rgba(255,255,255, ${Math.sqrt(dimmer())}))

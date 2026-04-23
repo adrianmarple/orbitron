@@ -429,17 +429,17 @@ void sendInfoDump() {
   JsonDocument configDoc;
   deserializeJson(configDoc, configJson);
 
+  // Strip sensitive/hardware fields
+  configDoc.remove("ORB_KEY");
+  configDoc.remove("BUTTON_PIN");
+
+  // Tack on fields not stored in config.json
+  configDoc["ARDUINO"] = true;
+  configDoc["FIRMWARE_VERSION"] = FIRMWARE_VERSION;
+
   JsonDocument msg;
   msg["type"] = "info";
-  JsonObject cfg = msg["config"].to<JsonObject>();
-  cfg["ORB_ID"] = orbID;
-  cfg["PIXELS"] = pixelsName;
-  cfg["ARDUINO"] = true;
-  cfg["FIRMWARE_VERSION"] = FIRMWARE_VERSION;
-  cfg["SHORT_PRESS_ACTION"] = shortPressAction;
-  cfg["LONG_PRESS_ACTION"] = longPressAction;
-  cfg["DOUBLE_CLICK_ACTION"] = doubleClickAction;
-  cfg["TRIPLE_CLICK_ACTION"] = tripleClickAction;
+  msg["config"] = configDoc;
   String out;
   serializeJson(msg, out);
   wsClient.sendTXT(out);
