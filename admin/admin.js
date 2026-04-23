@@ -154,9 +154,17 @@ new Vue({
       return await sha256(orbID.toLowerCase() + this.masterKey)
     },
 
+    focusCommandPrompt() {
+      this.$nextTick(() => {
+        let el = document.querySelector(".command-prompt")
+        if (el) el.focus()
+      })
+    },
+
     async setViewing(type) {
       this.viewing = type
       this.updateViewing()
+      if (type == "command") this.focusCommandPrompt()
     },
 
     async setOrb(orbID) {
@@ -168,6 +176,7 @@ new Vue({
         }
       }
       this.newAlias = ""
+      if (this.viewing == "command") this.focusCommandPrompt()
       this.commandResponses = " "
       this.log = ""
       this.prefs = ""
@@ -198,6 +207,7 @@ new Vue({
     },
 
     async unlockOrb() {
+      if (!confirm("Unlock orb? This resets the Pi password and removes ORB_KEY.")) return
       let command = 'sudo bash -c "echo pi:lumatron | chpasswd"'
       let response = await this.sendCommand({ type: "run", command })
       this.commandResponses += "% " + command + "\n" + (response.trim() || "(success)") + "\n"
@@ -363,9 +373,11 @@ new Vue({
 
     async onCommandKeydown(event) {
       if (event.key == "Enter") {
-        this.commandHistory.unshift(this.command)
-        let response = await this.sendCommand({ type: "run", command: this.command })
-        this.commandResponses += "% " + this.command + response
+        event.preventDefault()
+        let cmd = this.command.replace(/\n/g, "")
+        this.commandHistory.unshift(cmd)
+        let response = await this.sendCommand({ type: "run", command: cmd })
+        this.commandResponses += "% " + cmd + "\n" + (response.trim() || "(success)") + "\n"
         this.command = ""
         this.historyIndex = -1
       }
