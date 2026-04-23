@@ -632,6 +632,16 @@ void handleControllerMessage(const String& clientID, const String& message) {
   } else if (type == "advanceManualFade") {
     advanceDim();
 
+  } else if (type == "copyPrefs") {
+    String name = doc["name"].as<String>();
+    String copyName = doc["copyName"].as<String>();
+    if (name.isEmpty() || copyName.isEmpty()) return;
+
+    String savedJson = readFile(savedPrefPath(name).c_str());
+    if (savedJson.isEmpty()) return;
+    writeFile(savedPrefPath(copyName).c_str(), savedJson);
+    broadcastState();
+
   } else if (type == "renamePref") {
     String originalName = doc["originalName"].as<String>();
     String newName = doc["newName"].as<String>();

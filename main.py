@@ -75,6 +75,8 @@ def consume_input():
         prefs.save(message["name"])
       elif message["type"] == "loadPrefs":
         prefs.load(message["name"])
+      elif message["type"] == "copyPrefs":
+        prefs.copy(message["name"], message["copyName"])
       elif message["type"] == "deletePrefs":
         prefs.delete(message["name"])
       elif message["type"] == "renamePref":

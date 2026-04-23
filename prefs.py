@@ -285,6 +285,17 @@ def load(name, clobber_prefs=True):
     set_idle()
     shutil.copy(old_path, pref_path)
 
+def copy(name, copy_name):
+  src_path = pref_path_from_name(name)
+  if not os.path.exists(src_path):
+    print("Tried to copy non-existant pref: %s" % name, file=sys.stderr)
+    return
+  shutil.copy(src_path, pref_path_from_name(copy_name))
+  saved_prefs[copy_name] = json.loads(json.dumps(saved_prefs[name])) if name in saved_prefs else None
+  if copy_name not in pref_names:
+    pref_names.append(copy_name)
+    sort_pref_names()
+
 def delete(name):
   path = pref_path_from_name(name)
   if os.path.exists(path):

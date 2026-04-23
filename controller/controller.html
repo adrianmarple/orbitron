@@ -57,6 +57,7 @@
       <div class="row">
         <div class="button" :class="{disabled: prefModalName === state.currentPrefName}" @click="savePrefs(prefModalName); closePrefModal()">Save</div>
         <div class="button" @click="loadPrefs(prefModalName); closePrefModal()">Load</div>
+        <div class="button" @click="copyPrefs(prefModalName); closePrefModal()">Copy</div>
       </div>
       <img class="delete" src="/controller/images/delete.svg" @click="deletePrefs(prefModalName); closePrefModal()"/>
     </div>

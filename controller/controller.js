@@ -1007,6 +1007,13 @@ var app = new Vue({
         this.send({ type: "savePrefs", name })
       }
     },
+    copyPrefs(name) {
+      let baseName = name.replace(/ \d+$/, '')
+      let n = 2
+      while (this.state.prefNames.includes(`${baseName} ${n}`)) n++
+      let copyName = `${baseName} ${n}`
+      this.send({ type: "copyPrefs", name, copyName })
+    },
     loadPrefs(name) {
       name = name || this.prefName
       if (this.state.currentPrefName) {
