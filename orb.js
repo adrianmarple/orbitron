@@ -6,7 +6,6 @@ const WebSocket = require('ws')
 const fs = require('fs')
 const process = require('process')
 const { spawn } = require('child_process')
-const pako = require('./thirdparty/pako.min.js')
 const os = require('os')
 const { v4: uuid } = require('uuid')
 const homedir = os.homedir()
@@ -751,7 +750,7 @@ function handleEngineOut(data) {
       raw_pixels += message
       if (raw_pixels.endsWith(";")) {
         try {
-          if (emulator) emulator.broadcast(pako.deflate(raw_pixels.slice(0, -1)))
+          if (emulator) emulator.broadcast(require('./thirdparty/pako.min.js').deflate(raw_pixels.slice(0, -1)))
         } catch(e) {
           console.log("emulator broadcast error", e, raw_pixels)
         }
