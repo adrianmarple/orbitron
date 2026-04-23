@@ -1041,9 +1041,6 @@ def broadcast_state():
     "prefNames": prefs.pref_names,
     "currentPrefName": prefs.current_pref_name,
   }
-  price = config.get("PRICE")
-  if price is not None:
-    message["price"] = price
   prefs.pref_to_client_timestamp.clear()
   print(json.dumps(message))
 
@@ -1101,17 +1098,6 @@ def run_core_loop():
     time_to_wait = last_frame_time + 1.0/FRAMERATE - time()
     if time_to_wait > 0:
       sleep(time_to_wait)
-
-    frame_time = time() - last_frame_time
-    framerate_data['slowest_frame'] = max(frame_time, framerate_data['slowest_frame'])
-    if frame_time > 0.1:
-      framerate_data['slow_frame_count'] += 1
-    if frame_time > 1:
-      framerate_data['very_slow_frame_count'] += 1
-      print("Framerate Data: " + str(framerate_data), file=sys.stderr)
-
-    if config.get("SHOW_FRAME_INFO"):
-      print("Frame rate %f\nFrame  time %dms" % (1/frame_time, int(frame_time * 1000)),file=sys.stderr)
     last_frame_time = time()
 
 

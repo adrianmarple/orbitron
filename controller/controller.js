@@ -74,7 +74,6 @@ var app = new Vue({
     loginCode: "",
     localFlags: {},
     helpMessage: null,
-    showConsignment: true,
     showAboutPage: false,
     blurred: false,
     renamingSave: "",

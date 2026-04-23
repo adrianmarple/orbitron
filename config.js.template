@@ -1,43 +1,18 @@
 module.exports={
   ORB_ID: "default",
-  //ORB_AUDIO:"USB Audio Device, USB Audio",
-  //ORB_AUDIO:"USB PnP Sound Device, USB Audio",
-  //EXTERNAL_WIFI: true,
-  //LED_STRIP_TYPE: "WS2812B",  // "WS2812B" (default), "APA102" (SPI via apa102-pi), or "EXTERNAL" (RP2040 Scorpio via serial)
-  //STRAND_COUNT: 1,            // EXTERNAL only: number of parallel LED strands
-  //PIXELS_PER_STRAND: 480,     // EXTERNAL only: pixels per strand
-  //APA102_BRIGHTNESS: 31,      // APA102 only: hardware brightness register (0-31, default 31)
-  //APA102_MOSI_PIN: 10,        // APA102 only: SPI MOSI GPIO pin (default 10)
-  //APA102_SCLK_PIN: 11,        // APA102 only: SPI SCLK GPIO pin (default 11)
-  DEV_MODE: false,
-  HAS_EMULATION: false,
-  IS_RELAY: false,
-  // RELAY_HOST: "my.lumatron.art",  // Defaults to official relay (or 0.0.0.0 in DEV_MODE); can be a domain or IP
-  CLEAR_PREFS_ON_DISCONNECT: false,
-  //CERT_LOCATION: "",
-  //KEY_LOCATION: "",
+
+  // =================== Core ===================
   // PIXELS: "diamond",
+  // RELAY_HOST: "my.lumatron.art",  // Defaults to official relay (or 0.0.0.0 in DEV_MODE); can be a domain or IP
+  // CONTINUOUS_INTEGRATION: false,
   // IS_FLAT: true,
-  AUTO_GAME: false,
-  // INVERT_X: true,
-  // INVERT_Y: true,
-  DEFAULT_GAME: "snektron",
-  CONTINUOUS_INTEGRATION: false,
-  SHOW_FRAME_INFO: false,
-  // IDLE: "lamp",
-  // PYTHON_EXECUTABLE: "python3",  // Override if venv is not at .venv/ or .env/ (e.g. Pi installs)
-  // DEFAULT_TEXT_DISPLAY: "HELLO WORLD",
-  // DEFAULT_TEXT_DISPLAY: [0b111001, 0b1001, 0b1001, 0b1111],
-  // DEFAULT_TEXT_DISPLAY: "$LOADING",
-  REQUIRES_LOGIN: false,
-  EXCLUDE: {
-    // colors: true,
-    // timing: true,
-    // pattern: true,
-    // idlePattern: true,
-    // fireflies: true,
-    // leaveButton: true,
-  },
+  // SHORT_PRESS_ACTION: "DIM",          // "DIM" or "CYCLE"
+  // LONG_PRESS_ACTION: "CYCLE",         // "DIM" or "CYCLE"
+  // DOUBLE_CLICK_ACTION: "",            // "DIM", "CYCLE", or "ACCESS_POINT"
+  // TRIPLE_CLICK_ACTION: "ACCESS_POINT",// "DIM", "CYCLE", or "ACCESS_POINT"
+  // LOG_INCOMING_MESSAGES: "update.dimmer",
+  // NO_ACCESS_POINT: true,
+  // AUTO_ACCESS_POINT: true,  // Auto-start captive portal AP when WiFi is unavailable
   INCLUDE: {
     // games: true,
     // gameSettings: true,
@@ -46,19 +21,31 @@ module.exports={
     // hourglass: true,
     // linesine: true, // Linear-topology sine wave pattern
   },
-  // BEAT_PIN: 15, // board pin 10/GPIO pin 15
-  // MANUAL_FADE_PIN: 24, // board pin 18/GPIO pin 24
+  EXCLUDE: {
+    // colors: true,
+    // timing: true,
+    // pattern: true,
+    // idlePattern: true,
+    // fireflies: true,
+    // leaveButton: true,
+  },
+
+  // ==================== Special ====================
   // MANUAL_FADE_STEPS: [1, 0],
-  // PIN_INPUT_TYPE: "LOW", // "HIGH"
-  // SHORT_PRESS_ACTION: "DIM", "CYCLE"
-  // LONG_PRESS_ACTION: "DIM",
-  // DOUBLE_CLICK_ACTION: null,
-  // TEXT_DISPLAY: "Seg14x4",
+  // TETHER_ORB_ID: "TEST",
+  // NO_LOCAL_REGISTRATION: true,
+  // IDLE: "lamp",
+  // REQUIRES_LOGIN: false,
   // LAT: 0,
   // LON: 0,
   // WEATHER_API_KEY: "go to https://home.openweathermap.org/api_keys",
-  // PRICE: 1000,
-  // TIMEZONE: "America/Los_Angeles",
+  // DEFAULT_TEXT_DISPLAY: "", // "HELLO WORLD", [0b111001, 0b1001, 0b1001, 0b1111], or "$LOADING",
+
+  // ==================== Games ====================
+  // AUTO_GAME: false,
+  // DEFAULT_GAME: "snektron",
+  // INVERT_X: true,
+  // INVERT_Y: true,
   // EXTRA_STARTING_RULES: [
   //   {
   //     words: [
@@ -66,11 +53,28 @@ module.exports={
   //     ]
   //   },
   // ],
-  // MAX_POWER_DRAW: 3, // Estimated Volts
-  // MAX_AVG_PIXEL_BRIGHTNESS: 100, // 0-255 white
-  // NO_ACCESS_POINT: true,
-  // AUTO_ACCESS_POINT: true, // Auto-start captive portal AP when WiFi is unavailable
-  // TETHER_ORB_ID: "TEST",
-  // NO_LOCAL_REGISTRATION: true,
-  // LOG_INCOMING_MESSAGES: "update.dimmer",
+
+  // ==================== Hardware ====================
+  // EXTERNAL_WIFI: true,
+  // LED_STRIP_TYPE: "WS2812B",  // "WS2812B" (default), "APA102" (SPI via apa102-pi), or "EXTERNAL" (RP2040 Scorpio via serial)
+  // STRAND_COUNT: 1,            // EXTERNAL only: number of parallel LED strands
+  // PIXELS_PER_STRAND: 480,     // EXTERNAL only: pixels per strand
+  // APA102_BRIGHTNESS: 31,      // APA102 only: hardware brightness register (0-31, default 31)
+  // APA102_MOSI_PIN: 10,        // APA102 only: SPI MOSI GPIO pin (default 10)
+  // APA102_SCLK_PIN: 11,        // APA102 only: SPI SCLK GPIO pin (default 11)
+  // MAX_POWER_DRAW: 3,          // Estimated Volts
+  // MAX_AVG_PIXEL_BRIGHTNESS: 100,  // 0-255 white
+  // BEAT_PIN: 15,               // board pin 10/GPIO pin 15
+  // MANUAL_FADE_PIN: 24,        // board pin 18/GPIO pin 24
+  // PIN_INPUT_TYPE: "LOW",      // "HIGH"
+  // TEXT_DISPLAY: "Seg14x4",
+  // TIMEZONE: "America/Los_Angeles",
+
+  // ===================== Server/Dev =====================
+  // DEV_MODE: false,
+  // HAS_EMULATION: false,
+  // CLEAR_PREFS_ON_DISCONNECT: false,
+  // IS_RELAY: false,
+  // CERT_LOCATION: "",
+  // KEY_LOCATION: "",
 }

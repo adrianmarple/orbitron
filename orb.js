@@ -46,9 +46,6 @@ if(config.HAS_EMULATION){
   emulator = new Emulator(config)
   // orbEmulatorBroadcast = require('./emulator.js').orbEmulatorBroadcast
 }
-if (process.argv.includes('-f')) {
-  config.SHOW_FRAME_INFO = true
-}
 // Cloud save
 async function backupLoop() {
   while (true) {

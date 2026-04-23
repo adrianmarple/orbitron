@@ -18,8 +18,8 @@ if(config.KEY_LOCATION){
 } else {
   config.httpsOptions = {}
 }
-const PYTHON_EXECUTABLE = config.PYTHON_EXECUTABLE ||
-  (fs.existsSync(`${__dirname}/.venv/bin/python3`) ? `${__dirname}/.venv/bin/python3` : '/home/pi/.env/bin/python3')
+const PYTHON_EXECUTABLE = fs.existsSync(`${__dirname}/.venv/bin/python3`)
+    ? `${__dirname}/.venv/bin/python3` : '/home/pi/.env/bin/python3'
 
 if (!config.DEV_MODE && config.TIMEZONE) {
   execute(`timedatectl set-timezone ${config.TIMEZONE}`)
