@@ -1723,9 +1723,11 @@ function wallPrint(wall, isLeft) {
       let pcb_thickness = 1.6
       let usbc_pcb_thickness = 1
       let pcb_offset = (pcb_thickness - usbc_pcb_thickness)/2
-      let firstEdge = edges[window.path[0]]
-      if (firstEdge.verticies.includes(endVertex)) {
-        pcb_offset *= -1
+      if (wall.isFoldWall) {
+        let firstEdge = edges[window.path[0]]
+        if (firstEdge.verticies.includes(wall.left.endVertex)) {
+          pcb_offset *= -1
+        }
       }
 
       let top_thickness = 12.2 - WALL_THICKNESS
@@ -1773,7 +1775,7 @@ module pillinder(width, radius, height) {
   translate([0, 0, ${-top_thickness}])
   pillinder(${port_width}, ${port_radius}, ${top_thickness + WALL_THICKNESS});
 
-  translate([0, ${-pcb_offset}, ${WALL_THICKNESS - pcb_depth/2}])
+  translate([0, ${pcb_offset}, ${WALL_THICKNESS - pcb_depth/2}])
   cube([${pcb_width}, ${pcb_thickness}, ${pcb_depth}], center=true);
 }`
           }
