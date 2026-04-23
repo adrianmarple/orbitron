@@ -5,7 +5,7 @@ const fs = require('fs')
 const { execFile } = require('child_process')
 const path = require('path')
 const { checkConnection, execute, delay, config } = require('../lib')
-const { displayText } = require('../orb')
+const { displayText, registerAccessPointHandler } = require('../orb')
 
 const PORTAL_HTML_PATH = path.join(__dirname, 'captiveportal.html')
 const AP_SSID = `Lumatron-${config.ORB_ID}`
@@ -179,7 +179,6 @@ async function networkCheck() {
       return
     }
 
-    displayText("CHECKING FOR INTERNET")
     numTimesNetworkCheckFailed += 1
     await stopAccessPoint()
     await delay(isFirstNetworkCheck ? 15e3 : 60e3)
@@ -189,7 +188,7 @@ async function networkCheck() {
     if (connected) {
       numTimesNetworkRestartWorked += 1
       setTimeout(networkCheck, 120e3)
-    } else {
+    } else if (config.AUTO_ACCESS_POINT) {
       numTimesAccessPointStarted += 1
       await startAccessPoint()
       await delay(120e3)
@@ -197,6 +196,8 @@ async function networkCheck() {
         await delay(10e3)
       }
       setTimeout(networkCheck, 1e3)
+    } else {
+      setTimeout(networkCheck, 20e3)
     }
   } catch(e) {
     console.error("networkCheck error:", e)
@@ -209,4 +210,5 @@ if (!config.NO_ACCESS_POINT) {
     console.log("wifi setup listening on port 80")
   })
   setTimeout(networkCheck, 5e3)
+  registerAccessPointHandler(startAccessPoint)
 }

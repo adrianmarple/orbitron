@@ -94,7 +94,6 @@ let orbToRelaySocket = null
 
 function connectOrbToRelay(){
   try {
-    displayText("CONNECTING")
     let relayDomain = config.RELAY_HOST || (config.DEV_MODE ? "0.0.0.0" : "my.lumatron.art")
     let relayProtocol = config.DEV_MODE && !config.RELAY_HOST ? "ws" : "wss"
     let relayURL = `${relayProtocol}://${relayDomain}:7777/relay/${config.ORB_ID}`
@@ -130,7 +129,6 @@ function connectOrbToRelay(){
       if(data == "HAS_UPDATE") {
         console.log("Received notice of git update.")
         if (config.CONTINUOUS_INTEGRATION) {
-          displayText("RESTARTING")
           pullAndRestart()
         }
         return
@@ -302,12 +300,10 @@ function connectOrbToRelay(){
       if (orbToRelaySocket === socket) orbToRelaySocket = null
     })
     socket.on('error', (e) => {
-      displayText("CONNECTION ERROR")
       console.log("Orb to relay socket error", e)
       socket.close()
     })
   } catch(e) {
-    displayText("CONNECTION ERROR")
     console.log("Error connecting to relay:", e)
     orbToRelaySocket = null
   }
@@ -728,6 +724,8 @@ function handleEngineOut(data) {
       for (let id in connections) {
         connections[id].lastActivityTime = Date.now()
       }
+    } else if (message === "start_access_point") {
+      if (startAccessPointHandler) startAccessPointHandler()
     } else if (raw_pixels === null && raw_json === null) {
       console.log("UNHANDLED STDOUT MESSAGE: `" + message + "`")
     }
@@ -825,6 +823,11 @@ function displayText(...args) {
   _displayText(...args)
 }
 
+let startAccessPointHandler = null
+function registerAccessPointHandler(handler) {
+  startAccessPointHandler = handler
+}
+
 module.exports = {
-  displayText, startOrb,
+  displayText, startOrb, registerAccessPointHandler,
 }

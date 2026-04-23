@@ -71,9 +71,14 @@ bool continuousIntegration = false;
 int buttonPin = -1;  // -1 = disabled
 String shortPressAction = "DIM";
 String longPressAction = "CYCLE";
+String doubleClickAction = "";
+String tripleClickAction = "ACCESS_POINT";
 bool fadePinLastState = true;   // HIGH = not pressed (INPUT_PULLUP)
 unsigned long fadePinPressStart = 0;
 bool fadePinLongFired = false;
+int fadePinClickCount = 0;
+unsigned long fadePinLastReleaseTime = 0;
+const unsigned long MULTI_CLICK_WINDOW = 400;
 
 // --- WebSocket ---
 WebSocketsClient wsClient;
@@ -433,6 +438,8 @@ void sendInfoDump() {
   cfg["FIRMWARE_VERSION"] = FIRMWARE_VERSION;
   cfg["SHORT_PRESS_ACTION"] = shortPressAction;
   cfg["LONG_PRESS_ACTION"] = longPressAction;
+  cfg["DOUBLE_CLICK_ACTION"] = doubleClickAction;
+  cfg["TRIPLE_CLICK_ACTION"] = tripleClickAction;
   String out;
   serializeJson(msg, out);
   wsClient.sendTXT(out);
@@ -933,11 +940,14 @@ void advanceCycle() {
 }
 
 void performPinAction(const String& action) {
+  fadePinClickCount = 0;
   if (action == "DIM") advanceDim();
   else if (action == "CYCLE") advanceCycle();
+  else if (action == "ACCESS_POINT") runCaptivePortal();
 }
 
-// Poll fade pin each loop(). Fires short press on release (<700ms), long press at threshold.
+// Poll fade pin each loop(). Accumulates clicks; fires after MULTI_CLICK_WINDOW of inactivity.
+// 1 click = short, 2 = double, 3+ = triple. Long press fires immediately at 700ms.
 void checkFadePin() {
   if (buttonPin < 0) return;
   bool state = digitalRead(buttonPin);  // LOW = pressed (INPUT_PULLUP)
@@ -949,12 +959,25 @@ void checkFadePin() {
     fadePinLongFired = false;
   } else if (!fadePinLastState && state) {
     // Rising edge: released
-    if (!fadePinLongFired) performPinAction(shortPressAction);
+    if (!fadePinLongFired) {
+      fadePinClickCount++;
+      fadePinLastReleaseTime = now;
+    }
   } else if (!state && !fadePinLongFired && (now - fadePinPressStart >= 700)) {
     // Still held past long-press threshold
     fadePinLongFired = true;
+    fadePinClickCount = 0;
     performPinAction(longPressAction);
   }
+
+  // Multi-click window expired — dispatch based on click count
+  if (fadePinClickCount > 0 && state && (now - fadePinLastReleaseTime >= MULTI_CLICK_WINDOW)) {
+    if (fadePinClickCount == 1) performPinAction(shortPressAction);
+    else if (fadePinClickCount == 2) performPinAction(doubleClickAction);
+    else performPinAction(tripleClickAction);
+    fadePinClickCount = 0;
+  }
+
   fadePinLastState = state;
 }
 
@@ -1257,6 +1280,8 @@ void setup() {
     buttonPin = doc["BUTTON_PIN"] | -1;
     shortPressAction = doc["SHORT_PRESS_ACTION"] | "DIM";
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
+    doubleClickAction = doc["DOUBLE_CLICK_ACTION"] | "";
+    tripleClickAction = doc["TRIPLE_CLICK_ACTION"] | "ACCESS_POINT";
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 

@@ -69,6 +69,7 @@ module.exports={
   // MAX_POWER_DRAW: 3, // Estimated Volts
   // MAX_AVG_PIXEL_BRIGHTNESS: 100, // 0-255 white
   // NO_ACCESS_POINT: true,
+  // AUTO_ACCESS_POINT: true, // Auto-start captive portal AP when WiFi is unavailable
   // TETHER_ORB_ID: "TEST",
   // NO_LOCAL_REGISTRATION: true,
   // LOG_INCOMING_MESSAGES: "update.dimmer",

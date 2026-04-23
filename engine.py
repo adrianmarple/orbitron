@@ -1073,20 +1073,26 @@ def run_core_loop():
       return 1 if GPIO.input(config["MANUAL_FADE_PIN"]) == input_type else 0
 
     pin_start_time = 0
-    pin_end_time = 0
+    click_count = 0
+    last_release_time = 0
+    MULTI_CLICK_WINDOW = 0.4
 
     def perform_action(type):
-      nonlocal pin_start_time, pin_end_time
+      nonlocal pin_start_time, click_count, last_release_time
       pin_start_time = 0
-      pin_end_time = 0
+      click_count = 0
+      last_release_time = 0
       if type == "DIM":
         prefs.advance_manual_fade()
-      if type == "CYCLE":
+      elif type == "CYCLE":
         prefs.advance_preset()
+      elif type == "ACCESS_POINT":
+        print("start_access_point", flush=True)
 
     short_action = config.get("SHORT_PRESS_ACTION", "DIM")
-    long_action = config.get("LONG_PRESS_ACTION", "DIM")
-    double_action = config.get("DOUBLE_CLICK_ACTION")
+    long_action = config.get("LONG_PRESS_ACTION", "CYCLE")
+    double_action = config.get("DOUBLE_CLICK_ACTION", "")
+    triple_action = config.get("TRIPLE_CLICK_ACTION", "ACCESS_POINT")
 
     previous_value = 0
   # end if config.get("MANUAL_FADE_PIN")
@@ -1115,23 +1121,23 @@ def run_core_loop():
       stopped = previous_value > current_value
       previous_value = current_value
 
-      if not pin_start_time and started:
-        if pin_end_time:
-          perform_action(double_action)
-        else:
-          pin_start_time = time()
+      if started:
+        pin_start_time = time()
 
       if pin_start_time and stopped:
-        if not double_action:
-          perform_action(short_action)
-        else:
-          pin_end_time = time() # Prep for either waiting for short press or double click
-          pin_start_time = 0
+        pin_start_time = 0
+        click_count += 1
+        last_release_time = time()
 
       if pin_start_time and time() - pin_start_time > 0.7:
         perform_action(long_action)
 
-      if pin_end_time and time() - pin_end_time > 0.6:
-        perform_action(short_action)
+      if click_count > 0 and not current_value and time() - last_release_time > MULTI_CLICK_WINDOW:
+        if click_count == 1:
+          perform_action(short_action)
+        elif click_count == 2:
+          perform_action(double_action)
+        else:
+          perform_action(triple_action)
 
     update()
