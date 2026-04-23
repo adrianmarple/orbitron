@@ -352,6 +352,9 @@ function revalidate(clientID) {
 }
 
 async function relayUpkeep() {
+  for (let id in validClients) {
+    if (validClients[id] < Date.now()) delete validClients[id]
+  }
   if(orbToRelaySocket) return
   let connected = await checkConnection()
   if(connected){

@@ -6,7 +6,6 @@ const fs = require('fs')
 const path = require('path')
 const { config, execute, processAdminCommand, noCorsHeader } = require('./lib')
 const { pullAndRestart, restartOrbitron } = require('./gitupdate')
-const homedir = require('os').homedir()
 const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
 const crypto = require('crypto')
 function sha256(str) { return crypto.createHash('sha256').update(str).digest('hex') }
@@ -14,7 +13,6 @@ const { startOrb } = require('./orb')
 
 const connectedOrbs = {}
 const orbToIP = {}
-const logsRequested = {}
 const connectedClients = {}
 const awaitingMessages = {}
 let orbInfoCache = {}
@@ -203,16 +201,6 @@ function bindOrb(socket, orbID) {
       }
     } catch {}
 
-    if(logsRequested[orbID] && isBinary){
-      try {
-        fs.writeFileSync(`${homedir}/${orbID}_logs.zip`, data)
-        console.log("Wrote logs for " + orbID)
-      } catch(error) {
-        console.log("Error writing log file", error)
-      }
-      logsRequested[orbID] = false
-      return
-    }
     if(!isBinary){
       data = data.toString().trim()
     }
@@ -309,6 +297,9 @@ function bindClient(socket, orbID, clientID) {
       }))
     }
     delete connectedClients[orbID][clientID]
+    if (Object.keys(connectedClients[orbID]).length === 0) {
+      delete connectedClients[orbID]
+    }
   })
   socket.on('error', (e) => {
     console.log("Error on client socket", orbID, clientID, e)
@@ -527,55 +518,6 @@ addGETListener(async (response, orbID, filePath)=>{
     info.alias = config.ALIASES[orbID]
   }
   response.end(JSON.stringify(info))
-  return true
-})
-
-// Get zip of all logs
-addGETListener(async (response, orbID, filePath)=>{
-  if(!orbID || !connectedOrbs[orbID] || !filePath.includes("/logs")) return
-
-  if(logsRequested[orbID]){
-    response.writeHead(500)
-    response.end('Cannot fetch logs for ' + orbID + ` debug info - requested: ${logsRequested[orbID]} - connected: ${connectedOrbs[orbID] != null}`)
-    return true
-  }
-  logsRequested[orbID] = true
-  connectedOrbs[orbID].send("GET_LOGS")
-  let start_time = Date.now()
-  try {
-    await new Promise((resolve, reject) => {
-      let timer = setInterval(()=>{
-        if(logsRequested[orbID] == false){
-          resolve()
-          clearInterval(timer)
-        } else if(Date.now() - start_time > 30 * 1000) {
-          reject()
-          clearInterval(timer)
-          logsRequested[orbID] = false
-        }
-      },100)
-    })
-  } catch {
-    response.writeHead(500)
-    response.end('Timed out fetching logs for ' + orbID)
-    return
-  }
-  try {
-    let logZipPath = `${homedir}/${orbID}_logs.zip`
-    let data = fs.readFileSync(logZipPath)
-    response.writeHead(200, { 'Content-Type': 'application/zip' })
-    response.end(data, 'utf-8')
-  } catch(error) {
-    console.log("Error sending log files for " + orbID, error)
-    if(error.code == 'ENOENT'){
-      response.writeHead(404)
-      response.end(`Unable to find log files on server for ${orbID}`, 'utf-8')
-    }
-    else {
-      response.writeHead(500)
-      response.end(`Error sending log files: ${error.code}`)
-    }
-  }
   return true
 })
 
