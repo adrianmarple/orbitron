@@ -202,6 +202,26 @@ String savedPrefPath(const String& name) {
   return "/savedprefs/" + name + ".prefs.json";
 }
 
+// Apply saved prefOrder from a timingprefs JsonDocument to an already-populated arr.
+// Names in prefOrder come first (in order), remaining names appended at end.
+int applyPrefOrder(String* arr, int n, const JsonDocument& timingDoc) {
+  JsonArrayConst order = timingDoc["prefOrder"].as<JsonArrayConst>();
+  if (order.isNull() || order.size() == 0) return n;
+  String ordered[16];
+  int count = 0;
+  for (JsonVariantConst v : order) {
+    String name = v.as<String>();
+    for (int i = 0; i < n; i++) {
+      if (arr[i] == name) { ordered[count++] = name; arr[i] = ""; break; }
+    }
+  }
+  for (int i = 0; i < n; i++) {
+    if (!arr[i].isEmpty()) ordered[count++] = arr[i];
+  }
+  for (int i = 0; i < count; i++) arr[i] = ordered[i];
+  return count;
+}
+
 // List saved preset names from /savedprefs/ directory, sorted alphabetically.
 // Returns count written into arr (capped at maxNames).
 int listSavedPrefNames(String* arr, int maxNames) {
@@ -473,26 +493,28 @@ void sendState(const String& clientID) {
   state["gameInfo"] = nullptr;
   state["currentText"] = "";
   state["currentPrefName"] = currentPrefName;
-  // Build sorted prefNames from /savedprefs/ directory
-  {
-    JsonArray names = state["prefNames"].to<JsonArray>();
-    String arr[16];
-    int n = listSavedPrefNames(arr, 16);
-    for (int i = 0; i < n; i++) names.add(arr[i]);
-  }
   state["prefTimestamps"].to<JsonObject>();
   state["exclude"].to<JsonObject>();
 
   JsonObject prefs = state["prefs"].to<JsonObject>();
   buildPrefsJson(prefs, p);
 
-  // Merge timing prefs (schedule, weeklyTimer, dimmer, etc.)
+  // Read timingprefs once — used for both prefNames ordering and prefs merge
   String timingJson = readFile("/timingprefs.json");
-  if (!timingJson.isEmpty()) {
-    JsonDocument timingDoc;
-    if (deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
-      for (JsonPair kv : timingDoc.as<JsonObject>()) prefs[kv.key()] = kv.value();
-    }
+  JsonDocument timingDoc;
+  bool timingLoaded = !timingJson.isEmpty() && deserializeJson(timingDoc, timingJson) == DeserializationError::Ok;
+
+  // Build prefNames from /savedprefs/ directory, applying saved order
+  {
+    JsonArray names = state["prefNames"].to<JsonArray>();
+    String arr[16];
+    int n = listSavedPrefNames(arr, 16);
+    if (timingLoaded) n = applyPrefOrder(arr, n, timingDoc);
+    for (int i = 0; i < n; i++) names.add(arr[i]);
+  }
+
+  if (timingLoaded) {
+    for (JsonPair kv : timingDoc.as<JsonObject>()) prefs[kv.key()] = kv.value();
     // Ensure includedInCycles is always present (may be absent in older timingprefs.json)
     if (!prefs["includedInCycles"].is<JsonObject>()) prefs["includedInCycles"].to<JsonObject>();
   } else {
@@ -676,6 +698,40 @@ void handleControllerMessage(const String& clientID, const String& message) {
       currentPrefName = newName;
       writeFile("/currentprefname.txt", newName);
     }
+    broadcastState();
+
+  } else if (type == "reorderPrefs") {
+    String name = doc["name"].as<String>();
+    String targetName = doc["targetName"].as<String>();
+    if (name.isEmpty() || targetName.isEmpty() || name == targetName) return;
+
+    String names[16];
+    int n = listSavedPrefNames(names, 16);
+
+    String timingJson = readFile("/timingprefs.json");
+    JsonDocument timingDoc;
+    if (!timingJson.isEmpty() && deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
+      n = applyPrefOrder(names, n, timingDoc);
+    }
+
+    int from = -1, to = -1;
+    for (int i = 0; i < n; i++) {
+      if (names[i] == name) from = i;
+      if (names[i] == targetName) to = i;
+    }
+    if (from < 0 || to < 0) return;
+    String tmp = names[from];
+    if (from < to) {
+      for (int i = from; i < to; i++) names[i] = names[i+1];
+    } else {
+      for (int i = from; i > to; i--) names[i] = names[i-1];
+    }
+    names[to] = tmp;
+
+    timingDoc["prefOrder"].to<JsonArray>();
+    for (int i = 0; i < n; i++) timingDoc["prefOrder"].add(names[i]);
+    String timingOut; serializeJsonPretty(timingDoc, timingOut);
+    writeFile("/timingprefs.json", timingOut);
     broadcastState();
   }
 }
