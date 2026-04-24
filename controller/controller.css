@@ -1058,10 +1058,13 @@ input[type="range"]::-moz-range-thumb {
 .pref-list-item > .fancy-box {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 1rem;
   box-sizing: border-box;
   height: 6.6;
+}
+.pref-list-item > .fancy-box > span {
+  flex: 1;
+  text-align: left;
 }
 .pref-list-item > .horiz-box {
   min-height: 1rem;
@@ -1072,6 +1075,22 @@ input[type="range"]::-moz-range-thumb {
 .pref-list-item .button {
   margin-top: 0;
   font-size: 3rem;
+}
+.drag-handle {
+  font-size: 3rem;
+  padding: 0 1rem;
+  cursor: grab;
+  color: #888;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pref-list-item.dragging {
+  opacity: 0.3;
+}
+.pref-list-item.dragover {
+  outline: 0.25rem solid white;
+  outline-offset: -0.25rem;
 }
 .delete {
   width: 4rem;

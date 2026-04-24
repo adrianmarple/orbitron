@@ -240,12 +240,18 @@
       <div class="scroll-containter">
         <div v-for="name, i in saveNames"
             class="pref-list-item"
-            :class="{selected: name == state.currentPrefName}"
+            :class="{
+              selected: name == state.currentPrefName,
+              dragging: name == draggingPrefName,
+              dragover: name == draggingPrefTargetName && name != draggingPrefName
+            }"
+            :data-pref-name="name"
             @click="openPrefModal(name)"
         >
           <div class="fancy-box">
             <span>{{ name }}</span>
             <div class="button" @click.stop="loadPrefs(name)">Load</div>
+            <div class="drag-handle" @pointerdown.stop="onPrefDragHandleStart($event, name)">&#9776;</div>
           </div>
         </div>
         <div v-if="saveNames.length == 0" class="zero-state">

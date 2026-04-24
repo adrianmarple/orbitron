@@ -120,6 +120,8 @@ if not os.path.exists(save_prefs_path):
   os.makedirs(save_prefs_path)
 
 def sort_pref_names():
+  if timing_prefs.get("prefOrder"):
+    return
   pref_names.sort(key=lambda v: v.upper())
 
 pref_names = next(os.walk(save_prefs_path), (None, None, []))[2]  # [] if no file
@@ -284,6 +286,18 @@ def load(name, clobber_prefs=True):
     update({"dimmer": 1})
     set_idle()
     shutil.copy(old_path, pref_path)
+
+def reorder(name, target_name):
+  if name not in pref_names or target_name not in pref_names:
+    return
+  from_idx = pref_names.index(name)
+  to_idx = pref_names.index(target_name)
+  pref_names.pop(from_idx)
+  pref_names.insert(to_idx, name)
+  timing_prefs["prefOrder"] = list(pref_names)
+  f = open(timing_pref_path, "w")
+  f.write(json.dumps(timing_prefs, indent=2))
+  f.close()
 
 def copy(name, copy_name):
   src_path = pref_path_from_name(name)
@@ -547,6 +561,12 @@ def init():
   else:
     print("No timingprefs.json file", file=sys.stderr)
   current_prefs.update(timing_prefs)
+
+  saved_order = timing_prefs.get("prefOrder")
+  if saved_order:
+    ordered = [n for n in saved_order if n in pref_names]
+    remaining = [n for n in pref_names if n not in ordered]
+    pref_names[:] = ordered + remaining
 
   if get_pref("useTimer"):
     update_schedule()

@@ -47,6 +47,8 @@ var app = new Vue({
     registeredIDs: [],
     draggingID: null,
     draggingTargetID: null,
+    draggingPrefName: null,
+    draggingPrefTargetName: null,
     dragGhost: null,
     dragSourceID: null,
     dragSourceEl: null,
@@ -638,36 +640,56 @@ var app = new Vue({
       document.addEventListener('pointerup', onUp)
       document.addEventListener('pointercancel', onUp)
     },
-    onPointerDragStart(event, id) {
+    _setupDragListeners(event, { onMove, onDrop }) {
       if (this.momentumAnimationFrame) { cancelAnimationFrame(this.momentumAnimationFrame); this.momentumAnimationFrame = null }
       if (this.dragCleanup) this.dragCleanup()
-
-      this.dragSourceEl = event.currentTarget
-      this.dragSourceID = id
       this.dragPointerId = event.pointerId
-      this.dragPointerStart = { x: event.clientX, y: event.clientY }
-
-      const onMove = (e) => {
+      const onMoveFiltered = (e) => { if (e.pointerId !== this.dragPointerId) return; onMove(e) }
+      const onUpFiltered = (e) => {
         if (e.pointerId !== this.dragPointerId) return
-        this.onPointerDragMove(e)
-      }
-      const onUp = (e) => {
-        if (e.pointerId !== this.dragPointerId) return
-        this.onPointerDrop(e)
+        onDrop(e)
         cleanup()
       }
       const cleanup = () => {
         clearTimeout(this.dragTimer)
         this.dragTimer = null
-        document.removeEventListener('pointermove', onMove)
-        document.removeEventListener('pointerup', onUp)
-        document.removeEventListener('pointercancel', onUp)
+        document.removeEventListener('pointermove', onMoveFiltered)
+        document.removeEventListener('pointerup', onUpFiltered)
+        document.removeEventListener('pointercancel', onUpFiltered)
         this.dragCleanup = null
       }
       this.dragCleanup = cleanup
-      document.addEventListener('pointermove', onMove, { passive: false })
-      document.addEventListener('pointerup', onUp)
-      document.addEventListener('pointercancel', onUp)
+      document.addEventListener('pointermove', onMoveFiltered, { passive: false })
+      document.addEventListener('pointerup', onUpFiltered)
+      document.addEventListener('pointercancel', onUpFiltered)
+    },
+    _moveGhost(ghost, event) {
+      ghost.style.left = (event.clientX - ghost.offsetWidth/2) + 'px'
+      ghost.style.top  = (event.clientY - ghost.offsetHeight/2) + 'px'
+      if (this.dragEdgeScrollRAF) { cancelAnimationFrame(this.dragEdgeScrollRAF); this.dragEdgeScrollRAF = null }
+      const EDGE_ZONE = 80
+      const y = event.clientY
+      const vh = window.innerHeight
+      let speed = 0
+      if (y < EDGE_ZONE) speed = (y - EDGE_ZONE) * 0.3
+      else if (y > vh - EDGE_ZONE) speed = (y - (vh - EDGE_ZONE)) * 0.3
+      if (speed !== 0) {
+        const app = document.getElementById('app')
+        const scroll = () => {
+          app.scrollBy(0, speed)
+          this.dragEdgeScrollRAF = requestAnimationFrame(scroll)
+        }
+        this.dragEdgeScrollRAF = requestAnimationFrame(scroll)
+      }
+    },
+    onPointerDragStart(event, id) {
+      this.dragSourceEl = event.currentTarget
+      this.dragSourceID = id
+      this.dragPointerStart = { x: event.clientX, y: event.clientY }
+      this._setupDragListeners(event, {
+        onMove: (e) => this.onPointerDragMove(e),
+        onDrop: (e) => this.onPointerDrop(e),
+      })
 
       if (event.pointerType === 'mouse') return
       if (this.registeredIDs.length <= 1) {
@@ -741,29 +763,7 @@ var app = new Vue({
         return
       }
       this.draggingTargetID = this.dragTargetID(event)
-      const ghost = this.dragGhost
-      ghost.style.left = (event.clientX - ghost.offsetWidth/2) + 'px'
-      ghost.style.top  = (event.clientY - ghost.offsetHeight/2) + 'px'
-
-      // Edge scroll when near top/bottom
-      if (this.dragEdgeScrollRAF) {
-        cancelAnimationFrame(this.dragEdgeScrollRAF)
-        this.dragEdgeScrollRAF = null
-      }
-      const EDGE_ZONE = 80
-      const y = event.clientY
-      const vh = window.innerHeight
-      let speed = 0
-      if (y < EDGE_ZONE) speed = (y - EDGE_ZONE) * 0.3
-      else if (y > vh - EDGE_ZONE) speed = (y - (vh - EDGE_ZONE)) * 0.3
-      if (speed !== 0) {
-        const app = document.getElementById('app')
-        const scroll = () => {
-          app.scrollBy(0, speed)
-          this.dragEdgeScrollRAF = requestAnimationFrame(scroll)
-        }
-        this.dragEdgeScrollRAF = requestAnimationFrame(scroll)
-      }
+      this._moveGhost(this.dragGhost, event)
     },
     onPointerDrop(event) {
       if (this.dragEdgeScrollRAF) {
@@ -785,6 +785,62 @@ var app = new Vue({
         if (Math.abs(v) > 0.05) this.startMomentumScroll(document.getElementById('app'), v)
       }
       this.dragScrolling = false
+    },
+    onPrefDragHandleStart(event, name) {
+      event.stopPropagation()
+      this.dragSourceEl = event.currentTarget.closest('.pref-list-item')
+      this.dragPointerStart = { x: event.clientX, y: event.clientY }
+      this._setupDragListeners(event, {
+        onMove: (e) => this.onPrefDragMove(e),
+        onDrop: (e) => this.onPrefDragDrop(e),
+      })
+      this.startPrefDragGhost(event.clientX, event.clientY)
+    },
+    startPrefDragGhost(x, y) {
+      this.draggingPrefName = this.dragSourceEl.dataset.prefName
+      const rect = this.dragSourceEl.getBoundingClientRect()
+      const ghost = this.dragSourceEl.cloneNode(true)
+      ghost.style.cssText = `
+        position:fixed;width:${rect.width}px;
+        height:${rect.height}px;
+        left:${x - rect.width/2}px;
+        top:${y - rect.height/2}px;
+        pointer-events:none;
+        z-index:1000;
+        opacity:0.85;`
+      document.body.appendChild(ghost)
+      this.dragGhost = ghost
+    },
+    onPrefDragMove(event) {
+      event.preventDefault()
+      if (!this.dragGhost) return
+      this.draggingPrefTargetName = this.prefDragTargetName(event)
+      this._moveGhost(this.dragGhost, event)
+    },
+    onPrefDragDrop(event) {
+      if (this.dragEdgeScrollRAF) { cancelAnimationFrame(this.dragEdgeScrollRAF); this.dragEdgeScrollRAF = null }
+      if (this.dragGhost) {
+        this.dragGhost.remove()
+        this.dragGhost = null
+        this.draggingPrefTargetName = null
+        const targetName = this.prefDragTargetName(event) || this.draggingPrefName
+        this.onPrefReorder(targetName)
+        document.addEventListener('click', e => e.stopPropagation(), { capture: true, once: true })
+      }
+      this.draggingPrefName = null
+    },
+    prefDragTargetName(event) {
+      const el = document.elementFromPoint(event.clientX, event.clientY)
+      const itemEl = el && el.closest('.pref-list-item')
+      return itemEl ? itemEl.dataset.prefName ?? null : null
+    },
+    onPrefReorder(targetName) {
+      if (!this.draggingPrefName || this.draggingPrefName === targetName) return
+      const from = this.saveNames.indexOf(this.draggingPrefName)
+      const to = this.saveNames.indexOf(targetName)
+      this.saveNames.splice(from, 1)
+      this.saveNames.splice(to, 0, this.draggingPrefName)
+      this.send({ type: "reorderPrefs", name: this.draggingPrefName, targetName })
     },
     deleteRegistration(id) {
       let self = this
