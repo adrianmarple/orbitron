@@ -10,9 +10,9 @@ wall_thickness = 2.8;
 box_thickness = 9;
 bottom_thickness = 2;
 bottom_hole_d = 9.6;
-bottom_hole_width = bottom_hole_d;
+bottom_hole_width = 20;
 
-lip = 2;
+lip = 1;
 inner_d = bottom_hole_d + 2*lip;
 inner_h = 2;
 
@@ -23,18 +23,11 @@ nail_d = 2.1;
 sheath_wall = 1;
 sheath_y = 1.7;
 
-hatch_dowel_d = 4;
-hatch_dowel_y = width/2 - hatch_dowel_d;
-hatch_dowel_x = channel_width/2 - hatch_dowel_d + 2;
-hatch_dowel_kerf = 0.1;
-
 v_kerf = 0.4;
 h_kerf = 0.1;
 
-
 main();
-//hatch();
-//nail_sheath();
+nail_sheath();
 
 module nail_sheath() {
 difference() {
@@ -59,24 +52,6 @@ difference() {
 }
 }
 
-module hatch() {
-  difference() {
-    translate([0,0,bottom_thickness/2])
-    cube([channel_width, width - 4, bottom_thickness], center=true);
-      
-    translate([0, 0, -1])
-    pillinder(bottom_hole_width, bottom_hole_d/2, box_thickness+2);
-  }
-    
-  translate([hatch_dowel_x, hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2, d=hatch_dowel_d - 2*hatch_dowel_kerf);
-  translate([hatch_dowel_x, -hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2, d=hatch_dowel_d - 2*hatch_dowel_kerf);
-  translate([-hatch_dowel_x, hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2, d=hatch_dowel_d - 2*hatch_dowel_kerf);
-  translate([-hatch_dowel_x, -hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2, d=hatch_dowel_d - 2*hatch_dowel_kerf);
-}
 
 module main() {
 translate([0,0,box_thickness])
@@ -107,20 +82,5 @@ difference() {
   
   translate([0, 0, -box_thickness - 1])
   pillinder(bottom_hole_width, bottom_hole_d/2, box_thickness+2);
-  
-  // Hatch negative space
-  translate([0,0, -box_thickness]) {
-  translate([0,0, bottom_thickness/2])
-  cube([channel_width, width - 4, bottom_thickness], center=true);
-      
-  translate([hatch_dowel_x, hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2+0.2, d=hatch_dowel_d);
-  translate([hatch_dowel_x, -hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2+0.2, d=hatch_dowel_d);
-  translate([-hatch_dowel_x, hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2+0.2, d=hatch_dowel_d);
-  translate([-hatch_dowel_x, -hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2+0.2, d=hatch_dowel_d);
-  }
 }
 }
