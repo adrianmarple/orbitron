@@ -1,10 +1,9 @@
-"""BCM283x NeoPixel / APA102 / External Board Driver"""
+"""BCM283x NeoPixel / APA102 Driver"""
 import atexit
 import numpy as np
 import sys
 import json
 import os
-import zlib
 
 config = json.loads(os.getenv("CONFIG"))
 
@@ -13,8 +12,6 @@ LED_STRIP_TYPE = config.get("LED_STRIP_TYPE", "WS2812B").upper()
 match LED_STRIP_TYPE:
     case "APA102":
         from apa102_pi.driver.apa102 import APA102 as _APA102Driver  # type: ignore
-    case "EXTERNAL":
-        import serial  # type: ignore
     case _:  # WS2812B
         # NOTE: Writing takes 10µs per byte no matter what (according to https://github.com/jgarff/rpi_ws281x/blob/1f47b59ed603223d1376d36c788c89af67ae2fdc/ws2811.c#L1130)
         import digitalio  # type: ignore
@@ -34,15 +31,10 @@ match LED_STRIP_TYPE:
 
 _led_strip = None
 _apa102_strip = None
-external_board = None
-external_board_logs = None
 
 
 def start_pixels(num_pixels):
     match LED_STRIP_TYPE:
-        case "EXTERNAL":
-            _connect_external_board()
-            _connect_external_board_logging()
         case "APA102":
             global _apa102_strip
             _apa102_strip = _APA102Driver(
@@ -91,69 +83,12 @@ def start_pixels(num_pixels):
                 )
             atexit.register(lambda: (ws.ws2811_fini(_led_strip), ws.delete_ws2811_t(_led_strip)))
 
-def _connect_external_board():
-    global external_board
-    _close_external_board()
-    while external_board is None:
-        try:
-            external_board = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if02", timeout=0.6, write_timeout=0.6)
-        except Exception as e:
-            print("ERROR CONNECTING TO EXTERNAL BOARD ", e, file=sys.stderr)
-            print("will retry...", file=sys.stderr)
-            _close_external_board()
-
-def _close_external_board():
-    global external_board
-    if external_board:
-        external_board.close()
-        external_board = None
-
-def _connect_external_board_logging():
-    global external_board_logs
-    _close_external_board_logging()
-    while external_board_logs is None:
-        try:
-            external_board_logs = serial.Serial("/dev/serial/by-id/usb-Adafruit_Feather_RP2040_Scorpio_DF625857C745162E-if00")
-        except Exception as e:
-            print("ERROR CONNECTING TO EXTERNAL BOARD LOGGING", e, file=sys.stderr)
-            print("will retry...", file=sys.stderr)
-            _close_external_board_logging()
-
-def _close_external_board_logging():
-    global external_board_logs
-    if external_board_logs:
-        external_board_logs.close()
-        external_board_logs = None
-
 def display_pixels(pixels):
     match LED_STRIP_TYPE:
-        case "EXTERNAL":
-            _write_external(pixels)
         case "APA102":
             _write_apa102(pixels)
         case _:  # WS2812B
             _write_ws2812b(pixels)
-
-def _write_external(pixels):
-    try:
-        pixels[:, [0,1]] = pixels[:, [1,0]]
-        pixel_data = np.clip(np.uint8(pixels),0,0xfe).tobytes()
-        crc = zlib.crc32(pixel_data).to_bytes(4, 'big', signed=False)
-        strand_count = config.get("STRAND_COUNT")
-        pixels_per_strand = config.get("PIXELS_PER_STRAND")
-        out = bytearray([0xff,0x22,0xee,0x11]) + strand_count.to_bytes(1,'big') + pixels_per_strand.to_bytes(2,'big') + crc + pixel_data
-        external_board.write(out)
-    except Exception as e:
-        print("Error writing to external board %s" % e, file=sys.stderr)
-        _connect_external_board()
-    if external_board_logs:
-        try:
-            logs = external_board_logs.read_all()
-            if logs:
-                print("EXTERNAL BOARD: %s" % logs.decode(), file=sys.stderr)
-        except Exception as e:
-            print("Error writing to external board logs %s" % e, file=sys.stderr)
-            _connect_external_board_logging()
 
 def _write_apa102(pixels):
     brightness_byte = 0xE0 | _apa102_strip.global_brightness
@@ -184,4 +119,3 @@ def _write_ws2812b(pixels):
         raise RuntimeError(
             "ws2811_render failed with code {0} ({1})".format(resp, message)
         )
-
