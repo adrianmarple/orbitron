@@ -1165,6 +1165,10 @@ var app = new Vue({
         return
       }
       let message = JSON.parse(data)
+      if (message.invalidLogin) {
+        this.speedbumpMessage = "Invalid login code"
+        return
+      }
       if(message.timestamp <= this.idToOrb[orbID].latestMessage){
         return
       }

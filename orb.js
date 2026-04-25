@@ -285,6 +285,12 @@ function connectOrbToRelay(){
             generateCode()
             let success = tryValidation(clientID, data.message)
             if (!success) {
+              try {
+                let content = JSON.parse(data.message)
+                if (content.loginCode !== undefined) {
+                  socket.send(JSON.stringify({ clientID, message: JSON.stringify({ invalidLogin: true }) }))
+                }
+              } catch(_) {}
               return
             }
           }
