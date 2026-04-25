@@ -49,14 +49,23 @@ function loadCompiledFirmwareVersion() {
   } catch(_) {}
 }
 
+// Fields only meaningful on a Pi — omit when converting Pi config → Arduino JSON
+const PI_ONLY_FIELDS = new Set([
+  'DEV_MODE', 'HAS_EMULATION', 'IS_RELAY', 'CLEAR_PREFS_ON_DISCONNECT',
+  'CERT_LOCATION', 'KEY_LOCATION',
+  'LED_STRIP_TYPE', 'APA102_BRIGHTNESS', 'APA102_MOSI_PIN', 'APA102_SCLK_PIN',
+  'BEAT_PIN', 'MANUAL_FADE_PIN', 'PIN_INPUT_TYPE',
+  'EXTERNAL_WIFI', 'NO_ACCESS_POINT', 'AUTO_ACCESS_POINT',
+  'TEXT_DISPLAY',
+])
+
 // Convert Arduino JSON config to Pi JS module format
 function arduinoConfigToPiConfig(jsonStr) {
   let cfg = {}
   try { cfg = JSON.parse(jsonStr) } catch(e) { return 'module.exports = {}' }
   let lines = ['module.exports = {']
-
   for (let [k, v] of Object.entries(cfg)) {
-    if (skip.has(k)) continue
+    if (k === 'ARDUINO') continue  // Arduino-only marker
     lines.push(`  ${k}: ${typeof v === 'string' ? `"${v}"` : JSON.stringify(v)},`)
   }
   lines.push('}')
@@ -70,10 +79,10 @@ function piConfigToArduinoConfig(jsStr) {
     let match = jsStr.match(/module\.exports\s*=\s*(\{[\s\S]*\})\s*;?\s*$/)
     if (match) cfg = eval('(' + match[1] + ')')
   } catch(e) { return '{}' }
-  // Keep only fields relevant to Arduino; drop Pi-specific runtime options
-  const keep = new Set(['ORB_ID', 'PIXELS', 'ORB_KEY', 'RELAY_HOST', 'TIMEZONE'])
   let result = {}
-  for (let k of keep) { if (cfg[k] !== undefined) result[k] = cfg[k] }
+  for (let [k, v] of Object.entries(cfg)) {
+    if (!PI_ONLY_FIELDS.has(k)) result[k] = v
+  }
   return JSON.stringify(result, null, 2)
 }
 
