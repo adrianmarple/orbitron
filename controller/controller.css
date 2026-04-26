@@ -915,7 +915,7 @@ input[type="range"]::-moz-range-thumb {
 .schedule, .scroll-containter  {
   align-items: center;
   width: 100%;
-  max-height: max(55vh, 44rem);
+  max-height: max(66vh, 54rem);
   /* max-height: 54rem; */
   overflow-y: scroll;
   overflow-x: hidden;
@@ -1017,9 +1017,6 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* SAVE MENU */
-#restore-defaults {
-  margin-bottom: 1.5rem;
-}
 .scroll-containter textarea {
   font-style: inherit;
   font-size: 1em;
@@ -1076,6 +1073,18 @@ input[type="range"]::-moz-range-thumb {
   margin-top: 0;
   font-size: 3rem;
 }
+
+.backup-list-item {
+  margin-left: 2rem;
+  font-size: 2.4rem;
+  display: flex;
+  justify-content: space-between;
+}
+.backup-list-item .button {
+  font-size: 2.4rem;
+  margin-top: 0;
+}
+
 .drag-handle {
   font-size: 3rem;
   padding: 0 1rem;
@@ -1099,7 +1108,7 @@ input[type="range"]::-moz-range-thumb {
   cursor: pointer;
 }
 
-#pref-modal {
+.overlay-modal {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
@@ -1111,15 +1120,14 @@ input[type="range"]::-moz-range-thumb {
   opacity: 0;
   transition: opacity 0.2s;
 }
-#pref-modal.visible {
+.overlay-modal.visible {
   pointer-events: all;
   opacity: 1;
 }
-#pref-modal .box {
+.overlay-modal .box {
   position: relative;
   background: rgba(8,8,8, 0.9);
   border: 0.25rem solid rgba(255,255,255,0.25);
-  padding: 8rem 4rem 3rem;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1127,17 +1135,21 @@ input[type="range"]::-moz-range-thumb {
   gap: 2rem;
   margin: 2rem;
 }
-#pref-modal .button {
-  align-self: center;
-  width: fit-content;
-}
-#pref-modal .close {
+.overlay-modal .close {
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
   width: 4rem;
   height: 4rem;
   cursor: pointer;
+}
+
+#pref-modal .box {
+  padding: 8rem 4rem 3rem;
+}
+#pref-modal .button {
+  align-self: center;
+  width: fit-content;
 }
 #pref-modal .row {
   display: flex;
@@ -1191,6 +1203,17 @@ input[type="range"]::-moz-range-thumb {
   margin-top: 1rem;
 }
 
+#backup-modal .box {
+  padding: 6rem 4rem 3rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+#backup-modal .modal-header {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  margin-top: -2rem;
+}
+
 #save-bottom-stuff {
   display: flex;
   justify-content: space-between;
@@ -1198,18 +1221,36 @@ input[type="range"]::-moz-range-thumb {
   width: 100%;
   padding-top: 1rem;
 }
-#save-bottom-stuff textarea {
-  width: 25rem;
-  margin-right: 1rem;
+#save-bottom-stuff textarea, #save-as, #backups {
+  height: 4rem;
 }
-#save-bottom-stuff .button {
-  margin-top: 0;
-  font-size: 2.5rem;
-  width: 9rem;
-  height: 5rem;
+#save-bottom-stuff textarea {
+  width: 24rem;
+  font-size: 3rem;
   display: flex;
   align-items: center;
+}
+#save-as, #backups {
+  margin-top: 0;
+  font-size: 2rem;
+  width: 9rem;
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.25rem;
+}
+#save-as {
+  width: 8rem;
+}
+#backups {
+  width: 4rem;
+  margin-left: 1rem;
+}
+#backups img {
+  width: 4rem;
+  height: 4rem;
+  display: block;
 }
 
 

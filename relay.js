@@ -86,6 +86,41 @@ function piConfigToArduinoConfig(jsStr) {
   return JSON.stringify(result, null, 2)
 }
 
+async function listBackups(orbID = null) {
+  try {
+    let files = await fs.promises.readdir(BACKUPS_DIR)
+    if (orbID) files = files.filter(f => f.startsWith(orbID + '_'))
+    return files
+  } catch(_) {
+    return []
+  }
+}
+
+async function performRestore(backupName, targetOrbID, skipAuth = false) {
+  backupName = path.basename(backupName)
+  if (!backupName.endsWith('.bak')) return { error: "Invalid backup file." }
+  if (!skipAuth && !backupName.startsWith(targetOrbID + '_')) return { error: "Unauthorized." }
+  let backup
+  try {
+    backup = JSON.parse(await fs.promises.readFile(BACKUPS_DIR + backupName))
+  } catch(e) {
+    return { error: "Error reading backup." }
+  }
+  let restoreOrb = connectedOrbs[targetOrbID]
+  if (!restoreOrb) return { error: "Orb not connected." }
+  if (backup.config) {
+    let backupIsArduino = backup.config.trim().startsWith('{')
+    let targetIsArduino = !!(orbInfoCache[targetOrbID]?.config?.ARDUINO)
+    if (backupIsArduino !== targetIsArduino) {
+      backup.config = backupIsArduino
+        ? arduinoConfigToPiConfig(backup.config)
+        : piConfigToArduinoConfig(backup.config)
+    }
+  }
+  restoreOrb.send(JSON.stringify({ type: "restoreFromBackup", backup }))
+  return { ok: true }
+}
+
 
 let server
 if (config.DEV_MODE) {
@@ -279,6 +314,18 @@ function bindClient(socket, orbID, clientID) {
       data = data.toString().trim()
     }
     try {
+      let parsed
+      try { parsed = JSON.parse(data) } catch(_) {}
+      if (parsed?.type === 'listBackups') {
+        socket.send(JSON.stringify({ backupList: await listBackups(orbID) }))
+        return
+      }
+      if (parsed?.type === 'restoreBackup') {
+        let result = await performRestore(parsed.fileName, orbID)
+        socket.send(JSON.stringify({ backupRestoreResult: result.error || 'OK' }))
+        return
+      }
+
       data = {
         clientID: clientID,
         message: data,
@@ -373,34 +420,13 @@ addGETListener(async (response, orbID, _, queryParams) => {
       response.end("OK")
       return true
     case "backuplist":
-      response.end(JSON.stringify(await fs.promises.readdir(BACKUPS_DIR)))
+      response.end(JSON.stringify(await listBackups()))
       return true
-    case "restoreBackup":
-      let backup
-      try {
-        backup = JSON.parse(await fs.promises.readFile(BACKUPS_DIR + command.fileName))
-      } catch(e) {
-        response.end("Error reading backup.")
-        return true
-      }
-      let restoreOrb = connectedOrbs[command.orbID]
-      if (!restoreOrb) {
-        response.end("Orb not connected.")
-        return true
-      }
-      // Convert config format if backup type and target type differ
-      if (backup.config) {
-        let backupIsArduino = backup.config.trim().startsWith('{')
-        let targetIsArduino = !!(orbInfoCache[command.orbID]?.config?.ARDUINO)
-        if (backupIsArduino !== targetIsArduino) {
-          backup.config = backupIsArduino
-            ? arduinoConfigToPiConfig(backup.config)
-            : piConfigToArduinoConfig(backup.config)
-        }
-      }
-      restoreOrb.send(JSON.stringify({ type: "restoreFromBackup", backup }))
-      response.end("OK")
+    case "restoreBackup": {
+      let result = await performRestore(command.fileName, command.orbID, true)
+      response.end(result.error || "OK")
       return true
+    }
     case "deleteBackup":
       response.end(await fs.promises.unlink(BACKUPS_DIR + command.fileName))
       return true

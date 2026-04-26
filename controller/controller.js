@@ -80,6 +80,8 @@ var app = new Vue({
     blurred: false,
     renamingSave: "",
     saveNames: [],
+    showBackups: false,
+    backupList: null,
     prefModalName: null,
     prefModalOriginalName: "",
     activeDropdown: null,
@@ -1070,6 +1072,24 @@ var app = new Vue({
       let copyName = `${baseName} ${n}`
       this.send({ type: "copyPrefs", name, copyName })
     },
+    toggleBackups() {
+      this.showBackups = !this.showBackups
+      if (this.showBackups) {
+        this.backupList = null
+        this.send({ type: "listBackups" })
+      }
+    },
+    formatBackupName(fileName) {
+      return fileName.replace(/^[^_]+_/, '').replace('.bak', '')
+    },
+    restoreBackupPreset(fileName) {
+      let displayName = this.formatBackupName(fileName)
+      let self = this
+      this.speedbumpMessage = `About to restore backup from ${displayName}. Anything saved since this time will be lost.`
+      this.speedbumpCallback = () => {
+        self.send({ type: "restoreBackup", fileName })
+      }
+    },
     loadPrefs(name) {
       name = name || this.prefName
       if (this.state.currentPrefName) {
@@ -1167,6 +1187,16 @@ var app = new Vue({
       let message = JSON.parse(data)
       if (message.invalidLogin) {
         this.speedbumpMessage = "Invalid login code"
+        return
+      }
+      if (message.backupList !== undefined) {
+        this.backupList = message.backupList
+        return
+      }
+      if (message.backupRestoreResult !== undefined) {
+        if (message.backupRestoreResult !== 'OK') {
+          this.speedbumpMessage = message.backupRestoreResult
+        }
         return
       }
       if(message.timestamp <= this.idToOrb[orbID].latestMessage){

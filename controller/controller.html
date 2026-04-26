@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <div :class="{visible: prefModalName !== null}" id="pref-modal" @click.self="closePrefModal">
+  <div :class="{visible: prefModalName !== null}" id="pref-modal" class="overlay-modal" @click.self="closePrefModal">
     <div class="box">
       <img class="close" src="/controller/images/close_white.svg" @click="closePrefModal"/>
       <div class="row">
@@ -230,13 +230,22 @@
         </div>
       </div>
     </div>
-    <!-- SAVE MENU -->
-    <div v-if="nav=='save'" class="nav-page">
-      <div class=" horiz-box">
-        <div class="button" id="restore-defaults" @click="clearPrefs()" >
-          Restore Default
+    <!-- BACKUP MODAL -->
+    <div :class="{visible: showBackups}" id="backup-modal" class="overlay-modal" @click.self="showBackups = false">
+      <div class="box">
+        <img class="close" src="/controller/images/close_white.svg" @click="showBackups = false"/>
+        <div class="modal-header">Restore from backup?</div>
+        <div v-if="backupList === null" class="floating-text">Loading...</div>
+        <div v-else-if="backupList.length === 0" class="zero-state">No backups found.</div>
+        <div v-for="fileName in backupList" class="backup-list-item">
+          <span>{{ formatBackupName(fileName) }}</span>
+          <div class="button" @click.stop="restoreBackupPreset(fileName)">Restore</div>
         </div>
       </div>
+    </div>
+
+    <!-- SAVE MENU -->
+    <div v-if="nav=='save'" class="nav-page">
       <div class="scroll-containter">
         <div v-for="name, i in saveNames"
             class="pref-list-item"
@@ -259,15 +268,25 @@
           Just enter a name in the text box below and hit the "Save As" button.
           Note that you need to save presets in order to use the timer (next tab over with the clock).
         </div>
+        <div class="pref-list-item" id="restore-defaults">
+          <div class="fancy-box">
+            <span>Default</span>
+            <div class="button" @click.stop="clearPrefs()">Restore</div>
+          </div>
+        </div>
       </div>
       <div class="bottom-plug"></div>
       <div id="save-bottom-stuff" class="horiz-box">
-        <div class="button"
+        <div id="save-as" 
+            class="button"
             :class="{ disabled: !prefName }"
             @click="savePrefs()">
           Save As
         </div>
         <textarea :value="prefName" @input="prefName=$event.target.value"></textarea>
+        <div class="button" id="backups" @click="toggleBackups">
+          <img src="/controller/images/reset_settings_black.svg"/>
+        </div>
       </div>
     </div>
 
