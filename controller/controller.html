@@ -129,6 +129,7 @@
           <div class="bottom">{{ getOrb(id).name }}</div>
           <div v-if="isConnected(id)"
               class="power button"
+              @click.stop
               @pointerdown.stop="onButtonPointerDown(id)"
               @pointerup.stop="onButtonPointerUp(id)"
               @pointercancel.stop="onButtonPointerCancel()">
