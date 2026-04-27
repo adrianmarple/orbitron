@@ -1052,7 +1052,6 @@ if config.get("MANUAL_FADE_PIN"):
   GPIO.setup(config["MANUAL_FADE_PIN"], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 def run_core_loop():
-  display_text("$LOADING", 0)
   display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 4)
 
   last_frame_time = time()
