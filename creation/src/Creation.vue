@@ -26,7 +26,6 @@
     <!-- <div class="button" @click="genModel('simple')">Simple 3D Model</div> -->
     <!-- <div class="button" @click="genModel('simplest')">Ultra Simple 3D Model</div> -->
     <div class="button" @click="genModel('parts')">3D Model with part IDs</div>
-    <div class="button" @click="makeForArduino">Create Arudino file</div>
     <div class="button" @click="cleanup">Cleanup Printer Files</div>
     <!-- <div class="button" @click="configure">Configure Default Orb</div> -->
   </div>
@@ -345,42 +344,6 @@ export default {
       this.post(printInfo)
       console.log("Generating " + renderMode)
       generateManufacturingInfo() // Restore old svgs and such
-    },
-
-    makeForArduino() {
-      let info = generatePixelInfo()
-      let maxNeighbors = 0
-      for (let ns of info.neighbors) {
-        maxNeighbors = Math.max(maxNeighbors, ns.length)
-      }
-      let neighborsConverted = info.neighbors.map(neighbors => {
-        let padded = []
-        for (let i = 0; i < maxNeighbors; i++) {
-          padded.push(i < neighbors.length ? neighbors[i] : 0xffff)
-        }
-        return padded
-      })
-
-      function convertToArduinoArrayString(array) {
-        return JSON.stringify(array)
-            .replaceAll('"', '')
-            .replaceAll("[", "{")
-            .replaceAll("]", "}")
-      }
-
-      let subname = this.fullProjectName.split("/").pop()
-      console.log("Creating Arduino file for " + subname)
-      this.post({
-        type: "arduino",
-        subname,
-        SIZE: info.SIZE,
-        RAW_SIZE: info.RAW_SIZE,
-        maxNeighbors,
-        dupeToUniques: convertToArduinoArrayString(info.dupeToUniques),
-        neighbors: convertToArduinoArrayString(neighborsConverted),
-        rawToUnique: convertToArduinoArrayString(info.uniqueToDupe),
-        coords: convertToArduinoArrayString(info.coords),
-      })
     },
 
     onmousedown(e) {

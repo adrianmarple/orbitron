@@ -20,9 +20,10 @@ let BACKUPS_DIR = "./backups/"
 
 // --- Arduino OTA firmware ---
 const FIRMWARE_DIR = path.join(__dirname, 'firmware')
-const FIRMWARE_BIN = path.join(FIRMWARE_DIR, 'esp32.ino.bin')
-const FIRMWARE_VERSION_FILE = path.join(FIRMWARE_DIR, 'version.txt')
-let compiledFirmwareVersion = 0
+const SUPPORTED_CHIPS = ['esp32c3', 'esp32c6']
+const firmwareBin = chip => path.join(FIRMWARE_DIR, `${chip}.bin`)
+const firmwareVersionFile = chip => path.join(FIRMWARE_DIR, `${chip}.version.txt`)
+let compiledFirmwareVersions = {}  // chip -> version number
 
 const MASTER_KEY_FILE = path.join(__dirname, 'masterkey.txt')
 let masterKey = ''
@@ -43,10 +44,14 @@ function sendToPis(message) {
 }
 
 function loadCompiledFirmwareVersion() {
-  try {
-    compiledFirmwareVersion = parseInt(fs.readFileSync(FIRMWARE_VERSION_FILE, 'utf8').trim()) || 0
-    console.log('Loaded firmware version:', compiledFirmwareVersion)
-  } catch(_) {}
+  for (const chip of SUPPORTED_CHIPS) {
+    try {
+      compiledFirmwareVersions[chip] = parseInt(fs.readFileSync(firmwareVersionFile(chip), 'utf8').trim()) || 0
+      console.log(`Loaded firmware version for ${chip}:`, compiledFirmwareVersions[chip])
+    } catch(_) {
+      compiledFirmwareVersions[chip] = 0
+    }
+  }
 }
 
 // Fields only meaningful on a Pi — omit when converting Pi config → Arduino JSON
@@ -490,18 +495,19 @@ addGETListener(async (response, _, filePath, __, request)=>{
 // Serve compiled Arduino firmware binary
 addGETListener(async (response, _, filePath, queryParams) => {
   if (!filePath.startsWith('/firmware/') || !filePath.endsWith('.bin')) return
-  if (!fs.existsSync(FIRMWARE_BIN)) {
-    response.writeHead(404)
-    response.end('No firmware available')
-    return true
+  const chip = path.basename(filePath, '.bin')
+  if (!SUPPORTED_CHIPS.includes(chip)) {
+    response.writeHead(404); response.end('Unknown chip'); return true
+  }
+  const binPath = firmwareBin(chip)
+  if (!fs.existsSync(binPath)) {
+    response.writeHead(404); response.end('No firmware available'); return true
   }
   let clientVersion = parseInt(queryParams.version || '0')
-  if (clientVersion >= compiledFirmwareVersion) {
-    response.writeHead(304)
-    response.end()
-    return true
+  if (clientVersion >= compiledFirmwareVersions[chip]) {
+    response.writeHead(304); response.end(); return true
   }
-  let bin = await fs.promises.readFile(FIRMWARE_BIN)
+  let bin = await fs.promises.readFile(binPath)
   response.writeHead(200, {
     'Content-Type': 'application/octet-stream',
     'Content-Length': bin.length,
@@ -513,18 +519,21 @@ addGETListener(async (response, _, filePath, queryParams) => {
 // Accept locally-built Arduino firmware binary and notify Arduino orbs to OTA
 addPOSTListener(async (response, body, filePath, queryParams) => {
   if (filePath !== '/firmware/upload') return false
-  const { version, key } = queryParams
+  const { version, chip, key } = queryParams
   if (key !== sha256(version + masterKey)) {
     response.writeHead(403); response.end('forbidden'); return true
   }
   if (!version || !body.length) {
     response.writeHead(400); response.end('missing version or binary'); return true
   }
+  if (!SUPPORTED_CHIPS.includes(chip)) {
+    response.writeHead(400); response.end('unknown chip'); return true
+  }
   await fs.promises.mkdir(FIRMWARE_DIR, { recursive: true })
-  await fs.promises.writeFile(FIRMWARE_BIN, body)
-  await fs.promises.writeFile(FIRMWARE_VERSION_FILE, String(version))
-  compiledFirmwareVersion = parseInt(version)
-  console.log(`Firmware uploaded: version ${compiledFirmwareVersion}`)
+  await fs.promises.writeFile(firmwareBin(chip), body)
+  await fs.promises.writeFile(firmwareVersionFile(chip), String(version))
+  compiledFirmwareVersions[chip] = parseInt(version)
+  console.log(`Firmware uploaded: ${chip} version ${compiledFirmwareVersions[chip]}`)
   sendToArduinos("HAS_UPDATE")
   response.writeHead(200); response.end('OK')
   return true

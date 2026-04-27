@@ -110,10 +110,10 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 `esp32.ino` runs idle patterns on an ESP32-C3 with full WiFi connectivity — connects to the relay server, supports admin commands, OTA firmware updates, saved presets, timer schedules, and a hardware button. It is a standalone alternative to the Raspberry Pi + Python stack.
 
 ### Hardware
-- **LED data pin**: GPIO 10 (hardcoded as `#define PIN 10`)
+- **LED data pin**: GPIO 10 on C3, GPIO 18 on C6 (both correspond to the D10 pad on the XIAO; set via `#define PIN` conditioned on `CONFIG_IDF_TARGET_ESP32C6`)
 - **Button pin**: set `BUTTON_PIN` in config.json to the GPIO number (e.g. `4` = D2 on Seeed XIAO ESP32-C3). Button must be wired to GND; pin uses `INPUT_PULLUP`.
 - **Recommended board**: Seeed XIAO ESP32-C3 or similar ESP32-C3 devkit
-- **arduino-cli board**: `esp32:esp32:esp32c3`
+- **arduino-cli boards**: `esp32:esp32:esp32c3` and `esp32:esp32:esp32c6` (both built by the build script)
 
 ### Required Arduino libraries
 - Adafruit NeoPixel
@@ -141,8 +141,13 @@ JSON file written directly to the device. Key fields:
 - The portal appears on every boot when WiFi fails (not just first boot).
 
 ### OTA firmware updates
-- The relay server compiles `arduino/esp32/esp32.ino` via `arduino-cli` on each git update, with build flags `-DFIRMWARE_VERSION_NUM=<gitCount> -DESP32`
-- Compiled binary served at `https://<relay>/firmware/<orbID>.bin`
+- Firmware is compiled **locally** via `bash scripts/arduino_build.sh [server-host]`
+  - Regenerates `portal_html.h` via `scripts/gen_portal_header.py`
+  - Compiles for each supported chip (`esp32c3`, `esp32c6`) using the corresponding FQBN with `PartitionScheme=min_spiffs` and build flags `-DFIRMWARE_VERSION_NUM=<gitCount> -DESP32`
+  - Uploads each binary to `https://<relay>/firmware/upload?chip=<chip>&version=<version>&key=<key>`
+  - Server defaults to `my.lumatron.art`; `staging` branch uses `staging.lumatron.art`
+- Relay serves per-chip binaries at `https://<relay>/firmware/<chip>.bin` (e.g. `esp32c3.bin`, `esp32c6.bin`)
+- Device detects its chip type at compile time via IDF macros (`CONFIG_IDF_TARGET_ESP32C6` etc.) and fetches the matching binary
 - Device checks for updates at 2am daily; if `CONTINUOUS_INTEGRATION: true`, also polls after receiving `GIT_HAS_UPDATE` from relay
 
 ### Pixel geometry
@@ -150,45 +155,6 @@ JSON file written directly to the device. Key fields:
 - `patterns.h` (shared with the RP2040 template) lives in `arduino/esp32/patterns.h`
 
 ---
-
-## Arduino Standalone Mode (`arduino/`)
-
-`template.ino` is a C++ template for running idle patterns directly on an RP2040 microcontroller (no Raspberry Pi, no WiFi). The `creation/` tool injects geometry-specific data by replacing `{{MARKER}}` placeholders and writing the result to a `.ino` file ready to flash. It includes `../esp32/patterns.h` for shared pattern code.
-
-### Template markers
-- `{{SIZE}}` / `{{RAW_SIZE}}` — unique pixel count / raw LED count
-- `{{MAX_NEIGHBORS}}` — max neighbors per pixel
-- `{{DUPES_TO_UNIQUES}}` — `uint16_t[SIZE][2]`: each entry is `[raw0, raw1]` for that unique pixel
-- `{{NEIGHBORS}}` — `uint16_t[SIZE][MAX_NEIGHBORS]`: unique neighbor indices, `0xffff` sentinel
-- `{{RAW_TO_UNIQUE}}` — `uint16_t[RAW_SIZE]`: maps each raw LED index to its unique pixel index
-- `{{COORDS}}` — `float[SIZE][3]`: 3D coords per unique pixel
-
-### Rendering pipeline
-Each `loop()` call runs one pattern function then calls `strip.show()`. Frame rate is `idleFrameRate` for DEFAULT and FIREFLIES, 30fps for all others.
-
-Pattern functions write pixel colors directly to the strip. Two shared helpers exist for patterns that compute per-unique-pixel values:
-- `applyTargetValues(brightness_scale)` — reads `pattern_target[SIZE]` (per-unique), alpha-blends into `render_values[RAW_SIZE]`, applies gradient color
-- `applyFluidValues(fv, brightness_scale)` — reads a per-raw array directly, no alpha blend
-
-**Critical RAM constraint**: The RP2040 has limited RAM. Avoid large global arrays. Prefer:
-- Inline hash functions (Knuth multiplicative: `2654435761u`, `2246822519u`, `3266489917u`) over stored per-pixel lookup tables
-- `int16_t` instead of `int` for index arrays
-- The shared `pattern_target[SIZE]` scratch buffer instead of stack-allocated arrays
-- Computing values on the fly from a single time scalar rather than per-pixel accumulated state
-
-### Gradient color formula
-Given `target_v` (0–1 brightness), `tv = min(1, target_v * 100 / gradientThreshold)`, color = `end + (start − end) * tv`, scaled by `render_v * brightness_factor`.
-
-### Patterns implemented
-| Pattern | Key idea |
-|---|---|
-| DEFAULT | Fluid fire spreading via `neighbors`, squared brightness |
-| FIREFLIES | Like DEFAULT but directionally biased toward `patternBias` |
-| STATIC | Dot product of pixel coord with direction vector |
-| SIN | Sine wave advancing along `sinDir` over time |
-| PULSES | Expanding rings from random sphere points |
-| LIGHTFIELD | Per-pixel sine oscillator; speed/brightness/phase from Knuth hash of index + single global time |
-| LIGHTNING | BFS spanning tree from random sink; traces paths from sources |
 
 ## Admin UI (`admin/`)
 

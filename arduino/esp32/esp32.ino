@@ -1,4 +1,4 @@
-// WiFi-enabled Lumatron Arduino template for ESP32-C3
+// WiFi-enabled Lumatron Arduino template for ESP32-C3/C6
 // Requires libraries: WebSockets by Markus Sattler, ArduinoJson, LittleFS
 // OTA firmware URL: https://<relayHost>/firmware/<orbID>.bin
 // Pixel geometry fetched automatically from https://<relayHost>/pixels/<pixelsName>.bin
@@ -21,7 +21,13 @@
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
 
-#define PIN 10  // GPIO 10 (D10 on ESP32-C3 devkits)
+#ifdef CONFIG_IDF_TARGET_ESP32C6
+  #define PIN 18        // GPIO 18 = D10 on XIAO ESP32-C6
+  #define CHIP_TYPE "esp32c6"
+#else
+  #define PIN 10        // GPIO 10 = D10 on XIAO ESP32-C3
+  #define CHIP_TYPE "esp32c3"
+#endif
 #ifndef FIRMWARE_VERSION_NUM
 #define FIRMWARE_VERSION_NUM 0
 #endif
@@ -845,7 +851,7 @@ void handleOrbMessage(JsonDocument& msg) {
 }
 
 void performOTA() {
-  String url = "https://" + relayHost + "/firmware/" + orbID + ".bin?version=" + FIRMWARE_VERSION_NUM;
+  String url = "https://" + relayHost + "/firmware/" + CHIP_TYPE + ".bin?version=" + FIRMWARE_VERSION_NUM;
   Serial.println("OTA check: " + url);
   WiFiClientSecure client;
   client.setInsecure();  // TODO: implement certificate pinning
