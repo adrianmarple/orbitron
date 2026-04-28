@@ -49,24 +49,21 @@ box_wall = 2;
 seeed_h = 30;
 
 //power();
-//controller();
-seeed_sled();
+controller();
+//seeed_sled();
 
 module seeed_sled() {
     rotate([90,0,0])
     difference() {
-        cube([power_connection_r * 2 + box_wall, box_thick, seeed_h]);
-    
-        translate([1.2, box_thick/2 - 3.6, -1])
-        cube([21.2, box_thick, 32]);
+        union() {
+            cube([1.2, box_thick, seeed_h]);
+            cube([power_connection_r * 2 + box_wall, box_thick/2 - 3.6, seeed_h]);
+            translate([22.3, box_thick/2 - 3.6, seeed_h/2 - 7])
+            cube([4, 3, 14]);
+            
+        }
         
-        
-        translate([10, box_thick/2 - 3.6, seeed_h/2 + 7])
-        cube([40, box_thick, 20]);
-        translate([10, box_thick/2 - 3.6, seeed_h/2 - 27])
-        cube([40, box_thick, 20]);
-        
-        translate([-1, box_thick/2, 21])
+        translate([-1, box_thick/2, seeed_h/2])
         rotate([0,90,0])
         pillinder(9.5, 1.8, 10);
     }
@@ -190,7 +187,7 @@ difference() {
     // Hole to be able to poke seeed sled out
     translate([15, 0, 76])
     rotate([0,90,0])
-    cylinder(h = 10, r=3, $fn=64);
+    cylinder(h = 10, r=6, $fn=64);
     
     // Deboss
     for (i = [0:1]) {

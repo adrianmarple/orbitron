@@ -32,9 +32,9 @@ v_kerf = 0.4;
 h_kerf = 0.1;
 
 
-main();
+//main();
 //hatch();
-//nail_sheath();
+nail_sheath();
 
 module nail_sheath() {
 difference() {
