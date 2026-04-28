@@ -274,7 +274,7 @@ new Vue({
           Vue.set(this.idToCommit, orb.id, null)
           return
         }
-        let serverVersion = orb.isArduino ? this.versions.arduinoVersion : this.versions.gitCount
+        let serverVersion = orb.isArduino ? (this.versions.arduinoVersions?.esp32c3 ?? 0) : this.versions.gitCount
         Vue.set(this.idToCommit, orb.id, serverVersion - orbVersion)
       }).catch(() => {})
     },

@@ -396,7 +396,7 @@ addGETListener(async (response, orbID, filePath) => {
   if (filePath != "/admin/versions") return false
   let gitCount = parseInt((await execute("git rev-list --count HEAD")).trim())
   noCorsHeader(response, 'text/json')
-  response.end(JSON.stringify({ gitCount, arduinoVersion: compiledFirmwareVersion }))
+  response.end(JSON.stringify({ gitCount, arduinoVersions: compiledFirmwareVersions }))
   return true
 })
 
