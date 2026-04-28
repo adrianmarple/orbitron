@@ -987,6 +987,7 @@ void advanceCycle() {
 
   String names[16];
   int n = listSavedPrefNames(names, 16);
+  n = applyPrefOrder(names, n, timingDoc);
   String cyclable[16];
   int cycleCount = 0;
   for (int i = 0; i < n; i++) {
