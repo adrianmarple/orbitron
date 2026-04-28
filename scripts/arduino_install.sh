@@ -35,9 +35,11 @@ arduino-cli lib install "Adafruit NeoPixel"
 arduino-cli lib install "WebSockets"
 arduino-cli lib install "ArduinoJson"
 
-# Install git pre-push hook
-echo "Installing git pre-push hook..."
+# Install git hooks
+echo "Installing git hooks..."
 cp scripts/hooks/pre-push .git/hooks/pre-push
 chmod +x .git/hooks/pre-push
+cp scripts/hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
 
 echo "Done. arduino-cli and git hooks installed."

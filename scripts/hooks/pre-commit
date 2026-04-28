@@ -1,0 +1,7 @@
+#!/bin/bash
+# Regenerate portal_html.h if captiveportal.html is staged for commit.
+if git diff --cached --name-only | grep -q "accesspoint/captiveportal.html"; then
+  echo "captiveportal.html changed, regenerating portal_html.h..."
+  python3 scripts/gen_portal_header.py || exit 1
+  git add arduino/esp32/portal_html.h
+fi
