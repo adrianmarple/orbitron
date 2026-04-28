@@ -259,6 +259,9 @@ new Vue({
     async restartOrb() {
       await this.sendCommand({ type: "restart" })
     },
+    async updateFirmware() {
+      await this.sendCommand({ type: "updateFirmware" })
+    },
 
     async clearWifi() {
       await this.sendCommand({ type: "clearwifi" })

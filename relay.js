@@ -450,7 +450,14 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
     response.end("ORB DISCONNECTED")
     return true
   }
-  
+
+  if (queryParams.type === "updateFirmware") {
+    connectedOrbs[orbID].send("HAS_UPDATE")
+    noCorsHeader(response, 'text/json')
+    response.end("OK")
+    return true
+  }
+
   queryParams.type = "admin"
   let orb = connectedOrbs[orbID]
   let reply = await new Promise(resolve => {
