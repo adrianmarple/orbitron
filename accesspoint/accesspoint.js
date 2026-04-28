@@ -183,7 +183,7 @@ async function networkCheck() {
     let connected = await checkConnectionAndCleanup()
     if (connected) {
       isFirstNetworkCheck = false
-      setTimeout(networkCheck, 120e3)
+      if (!config.DONT_RECONNECT) setTimeout(networkCheck, 120e3)
       return
     }
 
@@ -192,6 +192,7 @@ async function networkCheck() {
     await delay(isFirstNetworkCheck ? 15e3 : 60e3)
 
     isFirstNetworkCheck = false
+    if (config.DONT_RECONNECT) return
     connected = await checkConnectionAndCleanup()
     if (connected) {
       numTimesNetworkRestartWorked += 1

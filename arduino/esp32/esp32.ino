@@ -72,6 +72,7 @@ String pixelsName;
 String orbKey;  // sha256(orbID + masterKey); empty = no auth required
 String timezone;
 bool continuousIntegration = false;
+bool dontReconnect = false;
 
 // --- Manual fade pin ---
 int buttonPin = -1;  // -1 = disabled
@@ -1303,6 +1304,7 @@ void runCaptivePortal() {
 // If creds exist but network is unavailable, continue without portal.
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(!dontReconnect);
   WiFi.begin();  // uses last credentials stored in NVS
   if (WiFi.SSID().isEmpty()) {
     Serial.println("No saved WiFi credentials, launching portal");
@@ -1355,6 +1357,7 @@ void setup() {
     orbKey = doc["ORB_KEY"] | "";
     timezone = doc["TIMEZONE"] | "PST8PDT,M3.2.0,M11.1.0";
     continuousIntegration = doc["CONTINUOUS_INTEGRATION"] | false;
+    dontReconnect = doc["DONT_RECONNECT"] | false;
     buttonPin = doc["BUTTON_PIN"] | -1;
     shortPressAction = doc["SHORT_PRESS_ACTION"] | "DIM";
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";

@@ -12,6 +12,7 @@ module.exports={
   // TRIPLE_CLICK_ACTION: "ACCESS_POINT",// "DIM", "CYCLE", or "ACCESS_POINT"
   // LOG_INCOMING_MESSAGES: "update.dimmer",
   // NO_ACCESS_POINT: true,
+  // DONT_RECONNECT: true,  // Attempt WiFi once on boot; never retry if it drops
   INCLUDE: {
     // games: true,
     // gameSettings: true,
