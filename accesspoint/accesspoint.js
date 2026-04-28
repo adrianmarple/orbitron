@@ -169,6 +169,14 @@ let wifiSetupServer = http.createServer(async function (req, res) {
   }
 })
 
+async function hasSavedWifiCredentials() {
+  const out = await execute("nmcli -t -f NAME,TYPE connection show")
+  return out.split('\n').some(line => {
+    const [name, type] = line.split(':')
+    return type === 'wifi' && name !== 'OrbHotspot'
+  })
+}
+
 let isFirstNetworkCheck = true
 async function networkCheck() {
   try {
@@ -188,7 +196,7 @@ async function networkCheck() {
     if (connected) {
       numTimesNetworkRestartWorked += 1
       setTimeout(networkCheck, 120e3)
-    } else if (config.AUTO_ACCESS_POINT) {
+    } else if (!(await hasSavedWifiCredentials())) {
       numTimesAccessPointStarted += 1
       await startAccessPoint()
       await delay(120e3)

@@ -1299,21 +1299,26 @@ void runCaptivePortal() {
   Serial.println("Portal: WiFi connected, IP=" + WiFi.localIP().toString());
 }
 
-// Try NVS creds first; fall back to portal.
+// Try NVS creds first. If no creds saved, run captive portal.
+// If creds exist but network is unavailable, continue without portal.
 void connectWiFi() {
-  Serial.println("Connecting to WiFi (NVS)...");
   WiFi.mode(WIFI_STA);
   WiFi.begin();  // uses last credentials stored in NVS
+  if (WiFi.SSID().isEmpty()) {
+    Serial.println("No saved WiFi credentials, launching portal");
+    runCaptivePortal();
+    return;
+  }
+  Serial.println("Connecting to WiFi: " + WiFi.SSID() + "...");
   unsigned long t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 10000) {
     delay(200);
   }
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("WiFi connected: " + WiFi.localIP().toString());
-    return;
+  } else {
+    Serial.println("WiFi unavailable, continuing without portal");
   }
-  Serial.println("NVS connect failed, launching portal");
-  runCaptivePortal();
 }
 
 // ===================== SETUP / LOOP =====================

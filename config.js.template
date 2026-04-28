@@ -12,7 +12,6 @@ module.exports={
   // TRIPLE_CLICK_ACTION: "ACCESS_POINT",// "DIM", "CYCLE", or "ACCESS_POINT"
   // LOG_INCOMING_MESSAGES: "update.dimmer",
   // NO_ACCESS_POINT: true,
-  // AUTO_ACCESS_POINT: true,  // Auto-start captive portal AP when WiFi is unavailable
   INCLUDE: {
     // games: true,
     // gameSettings: true,
