@@ -11,6 +11,7 @@
 #include <math.h>
 #include "mbedtls/sha256.h"
 #include <WiFi.h>
+#include <esp_wifi.h>
 #include <WiFiClientSecure.h>
 #include <DNSServer.h>
 #include <WebServer.h>
@@ -1300,17 +1301,24 @@ void runCaptivePortal() {
   Serial.println("Portal: WiFi connected, IP=" + WiFi.localIP().toString());
 }
 
+// Returns true if WiFi credentials are saved in NVS.
+bool hasSavedWifiCredentials() {
+  wifi_config_t conf;
+  if (esp_wifi_get_config(WIFI_IF_STA, &conf) != ESP_OK) return false;
+  return strlen((const char*)conf.sta.ssid) > 0;
+}
+
 // Try NVS creds first. If no creds saved, run captive portal.
 // If creds exist but network is unavailable, continue without portal.
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(!dontReconnect);
-  WiFi.begin();  // uses last credentials stored in NVS
-  if (WiFi.SSID().isEmpty()) {
+  if (!hasSavedWifiCredentials()) {
     Serial.println("No saved WiFi credentials, launching portal");
     runCaptivePortal();
     return;
   }
+  WiFi.begin();  // uses last credentials stored in NVS
   Serial.println("Connecting to WiFi: " + WiFi.SSID() + "...");
   unsigned long t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 10000) {
