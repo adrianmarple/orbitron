@@ -438,9 +438,24 @@ new Vue({
     },
 
     clearMaxes() {
-      this.config = removeLineInConfig(this.config, "MAX_POWER_DRAW")
-      this.config = removeLineInConfig(this.config, "MAX_AVG_PIXEL_BRIGHTNESS")
+      if (this.isArduino) {
+        let cfg = JSON.parse(this.config)
+        delete cfg.MAX_POWER_DRAW
+        delete cfg.MAX_AVG_PIXEL_BRIGHTNESS
+        this.config = JSON.stringify(cfg, null, 2)
+      } else {
+        this.config = removeLineInConfig(this.config, "MAX_POWER_DRAW")
+        this.config = removeLineInConfig(this.config, "MAX_AVG_PIXEL_BRIGHTNESS")
+      }
       this.saveConfig()
+    },
+
+    sendPrefsUpdate(update) {
+      if (this.isArduino) {
+        this.sendCommand({ type: "updatePrefs", update })
+      } else {
+        this.sendCommand({ type: "python", content: { type: "prefs", update } })
+      }
     },
 
     async startPowerCalibration() {
@@ -450,25 +465,13 @@ new Vue({
       this.powerValue = 1
       this.powerStep = 1
       this.stepIncreasing = true
-      this.sendCommand({
-        type: "python",
-        content: {
-          type: "prefs",
-          update: { brightness: 234, idlePattern: "static", idleColor: "fixed", dimmer: 1 }
-        }
-      })
+      this.sendPrefsUpdate({ brightness: 234, idlePattern: "static", idleColor: "fixed", dimmer: 1 })
       this.sendPowerValue()
     },
 
     sendPowerValue() {
       let powerHex = this.powerValue.toString(16).padStart(2, '0')
-      this.sendCommand({
-        type: "python",
-        content: {
-          type: "prefs",
-          update: { fixedColor: `#${powerHex}${powerHex}${powerHex}`, idlePattern: "static" }
-        }
-      })
+      this.sendPrefsUpdate({ fixedColor: `#${powerHex}${powerHex}${powerHex}`, idlePattern: "static" })
     },
 
     async nextPowerValue(wasGood) {
@@ -477,7 +480,13 @@ new Vue({
         if (!wasGood) this.powerValue -= 1
         this.prefs = this.prefsBackup
         await this.savePrefs(true)
-        this.config = upsertKeyValueInConfig(this.config, "MAX_AVG_PIXEL_BRIGHTNESS", this.powerValue)
+        if (this.isArduino) {
+          let cfg = JSON.parse(this.config)
+          cfg.MAX_AVG_PIXEL_BRIGHTNESS = this.powerValue
+          this.config = JSON.stringify(cfg, null, 2)
+        } else {
+          this.config = upsertKeyValueInConfig(this.config, "MAX_AVG_PIXEL_BRIGHTNESS", this.powerValue)
+        }
         this.saveConfig()
         return
       }

@@ -172,8 +172,7 @@
 
             <!-- Power calibration -->
             <div v-if="viewing=='calibration'" id="calibration">
-              <div v-if="isArduino">Power Calibration is not yet supported for Arduino devices.</div>
-              <template v-if="!isArduino">
+              <template>
                 <div v-if="MAX_POWER_DRAW">MAX_POWER_DRAW present</div>
                 <div v-if="MAX_AVG_PIXEL_BRIGHTNESS">MAX_AVG_PIXEL_BRIGHTNESS present</div>
                 <div v-if="MAX_POWER_DRAW || MAX_AVG_PIXEL_BRIGHTNESS" class="row">

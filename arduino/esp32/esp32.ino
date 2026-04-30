@@ -74,6 +74,7 @@ String orbKey;  // sha256(orbID + masterKey); empty = no auth required
 String timezone;
 bool continuousIntegration = false;
 bool dontReconnect = false;
+float maxAvgPixelBrightness = 0;  // 0 = disabled; 0-255 average per channel
 
 // --- Manual fade pin ---
 int buttonPin = -1;  // -1 = disabled
@@ -783,6 +784,17 @@ void handleAdminCommand(JsonDocument& msg) {
     ESP.restart();
   } else if (type == "getprefs") {
     sendResponse(messageID, readFile("/prefs.json"));
+  } else if (type == "updatePrefs") {
+    JsonObject update = cmd["update"].as<JsonObject>();
+    if (!update.isNull()) {
+      Prefs p = loadPrefs();
+      p = prefsFromJson(update, p);
+      savePrefs(p); applyPrefs(p);
+      currentPrefName = "";
+      writeFile("/currentprefname.txt", "");
+      broadcastState();
+    }
+    sendResponse(messageID, "OK");
   } else if (type == "setprefs") {
     String prefsJson = cmd["data"].as<String>();
     JsonDocument doc;
@@ -1366,6 +1378,7 @@ void setup() {
     timezone = doc["TIMEZONE"] | "PST8PDT,M3.2.0,M11.1.0";
     continuousIntegration = doc["CONTINUOUS_INTEGRATION"] | false;
     dontReconnect = doc["DONT_RECONNECT"] | false;
+    maxAvgPixelBrightness = doc["MAX_AVG_PIXEL_BRIGHTNESS"] | 0.0f;
     buttonPin = doc["BUTTON_PIN"] | -1;
     shortPressAction = doc["SHORT_PRESS_ACTION"] | "DIM";
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
@@ -1454,6 +1467,27 @@ void loop() {
       strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
     }
   }
+
+  // Apply MAX_AVG_PIXEL_BRIGHTNESS power cap
+  if (maxAvgPixelBrightness > 0) {
+    long total = 0;
+    for (int i = 0; i < RAW_SIZE; i++) {
+      uint32_t c = strip->getPixelColor(i);
+      total += ((c >> 16) & 0xff) + ((c >> 8) & 0xff) + (c & 0xff);
+    }
+    long maxTotal = (long)(maxAvgPixelBrightness * RAW_SIZE * 3);
+    if (total > maxTotal) {
+      float scale = (float)maxTotal / total;
+      for (int i = 0; i < RAW_SIZE; i++) {
+        uint32_t c = strip->getPixelColor(i);
+        uint8_t r = ((c >> 16) & 0xff) * scale;
+        uint8_t g = ((c >> 8)  & 0xff) * scale;
+        uint8_t b = (c & 0xff)          * scale;
+        strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+      }
+    }
+  }
+
   strip->show();
 
   float frame_rate = 30;
