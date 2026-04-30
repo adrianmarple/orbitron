@@ -1,6 +1,5 @@
 module.exports = () => {
   CHANNEL_WIDTH = 11
-  INFILL_100 = true
 
   let k = Math.sqrt(2)/2
   let bigDiamondEdge = 8

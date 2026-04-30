@@ -19,6 +19,7 @@
 
 const initialSeed = 3
 const PHI = (1 + Math.sqrt(5))/ 2
+const MM_TO_96DPI = 3.77952755906
 
 VERSION = "1"
 
@@ -106,7 +107,6 @@ function reset() {
   
   END_CAP_FACTOR = 0.3872
   IS_BOTTOM = true
-  INFILL_100 = false
 
   WALL_PANEL_HEIGHT = 200  // Not sure why this is still needed, but it is
 
@@ -198,10 +198,11 @@ Array.prototype.last = function(val) {
   return this[this.length - val]
 }
     </script>
-    
 
     <script type="text/javascript" src="topology.js"></script>
     <script type="text/javascript" src="data.js"></script>
-    <script type="text/javascript" src="construction.js"></script>
+    <script type="text/javascript" src="cover.js"></script>
+    <script type="text/javascript" src="wall.js"></script>
+    <script type="text/javascript" src="printing.js"></script>
   </body>
 </html>
