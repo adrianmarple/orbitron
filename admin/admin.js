@@ -207,14 +207,16 @@ new Vue({
     },
 
     async unlockOrb() {
-      if (!confirm("Unlock orb? This resets the Pi password and removes ORB_KEY.")) return
+      if (!confirm("Unlock orb? This resets the Pi password, removes ORB_KEY, and clears WiFi credentials.")) return
       let command = 'sudo bash -c "echo pi:lumatron | chpasswd"'
       let response = await this.sendCommand({ type: "run", command })
       this.commandResponses += "% " + command + "\n" + (response.trim() || "(success)") + "\n"
       this.commandResponses += "Removing ORB_KEY from config.js\n"
       this.config = removeLineInConfig(this.config, "ORB_KEY")
-      await this.saveConfig()
+      await this.saveConfig(true)
       this.commandResponses += "Successfully removed ORB_KEY\n"
+      await this.sendCommand({ type: "clearwifi" })
+      this.commandResponses += "WiFi credentials cleared\n"
     },
 
     async saveConfig(dontRestart) {
