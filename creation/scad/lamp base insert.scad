@@ -10,6 +10,7 @@ wall = 2;
 
 screw_r = 5.2;
 nut_r = 8.5;
+button_r = 6;
 
 hole_r = 3;
 hole_kerf = 0.1;
@@ -76,13 +77,15 @@ difference() {
       circle(r=hole_r+wall);
     }
     cylinder(h=wall, r=r);
-    cylinder(h=wall + 4, r=nut_r+wall);
+    //cylinder(h=wall + 4, r=nut_r+wall);
     
   }
   
-  // Button hole
-  translate([-r/2, 0, 0])
-  cylinder(h=h, r=nut_r);
+  for (i = [0,1,2]) {
+      rotate([0,0,120*i])
+      translate([0,25.16,0])
+      cylinder(h=wall, r=screw_r);
+  }
   
   // Bottom connection holes
   translate([r - hole_r - wall, 0, wall])
@@ -91,9 +94,7 @@ difference() {
   cylinder(h=h, r=hole_r);
   
   // Nut
-  cylinder(h=h, r=screw_r);
-  translate([0,0,wall])
-  cylinder(h=h, r=nut_r, $fn=6);
+  cylinder(h=h, r=button_r);
   
   // arduino holder gap
   translate([0, r, h/2 + wall])
@@ -105,11 +106,12 @@ difference() {
   difference() {
     union() {
       translate([-arduino_w/2 - wall, outer_r - usbc_offset - arduino_l - wall, 0])
-      cube([arduino_w + 2*wall, arduino_l + 2*wall, side_hole_z]);
+      cube([arduino_w + 2*wall, arduino_l + 2*wall, side_hole_z-1.4]);
        
-      translate([0, outer_r - usbc_offset, side_hole_z])
+      translate([0, outer_r - usbc_offset-1, side_hole_z])
       rotate([-90,0,0])
-      cylinder(h=usbc_offset, d=side_hole_d);
+      cube([arduino_w + 2*wall, side_hole_d, 6], center=true);
+      //cylinder(h=usbc_offset, d=side_hole_d);
     }
     
     difference() {
@@ -119,20 +121,20 @@ difference() {
     
     //arduino itself
     translate([-arduino_w/2, outer_r - usbc_offset - arduino_l, side_hole_z - usbc_h/2 - arduino_pcb])
-    cube([arduino_w, arduino_l, 10]);
+    cube([arduino_w, arduino_l, 5.2]);
     
     // back wire
     translate([-2, outer_r - usbc_offset - 1.5*arduino_l, side_hole_z - usbc_h/2 - arduino_pcb])
     cube([4, arduino_l, 10]);
     // pins troughs
     translate([-arduino_w/2, outer_r - usbc_offset - arduino_l, side_hole_z - usbc_h/2 - arduino_pcb - 2])
-    cube([3, arduino_l, 10]);
+    cube([3, arduino_l, 7]);
     translate([arduino_w/2-3, outer_r - usbc_offset - arduino_l, side_hole_z - usbc_h/2 - arduino_pcb - 2])
-    cube([3, arduino_l, 10]);
+    cube([3, arduino_l, 7]);
     
     //usbc hole
     translate([0, outer_r, side_hole_z])
     rotate([90,0,0])
-    pillinder(usbc_w, usbc_h/2, 10);
+    pillinder(usbc_w, usbc_h/2+0.1, 10);
   }
 }

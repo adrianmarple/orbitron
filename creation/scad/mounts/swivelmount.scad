@@ -1,7 +1,7 @@
 
 include <../utils.scad>
 
-$fn=32;
+$fn=64;
 width = 20;
 channel_width = 22.3;
 latch_height = 2;
@@ -33,8 +33,8 @@ h_kerf = 0.1;
 
 
 //main();
-//hatch();
-nail_sheath();
+hatch();
+//nail_sheath();
 
 module nail_sheath() {
 difference() {
@@ -61,8 +61,9 @@ difference() {
 
 module hatch() {
   difference() {
-    translate([0,0,bottom_thickness/2])
-    cube([channel_width, width - 4, bottom_thickness], center=true);
+    thick = bottom_thickness - 0.2;
+    translate([0,0,thick/2])
+    cube([channel_width, width - 4, thick], center=true);
       
     translate([0, 0, -1])
     pillinder(bottom_hole_width, bottom_hole_d/2, box_thickness+2);
@@ -114,13 +115,13 @@ difference() {
   cube([channel_width, width - 4, bottom_thickness], center=true);
       
   translate([hatch_dowel_x, hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2+0.2, d=hatch_dowel_d);
+  cylinder(h=bottom_thickness*2+0.4, d=hatch_dowel_d);
   translate([hatch_dowel_x, -hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2+0.2, d=hatch_dowel_d);
+  cylinder(h=bottom_thickness*2+0.4, d=hatch_dowel_d);
   translate([-hatch_dowel_x, hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2+0.2, d=hatch_dowel_d);
+  cylinder(h=bottom_thickness*2+0.4, d=hatch_dowel_d);
   translate([-hatch_dowel_x, -hatch_dowel_y, 0])
-  cylinder(h=bottom_thickness*2+0.2, d=hatch_dowel_d);
+  cylinder(h=bottom_thickness*2+0.4, d=hatch_dowel_d);
   }
 }
 }

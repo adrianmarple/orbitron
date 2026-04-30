@@ -49,19 +49,36 @@ box_wall = 2;
 seeed_h = 30;
 
 //power();
-controller();
-//seeed_sled();
+//controller();
+seeed_sled();
 
 module seeed_sled() {
     rotate([90,0,0])
     difference() {
         union() {
-            cube([1.2, box_thick, seeed_h]);
-            cube([power_connection_r * 2 + box_wall, box_thick/2 - 3.6, seeed_h]);
+            cube([2, box_thick, seeed_h]);
+            cube([23.5, box_thick/2 - 3.6, seeed_h]);
+            cube([power_connection_r * 2 + box_wall, 1.2, seeed_h]);
+            // arduino backstop
             translate([22.3, box_thick/2 - 3.6, seeed_h/2 - 7])
-            cube([4, 3, 14]);
+            cube([1.2, 1.4, 14]);
+            
+            // For pulling sled out
+            translate([-3.5, box_thick/2 - 2.5, 0])
+            cube([3.5, 5, 5]);
+            translate([-3.5, box_thick/2 - 2.5, seeed_h - 5])
+            cube([3.5, 5, 5]);
             
         }
+        
+        
+        translate([1.2, box_thick/2 - 3.6, 2])
+        cube([2, 6, seeed_h - 4]);
+        
+        translate([-2, box_thick/2 - 3, 1.5])
+        cube([2, 6, 2]);
+        translate([-2, box_thick/2 - 3, seeed_h - 3.5])
+        cube([2, 6, 2]);
         
         translate([-1, box_thick/2, seeed_h/2])
         rotate([0,90,0])

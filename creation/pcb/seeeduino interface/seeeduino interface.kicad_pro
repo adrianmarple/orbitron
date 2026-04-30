@@ -478,7 +478,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "pi interface.kicad_pro",
+    "filename": "seeeduino interface.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -514,7 +514,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "./pi interface gerbers",
+      "plot": "./seeeduino interface gerbers",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",

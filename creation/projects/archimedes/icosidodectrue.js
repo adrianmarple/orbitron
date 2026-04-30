@@ -13,7 +13,8 @@ module.exports = () => {
   rotateZAll(0.36486382811348295)
 
   let wireAngle = edges[50].commonPlain().normal.angleTo(DOWN) * 180 / Math.PI
-  console.log(wireAngle)
+  console.log("Wire angle", wireAngle)
+
   let d0 = 6
   let d1 = 9.5
   let d2 = 12.7
@@ -70,5 +71,11 @@ module.exports = () => {
   edgeCleanup()
   doubleEdges()
   EulerianPath(0)
+
+  let polePoint = verticies[80].ogCoords
+  polePoint = polePoint.scale(PIXEL_DISTANCE)
+    .add(polePoint.normalize().scale(CHANNEL_DEPTH/2 + THICKNESS + EXTRA_COVER_THICKNESS))
+  polePoint.y = 0
+  console.log("Pole radius", polePoint.length())
 }
  
