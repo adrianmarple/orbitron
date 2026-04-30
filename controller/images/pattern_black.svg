@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm40-80h480L570-480 450-320l-90-120-120 160Zm-40 80v-560 560Z"/></svg>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M5.5 14.5V18.5M9.5 14.5V18.5" stroke="black" stroke-width="3" stroke-linecap="round"/>
+<circle cx="18.5" cy="9.5" r="1.5" fill="black"/>
+<circle cx="14.5" cy="9.5" r="1.5" fill="black"/>
+<circle cx="18.5" cy="5.5" r="1.5" fill="black"/>
+<circle cx="14.5" cy="5.5" r="1.5" fill="black"/>
+<rect x="14" y="14" width="5" height="5" fill="black" stroke="black" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="7.5" cy="7.5" r="2.5" fill="black" stroke="black" stroke-width="2"/>
+</svg>
