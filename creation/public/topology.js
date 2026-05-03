@@ -292,7 +292,7 @@ class Fold {
     let dihedralAngle = this.dihedralAngle * negation
 
     let plainTranslationValue = CHANNEL_DEPTH/2
-    plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : THICKNESS + EXTRA_COVER_THICKNESS
+    plainTranslationValue += IS_BOTTOM == (dihedralAngle < 0) ? 0 : TOTAL_THICKNESS
     plainTranslationValue *= IS_BOTTOM ? 1 : -1
     let line = new Line(this.vertex.ogCoords, edge.toVector(this.vertex))
       .translate(FORWARD.scale(plainTranslationValue))
@@ -1067,8 +1067,7 @@ function origami(foldPlain) {
   return newPlain
 }
 
-function zeroFoldAllEdges(options) {
-  if (!options) options = {}
+function zeroFoldAllEdges({ linearStartingVertex, edgesToNotFold=[], edgeOffsets={} } = {}) {
   edgeCleanup(true)
 
   plains.length = 0
@@ -1127,8 +1126,8 @@ function zeroFoldAllEdges(options) {
     vertex.addPlain(new Plain(v, normal))
   }
 
-  if (options.linearStartingVertex) {
-    let vertex = resolveVertex(options.linearStartingVertex)
+  if (linearStartingVertex) {
+    let vertex = resolveVertex(linearStartingVertex)
     addSelfPlain(vertex)
     twoEdgeVertecies.remove(vertex)
   }
@@ -1196,7 +1195,7 @@ function zeroFoldAllEdges(options) {
   }
 
   let edgesToZeroFold = []
-  let edgesToNotFold = (options.edgesToNotFold ?? []).map(resolveEdge)
+  edgesToNotFold = edgesToNotFold.map(resolveEdge)
   for (let edge of [...edges]) {
     let lengthThreshold = ZERO_FOLD_LENGTH_THRESHOLD
     if (edge.verticies[0].plains.length > 1 || edge.verticies[1].plains.length > 1) {
@@ -1218,7 +1217,6 @@ function zeroFoldAllEdges(options) {
       }
     }
   }
-  let edgeOffsets = options.edgeOffsets ?? {}
   for (let edge of edgesToZeroFold) {
     if (edgeOffsets[edge.index]) {
       zeroFold(edge, edgeOffsets[edge.index])

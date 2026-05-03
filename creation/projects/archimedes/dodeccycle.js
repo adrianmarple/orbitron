@@ -1,5 +1,6 @@
+// v1.0.1
 module.exports = () => {
-  PRINT_WALL_HALVES_SEPARATELY = true
+  // PRINT_WALL_HALVES_SEPARATELY = true
   let EDGE_LENGTH = 6
 
   addPlusMinusVertex([1,1,1])
@@ -89,10 +90,15 @@ module.exports = () => {
     }
   }
 
+
   printPostProcessingFunction = printInfo => {
     let h = 30
     let pipe_r = 8.0
-    // let r_out = r_in + 1.4
+
+    let sphere_r = 75
+    let sphere_offset = verticies[20].ogCoords.length() * PIXEL_DISTANCE - CHANNEL_DEPTH/2 - THICKNESS - EXTRA_COVER_THICKNESS
+    console.log(sphere_offset - sphere_r)
+
     let poleInsertionIndex = -1
     for (let i = 0; i < printInfo.prints.length; i++) {
       if (printInfo.prints[i].suffix == "3b") {
@@ -131,10 +137,42 @@ module.exports = () => {
         },
       ]
     }
+    printInfo.prints[poleInsertionIndex+1] = {
+      type: "union",
+      suffix: "3t",
+      operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
+      components: [
+        printInfo.prints[poleInsertionIndex+1],
+        {
+          operations: [{ type: "rotate", vector: [Math.PI,0,0],}],
+          code: `
+          difference() {
+            union() {
+              cylinder(h=${sphere_offset - sphere_r}, d=10);
+              translate([0,0,${sphere_offset}])
+              sphere(r=${sphere_r + 2});
+            }
+
+            translate([0,0,${sphere_offset}])
+            sphere(r=${sphere_r}, $fn=256);
+
+            difference() {
+              translate([0,0,${sphere_offset}])
+              cube([${2*sphere_r+8},${2*sphere_r+8},${2*sphere_r+8}], center=true);
+
+              cylinder(h=100, r=15);
+            }
+          }`
+        },
+      ]
+    }
+    cleanForFlip(printInfo.prints[poleInsertionIndex])
+    cleanForFlip(printInfo.prints[poleInsertionIndex+1])
   }
 
   splitEdge(0, EDGE_LENGTH/2)
-  zeroFoldAllEdges(verticies.length - 1)
+  zeroFoldAllEdges({linearStartingVertex: verticies.length - 1})
+  strongCovers.push({plain: verticies[20].plains[0], isBottom: true})
   edgeCleanup()
   doubleEdges()
   EulerianPath(0)

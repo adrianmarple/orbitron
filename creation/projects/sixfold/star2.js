@@ -59,7 +59,7 @@ module.exports = async () => {
     vertex.ogCoords.y *= -1
   }
 
-  zeroFoldAllEdges(1)
+  zeroFoldAllEdges({linearStartingVertex: 1})
   EulerianPath(0)
   center()
 }

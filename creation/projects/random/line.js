@@ -7,6 +7,6 @@ module.exports = () => {
   let v1 = addVertex([156,0,0])
   addEdge(v0,v1)
 
-  zeroFoldAllEdges(2)
+  zeroFoldAllEdges({linearStartingVertex: 2})
   EulerianPath(0, 1)
 }

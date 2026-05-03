@@ -518,7 +518,7 @@ function wallPrint(wall, isLeft, printInfo) {
       supportOffset = PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 1)
       supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
       supportOffset += wall.extraLEDSupportOffset
-      let threshold = lengthOffset + LED_SUPPORT_WIDTH()/2
+      let threshold = lengthOffset + LED_SUPPORT_WIDTH/2
       if (miterAngle < 0) {
         threshold += Math.tan(miterAngle) * WALL_THICKNESS
       }
@@ -531,7 +531,7 @@ function wallPrint(wall, isLeft, printInfo) {
       supportOffset = edgeLength - PIXEL_DISTANCE * (ledAtVertex ? 0.5 : 0)
       supportOffset -= supportOffset % PIXEL_DISTANCE
       supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
-      let threshold = edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH()
+      let threshold = edgeLength - PIXEL_DISTANCE/2 - LED_SUPPORT_WIDTH
       while (supportOffset > threshold) {
         supportOffset -= PIXEL_DISTANCE
       }
@@ -554,8 +554,8 @@ function wallPrint(wall, isLeft, printInfo) {
         print.components.push({
           type: "ledSupport",
           position: [position.x, -position.y, WALL_THICKNESS],
-          width: LED_SUPPORT_WIDTH(),
-          height: LED_SUPPORT_HEIGHT(),
+          width: LED_SUPPORT_WIDTH,
+          height: LED_SUPPORT_HEIGHT,
           thickness: LED_SUPPORT_THICKNESS,
           gap: LED_SUPPORT_GAP,
           rotationAngle: -rotationAngle,
@@ -571,12 +571,12 @@ function wallPrint(wall, isLeft, printInfo) {
     supportOffset = PIXEL_DISTANCE * (ledAtVertex ? -0.5 : 0)
     supportOffset += edgeOffset(endVertex, wall.vertex) * PIXEL_DISTANCE
 
-    let minOffset = lengthOffset + LED_SUPPORT_WIDTH()/2 + wall.extraLEDSupportOffset
+    let minOffset = lengthOffset + LED_SUPPORT_WIDTH/2 + wall.extraLEDSupportOffset
     minOffset = Math.max(minOffset, 0.1)
     if (miterAngle < 0) {
       minOffset += Math.tan(miterAngle) * WALL_THICKNESS
     }
-    let maxOffset = edgeLength - LED_SUPPORT_WIDTH()
+    let maxOffset = edgeLength - LED_SUPPORT_WIDTH
     if (wall.isFoldWall && epsilonEquals(wall.dihedralAngle, 0)) {
       maxOffset += PIXEL_DISTANCE
     } else {
@@ -584,8 +584,8 @@ function wallPrint(wall, isLeft, printInfo) {
     }
 
     if (hasPort && PORT_TYPE.startsWith("USBC")) {
-      let portBlockMin = portOffset - USBC_WIDTH/2 - LED_SUPPORT_WIDTH()/2
-      let portBlockMax = portOffset + USBC_WIDTH/2 + LED_SUPPORT_WIDTH()/2
+      let portBlockMin = portOffset - USBC_WIDTH/2 - LED_SUPPORT_WIDTH/2
+      let portBlockMax = portOffset + USBC_WIDTH/2 + LED_SUPPORT_WIDTH/2
       let testOffset = supportOffset
       while (testOffset < maxOffset) {
         if (testOffset >= portBlockMin && testOffset <= portBlockMax) {
@@ -616,8 +616,8 @@ function wallPrint(wall, isLeft, printInfo) {
           print.components.push({
             type: "ledSupport",
             position: [position.x, -position.y, WALL_THICKNESS],
-            width: LED_SUPPORT_WIDTH(),
-            height: LED_SUPPORT_HEIGHT(),
+            width: LED_SUPPORT_WIDTH,
+            height: LED_SUPPORT_HEIGHT,
             thickness: LED_SUPPORT_THICKNESS,
             gap: LED_SUPPORT_GAP,
             rotationAngle: -rotationAngle,

@@ -58,7 +58,6 @@ module.exports = async () => {
     }
 
     let negativeThickness = THICKNESS + EXTRA_COVER_THICKNESS
-    console.log()
     let snapY = CAT5_HEIGHT - CAT5_SNAP_Y + CAT5_SNAP_HEIGHT/2
     let snapX = CAT5_SNAP_DISTANCE/2 - CAT5_SNAP_WIDTH/2
     let BUFFER = 2

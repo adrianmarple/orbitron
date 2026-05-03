@@ -31,7 +31,7 @@ BUILD_DIR=$(mktemp -d)
 trap "rm -rf $BUILD_DIR" EXIT
 
 CHIPS=("esp32c3" "esp32c6")
-FQBNS=("esp32:esp32:esp32c3:PartitionScheme=min_spiffs" "esp32:esp32:esp32c6:PartitionScheme=min_spiffs")
+FQBNS=("esp32:esp32:esp32c3:PartitionScheme=min_spiffs,CDCOnBoot=cdc" "esp32:esp32:esp32c6:PartitionScheme=min_spiffs,CDCOnBoot=cdc")
 
 for i in "${!CHIPS[@]}"; do
   CHIP="${CHIPS[$i]}"

@@ -1,7 +1,7 @@
 
 include <../utils.scad>
 
-$fn=32;
+$fn=64;
 width = 20;
 channel_width = 22.3;
 latch_height = 2;
@@ -12,9 +12,9 @@ bottom_thickness = 2;
 bottom_hole_d = 9.6;
 bottom_hole_width = 20;
 
-lip = 1;
+lip = 2;
 inner_d = bottom_hole_d + 2*lip;
-inner_h = 2;
+inner_thickness = 6;
 
 outer_x = channel_width/2 + 1.2;
 
@@ -23,8 +23,7 @@ nail_d = 2.1;
 sheath_wall = 1;
 sheath_y = 1.7;
 
-v_kerf = 0.4;
-h_kerf = 0.1;
+kerf = 0.4;
 
 main();
 nail_sheath();
@@ -37,9 +36,9 @@ difference() {
         translate([0,0,-2])
         cylinder(h=box_thickness+2, d=nail_d+2*sheath_wall);
         
-        cylinder(h=2*bottom_thickness + inner_h, d=bottom_hole_d-2*h_kerf);
-        translate([0,0,bottom_thickness+v_kerf])
-        cylinder(h=inner_h-2*v_kerf, d=inner_d-2*h_kerf);
+        cylinder(h=inner_thickness/2, d1=bottom_hole_d-2*kerf, d2=inner_d-2*kerf);
+        translate([0,0,inner_thickness/2])
+        cylinder(h=inner_thickness/2, d2=bottom_hole_d-2*kerf, d1=inner_d-2*kerf);
     }
     
     translate([0,sheath_y,0])
@@ -54,8 +53,8 @@ difference() {
 
 
 module main() {
-translate([0,0,box_thickness])
 difference() {
+  translate([0,0,box_thickness])
   rotate([90,0,0])
   translate([0, 0, -width/2])
   linear_extrude(width)
@@ -72,15 +71,14 @@ difference() {
     [outer_x, -box_thickness],
   ]);
     
-  z_dim = box_thickness - bottom_thickness - inner_h;
-  translate([0, 0, -z_dim/2 + bottom_thickness])
+  z_dim = box_thickness - inner_thickness+1;
+  translate([0, 0, inner_thickness + z_dim/2])
   cube([channel_width, width - 4, z_dim], center=true);
 
 
-  translate([0, 0, -box_thickness + bottom_thickness])
-  pillinder(bottom_hole_width + 2*lip, inner_d/2, inner_h);
-  
-  translate([0, 0, -box_thickness - 1])
-  pillinder(bottom_hole_width, bottom_hole_d/2, box_thickness+2);
+  //cylinder(h=1, d=bottom_hole_d+0.2);
+  cylinder(h=inner_thickness/2, d1=bottom_hole_d, d2=inner_d);
+  translate([0,0,inner_thickness/2])
+  cylinder(h=inner_thickness/2, d2=bottom_hole_d, d1=inner_d);
 }
 }

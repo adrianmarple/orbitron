@@ -9,6 +9,7 @@
 #define PATTERN_FIREFLIES   4
 #define PATTERN_LIGHTFIELD  5
 #define PATTERN_LIGHTNING   6
+#define PATTERN_LINESINE    7
 
 // Prefs struct (shared between template and esp32)
 struct Prefs {
@@ -27,6 +28,7 @@ struct Prefs {
   int sinMin;               // 0-255, default 25
   int rippleWidth;          // 0-100, default 9
   float patternBiasX, patternBiasY, patternBiasZ;  // default (0, 1, 0)
+  float sinWaveCycles;      // default 4.0
 };
 
 // Pattern state — fixed-size, not geometry-dependent
@@ -59,6 +61,7 @@ float sinDirX = 1.0f, sinDirY = 0.0f, sinDirZ = 0.0f;
 int sinMin = 25;
 int rippleWidth = 9;
 float patternBiasX = 0.0f, patternBiasY = 1.0f, patternBiasZ = 0.0f;
+float sinWaveCycles = 4.0f;
 float alpha = 0.3f;
 float brightness_factor = 1.0f;
 
@@ -82,6 +85,7 @@ void applyPrefs(Prefs& p) {
   sinMin = p.sinMin;
   rippleWidth = p.rippleWidth;
   patternBiasX = p.patternBiasX; patternBiasY = p.patternBiasY; patternBiasZ = p.patternBiasZ;
+  sinWaveCycles = p.sinWaveCycles;
   float frame_delta = (1.0f / p.idleFrameRate) * expf(2.7f - p.idleBlend / 17.0f);
   alpha = 1.0f - expf(-10.0f * frame_delta);
   brightness_factor = (p.brightness / 100.0f) * (p.brightness / 100.0f);
@@ -338,4 +342,57 @@ void runLightning() {
     }
   }
   applyFluidValues(lightning_fluid,1.0f);
+}
+
+void computeLinesinePositions() {
+  if (linesine_positions || SIZE == 0) return;
+  linesine_positions = (float*)calloc(SIZE, sizeof(float));
+  int* dist = (int*)malloc(SIZE * sizeof(int));
+  int* queue = (int*)malloc(SIZE * sizeof(int));
+  for (int i = 0; i < SIZE; i++) dist[i] = -1;
+  int head = 0, tail = 0;
+  dist[0] = 0;
+  queue[tail++] = 0;
+  int maxDist = 0;
+  while (head < tail) {
+    int node = queue[head++];
+    for (int j = 0; j < MAX_NEIGHBORS; j++) {
+      int n = neighbors[node][j];
+      if (n == 0xffff) break;
+      if (dist[n] < 0) {
+        dist[n] = dist[node] + 1;
+        if (dist[n] > maxDist) maxDist = dist[n];
+        queue[tail++] = n;
+      }
+    }
+  }
+  for (int i = 0; i < SIZE; i++)
+    linesine_positions[i] = (maxDist > 0 && dist[i] >= 0) ? (float)dist[i] / maxDist : 0.0f;
+  free(dist);
+  free(queue);
+}
+
+void runLineSine() {
+  computeLinesinePositions();
+  if (!linesine_positions) return;
+  float speed = idleFrameRate * sinWaveCycles / 200.0f;
+  unsigned long period_ms = max(1UL, (unsigned long)(1000.0f / speed));
+  float phase = (float)(millis() % period_ms) / (float)period_ms * (2.0f * PI);
+  float inv_threshold = 100.0f / gradientThreshold;
+  int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
+  for (int i = 0; i < RAW_SIZE; i++) {
+    int u = raw_to_unique[i];
+    float pos = linesine_positions[u];
+    float wave_v = sinf(-pos * sinWaveCycles * 2.0f * PI + phase);
+    if (wave_v < 0.0f) wave_v = 0.0f;
+    float tv = wave_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
+    float scale = wave_v * brightness_factor;
+    int r = (int)((end_r + delta_r * tv) * scale);
+    int g = (int)((end_g + delta_g * tv) * scale);
+    int b = (int)((end_b + delta_b * tv) * scale);
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (b > 255) b = 255;
+    STRIP_SET(i, b + (g << 8) + (r << 16));
+  }
 }

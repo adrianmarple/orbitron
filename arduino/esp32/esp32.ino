@@ -52,6 +52,7 @@ int16_t *lightning_distance = nullptr;
 int16_t *lightning_bfs_queue = nullptr;
 float *pattern_target = nullptr;
 float *render_values = nullptr;
+float *linesine_positions = nullptr;
 
 // --- Strip (created in loadGeometry after RAW_SIZE is known) ---
 Adafruit_NeoPixel *strip = nullptr;
@@ -63,7 +64,7 @@ Prefs defaultPrefs = {
   PATTERN_DEFAULT, 0x25ff59, 0x00607c, 66, 70.0f, 60.0f, 25.0f, 100,
   0.707f, 0.707f, 0.0f, 0, 8.0f,
   1.0f, 0.0f, 0.0f, 25, 9,
-  0.0f, 1.0f, 0.0f
+  0.0f, 1.0f, 0.0f, 4.0f
 };
 
 // --- Config ---
@@ -121,6 +122,7 @@ const char* patternName(int p) {
     case PATTERN_FIREFLIES:  return "fireflies";
     case PATTERN_LIGHTFIELD: return "lightfield";
     case PATTERN_LIGHTNING:  return "lightning";
+    case PATTERN_LINESINE:   return "linesine";
     default:                 return "default";
   }
 }
@@ -132,6 +134,7 @@ int patternFromName(const char* name) {
   if (strcmp(name, "fireflies") == 0)  return PATTERN_FIREFLIES;
   if (strcmp(name, "lightfield") == 0) return PATTERN_LIGHTFIELD;
   if (strcmp(name, "lightning") == 0)  return PATTERN_LIGHTNING;
+  if (strcmp(name, "linesine") == 0)   return PATTERN_LINESINE;
   return PATTERN_DEFAULT;
 }
 String colorToHex(long color) {
@@ -166,6 +169,7 @@ void buildPrefsJson(JsonObject doc, Prefs& p) {
   doc["staticRotationTime"] = p.staticRotationTime;
   doc["rippleWidth"]        = p.rippleWidth;
   doc["sinMin"]             = p.sinMin;
+  doc["sinWaveCycles"]      = p.sinWaveCycles;
 }
 
 String prefsToJson(Prefs& p) {
@@ -201,6 +205,7 @@ Prefs prefsFromJson(JsonVariantConst doc, Prefs& base) {
   if (!doc["rippleWidth"].isNull())        p.rippleWidth        = doc["rippleWidth"].as<int>();
   if (!doc["sinMin"].isNull())             p.sinMin             = doc["sinMin"].as<int>();
   if (!doc["staticRotation"].isNull())     p.staticRotation     = doc["staticRotation"].as<bool>() ? 1 : 0;
+  if (!doc["sinWaveCycles"].isNull())      p.sinWaveCycles      = doc["sinWaveCycles"].as<float>();
   return p;
 }
 
@@ -546,6 +551,8 @@ void broadcastState() {
 }
 
 void mergeTimingPrefs(JsonObjectConst timingObj) {
+  bool prevUseTimer = useTimer;
+
   String existing = readFile("/timingprefs.json");
   JsonDocument merged;
   if (!existing.isEmpty()) deserializeJson(merged, existing);
@@ -559,7 +566,14 @@ void mergeTimingPrefs(JsonObjectConst timingObj) {
   loadTimingPrefs();
 
   if (useTimer) {
-    lastTriggeredEventKey = "";  // re-apply active event on any timing pref change
+    // Only re-apply the active event when something schedule-relevant actually changed.
+    // If the controller just echoes back useTimer:true it received from us, we must not
+    // reset lastTriggeredEventKey — that would re-fire the schedule and override prefs.
+    bool timerJustEnabled = !prevUseTimer;
+    bool scheduleChanged = !timingObj["schedule"].isNull() ||
+                           !timingObj["weeklySchedule"].isNull() ||
+                           !timingObj["weeklyTimer"].isNull();
+    if (timerJustEnabled || scheduleChanged) lastTriggeredEventKey = "";
     checkSchedule();
     computeNextEventMs();
   }
@@ -1372,7 +1386,7 @@ void setup() {
     JsonDocument doc;
     deserializeJson(doc, configJson);
     orbID = doc["ORB_ID"].as<String>();
-    relayHost = doc["RELAY_HOST"].as<String>();
+    relayHost = doc["RELAY_HOST"] | "my.lumatron.art";
     pixelsName = doc["PIXELS"].as<String>();
     orbKey = doc["ORB_KEY"] | "";
     timezone = doc["TIMEZONE"] | "PST8PDT,M3.2.0,M11.1.0";
@@ -1453,6 +1467,7 @@ void loop() {
     case PATTERN_FIREFLIES:  runFireflies();  break;
     case PATTERN_LIGHTFIELD: runLightField(); break;
     case PATTERN_LIGHTNING:  runLightning();  break;
+    case PATTERN_LINESINE:   runLineSine();   break;
     default:                 runDefault();    break;
   }
 

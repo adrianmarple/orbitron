@@ -49,11 +49,13 @@ function reset() {
   ZERO_FOLD_LENGTH_THRESHOLD = 3.9
 
   THICKNESS = 3.1
-  WALL_THICKNESS = 2
   EXTRA_COVER_THICKNESS = 0
   INNER_CHANNEL_BUFFER = 1
   INNER_CHANNEL_THICKNESS = null
+  Object.defineProperty(window,
+    'TOTAL_THICKNESS', { get: () => THICKNESS + EXTRA_COVER_THICKNESS, configurable: true })
 
+  WALL_THICKNESS = 2
   BORDER = 6
   PIXEL_DISTANCE = 16.6
   CHANNEL_WIDTH = 13
@@ -91,8 +93,10 @@ function reset() {
   WALL_MITER_KERF = 0.1
 
   LED_SIZE = PIXEL_DISTANCE - 9
-  LED_SUPPORT_WIDTH = () => PIXEL_DISTANCE - LED_SIZE
-  LED_SUPPORT_HEIGHT = () => CHANNEL_WIDTH - 0.2
+  Object.defineProperty(window,
+    'LED_SUPPORT_WIDTH', { get: () => PIXEL_DISTANCE - LED_SIZE, configurable: true })
+  Object.defineProperty(window,
+    'LED_SUPPORT_HEIGHT', { get: () => CHANNEL_WIDTH - 0.2, configurable: true })
   LED_SUPPORT_GAP = 2
   LED_SUPPORT_THICKNESS = 1.6
   LED_SUPPORT_TYPE = "single" // "none", "all"

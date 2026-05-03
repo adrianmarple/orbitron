@@ -281,7 +281,7 @@ async function createCover(plain) {
             fold.getCoverInfo(edge1, isOutgoing, R)
 
         let zTrans = CHANNEL_DEPTH/2
-        let zTransFar = zTrans + THICKNESS + EXTRA_COVER_THICKNESS
+        let zTransFar = zTrans + TOTAL_THICKNESS
         zTrans *= IS_BOTTOM ? 1 : -1
         zTransFar *= IS_BOTTOM ? 1 : -1
 
@@ -403,7 +403,7 @@ async function createCover(plain) {
           angle: angle * (IS_BOTTOM ? -1 : 1),
           rotationAngle: -e1.signedAngle(LEFT),
           position: wedgePoint.toArray(),
-          thickness: THICKNESS + EXTRA_COVER_THICKNESS,
+          thickness: TOTAL_THICKNESS,
           width: CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER,
           skew,
         })
@@ -436,7 +436,7 @@ async function createCover(plain) {
           angle: angle * (IS_BOTTOM ? -1 : 1),
           rotationAngle: -e2.signedAngle(LEFT),
           position: wedgePoint.toArray(),
-          thickness: THICKNESS + EXTRA_COVER_THICKNESS,
+          thickness: TOTAL_THICKNESS,
           width: CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER,
           skew,
         })
@@ -610,7 +610,7 @@ async function createCover(plain) {
     print.components.push({
       type: "svg",
       svg: borderSvg,
-      thickness: EXTRA_COVER_THICKNESS + THICKNESS,
+      thickness: TOTAL_THICKNESS,
       operations: importCorrectionOperations,
     })
   }
@@ -619,7 +619,7 @@ async function createCover(plain) {
   print.worldPlacementOperations = [
     {
       type: "translate",
-      position: [0, 0, -(CHANNEL_DEPTH/2 + THICKNESS + EXTRA_COVER_THICKNESS)],
+      position: [0, 0, -(CHANNEL_DEPTH/2 + TOTAL_THICKNESS)],
     },
   ]
   if (IS_BOTTOM) {
@@ -666,7 +666,7 @@ function singleSlotPath(wallLength, basis, offset, localOffset, isStrong, print)
     let position = offset
         .addScaledVector(basis[0], wallLength/2)
         .addScaledVector(basis[1], WALL_THICKNESS/2)
-        .addScaledVector(FORWARD, THICKNESS + EXTRA_COVER_THICKNESS)
+        .addScaledVector(FORWARD, TOTAL_THICKNESS)
     let rotationAngle = -basis[0].signedAngle(LEFT)
     print.bitsToRemove.push({
       position: position.toArray(),
@@ -701,7 +701,7 @@ function singleSlotPath(wallLength, basis, offset, localOffset, isStrong, print)
     else if (LATCH_TYPE == "hook") {
       let position = offset.addScaledVector(basis[0], x + HOOK_OVERHANG/2 * directionSign)
           .addScaledVector(basis[1], WALL_THICKNESS/2)
-          .addScaledVector(FORWARD, EXTRA_COVER_THICKNESS + THICKNESS - HOOK_THICKNESS/2)
+          .addScaledVector(FORWARD, TOTAL_THICKNESS - HOOK_THICKNESS/2)
       print.components.push({
         type: "cube",
         rotationAngle: -basis[0].scale(directionSign).signedAngle(RIGHT),

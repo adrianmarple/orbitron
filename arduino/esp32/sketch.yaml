@@ -1,0 +1,5 @@
+profiles:
+  esp32c3:
+    fqbn: esp32:esp32:esp32c3:PartitionScheme=min_spiffs,CDCOnBoot=cdc
+  esp32c6:
+    fqbn: esp32:esp32:esp32c6:PartitionScheme=min_spiffs,CDCOnBoot=cdc
