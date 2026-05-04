@@ -703,7 +703,7 @@ addPOSTListener(async (response, body, filePath, queryParams, headers) => {
   ;(async () => {
     await execute('git fetch origin')
     await execute(`git reset --hard origin/${GIT_BRANCH}`)
-    sendToPis("HAD_UPDATE")
+    sendToPis("HAS_UPDATE")
     restartOrbitron()
   })()
   return true
