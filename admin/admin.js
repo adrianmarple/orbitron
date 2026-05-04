@@ -220,6 +220,23 @@ new Vue({
     },
 
     async saveConfig(dontRestart) {
+      let isArduino = this.config.trim().startsWith('{')
+      let orbID, existingOrbKey
+      if (isArduino) {
+        let cfg = JSON.parse(this.config)
+        orbID = cfg.ORB_ID
+        existingOrbKey = cfg.ORB_KEY
+      } else {
+        try { orbID = readFromConfig(this.config, 'ORB_ID') } catch(_) {}
+        try { existingOrbKey = readFromConfig(this.config, 'ORB_KEY') } catch(_) {}
+      }
+      if (orbID && existingOrbKey) {
+        let expectedOrbKey = await this.getOrbKey(orbID)
+        if (existingOrbKey !== expectedOrbKey) {
+          console.log("ORB_KEY not compatible with master key. Not saving.")
+          return
+        }
+      }
       await this.sendCommand({ type: "setconfig", data: this.config, dontRestart })
       this.idToConfig[this.orbID] = this.config
     },
