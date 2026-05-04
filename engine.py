@@ -215,7 +215,7 @@ def update():
         raw_pixels *= max_total / total_bright
 
     if pin_start_time > 0:
-      raw_pixels += 5
+      raw_pixels += 1
 
     display_pixels(raw_pixels)
     broadcast_state()
