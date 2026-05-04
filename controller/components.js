@@ -714,7 +714,7 @@ Vue.component('stlviewer', {
 </template>`})
 
 Vue.component('Icon', {
-  props: ['image', 'w', 'h', 'selected'],
+  props: ['image', 'w', 'h', 'selected', 'disabled'],
   computed: {
     imageUrlW() { return `/controller/images/${this.image}_white.svg` },
     imageUrlB() { return `/controller/images/${this.image}_black.svg` },
@@ -722,7 +722,7 @@ Vue.component('Icon', {
   },
   template: `
 <template>
-  <div class="icon" :class="{ selected }" @click="$emit('click')">
+  <div class="icon" :class="{ selected, disabled }" @click="$emit('click')">
     <svg :width="w" :height="h">
       <mask :id="image" x="0" y="0" :width="w" :height="h" color="black">
         <rect x=0 y=0 :width="w" :height="h" fill="white"></rect>

@@ -4,7 +4,7 @@ module.exports = async () => {
   NO_EMBOSSING = true
   PIXEL_DISTANCE = 1
   WALL_THICKNESS = 2
-  CHANNEL_DEPTH = 15
+  CHANNEL_DEPTH = 20
   CHANNEL_WIDTH = 0
   INNER_CHANNEL_THICKNESS = null
 

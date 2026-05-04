@@ -693,6 +693,7 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
   border-bottom-width: 0;
   margin: 0 -0.5rem;
   position: relative;
+  cursor: pointer;
 }
 .icon:before {
   content: "";
@@ -712,6 +713,10 @@ input[type=time]::-webkit-datetime-edit-ampm-field:focus {
 .icon.selected svg > image {
   opacity: 0.8;
   filter: drop-shadow(0 0 0.8rem white);
+}
+.icon.disabled svg > image {
+  opacity: 0.9;
+  filter: brightness(30%);
 }
 
 .nav-bar img {
@@ -915,7 +920,7 @@ input[type="range"]::-moz-range-thumb {
 .schedule, .scroll-containter  {
   align-items: center;
   width: 100%;
-  max-height: max(66vh, 54rem);
+  max-height: max(66vh, 50rem);
   /* max-height: 54rem; */
   overflow-y: scroll;
   overflow-x: hidden;

@@ -264,16 +264,17 @@
             <div class="drag-handle" @pointerdown.stop="onPrefDragHandleStart($event, name)">&#9776;</div>
           </div>
         </div>
-        <div v-if="saveNames.length == 0" class="zero-state">
-          Feel free to save any presets of pattern and color here.
-          Just enter a name in the text box below and hit the "Save As" button.
-          Note that you need to save presets in order to use the timer (next tab over with the clock).
-        </div>
         <div class="pref-list-item" id="restore-defaults">
           <div class="fancy-box">
             <span>Default</span>
             <div class="button" @click.stop="clearPrefs()">Restore</div>
           </div>
+        </div>
+        <div v-if="saveNames.length == 0" class="zero-state">
+          <div class="horiz-box"></div>
+          <div class="horiz-box"></div>
+          Feel free to save any presets here.
+          Just enter a name in the text box below and hit the "Save As" button.
         </div>
       </div>
       <div class="bottom-plug"></div>
@@ -384,10 +385,6 @@
       <slider v-if="prefs.idleColor == 'tricolor' && prefs.fadeToBlack" 
           title="Color blend 2" key="tricolorThreshold2"
           :min="1"></slider>
-      
-      
-      <!-- <boolean v-if="prefs.idleColor == 'gradient' || prefs.idleColor == 'rainbow'"
-          title="End color fades to black" key="fadeToBlack"></boolean> -->
 
       <color v-if="prefs.idleColor == 'fixed'"
           key="fixedColor" title="Color"></color>
@@ -501,7 +498,8 @@
         :image="image"
         :w="(innerWidth - 10*rem) / navBarCount" :h="10*rem"
         :selected="nav == image"
-        @click="nav=image" >
+        :disabled="navDisabled(image)"
+        @click="navClick(image)" >
       </Icon>
       <div class="filler"></div>
       <Icon v-for="(image,i) in navBarItems"
@@ -509,7 +507,8 @@
         :image="image"
         :w="(innerWidth - 10*rem) / navBarCount" :h="10*rem"
         :selected="nav == image"
-        @click="nav=image" >
+        :disabled="navDisabled(image)"
+        @click="navClick(image)" >
       </Icon>
       <div v-if="navBarItems.length % 2 == 1" class="icon"
         :style="{

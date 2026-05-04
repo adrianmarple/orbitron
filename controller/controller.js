@@ -884,6 +884,19 @@ var app = new Vue({
       this.overscrollTop = Math.max(0, -elem.scrollTop + 8*this.rem)
     },
 
+    navClick(image) {
+      if (image == 'timing' && this.saveNames.length == 0) {
+        this.helpMessage='You need to have at least one saved preset to use the timer.'
+        this.nav='save'
+      }
+      else {
+        this.nav=image
+      }
+    },
+    navDisabled(image) {
+      return image == 'timing' && this.saveNames.length == 0
+    },
+
     login() {
       this.send({type: "login", loginCode: this.loginCode})
     },
