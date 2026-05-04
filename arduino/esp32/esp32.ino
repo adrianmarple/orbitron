@@ -1503,6 +1503,16 @@ void loop() {
     }
   }
 
+  if (fadePinPressStart > 0) {
+    for (int i = 0; i < RAW_SIZE; i++) {
+      uint32_t c = strip->getPixelColor(i);
+      uint8_t r = min(255, (int)((c >> 16) & 0xff) + 5);
+      uint8_t g = min(255, (int)((c >> 8)  & 0xff) + 5);
+      uint8_t b = min(255, (int)(c & 0xff)          + 5);
+      strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+    }
+  }
+
   strip->show();
 
   float frame_rate = 30;

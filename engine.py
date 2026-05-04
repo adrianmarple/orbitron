@@ -214,6 +214,9 @@ def update():
       if total_bright > max_total:
         raw_pixels *= max_total / total_bright
 
+    if pin_start_time > 0:
+      raw_pixels += 5
+
     display_pixels(raw_pixels)
     broadcast_state()
 
@@ -1051,16 +1054,12 @@ if config.get("MANUAL_FADE_PIN"):
   GPIO.setwarnings(False)
   GPIO.setup(config["MANUAL_FADE_PIN"], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-def run_core_loop():
-  display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 4)
 
+pin_start_time = 0 # used for instant feedback rendering of button pushes
+def run_core_loop():
+  global pin_start_time
   last_frame_time = time()
-  framerate_data = {
-    'start_time': datetime.fromtimestamp(int(last_frame_time)).strftime("%m/%d/%Y, %H:%M:%S"),
-    'slow_frame_count': 0,
-    'very_slow_frame_count': 0,
-    'slowest_frame': 0,
-  }
+  display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 4)
 
 
   if config.get("MANUAL_FADE_PIN"):
@@ -1068,13 +1067,13 @@ def run_core_loop():
     def sample():
       return 1 if GPIO.input(config["MANUAL_FADE_PIN"]) == input_type else 0
 
-    pin_start_time = 0
     click_count = 0
     last_release_time = 0
     MULTI_CLICK_WINDOW = 0.4
 
     def perform_action(type):
-      nonlocal pin_start_time, click_count, last_release_time
+      nonlocal click_count, last_release_time
+      global pin_start_time
       pin_start_time = 0
       click_count = 0
       last_release_time = 0
