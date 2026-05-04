@@ -30,6 +30,9 @@ function reset() {
   edges = []
   DEFAULT_PLAIN.index = 0
   DEFAULT_PLAIN.folds = {}
+  DEFAULT_PLAIN.normal = FORWARD
+  DEFAULT_PLAIN.offset = ZERO
+  DEFAULT_PLAIN.basis = new Basis(FORWARD)
   plains = [DEFAULT_PLAIN]
   currentPlain = DEFAULT_PLAIN
 
