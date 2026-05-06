@@ -182,6 +182,8 @@ def start_random_game():
 def update():
   global raw_pixels
   try:
+    raw_pixels *= 0
+
     if game is None:
       start(idle)
     elif len(game.claimed_players()) == 0 and game != idle:
@@ -213,15 +215,6 @@ def update():
       max_total = max_pixel * RAW_SIZE * 3
       if total_bright > max_total:
         raw_pixels *= max_total / total_bright
-
-    if pin_start_time > 0:
-      raw_pixels += 1
-
-    display_pixels(raw_pixels)
-    broadcast_state()
-
-    raw_pixels *= 0
-
 
   except Exception:
     print(traceback.format_exc(), file=sys.stderr)
@@ -1054,43 +1047,43 @@ if config.get("MANUAL_FADE_PIN"):
   GPIO.setwarnings(False)
   GPIO.setup(config["MANUAL_FADE_PIN"], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+button_started = False
+button_stopped = False
 
-pin_start_time = 0 # used for instant feedback rendering of button pushes
 def run_core_loop():
-  global pin_start_time
+  global button_started, button_stopped
   last_frame_time = time()
   display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 4)
 
+  pin_start_time = 0
+  click_count = 0
+  last_release_time = 0
+  MULTI_CLICK_WINDOW = 0.4
+  LONG_PRESS_TIME = 0.7
+  PULSE_COLOR = np.array([100,100,100])
+
+  def perform_action(type):
+    nonlocal click_count, last_release_time, pin_start_time
+    pin_start_time = 0
+    click_count = 0
+    last_release_time = 0
+    if type == "DIM":
+      prefs.advance_manual_fade()
+    elif type == "CYCLE":
+      prefs.advance_preset()
+    elif type == "ACCESS_POINT":
+      print("start_access_point", flush=True)
+
+  short_action = config.get("SHORT_PRESS_ACTION", "DIM")
+  long_action = config.get("LONG_PRESS_ACTION", "CYCLE")
+  double_action = config.get("DOUBLE_CLICK_ACTION", "")
+  triple_action = config.get("TRIPLE_CLICK_ACTION", "ACCESS_POINT")
 
   if config.get("MANUAL_FADE_PIN"):
     input_type = GPIO.HIGH if config.get("PIN_INPUT_TYPE", "LOW") == "HIGH" else GPIO.LOW
     def sample():
       return 1 if GPIO.input(config["MANUAL_FADE_PIN"]) == input_type else 0
-
-    click_count = 0
-    last_release_time = 0
-    MULTI_CLICK_WINDOW = 0.4
-
-    def perform_action(type):
-      nonlocal click_count, last_release_time
-      global pin_start_time
-      pin_start_time = 0
-      click_count = 0
-      last_release_time = 0
-      if type == "DIM":
-        prefs.advance_manual_fade()
-      elif type == "CYCLE":
-        prefs.advance_preset()
-      elif type == "ACCESS_POINT":
-        print("start_access_point", flush=True)
-
-    short_action = config.get("SHORT_PRESS_ACTION", "DIM")
-    long_action = config.get("LONG_PRESS_ACTION", "CYCLE")
-    double_action = config.get("DOUBLE_CLICK_ACTION", "")
-    triple_action = config.get("TRIPLE_CLICK_ACTION", "ACCESS_POINT")
-
     previous_value = 0
-  # end if config.get("MANUAL_FADE_PIN")
 
   while True:
     time_to_wait = last_frame_time + 1.0/FRAMERATE - time()
@@ -1098,30 +1091,50 @@ def run_core_loop():
       sleep(time_to_wait)
     last_frame_time = time()
 
+    started = button_started
+    stopped = button_stopped
+    button_started = False
+    button_stopped = False
 
     if config.get("MANUAL_FADE_PIN"):
       current_value = sample()
-      started = current_value > previous_value
-      stopped = previous_value > current_value
+      started = started or current_value > previous_value
+      stopped = stopped or previous_value > current_value
       previous_value = current_value
 
-      if started:
-        pin_start_time = time()
+    if started:
+      pin_start_time = time()
 
-      if pin_start_time and stopped:
-        pin_start_time = 0
-        click_count += 1
-        last_release_time = time()
+    if pin_start_time and stopped:
+      pin_start_time = 0
+      click_count += 1
+      print(click_count)
+      last_release_time = time()
 
-      if pin_start_time and time() - pin_start_time > 0.7:
-        perform_action(long_action)
+    if pin_start_time and click_count == 0 and time() - pin_start_time > LONG_PRESS_TIME:
+      perform_action(long_action)
 
-      if click_count > 0 and not current_value and time() - last_release_time > MULTI_CLICK_WINDOW:
-        if click_count == 1:
-          perform_action(short_action)
-        elif click_count == 2:
-          perform_action(double_action)
-        else:
-          perform_action(triple_action)
+    if click_count > 0 and not pin_start_time and time() - last_release_time > MULTI_CLICK_WINDOW:
+      if click_count == 1:
+        perform_action(short_action)
+      elif click_count == 2:
+        perform_action(double_action)
+      else:
+        perform_action(triple_action)
 
     update()
+
+    if pin_start_time > 0:
+      if click_count == 0:
+        render_pulse(color=PULSE_COLOR, start_time=pin_start_time-LONG_PRESS_TIME,
+                     duration=2*LONG_PRESS_TIME, width=0.15)
+      elif click_count == 1:
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.3, duration=1, width=0.1)
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.7, duration=1, width=0.1)
+      else:
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.15, duration=1, width=0.1)
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.5, duration=1, width=0.1)
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.85, duration=1, width=0.1)
+
+    display_pixels(raw_pixels)
+    broadcast_state()

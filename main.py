@@ -115,6 +115,10 @@ def consume_input():
         player.tap = time()
       elif message["type"] == "pulse":
         player.pulse()
+      elif message["type"] == "buttonStart":
+        engine.button_started = True
+      elif message["type"] == "buttonEnd":
+        engine.button_stopped = True
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
 

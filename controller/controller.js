@@ -67,10 +67,6 @@ var app = new Vue({
     loadingOrb: false,
 
 
-    buttonClickCount: 0,
-    buttonClickTimer: null,
-    buttonLongTimer: null,
-    buttonLongFired: false,
     activeButtonOrbID: undefined,
 
     loginCode: "",
@@ -1003,44 +999,15 @@ var app = new Vue({
     startAccessPoint(orbID) {
       this.send({type: "startAccessPoint"}, orbID)
     },
-    performOrbAction(id, action) {
-      if (!action) return
-      if (action === 'DIM') this.advanceManualFade(id)
-      else if (action === 'CYCLE') this.advanceCycle(id)
-      else if (action === 'ACCESS_POINT') this.startAccessPoint(id)
-    },
     onButtonPointerDown(id) {
       this.activeButtonOrbID = id
-      this.buttonLongFired = false
-      this.buttonLongTimer = setTimeout(() => {
-        this.buttonLongFired = true
-        this.buttonClickCount = 0
-        clearTimeout(this.buttonClickTimer)
-        this.buttonClickTimer = null
-        this.performOrbAction(this.activeButtonOrbID, this.getOrbConfig(this.activeButtonOrbID, 'LONG_PRESS_ACTION', 'CYCLE'))
-      }, 700)
+      this.send({type: "buttonStart"}, id)
     },
     onButtonPointerUp(id) {
-      clearTimeout(this.buttonLongTimer)
-      if (this.buttonLongFired) return
-      this.buttonClickCount++
-      const capturedID = this.activeButtonOrbID
-      clearTimeout(this.buttonClickTimer)
-      this.buttonClickTimer = setTimeout(() => {
-        const count = this.buttonClickCount
-        this.buttonClickCount = 0
-        this.buttonClickTimer = null
-        if (count === 1) this.performOrbAction(capturedID, this.getOrbConfig(capturedID, 'SHORT_PRESS_ACTION', 'DIM'))
-        else if (count === 2) this.performOrbAction(capturedID, this.getOrbConfig(capturedID, 'DOUBLE_CLICK_ACTION', ''))
-        else this.performOrbAction(capturedID, this.getOrbConfig(capturedID, 'TRIPLE_CLICK_ACTION', 'ACCESS_POINT'))
-      }, 400)
+      this.send({type: "buttonEnd"}, this.activeButtonOrbID)
     },
     onButtonPointerCancel() {
-      clearTimeout(this.buttonLongTimer)
-      clearTimeout(this.buttonClickTimer)
-      this.buttonClickCount = 0
-      this.buttonLongFired = false
-      this.buttonClickTimer = null
+      this.send({type: "buttonEnd"}, this.activeButtonOrbID)
     },
     // Pref commands
     clearPrefs() {

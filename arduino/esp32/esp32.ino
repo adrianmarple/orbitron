@@ -83,12 +83,14 @@ String shortPressAction = "DIM";
 String longPressAction = "CYCLE";
 String doubleClickAction = "";
 String tripleClickAction = "ACCESS_POINT";
-bool fadePinLastState = true;   // HIGH = not pressed (INPUT_PULLUP)
+bool fadePinLastState = false;  // true = pressed
 unsigned long fadePinPressStart = 0;
 bool fadePinLongFired = false;
 int fadePinClickCount = 0;
 unsigned long fadePinLastReleaseTime = 0;
 const unsigned long MULTI_CLICK_WINDOW = 400;
+const unsigned long LONG_PRESS_TIME = 700;
+bool virtualButtonState = false;  // true = pressed; set by buttonStart/buttonEnd messages
 
 // --- WebSocket ---
 WebSocketsClient wsClient;
@@ -723,6 +725,12 @@ void handleControllerMessage(const String& clientID, const String& message) {
     }
     broadcastState();
 
+  } else if (type == "buttonStart") {
+    virtualButtonState = true;
+
+  } else if (type == "buttonEnd") {
+    virtualButtonState = false;
+
   } else if (type == "reorderPrefs") {
     String name = doc["name"].as<String>();
     String targetName = doc["targetName"].as<String>();
@@ -1048,23 +1056,24 @@ void performPinAction(const String& action) {
 }
 
 // Poll fade pin each loop(). Accumulates clicks; fires after MULTI_CLICK_WINDOW of inactivity.
-// 1 click = short, 2 = double, 3+ = triple. Long press fires immediately at 700ms.
+// 1 click = short, 2 = double, 3+ = triple. Long press fires immediately at LONG_PRESS_TIME.
 void checkFadePin() {
-  if (buttonPin < 0) return;
-  bool state = digitalRead(buttonPin);  // LOW = pressed (INPUT_PULLUP)
+  // true = pressed. OR logic: pressed if hardware OR virtual is pressed.
+  bool state = virtualButtonState;
+  if (buttonPin >= 0) state = state || !digitalRead(buttonPin);  // INPUT_PULLUP: LOW = pressed
   unsigned long now = millis();
 
-  if (fadePinLastState && !state) {
-    // Falling edge: press started
+  if (!fadePinLastState && state) {
+    // Rising edge: press started
     fadePinPressStart = now;
     fadePinLongFired = false;
-  } else if (!fadePinLastState && state) {
-    // Rising edge: released
+  } else if (fadePinLastState && !state) {
+    // Falling edge: released
     if (!fadePinLongFired) {
       fadePinClickCount++;
       fadePinLastReleaseTime = now;
     }
-  } else if (!state && !fadePinLongFired && (now - fadePinPressStart >= 700)) {
+  } else if (state && !fadePinLongFired && fadePinClickCount == 0 && (now - fadePinPressStart >= LONG_PRESS_TIME)) {
     // Still held past long-press threshold
     fadePinLongFired = true;
     fadePinClickCount = 0;
@@ -1072,7 +1081,7 @@ void checkFadePin() {
   }
 
   // Multi-click window expired — dispatch based on click count
-  if (fadePinClickCount > 0 && state && (now - fadePinLastReleaseTime >= MULTI_CLICK_WINDOW)) {
+  if (fadePinClickCount > 0 && !state && (now - fadePinLastReleaseTime >= MULTI_CLICK_WINDOW)) {
     if (fadePinClickCount == 1) performPinAction(shortPressAction);
     else if (fadePinClickCount == 2) performPinAction(doubleClickAction);
     else performPinAction(tripleClickAction);
@@ -1439,6 +1448,52 @@ void setup() {
   lastPingReceived = millis();
 }
 
+// Matches Python's render_pulse button feedback. Direction (0,1,0), PULSE_COLOR=[100,100,100].
+// click_count==0: single growing pulse approaching long-press threshold.
+// click_count==1: two fixed-phase pulses. click_count>=2: three fixed-phase pulses.
+void renderButtonPulse() {
+  if (!fadePinLastState || fadePinLongFired) return;
+  unsigned long now = millis();
+
+  // (t, width) pairs — t is normalized position in a duration=1 pulse
+  float pts[3], pws[3];
+  int pulse_count = 0;
+
+  if (fadePinClickCount == 0) {
+    float t = (float)((now - fadePinPressStart) + LONG_PRESS_TIME) / (float)(2 * LONG_PRESS_TIME);
+    if (t < 1.0f) { pts[0] = t; pws[0] = 0.15f; pulse_count = 1; }
+  } else if (fadePinClickCount == 1) {
+    pts[0] = 0.3f; pws[0] = 0.1f;
+    pts[1] = 0.7f; pws[1] = 0.1f;
+    pulse_count = 2;
+  } else {
+    pts[0] = 0.15f; pws[0] = 0.1f;
+    pts[1] = 0.5f;  pws[1] = 0.1f;
+    pts[2] = 0.85f; pws[2] = 0.1f;
+    pulse_count = 3;
+  }
+
+  for (int i = 0; i < RAW_SIZE; i++) {
+    int u = raw_to_unique[i];
+    float dot = coords[u][1];  // direction (0,1,0)
+    float add = 0.0f;
+    for (int p = 0; p < pulse_count; p++) {
+      float t = pts[p], w = pws[p];
+      float ds = (dot/4.0f + 0.75f)/w + (-0.5f*(t + 1.0f)/w + 1.0f - t);
+      float v = ds*(1.0f - ds)/3.0f;
+      if (v > 0.0f) add += v*v*12.0f;
+    }
+    if (add <= 0.0f) continue;
+    int brightness = (int)(add * 100.0f);
+    if (brightness > 255) brightness = 255;
+    uint32_t c = strip->getPixelColor(i);
+    int r = min(255, (int)((c >> 16) & 0xff) + brightness);
+    int g = min(255, (int)((c >> 8)  & 0xff) + brightness);
+    int b = min(255, (int)(c & 0xff)          + brightness);
+    strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+  }
+}
+
 void loop() {
   unsigned long loop_start = millis();
 
@@ -1503,15 +1558,7 @@ void loop() {
     }
   }
 
-  if (buttonPin >= 0 && !fadePinLastState && !fadePinLongFired) {
-    for (int i = 0; i < RAW_SIZE; i++) {
-      uint32_t c = strip->getPixelColor(i);
-      uint8_t r = min(255, (int)((c >> 16) & 0xff) + 1);
-      uint8_t g = min(255, (int)((c >> 8)  & 0xff) + 1);
-      uint8_t b = min(255, (int)(c & 0xff)          + 1);
-      strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
-    }
-  }
+  renderButtonPulse();
 
   strip->show();
 
