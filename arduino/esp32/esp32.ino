@@ -1014,7 +1014,7 @@ void advanceDim() {
   broadcastState();
 }
 
-// Load next saved preset that has includedInCycles=true, cycling from currentPrefName.
+// Load next saved preset. Cycles only includedInCycles presets; falls back to all presets if none are included.
 void advanceCycle() {
   String timingJson = readFile("/timingprefs.json");
   JsonDocument timingDoc;
@@ -1029,13 +1029,16 @@ void advanceCycle() {
   for (int i = 0; i < n; i++) {
     if (!inc.isNull() && inc[names[i]].as<bool>()) cyclable[cycleCount++] = names[i];
   }
-  if (cycleCount == 0) return;
+  String* cycle = cyclable;
+  int cycleLen = cycleCount;
+  if (cycleLen == 0) { cycle = names; cycleLen = n; }
+  if (cycleLen == 0) return;
 
   int currentIdx = -1;
-  for (int i = 0; i < cycleCount; i++) {
-    if (cyclable[i] == currentPrefName) { currentIdx = i; break; }
+  for (int i = 0; i < cycleLen; i++) {
+    if (cycle[i] == currentPrefName) { currentIdx = i; break; }
   }
-  String nextName = cyclable[(currentIdx + 1) % cycleCount];
+  String nextName = cycle[(currentIdx + 1) % cycleLen];
 
   String savedJson = readFile(savedPrefPath(nextName).c_str());
   if (savedJson.isEmpty()) return;

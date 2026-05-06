@@ -432,7 +432,7 @@ def advance_manual_fade():
 def advance_preset():
   included = timing_prefs["includedInCycles"]
   cycle_names = [n for n in pref_names if included.get(n, False)]
-  if not cycle_names:
+  if len(cycle_names) == 0:
     cycle_names = pref_names
   print("Advancing from %s" % last_known_pref_name, file=sys.stderr)
   index = -1
