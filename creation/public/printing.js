@@ -378,8 +378,9 @@ async function generateManufacturingInfo() {
   for (let plain of plains) {
     covers.top.push(await createCover(plain))
     let coverPrint = covers.top.last()
-    let w = (coverPrint.maxX - coverPrint.minX)
-    let h = (coverPrint.maxY - coverPrint.minY)
+    if (!coverPrint) continue
+    let w = (coverPrint.bounds.maxX - coverPrint.bounds.minX)
+    let h = (coverPrint.bounds.maxY - coverPrint.bounds.minY)
     let unit = coverPrint3D ? 'mm' : '"'
     let maxDim1 = coverPrint3D ? 250 : 48
     let maxDim2 = coverPrint3D ? 250 : 48
@@ -395,8 +396,9 @@ async function generateManufacturingInfo() {
   for (let plain of plains) {
     covers.bottom.push(await createCover(plain))
     let coverPrint = covers.bottom.last()
-    let w = (coverPrint.maxX - coverPrint.minX) / 96
-    let h = (coverPrint.maxY - coverPrint.minY) / 96
+    if (!coverPrint) continue
+    let w = (coverPrint.bounds.maxX - coverPrint.bounds.minX) / 96
+    let h = (coverPrint.bounds.maxY - coverPrint.bounds.minY) / 96
     if (coverPrint3D) {
       w *= MM_TO_96DPI
       h *= MM_TO_96DPI

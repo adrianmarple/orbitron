@@ -27,11 +27,12 @@ async function createCover(plain) {
       break
     }
   }
-
-  print.minX = 1e6
-  print.minY = 1e6
-  print.maxX = -1e6
-  print.maxY = -1e6
+  let bounds = {
+    minX: 1e6,
+    minY: 1e6,
+    maxX: -1e6,
+    maxY: -1e6,
+  }
 
   // Rotate all verticies to make this plain lie "flat"
   // Also scale verticies to be in mm space
@@ -371,7 +372,7 @@ async function createCover(plain) {
           v1,
           [lengthOffset1, CHANNEL_WIDTH/2],
           isStrong,
-          print)
+          print, bounds)
       }
 
       // Border
@@ -389,7 +390,7 @@ async function createCover(plain) {
         let line1 = line.translate(n.scale(width))
         let p1 = deadendPlain.intersection(line1)
         let p2 = deadendPlain.intersection(line)
-        borderString += pointsToSVGString([p2, p1], print)
+        borderString += pointsToSVGString([p2, p1], bounds)
         borderPoints.push(p2)
         borderPoints.push(p1)
 
@@ -409,7 +410,7 @@ async function createCover(plain) {
         })
       } else if (incomingFoldWall) {
         points = [[borderLengthOffset, width]]
-        borderString += pointsToSVGString(points, print, {basis: [e1, n], offset: v1})
+        borderString += pointsToSVGString(points, bounds, {basis: [e1, n], offset: v1})
         borderPoints.push(v1
             .addScaledVector(e1, borderLengthOffset)
             .addScaledVector(n, width))
@@ -423,7 +424,7 @@ async function createCover(plain) {
         }
         let line2 = line.translate(n.scale(width))
         let p = deadendPlain.intersection(line2)
-        borderString += pointsToSVGString([p], print)
+        borderString += pointsToSVGString([p], bounds)
         borderPoints.push(p)
 
         // fold wall miter
@@ -442,7 +443,7 @@ async function createCover(plain) {
         })
       } else {
         points = [[borderLengthOffset, width]]
-        borderString += pointsToSVGString(points, print, {basis: [e1, n], offset: v1})
+        borderString += pointsToSVGString(points, bounds, {basis: [e1, n], offset: v1})
         borderPoints.push(v1
             .addScaledVector(e1, borderLengthOffset)
             .addScaledVector(n, width))
@@ -458,18 +459,18 @@ async function createCover(plain) {
         let line1 = line.translate(n.scale(width))
         let p1 = deadendPlain.intersection(line1)
         let p2 = deadendPlain.intersection(line)
-        channelString += pointsToSVGString([p2, p1], print)
+        channelString += pointsToSVGString([p2, p1], bounds)
       } else if (incomingFoldWall) {
-        channelString += pointsToSVGString([[channelLengthOffset, width]], print, {basis: [e1, n], offset: v1})
+        channelString += pointsToSVGString([[channelLengthOffset, width]], bounds, {basis: [e1, n], offset: v1})
 
         let edge = vertex1.getEdge(vertex2)
         let { deadendPlain, line } = vertex2.fold(edge, false).getCoverInfo(edge, false, R)
         deadendPlain = deadendPlain.translate(e1.normalize().scale(5)) // TODO calculate more properply
         let line2 = line.translate(n.scale(width))
         let p = deadendPlain.intersection(line2)
-        channelString += pointsToSVGString([p], print)
+        channelString += pointsToSVGString([p], bounds)
       } else {
-        channelString += pointsToSVGString([[channelLengthOffset, width]], print, {basis: [e1, n], offset: v1})
+        channelString += pointsToSVGString([[channelLengthOffset, width]], bounds, {basis: [e1, n], offset: v1})
       }
 
       // Embossed id
@@ -547,7 +548,7 @@ async function createCover(plain) {
   let importCorrectionOperations = [
     {
       type: "translate",
-      position: [print.minX, 2*print.minY - print.maxY, 0]
+      position: [bounds.minX, 2*bounds.minY - bounds.maxY, 0]
     },
     {
       type: "mirror",
@@ -615,6 +616,7 @@ async function createCover(plain) {
     })
   }
   print.svg = svg
+  print.bounds = bounds
 
   print.worldPlacementOperations = [
     {
@@ -644,7 +646,7 @@ async function createCover(plain) {
   return print
 }
 
-function singleSlotPath(wallLength, basis, offset, localOffset, isStrong, print) {
+function singleSlotPath(wallLength, basis, offset, localOffset, isStrong, print, bounds) {
   offset = offset.sub(new Vector(0,0, offset.z))
   if (wallLength > 1e6) return ""
   let path = ""
@@ -730,14 +732,14 @@ function singleSlotPath(wallLength, basis, offset, localOffset, isStrong, print)
 
     addLatch(xs, 1)
     addLatch(xt, -1)
-    path += "M" + pointsToSVGString(points, print, {basis, offset}).substring(1) + "Z "
+    path += "M" + pointsToSVGString(points, bounds, {basis, offset}).substring(1) + "Z "
 
     xs = xt + 2*(trueNotchDepth + KERF)
   }
   return path
 }
 
-function pointsToSVGString(points, print, {basis, offset, flip} = {}) {
+function pointsToSVGString(points, bounds, {basis, offset, flip} = {}) {
   if (!basis) basis = [RIGHT, UP]
   if (!offset) offset = ZERO
 
@@ -755,20 +757,20 @@ function pointsToSVGString(points, print, {basis, offset, flip} = {}) {
       console.error(truePoint)
       return ""
     }
-    if (truePoint.x > print.maxX || truePoint.y > print.maxY ||
-        truePoint.x < print.minX || truePoint.y < print.minY) {
-      print.maxX = Math.ceil(Math.max(print.maxX, truePoint.x))
-      print.maxY = Math.ceil(Math.max(print.maxY, truePoint.y))
-      print.minX = Math.floor(Math.min(print.minX, truePoint.x))
-      print.minY = Math.floor(Math.min(print.minY, truePoint.y))
-      cover.setAttribute("width", print.maxX - print.minX)
-      cover.setAttribute("height", print.maxY - print.minY)
-      cover.setAttribute("viewBox", `${print.minX} ${print.minY} ${print.maxX - print.minX} ${print.maxY - print.minY}`)
+    if (truePoint.x > bounds.maxX || truePoint.y > bounds.maxY ||
+        truePoint.x < bounds.minX || truePoint.y < bounds.minY) {
+      bounds.maxX = Math.ceil(Math.max(bounds.maxX, truePoint.x))
+      bounds.maxY = Math.ceil(Math.max(bounds.maxY, truePoint.y))
+      bounds.minX = Math.floor(Math.min(bounds.minX, truePoint.x))
+      bounds.minY = Math.floor(Math.min(bounds.minY, truePoint.y))
+      cover.setAttribute("width", bounds.maxX - bounds.minX)
+      cover.setAttribute("height", bounds.maxY - bounds.minY)
+      cover.setAttribute("viewBox", `${bounds.minX} ${bounds.minY} ${bounds.maxX - bounds.minX} ${bounds.maxY - bounds.minY}`)
     }
   	s += `L${truePoint.x} ${truePoint.y} `
   }
   if (flip) {
-    s += pointsToSVGString(points.reverse(), print, {basis: basis.reverse(), offset})
+    s += pointsToSVGString(points.reverse(), bounds, {basis: basis.reverse(), offset})
   }
   return s
 }
