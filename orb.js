@@ -5,7 +5,7 @@ const { pullAndRestart, timeUntilHour } = require('./gitupdate')
 const WebSocket = require('ws')
 const fs = require('fs')
 const process = require('process')
-const { spawn } = require('child_process')
+const { spawn, execSync } = require('child_process')
 const os = require('os')
 const { v4: uuid } = require('uuid')
 const homedir = os.homedir()
@@ -716,7 +716,7 @@ setInterval(() => {
 let env = {...process.env, CONFIG: JSON.stringify(config)}
 let python_process = null
 // Kill any orphaned main.py processes left over from a previous Node crash
-execute(`pkill -KILL -f "${__dirname}/main.py"`).catch(() => {})
+try { execSync(`pkill -KILL -f "${__dirname}/main.py"`) } catch(e) {}
 restartEngine()
 
 let raw_pixels = null

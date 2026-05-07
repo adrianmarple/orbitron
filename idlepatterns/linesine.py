@@ -49,7 +49,7 @@ class LineSine(Idle):
       self.render_values = np.zeros(RAW_SIZE)
       return
     phase = self.positions * self.cycles() * 2 * pi
-    self.time_factor += self.time_delta() * 2 * pi * self.speed()
+    self.time_factor = (self.time_factor + self.time_delta() * 2 * pi * self.speed()) % (2*pi)
     self.render_values = np.sin(phase + self.time_factor)
     self.render_values = np.maximum(self.render_values, 0)
 

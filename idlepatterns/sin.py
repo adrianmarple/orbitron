@@ -29,7 +29,7 @@ class Sin(Idle):
         self.render_values = self.distancesFromCenter * -self.period()
     else:
       self.render_values = np.matmul(-self.direction() * self.period(), unique_coord_matrix)
-    self.time_factor += self.time_delta() * 2*pi * self.speed()
+    self.time_factor = (self.time_factor + self.time_delta() * 2*pi * self.speed()) % (2*pi)
     self.render_values += self.time_factor
     self.render_values = (np.sin(self.render_values) + 1 + self.min_value())/(2 + self.min_value())
     self.render_values = np.maximum(self.render_values, 0)
