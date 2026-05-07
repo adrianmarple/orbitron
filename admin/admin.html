@@ -28,7 +28,7 @@
   <div v-if="drawerOverlay" id="drawer-overlay"
       @click="leftOpen = false; rightOpen = false"></div>
 
-  <!-- Left drawer: orb name/alias + actions -->
+  <!-- Left drawer: orb name + actions -->
   <div id="left-drawer" :class="{ closed: !leftOpen }">
     <div class="drawer-tab" id="left-tab" @click="leftOpen = !leftOpen">
       {{ leftOpen ? '◀' : '▶' }}
@@ -36,13 +36,7 @@
 
     <div class="names">
       {{ orbID }}
-      <div @blur="editingAlias = false">Alias:
-        <span v-if="alias && !editingAlias" @click="editAlias">{{ alias }}</span>
-        <span v-else>
-          <textarea v-model="newAlias"></textarea>
-          <div class="button" @click="saveAlias">Save</div>
-        </span>
-      </div>
+      <div v-if="alias">Alias: {{ alias }}</div>
     </div>
 
     <div class="actions">
@@ -137,6 +131,7 @@
                 <div style="font-size:2rem;margin:0.5rem 2rem;">{{ logDaysAgo }}</div>
                 <div class="back button" @click="logDaysAgo -= 1; updateLog()" :class="{ disabled: logDaysAgo <= 0 }">Forward</div>
                 <div class="back button" @click="logDaysAgo = 0; updateLog()">FF</div>
+                <div class="back button" @click="toggleErrorLog">{{ viewingErrorLog ? 'Out log' : 'Error log' }}</div>
               </div>
             </div>
 

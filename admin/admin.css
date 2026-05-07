@@ -214,19 +214,9 @@ a, a:visited { color: inherit; }
   overflow-y: auto;
 }
 
-/* ── Orb name + alias (left drawer) ── */
+/* ── Orb name (left drawer) ── */
 .names {
   font-size: 2rem;
-}
-.names textarea {
-  color: white;
-  background-color: var(--bg-color);
-  font-size: 1.5rem;
-  height: 32px;
-  width: 100%;
-}
-.names .button {
-  width: 56px;
 }
 
 /* ── Orb list (right drawer) ── */

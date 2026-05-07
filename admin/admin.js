@@ -26,9 +26,8 @@ new Vue({
       timingprefs: "",
       log: "",
       logDaysAgo: 0,
+      viewingErrorLog: false,
       viewing: "config",
-      newAlias: "",
-      editingAlias: false,
       infoInterval: null,
 
       backupList: [],
@@ -175,7 +174,6 @@ new Vue({
           break
         }
       }
-      this.newAlias = ""
       if (this.viewing == "command") this.focusCommandPrompt()
       this.commandResponses = " "
       this.log = ""
@@ -183,6 +181,7 @@ new Vue({
       this.timingprefs = ""
       this.config = this.idToConfig[this.orbID]
       this.logDaysAgo = 0
+      this.viewingErrorLog = false
       this.calibratingPower = false
       if (this.prefsBackup) {
         this.prefs = this.prefsBackup
@@ -251,29 +250,6 @@ new Vue({
       this.idToTimingPrefs[this.orbID] = this.timingprefs
     },
 
-    async editAlias() {
-      this.editingAlias = true
-      this.newAlias = this.alias
-      await this.$nextTick()
-      let ta = document.querySelector(".names textarea")
-      if (ta) ta.focus()
-    },
-
-    async saveAlias() {
-      this.editingAlias = false
-      this.newAlias = this.newAlias.toLowerCase()
-      this.sendServerCommand({ type: "alias", id: this.orbID, alias: this.newAlias })
-      this.alias = this.newAlias
-
-      let serverConfig = this.idToConfig[this.serverOrbID]
-      if (!serverConfig) {
-        serverConfig = await this.sendCommand({ type: "getconfig" }, this.serverOrbID)
-      }
-      serverConfig = upsertKeyValueInConfig(serverConfig, `"${this.orbID}"`, this.newAlias, "ALIASES", 4)
-      this.idToConfig[this.serverOrbID] = serverConfig
-      await this.sendCommand({ type: "setconfig", data: serverConfig, dontRestart: true }, this.serverOrbID)
-      await this.updateConfig()
-    },
 
     async restartOrb() {
       await this.sendCommand({ type: "restart" })
@@ -358,9 +334,15 @@ new Vue({
     },
 
     async updateLog() {
+      const stream = this.viewingErrorLog ? "error" : "out"
       this.idToLog[this.orbID] = await this.sendCommand(
-        { type: "getlog", daysAgo: this.logDaysAgo }, this.orbID)
+        { type: "getlog", daysAgo: this.logDaysAgo, stream }, this.orbID)
       this.log = this.idToLog[this.orbID]
+    },
+
+    async toggleErrorLog() {
+      this.viewingErrorLog = !this.viewingErrorLog
+      await this.updateLog()
     },
 
     async viewBackups() {

@@ -200,6 +200,7 @@ function connectOrbToRelay(){
         }
         if (command.type == "getlog") {
           let daysAgo = command.daysAgo || 0
+          let stream = command.stream || "out"
           let suffix = ""
           if (daysAgo > 0) {
             let day = new Date()
@@ -207,7 +208,7 @@ function connectOrbToRelay(){
             suffix = "__" + day.toJSON().slice(0, 10) + "_00-00-00"
           }
           try {
-            returnData = (await fs.promises.readFile(`/root/.pm2/logs/startscript-out${suffix}.log`)).toString()
+            returnData = (await fs.promises.readFile(`/root/.pm2/logs/startscript-${stream}${suffix}.log`)).toString()
           } catch(_) {
             returnData = "Log file does not exist"
           }
