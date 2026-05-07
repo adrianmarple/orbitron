@@ -715,6 +715,8 @@ setInterval(() => {
 
 let env = {...process.env, CONFIG: JSON.stringify(config)}
 let python_process = null
+// Kill any orphaned main.py processes left over from a previous Node crash
+execute(`pkill -KILL -f "${__dirname}/main.py"`).catch(() => {})
 restartEngine()
 
 let raw_pixels = null
@@ -779,7 +781,7 @@ function handleEngineException(err, origin) {
 
 function restartEngine() {
   if (python_process) {
-    python_process.kill()
+    python_process.kill('SIGKILL')
   }
   python_process = spawn(PYTHON_EXECUTABLE, ['-u', `${__dirname}/main.py`], {env})
   python_process.stdout.on('data', handleEngineOut)
@@ -789,7 +791,7 @@ function restartEngine() {
 
 function handleParentKill() {
   if(python_process){
-    python_process.kill()
+    python_process.kill('SIGKILL')
   }
   console.log("GOT KILL SIGNAL")
   process.exit()
@@ -806,7 +808,7 @@ function cleanupTempOrb() {
   process.removeListener('SIGINT', handleParentKill)
   process.removeListener('SIGTERM', handleParentKill)
   process.removeListener('SIGHUP', handleParentKill)
-  python_process.kill()
+  python_process.kill('SIGKILL')
 
   orbToRelaySocket.close()
   for (let interval of intervals) {
