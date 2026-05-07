@@ -253,7 +253,8 @@
             :class="{
               selected: name == state.currentPrefName,
               dragging: name == draggingPrefName,
-              dragover: name == draggingPrefTargetName && name != draggingPrefName
+              dragover: name == draggingPrefTargetName && name != draggingPrefName,
+              'in-cycle': (prefs.includedInCycles || {})[name]
             }"
             :data-pref-name="name"
             @click="openPrefModal(name)"
