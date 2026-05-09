@@ -23,13 +23,16 @@
 #include <HTTPUpdate.h>
 
 #ifdef CONFIG_IDF_TARGET_ESP32C6
-  #define PIN 18        // GPIO 18 = D10 on XIAO ESP32-C6
+  #define PIN 18               // GPIO 18 = D10 on XIAO ESP32-C6
+  #define DEFAULT_BUTTON_PIN 20 // GPIO 20 = D9  on XIAO ESP32-C6
   #define CHIP_TYPE "esp32c6"
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
-  #define PIN 9         // GPIO 9  = D10 on XIAO ESP32-S3
+  #define PIN 9                // GPIO 9  = D10 on XIAO ESP32-S3
+  #define DEFAULT_BUTTON_PIN 8  // GPIO 8  = D9  on XIAO ESP32-S3
   #define CHIP_TYPE "esp32s3"
 #else
-  #define PIN 10        // GPIO 10 = D10 on XIAO ESP32-C3
+  #define PIN 10               // GPIO 10 = D10 on XIAO ESP32-C3
+  #define DEFAULT_BUTTON_PIN 9  // GPIO 9  = D9  on XIAO ESP32-C3
   #define CHIP_TYPE "esp32c3"
 #endif
 #ifndef FIRMWARE_VERSION_NUM
@@ -1450,7 +1453,8 @@ void setup() {
     continuousIntegration = doc["CONTINUOUS_INTEGRATION"] | false;
     dontReconnect = doc["DONT_RECONNECT"] | false;
     maxAvgPixelBrightness = doc["MAX_AVG_PIXEL_BRIGHTNESS"] | 0.0f;
-    buttonPin = doc["BUTTON_PIN"] | -1;
+    int rawButtonPin = doc["BUTTON_PIN"] | DEFAULT_BUTTON_PIN;
+    buttonPin = (rawButtonPin == 0) ? -1 : rawButtonPin;
     shortPressAction = doc["SHORT_PRESS_ACTION"] | "DIM";
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
     doubleClickAction = doc["DOUBLE_CLICK_ACTION"] | "";

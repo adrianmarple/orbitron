@@ -111,7 +111,7 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 
 ### Hardware
 - **LED data pin**: GPIO 10 on C3, GPIO 18 on C6, GPIO 9 on S3 (all correspond to the D10 pad on the XIAO; set via `#define PIN` conditioned on `CONFIG_IDF_TARGET_ESP32C6` / `CONFIG_IDF_TARGET_ESP32S3`)
-- **Button pin**: set `BUTTON_PIN` in config.json to the GPIO number (e.g. `4` = D2 on Seeed XIAO ESP32-C3). Button must be wired to GND; pin uses `INPUT_PULLUP`.
+- **Button pin**: defaults to D9 (GPIO 9 on C3, GPIO 20 on C6, GPIO 8 on S3). Override via `BUTTON_PIN` in config.json; set to `0` to disable. Button must be wired to GND; pin uses `INPUT_PULLUP`.
 - **Recommended board**: Seeed XIAO ESP32-C3, ESP32-C6, or ESP32-S3 (S3 has more SRAM, helpful for large pixel counts)
 - **arduino-cli boards**: `esp32:esp32:esp32c3`, `esp32:esp32:esp32c6`, and `esp32:esp32:esp32s3` (all built by the build script)
 
@@ -129,7 +129,7 @@ JSON file written directly to the device. Key fields:
 - `ORB_KEY` — `sha256(orbID + masterKey)`; set via admin UI "Set ORB_KEY" button
 - `TIMEZONE` — POSIX tz string (e.g. `"PST8PDT,M3.2.0,M11.1.0"`)
 - `CONTINUOUS_INTEGRATION` — if true, polls for server restart then OTAs at 2am
-- `BUTTON_PIN` — GPIO number for hardware button (hardware-specific, unlike Pi's `MANUAL_FADE_PIN`)
+- `BUTTON_PIN` — GPIO number for hardware button; defaults to D9 (GPIO 9/C3, 20/C6, 8/S3); set to `0` to disable
 - `SHORT_PRESS_ACTION` — `"DIM"` (default) or `"CYCLE"`
 - `LONG_PRESS_ACTION` — `"CYCLE"` (default) or `"DIM"`
 
