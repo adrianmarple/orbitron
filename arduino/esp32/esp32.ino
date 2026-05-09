@@ -1455,11 +1455,7 @@ void setup() {
   lastPingReceived = millis();
 
   render_mutex = xSemaphoreCreateMutex();
-#ifdef CONFIG_IDF_TARGET_ESP32C3
   xTaskCreatePinnedToCore(networkTask, "net", 16384, nullptr, 1, nullptr, 0);
-#else
-  xTaskCreatePinnedToCore(networkTask, "net", 16384, nullptr, 1, nullptr, 1);
-#endif
   vTaskPrioritySet(nullptr, 2);  // render task (this task) higher priority than networkTask
 }
 
