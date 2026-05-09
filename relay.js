@@ -20,7 +20,7 @@ let BACKUPS_DIR = "./backups/"
 
 // --- Arduino OTA firmware ---
 const FIRMWARE_DIR = path.join(__dirname, 'firmware')
-const SUPPORTED_CHIPS = ['esp32c3', 'esp32c6']
+const SUPPORTED_CHIPS = ['esp32c3', 'esp32c6', 'esp32s3']
 const firmwareBin = chip => path.join(FIRMWARE_DIR, `${chip}.bin`)
 const firmwareVersionFile = chip => path.join(FIRMWARE_DIR, `${chip}.version.txt`)
 let compiledFirmwareVersions = {}  // chip -> version number
@@ -451,7 +451,9 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
     return true
   }
 
-  if (queryParams.type === "updateFirmware") {
+  let msgType
+  try { msgType = JSON.parse(queryParams.message)?.type } catch(_) {}
+  if (msgType === "updateFirmware") {
     connectedOrbs[orbID].send("FORCE_UPDATE")
     noCorsHeader(response, 'text/json')
     response.end("OK")
