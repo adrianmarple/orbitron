@@ -32,8 +32,8 @@ v_kerf = 0.4;
 h_kerf = 0.1;
 
 
-//main();
-hatch();
+main();
+//hatch();
 //nail_sheath();
 
 module nail_sheath() {
@@ -44,6 +44,8 @@ difference() {
         translate([0,0,-2])
         cylinder(h=box_thickness+2, d=nail_d+2*sheath_wall);
         
+        
+        cylinder(h=bottom_thickness + v_kerf, d=bottom_hole_d-2*h_kerf, d2=bottom_hole_d-2*h_kerf+2*lip);
         cylinder(h=2*bottom_thickness + inner_h, d=bottom_hole_d-2*h_kerf);
         translate([0,0,bottom_thickness+v_kerf])
         cylinder(h=inner_h-2*v_kerf, d=inner_d-2*h_kerf);
@@ -65,8 +67,7 @@ module hatch() {
     translate([0,0,thick/2])
     cube([channel_width, width - 4, thick], center=true);
       
-    translate([0, 0, -1])
-    pillinder(bottom_hole_width, bottom_hole_d/2, box_thickness+2);
+    cylinder(d1=bottom_hole_d, d2=bottom_hole_d + 2*lip, h=bottom_thickness + v_kerf);
   }
     
   translate([hatch_dowel_x, hatch_dowel_y, 0])
@@ -80,6 +81,7 @@ module hatch() {
 }
 
 module main() {
+rotate([90,0,0])
 translate([0,0,box_thickness])
 difference() {
   rotate([90,0,0])

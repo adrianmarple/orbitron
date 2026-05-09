@@ -5,6 +5,7 @@ module.exports={
   // PIXELS: "diamond",
   // RELAY_HOST: "my.lumatron.art",  // Defaults to official relay (or 0.0.0.0 in DEV_MODE); can be a domain or IP
   // CONTINUOUS_INTEGRATION: false,
+  // FULL_BRIGHTNESS_ON_POWER_ON: true,  // Set dimmer=1 on power-on boot (not software restarts). Arduino default: true; Pi default: false
   // IS_FLAT: true,
   // SHORT_PRESS_ACTION: "DIM",          // "DIM" or "CYCLE"
   // LONG_PRESS_ACTION: "CYCLE",         // "DIM" or "CYCLE"

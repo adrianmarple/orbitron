@@ -110,10 +110,10 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 `esp32.ino` runs idle patterns on an ESP32-C3 with full WiFi connectivity — connects to the relay server, supports admin commands, OTA firmware updates, saved presets, timer schedules, and a hardware button. It is a standalone alternative to the Raspberry Pi + Python stack.
 
 ### Hardware
-- **LED data pin**: GPIO 10 on C3, GPIO 18 on C6 (both correspond to the D10 pad on the XIAO; set via `#define PIN` conditioned on `CONFIG_IDF_TARGET_ESP32C6`)
+- **LED data pin**: GPIO 10 on C3, GPIO 18 on C6, GPIO 9 on S3 (all correspond to the D10 pad on the XIAO; set via `#define PIN` conditioned on `CONFIG_IDF_TARGET_ESP32C6` / `CONFIG_IDF_TARGET_ESP32S3`)
 - **Button pin**: set `BUTTON_PIN` in config.json to the GPIO number (e.g. `4` = D2 on Seeed XIAO ESP32-C3). Button must be wired to GND; pin uses `INPUT_PULLUP`.
-- **Recommended board**: Seeed XIAO ESP32-C3 or similar ESP32-C3 devkit
-- **arduino-cli boards**: `esp32:esp32:esp32c3` and `esp32:esp32:esp32c6` (both built by the build script)
+- **Recommended board**: Seeed XIAO ESP32-C3, ESP32-C6, or ESP32-S3 (S3 has more SRAM, helpful for large pixel counts)
+- **arduino-cli boards**: `esp32:esp32:esp32c3`, `esp32:esp32:esp32c6`, and `esp32:esp32:esp32s3` (all built by the build script)
 
 ### Required Arduino libraries
 - Adafruit NeoPixel
@@ -143,10 +143,10 @@ JSON file written directly to the device. Key fields:
 ### OTA firmware updates
 - Firmware is compiled **locally** via `bash scripts/arduino_build.sh [server-host]`
   - Regenerates `portal_html.h` via `scripts/gen_portal_header.py`
-  - Compiles for each supported chip (`esp32c3`, `esp32c6`) using the corresponding FQBN with `PartitionScheme=min_spiffs` and build flags `-DFIRMWARE_VERSION_NUM=<gitCount> -DESP32`
+  - Compiles for each supported chip (`esp32c3`, `esp32c6`, `esp32s3`) using the corresponding FQBN with `PartitionScheme=min_spiffs` and build flags `-DFIRMWARE_VERSION_NUM=<gitCount> -DESP32`
   - Uploads each binary to `https://<relay>/firmware/upload?chip=<chip>&version=<version>&key=<key>`
   - Server defaults to `my.lumatron.art`; `staging` branch uses `staging.lumatron.art`
-- Relay serves per-chip binaries at `https://<relay>/firmware/<chip>.bin` (e.g. `esp32c3.bin`, `esp32c6.bin`)
+- Relay serves per-chip binaries at `https://<relay>/firmware/<chip>.bin` (e.g. `esp32c3.bin`, `esp32c6.bin`, `esp32s3.bin`)
 - Device detects its chip type at compile time via IDF macros (`CONFIG_IDF_TARGET_ESP32C6` etc.) and fetches the matching binary
 - Device checks for updates at 2am daily; if `CONTINUOUS_INTEGRATION: true`, also polls after receiving `GIT_HAS_UPDATE` from relay
 

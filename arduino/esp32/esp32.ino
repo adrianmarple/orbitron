@@ -25,6 +25,9 @@
 #ifdef CONFIG_IDF_TARGET_ESP32C6
   #define PIN 18        // GPIO 18 = D10 on XIAO ESP32-C6
   #define CHIP_TYPE "esp32c6"
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+  #define PIN 9         // GPIO 9  = D10 on XIAO ESP32-S3
+  #define CHIP_TYPE "esp32s3"
 #else
   #define PIN 10        // GPIO 10 = D10 on XIAO ESP32-C3
   #define CHIP_TYPE "esp32c3"
@@ -36,6 +39,18 @@
 #define PING_TIMEOUT_MS 30000
 #define MAX_NEIGHBORS 6  // compile-time max; actual neighbor count per pixel determined by pixels.bin
 
+// On S3 (which has OPI PSRAM), allocate geometry in PSRAM so internal DMA-capable
+// RAM stays free for the RMT encoding buffer used by strip->show().
+// ps_malloc/ps_calloc prefer PSRAM when available (PSRAM=opi in FQBN) and fall
+// back to regular heap automatically. On C3/C6 (no PSRAM), use plain malloc/calloc.
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+  #define GEO_MALLOC(sz)    ps_malloc(sz)
+  #define GEO_CALLOC(n, sz) ps_calloc((n), (sz))
+#else
+  #define GEO_MALLOC(sz)    malloc(sz)
+  #define GEO_CALLOC(n, sz) calloc((n), (sz))
+#endif
+
 // --- Geometry (loaded at runtime from /pixels.bin) ---
 int SIZE = 0;
 int RAW_SIZE = 0;
@@ -45,16 +60,21 @@ uint16_t *raw_to_unique = nullptr;
 float (*coords)[3] = nullptr;
 
 // --- Pattern state (heap-allocated in loadGeometry) ---
-float *fluid_values = nullptr;
-float *lightning_fluid = nullptr;
-int16_t *lightning_to_sink = nullptr;
-int16_t *lightning_distance = nullptr;
-int16_t *lightning_bfs_queue = nullptr;
-float *pattern_target = nullptr;
-float *render_values = nullptr;
-float *linesine_positions = nullptr;
+// Scratch: one shared block for pattern-specific arrays; carved per pattern by setupPatternScratch().
+// SCRATCH_SIZE = RAW_SIZE*sizeof(float) + SIZE*sizeof(int16_t)*3
+// (largest user is LIGHTNING: one float[RAW_SIZE] + three int16_t[SIZE])
+uint8_t *scratch = nullptr;
+size_t scratch_size = 0;
+float *fluid_values = nullptr;       // DEFAULT, FIREFLIES: points into scratch
+float *lightning_fluid = nullptr;    // LIGHTNING: points into scratch
+int16_t *lightning_to_sink = nullptr;   // LIGHTNING: points into scratch
+int16_t *lightning_distance = nullptr;  // LIGHTNING: points into scratch
+int16_t *lightning_bfs_queue = nullptr; // LIGHTNING: points into scratch
+float *pattern_target = nullptr;     // PULSES, LIGHTFIELD: points into scratch
+float *linesine_positions = nullptr; // LINESINE: points into scratch
+float *render_values = nullptr;      // permanent; used for inter-frame temporal smoothing
 
-// --- Strip (created in loadGeometry after RAW_SIZE is known) ---
+// --- Strip ---
 Adafruit_NeoPixel *strip = nullptr;
 
 #define STRIP_SET(i, c) strip->setPixelColor(i, c)
@@ -76,6 +96,7 @@ String timezone;
 bool continuousIntegration = false;
 bool dontReconnect = false;
 float maxAvgPixelBrightness = 0;  // 0 = disabled; 0-255 average per channel
+bool fullBrightnessOnPowerOn = true;
 
 // --- Manual fade pin ---
 int buttonPin = -1;  // -1 = disabled
@@ -111,6 +132,13 @@ unsigned long nextEventMs = 0;
 
 // --- Backup state ---
 unsigned long nextBackupMs = ULONG_MAX;
+
+// --- Render mutex ---
+// Taken by the network task when handling a WebSocket event (modifying shared state).
+// Taken by loop() for the duration of each render frame.
+// On S3: tasks run on separate cores so this prevents true concurrent access.
+// On C3/C6: tasks share one core; mutex is still correct, just has no parallelism benefit.
+SemaphoreHandle_t render_mutex = nullptr;
 
 
 // ===================== PREFS =====================
@@ -430,17 +458,20 @@ void loadGeometry() {
     f.read((uint8_t*)&rs, 2); RAW_SIZE = rs;
   }
 
-  dupes_to_uniques  = (uint16_t (*)[2])           calloc(SIZE,    sizeof(*dupes_to_uniques));
-  neighbors         = (uint16_t (*)[MAX_NEIGHBORS])malloc(SIZE *   sizeof(*neighbors));
-  raw_to_unique     = (uint16_t *)                 calloc(RAW_SIZE, sizeof(uint16_t));
-  coords            = (float (*)[3])               calloc(SIZE,    sizeof(*coords));
-  fluid_values      = (float *)                    calloc(RAW_SIZE, sizeof(float));
-  lightning_fluid   = (float *)                    calloc(RAW_SIZE, sizeof(float));
-  lightning_to_sink = (int16_t *)                  calloc(SIZE,    sizeof(int16_t));
-  lightning_distance= (int16_t *)                  calloc(SIZE,    sizeof(int16_t));
-  lightning_bfs_queue=(int16_t *)                  calloc(SIZE,    sizeof(int16_t));
-  pattern_target    = (float *)                    calloc(SIZE,    sizeof(float));
-  render_values     = (float *)                    calloc(RAW_SIZE, sizeof(float));
+  dupes_to_uniques  = (uint16_t (*)[2])           GEO_CALLOC(SIZE,    sizeof(*dupes_to_uniques));
+  neighbors         = (uint16_t (*)[MAX_NEIGHBORS])GEO_MALLOC(SIZE *   sizeof(*neighbors));
+  raw_to_unique     = (uint16_t *)                 GEO_CALLOC(RAW_SIZE, sizeof(uint16_t));
+  coords            = (float (*)[3])               GEO_CALLOC(SIZE,    sizeof(*coords));
+  scratch_size      = (size_t)RAW_SIZE * sizeof(float) + (size_t)SIZE * sizeof(int16_t) * 3;
+  scratch           = (uint8_t *)                  GEO_MALLOC(scratch_size);
+  render_values     = (float *)                    GEO_CALLOC(RAW_SIZE, sizeof(float));
+
+  if (!dupes_to_uniques || !neighbors || !raw_to_unique || !coords || !scratch || !render_values) {
+    Serial.println("loadGeometry: allocation failed, falling back to 1-pixel mode");
+    SIZE = 1; RAW_SIZE = 1;
+    if (f) f.close();
+    return;
+  }
 
   // Fill neighbors with 0xffff sentinel so patterns terminate correctly
   memset(neighbors, 0xff, SIZE * sizeof(*neighbors));
@@ -454,8 +485,12 @@ void loadGeometry() {
     Serial.printf("Geometry loaded: SIZE=%d RAW_SIZE=%d\n", SIZE, RAW_SIZE);
   }
 
-  strip = new Adafruit_NeoPixel(RAW_SIZE, PIN, NEO_GRB + NEO_KHZ800);
-  strip->begin();
+  setupPatternScratch(idlePattern);
+
+  if (!strip) {
+    strip = new Adafruit_NeoPixel(RAW_SIZE, PIN, NEO_GRB + NEO_KHZ800);
+    strip->begin();
+  }
 }
 
 // ===================== WEBSOCKET =====================
@@ -911,6 +946,9 @@ void performOTA() {
 }
 
 void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
+  // Note: no render_mutex here — webSocketEvent runs in networkTask, same task as wsClient.loop(),
+  // so it can't race with itself. Render loop only races on idlePattern/color reads, which are
+  // harmless single-frame glitches if they change mid-frame.
   switch (type) {
     case WStype_CONNECTED:
       Serial.println("WebSocket connected");
@@ -1005,12 +1043,7 @@ void checkPingTimeout() {
 
 void advanceDim() {
   dimmer = (dimmer >= 0.5f) ? 0.0f : 1.0f;
-  JsonDocument timingDoc;
-  String timingJson = readFile("/timingprefs.json");
-  if (!timingJson.isEmpty()) deserializeJson(timingDoc, timingJson);
-  timingDoc["dimmer"] = dimmer;
-  String timingOut; serializeJsonPretty(timingDoc, timingOut);
-  writeFile("/timingprefs.json", timingOut);
+  saveDimmer();
   broadcastState();
 }
 
@@ -1096,6 +1129,18 @@ void checkFadePin() {
 
 // ===================== TIMING =====================
 
+// Persist the dimmer global to timingprefs.json.
+// The read is necessary to preserve schedule/cycle data that has no in-memory globals.
+void saveDimmer() {
+  String json = readFile("/timingprefs.json");
+  JsonDocument doc;
+  if (!json.isEmpty()) deserializeJson(doc, json);
+  doc["dimmer"] = dimmer;
+  String out;
+  serializeJsonPretty(doc, out);
+  writeFile("/timingprefs.json", out);
+}
+
 void loadTimingPrefs() {
   String json = readFile("/timingprefs.json");
   if (json.isEmpty()) return;
@@ -1131,12 +1176,7 @@ void triggerScheduleEvent(JsonObject evt) {
   dimmer = isOff ? 0.0f : 1.0f;
 
   // Persist dimmer so subsequent loadTimingPrefs() calls don't override the schedule-set value
-  String timingJson = readFile("/timingprefs.json");
-  JsonDocument timingDoc;
-  if (!timingJson.isEmpty()) deserializeJson(timingDoc, timingJson);
-  timingDoc["dimmer"] = dimmer;
-  String timingOut; serializeJsonPretty(timingDoc, timingOut);
-  writeFile("/timingprefs.json", timingOut);
+  saveDimmer();
 }
 
 // Precompute when the next schedule event fires and store as millis() deadline.
@@ -1377,7 +1417,7 @@ void setup() {
   Serial.println("  Firmware version: " + FIRMWARE_VERSION);
   Serial.println("========================================");
 
-  randomSeed(analogRead(0));
+  randomSeed(esp_random());
 
   LittleFS.begin(true);  // true = format if mount fails
   LittleFS.mkdir("/savedprefs");
@@ -1410,6 +1450,7 @@ void setup() {
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
     doubleClickAction = doc["DOUBLE_CLICK_ACTION"] | "";
     tripleClickAction = doc["TRIPLE_CLICK_ACTION"] | "ACCESS_POINT";
+    fullBrightnessOnPowerOn = doc["FULL_BRIGHTNESS_ON_POWER_ON"] | true;
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 
@@ -1419,7 +1460,12 @@ void setup() {
   savePrefs(p);  // always re-save to ensure format is current
   applyPrefs(p);
   loadTimingPrefs();
-  Serial.println("Prefs loaded");
+  if (fullBrightnessOnPowerOn && esp_reset_reason() == ESP_RST_POWERON && dimmer != 1.0f) {
+    dimmer = 1.0f;
+    saveDimmer();
+    Serial.println("Power-on reset: dimmer set to 1");
+  }
+  Serial.println("Prefs loaded (dimmer=" + String(dimmer) + ")");
 
   if (buttonPin >= 0) {
     pinMode(buttonPin, INPUT_PULLUP);
@@ -1434,21 +1480,36 @@ void setup() {
   configTzTime(timezone.c_str(), "pool.ntp.org", "time.nist.gov");
   Serial.println("NTP configured (tz: " + timezone + ")");
 
-  // WebSocket — start before geometry so admin commands work even if geometry fails
-  if (!relayHost.isEmpty() && !orbID.isEmpty()) {
-    wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
-    wsClient.onEvent(webSocketEvent);
-    wsClient.setReconnectInterval(5000);
-    Serial.println("WebSocket connecting to " + relayHost);
-  }
-
-  // Load geometry (fetches from relay if not cached; skipped if PIXELS is unset)
+  // Load geometry (fetches from relay if not cached; skipped if PIXELS is unset).
+  // On S3 with PSRAM, allocated in PSRAM (ps_malloc) — doesn't consume DMA-capable RAM.
   loadGeometry();
   checkSchedule();
   computeNextEventMs();
   computeNextBackupMs();
 
+  // WebSocket — geometry already loaded so relay can send state immediately on connect.
+  if (!relayHost.isEmpty() && !orbID.isEmpty()) {
+    wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
+    wsClient.onEvent(webSocketEvent);
+    wsClient.setReconnectInterval(5000);
+    Serial.println("WebSocket connecting to " + relayHost);
+    unsigned long wsDeadline = millis() + 10000;
+    while (!wsClient.isConnected() && millis() < wsDeadline) {
+      wsClient.loop();
+      delay(10);
+    }
+    Serial.println(wsClient.isConnected() ? "WebSocket connected" : "WebSocket did not connect in time, continuing");
+  }
+
   lastPingReceived = millis();
+
+  render_mutex = xSemaphoreCreateMutex();
+#ifdef CONFIG_IDF_TARGET_ESP32C3
+  xTaskCreatePinnedToCore(networkTask, "net", 16384, nullptr, 1, nullptr, 0);
+#else
+  xTaskCreatePinnedToCore(networkTask, "net", 16384, nullptr, 1, nullptr, 1);
+#endif
+  vTaskPrioritySet(nullptr, 2);  // render task (this task) higher priority than networkTask
 }
 
 // Matches Python's render_pulse button feedback. Direction (0,1,0), PULSE_COLOR=[100,100,100].
@@ -1497,26 +1558,42 @@ void renderButtonPulse() {
   }
 }
 
+void networkTask(void*) {
+  for (;;) {
+    wsClient.loop();
+    checkPingTimeout();
+    checkFadePin();
+
+    unsigned long now = millis();
+    if (now >= nextEventMs) {
+      Serial.println("Timer event triggered");
+      checkSchedule();
+      computeNextEventMs();
+    }
+    if (now >= nextBackupMs) {
+      Serial.println("2am backup/OTA triggered");
+      sendBackup("");  // sendBackup calls computeNextBackupMs() to reschedule
+      performOTA();
+    }
+
+    delay(1);
+  }
+}
+
 void loop() {
+  if (!strip) {  // allocation error fallback
+    delay(10);
+    return;
+  }
+
+  xSemaphoreTake(render_mutex, portMAX_DELAY);
+  if (!strip) {
+    xSemaphoreGive(render_mutex);
+    delay(10);
+    return;
+  }
+
   unsigned long loop_start = millis();
-
-  wsClient.loop();
-  checkPingTimeout();
-  checkFadePin();
-
-  if (loop_start >= nextEventMs) {
-    Serial.println("Timer event triggered");
-    checkSchedule();
-    computeNextEventMs();
-  }
-
-  if (loop_start >= nextBackupMs) {
-    Serial.println("2am backup/OTA triggered");
-    sendBackup("");  // sendBackup calls computeNextBackupMs() to reschedule
-    performOTA();
-  }
-
-  if (!strip) return;  // geometry not yet loaded
 
   switch (idlePattern) {
     case PATTERN_STATIC:     runStatic();     break;
@@ -1569,5 +1646,8 @@ void loop() {
   if (idlePattern == PATTERN_DEFAULT || idlePattern == PATTERN_FIREFLIES)
     frame_rate = idleFrameRate;
   int delay_time = (int)(1000.0f / frame_rate - (millis() - loop_start));
-  if (delay_time > 0) delay(delay_time);
+
+  xSemaphoreGive(render_mutex);
+
+  delay(max(delay_time, 1));  // always yield at least 1ms so idle task feeds WDT
 }

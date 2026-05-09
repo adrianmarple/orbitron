@@ -571,5 +571,12 @@ def init():
   if get_pref("useTimer"):
     update_schedule()
 
+  if config.get("FULL_BRIGHTNESS_ON_POWER_ON"):
+    with open("/proc/uptime") as f:
+      uptime_seconds = float(f.read().split()[0])
+    if uptime_seconds < 240:
+      print("Power-on boot detected (uptime %.1fs): dimmer set to 1" % uptime_seconds, file=sys.stderr)
+      update({"dimmer": 1.0})
+
 if config.get("PREFS_FILE") or not config.get("TEMP_ORB"):
   init()

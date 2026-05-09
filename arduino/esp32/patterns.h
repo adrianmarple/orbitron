@@ -65,6 +65,67 @@ float sinWaveCycles = 4.0f;
 float alpha = 0.3f;
 float brightness_factor = 1.0f;
 
+void computeLinesinePositions() {
+  if (!linesine_positions || SIZE == 0) return;
+  int* dist = (int*)malloc(SIZE * sizeof(int));
+  int* queue = (int*)malloc(SIZE * sizeof(int));
+  for (int i = 0; i < SIZE; i++) dist[i] = -1;
+  int head = 0, tail = 0;
+  dist[0] = 0;
+  queue[tail++] = 0;
+  int maxDist = 0;
+  while (head < tail) {
+    int node = queue[head++];
+    for (int j = 0; j < MAX_NEIGHBORS; j++) {
+      int n = neighbors[node][j];
+      if (n == 0xffff) break;
+      if (dist[n] < 0) {
+        dist[n] = dist[node] + 1;
+        if (dist[n] > maxDist) maxDist = dist[n];
+        queue[tail++] = n;
+      }
+    }
+  }
+  for (int i = 0; i < SIZE; i++)
+    linesine_positions[i] = (maxDist > 0 && dist[i] >= 0) ? (float)dist[i] / maxDist : 0.0f;
+  free(dist);
+  free(queue);
+}
+
+void setupPatternScratch(int pattern) {
+  fluid_values = nullptr;
+  lightning_fluid = nullptr;
+  lightning_to_sink = nullptr;
+  lightning_distance = nullptr;
+  lightning_bfs_queue = nullptr;
+  pattern_target = nullptr;
+  linesine_positions = nullptr;
+  if (!scratch) return;
+  memset(scratch, 0, scratch_size);
+  switch (pattern) {
+    case PATTERN_DEFAULT:
+    case PATTERN_FIREFLIES:
+      fluid_values = (float*)scratch;
+      break;
+    case PATTERN_LIGHTNING:
+      lightning_fluid     = (float*)scratch;
+      lightning_to_sink   = (int16_t*)(scratch + (size_t)RAW_SIZE * sizeof(float));
+      lightning_distance  = lightning_to_sink + SIZE;
+      lightning_bfs_queue = lightning_distance + SIZE;
+      break;
+    case PATTERN_PULSES:
+    case PATTERN_LIGHTFIELD:
+      pattern_target = (float*)scratch;
+      break;
+    case PATTERN_LINESINE:
+      linesine_positions = (float*)scratch;
+      computeLinesinePositions();
+      break;
+    default:
+      break;
+  }
+}
+
 void applyPrefs(Prefs& p) {
   start_r = (p.gradientStartColor >> 16) & 0xff;
   start_g = (p.gradientStartColor >> 8) & 0xff;
@@ -77,7 +138,9 @@ void applyPrefs(Prefs& p) {
   idleBlend = p.idleBlend;
   idleFrameRate = p.idleFrameRate;
   brightness = p.brightness;
+  int prev_idlePattern = idlePattern;
   idlePattern = p.idlePattern;
+  if (idlePattern != prev_idlePattern) setupPatternScratch(idlePattern);
   staticDirX = p.staticDirX; staticDirY = p.staticDirY; staticDirZ = p.staticDirZ;
   staticRotation = p.staticRotation;
   staticRotationTime = p.staticRotationTime;
@@ -344,36 +407,7 @@ void runLightning() {
   applyFluidValues(lightning_fluid,1.0f);
 }
 
-void computeLinesinePositions() {
-  if (linesine_positions || SIZE == 0) return;
-  linesine_positions = (float*)calloc(SIZE, sizeof(float));
-  int* dist = (int*)malloc(SIZE * sizeof(int));
-  int* queue = (int*)malloc(SIZE * sizeof(int));
-  for (int i = 0; i < SIZE; i++) dist[i] = -1;
-  int head = 0, tail = 0;
-  dist[0] = 0;
-  queue[tail++] = 0;
-  int maxDist = 0;
-  while (head < tail) {
-    int node = queue[head++];
-    for (int j = 0; j < MAX_NEIGHBORS; j++) {
-      int n = neighbors[node][j];
-      if (n == 0xffff) break;
-      if (dist[n] < 0) {
-        dist[n] = dist[node] + 1;
-        if (dist[n] > maxDist) maxDist = dist[n];
-        queue[tail++] = n;
-      }
-    }
-  }
-  for (int i = 0; i < SIZE; i++)
-    linesine_positions[i] = (maxDist > 0 && dist[i] >= 0) ? (float)dist[i] / maxDist : 0.0f;
-  free(dist);
-  free(queue);
-}
-
 void runLineSine() {
-  computeLinesinePositions();
   if (!linesine_positions) return;
   float speed = idleFrameRate * sinWaveCycles / 200.0f;
   unsigned long period_ms = max(1UL, (unsigned long)(1000.0f / speed));
