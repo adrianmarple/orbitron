@@ -820,7 +820,13 @@ void handleAdminCommand(JsonDocument& msg) {
   if (type == "getconfig") {
     sendResponse(messageID, readFile("/config.json"));
   } else if (type == "setconfig") {
-    writeFile("/config.json", cmd["data"].as<String>());
+    String data = cmd["data"].as<String>();
+    JsonDocument testDoc;
+    if (deserializeJson(testDoc, data) != DeserializationError::Ok) {
+      sendResponse(messageID, "ERROR: invalid JSON");
+      return;
+    }
+    writeFile("/config.json", data);
     sendResponse(messageID, "OK");
     delay(500);
     ESP.restart();

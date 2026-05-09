@@ -43,6 +43,8 @@ PulseState pulses[MAX_PULSES];
 
 float lf_global_time = 0.0f;
 unsigned long lf_last_ms = 0;
+float wave_phase = 0.0f;
+unsigned long wave_last_ms = 0;
 float lightning_time_pressure = 0.0f;
 
 // Prefs-derived globals (set by applyPrefs)
@@ -158,6 +160,16 @@ void applyPrefs(Prefs& p) {
 //   template: #define STRIP_SET(i, c) strip.setPixelColor(i, c)
 //   esp32:    #define STRIP_SET(i, c) strip->setPixelColor(i, c)
 
+inline uint32_t packColor(int r, int g, int b) {
+  if (r > 255) r = 255;
+  if (g > 255) g = 255;
+  if (b > 255) b = 255;
+  if (r < 0) r = 0;
+  if (g < 0) g = 0;
+  if (b < 0) b = 0;
+  return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+}
+
 void applyTargetValues(float brightness_scale) {
   float inv_threshold = 100.0f / gradientThreshold;
   float one_minus_alpha = 1.0f - alpha;
@@ -173,7 +185,7 @@ void applyTargetValues(float brightness_scale) {
     int r = (int)((end_r + delta_r * tv) * scale);
     int g = (int)((end_g + delta_g * tv) * scale);
     int b = (int)((end_b + delta_b * tv) * scale);
-    STRIP_SET(i, b + (g << 8) + (r << 16));
+    STRIP_SET(i, packColor(r, g, b));
   }
 }
 
@@ -188,7 +200,7 @@ void applyFluidValues(float* fv, float brightness_scale) {
     int r = (int)((end_r + delta_r * tv) * scale);
     int g = (int)((end_g + delta_g * tv) * scale);
     int b = (int)((end_b + delta_b * tv) * scale);
-    STRIP_SET(i, b + (g << 8) + (r << 16));
+    STRIP_SET(i, packColor(r, g, b));
   }
 }
 
@@ -228,7 +240,7 @@ void runDefault() {
     int r = (int)((end_r + delta_r * tv) * scale);
     int g = (int)((end_g + delta_g * tv) * scale);
     int b = (int)((end_b + delta_b * tv) * scale);
-    STRIP_SET(i, b + (g << 8) + (r << 16));
+    STRIP_SET(i, packColor(r, g, b));
   }
 }
 
@@ -269,7 +281,7 @@ void runFireflies() {
     int r = (int)((end_r+delta_r*tv)*scale);
     int g = (int)((end_g+delta_g*tv)*scale);
     int b = (int)((end_b+delta_b*tv)*scale);
-    STRIP_SET(i, b + (g << 8) + (r << 16));
+    STRIP_SET(i, packColor(r, g, b));
   }
 }
 
@@ -288,15 +300,19 @@ void runStatic() {
     int r = (int)((end_r+delta_r*tv)*scale);
     int g = (int)((end_g+delta_g*tv)*scale);
     int b = (int)((end_b+delta_b*tv)*scale);
-    STRIP_SET(i, b + (g << 8) + (r << 16));
+    STRIP_SET(i, packColor(r, g, b));
   }
 }
 
 void runSin() {
+  unsigned long now_ms = millis();
+  if (wave_last_ms == 0) wave_last_ms = now_ms;
+  float dt = (now_ms - wave_last_ms) / 1000.0f;
+  wave_last_ms = now_ms;
   float period = idleDensity*idleDensity/150.0f;
   float speed = idleFrameRate*period/200.0f;
-  unsigned long period_ms = max(1UL, (unsigned long)(1000.0f/speed));
-  float phase = (float)(millis()%period_ms)/(float)period_ms*(2.0f*PI);
+  wave_phase = fmodf(wave_phase + speed * dt * 2.0f * PI, 2.0f * PI);
+  float phase = wave_phase;
   float min_val = sinMin/255.0f, denom = 2.0f+min_val;
   float inv_threshold = 100.0f/gradientThreshold;
   int delta_r=start_r-end_r, delta_g=start_g-end_g, delta_b=start_b-end_b;
@@ -310,7 +326,7 @@ void runSin() {
     int r = (int)((end_r+delta_r*tv)*scale);
     int g = (int)((end_g+delta_g*tv)*scale);
     int b = (int)((end_b+delta_b*tv)*scale);
-    STRIP_SET(i, b + (g << 8) + (r << 16));
+    STRIP_SET(i, packColor(r, g, b));
   }
 }
 
@@ -371,7 +387,7 @@ void runLightField() {
     int r = (int)((end_r+delta_r*tv)*scale);
     int g = (int)((end_g+delta_g*tv)*scale);
     int b = (int)((end_b+delta_b*tv)*scale);
-    STRIP_SET(i, b + (g << 8) + (r << 16));
+    STRIP_SET(i, packColor(r, g, b));
   }
 }
 
@@ -409,9 +425,13 @@ void runLightning() {
 
 void runLineSine() {
   if (!linesine_positions) return;
+  unsigned long now_ms = millis();
+  if (wave_last_ms == 0) wave_last_ms = now_ms;
+  float dt = (now_ms - wave_last_ms) / 1000.0f;
+  wave_last_ms = now_ms;
   float speed = idleFrameRate * sinWaveCycles / 200.0f;
-  unsigned long period_ms = max(1UL, (unsigned long)(1000.0f / speed));
-  float phase = (float)(millis() % period_ms) / (float)period_ms * (2.0f * PI);
+  wave_phase = fmodf(wave_phase + speed * dt * 2.0f * PI, 2.0f * PI);
+  float phase = wave_phase;
   float inv_threshold = 100.0f / gradientThreshold;
   int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
   for (int i = 0; i < RAW_SIZE; i++) {
@@ -424,9 +444,6 @@ void runLineSine() {
     int r = (int)((end_r + delta_r * tv) * scale);
     int g = (int)((end_g + delta_g * tv) * scale);
     int b = (int)((end_b + delta_b * tv) * scale);
-    if (r > 255) r = 255;
-    if (g > 255) g = 255;
-    if (b > 255) b = 255;
-    STRIP_SET(i, b + (g << 8) + (r << 16));
+    STRIP_SET(i, packColor(r, g, b));
   }
 }
