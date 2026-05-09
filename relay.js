@@ -452,11 +452,12 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
   }
 
   if (queryParams.type === "updateFirmware") {
-    connectedOrbs[orbID].send("HAS_UPDATE")
+    connectedOrbs[orbID].send("FORCE_UPDATE")
     noCorsHeader(response, 'text/json')
     response.end("OK")
     return true
   }
+
 
   queryParams.type = "admin"
   let orb = connectedOrbs[orbID]

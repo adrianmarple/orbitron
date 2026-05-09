@@ -962,6 +962,11 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
         lastPingReceived = millis();
         return;
       }
+      if (msg == "FORCE_UPDATE") {
+        Serial.println("FORCE_UPDATE received, starting OTA immediately");
+        performOTA();
+        return;
+      }
       if (msg == "HAS_UPDATE") {
         Serial.println("HAS_UPDATE received, CI=" + String(continuousIntegration ? "true" : "false"));
         if (continuousIntegration) {
