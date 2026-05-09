@@ -112,8 +112,9 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 ### Hardware
 - **LED data pin**: GPIO 10 on C3, GPIO 18 on C6, GPIO 9 on S3 (all correspond to the D10 pad on the XIAO; set via `#define PIN` conditioned on `CONFIG_IDF_TARGET_ESP32C6` / `CONFIG_IDF_TARGET_ESP32S3`)
 - **Button pin**: defaults to D9 (GPIO 9 on C3, GPIO 20 on C6, GPIO 8 on S3). Override via `BUTTON_PIN` in config.json; set to `0` to disable. Button must be wired to GND; pin uses `INPUT_PULLUP`.
-- **Recommended board**: Seeed XIAO ESP32-C3, ESP32-C6, or ESP32-S3 (S3 has more SRAM, helpful for large pixel counts)
+- **Recommended board**: Seeed XIAO ESP32-C3, ESP32-C6, or ESP32-S3 (S3 has 8MB OPI PSRAM, required for large pixel counts)
 - **arduino-cli boards**: `esp32:esp32:esp32c3`, `esp32:esp32:esp32c6`, and `esp32:esp32:esp32s3` (all built by the build script)
+- **PSRAM and pixel count limits**: `strip->show()` (via Adafruit NeoPixel / RMT) mallocs `RAW_SIZE * 96` bytes of DMA-capable internal RAM on every frame. On C3/C6 (~320KB internal RAM), this limits practical RAW_SIZE to ~600. On S3, geometry is allocated in PSRAM (`ps_malloc` via `GEO_MALLOC`/`GEO_CALLOC` macros, enabled by `PSRAM=opi` in the FQBN) so internal RAM stays free for the RMT buffer — RAW_SIZE up to ~1200 works. C3/C6 use plain `malloc`/`calloc` for geometry since they have no PSRAM.
 
 ### Required Arduino libraries
 - Adafruit NeoPixel

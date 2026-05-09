@@ -128,10 +128,10 @@ String currentPrefName = "";
 
 // --- Timing state ---
 bool useTimer = false;
-bool weeklyTimer = false;
 float dimmer = 1.0f;
 String lastTriggeredEventKey = "";
 unsigned long nextEventMs = 0;
+JsonDocument timingPrefsDoc;  // in-memory cache of /timingprefs.json
 
 // --- Backup state ---
 unsigned long nextBackupMs = ULONG_MAX;
@@ -345,8 +345,11 @@ void sendBackup(const String& nameOverride) {
   if (nameOverride.length() > 0) backup["nameOverride"] = nameOverride;
   backup["config"]  = readFile("/config.json");
   backup["prefs"]   = readFile("/prefs.json");
-  String timingJson = readFile("/timingprefs.json");
-  if (!timingJson.isEmpty()) backup["timingprefs"] = timingJson;
+  if (!timingPrefsDoc.isNull()) {
+    String timingJson;
+    serializeJsonPretty(timingPrefsDoc, timingJson);
+    backup["timingprefs"] = timingJson;
+  }
 
   JsonObject savedPrefsObj = backup["savedPrefs"].to<JsonObject>();
   File dir = LittleFS.open("/savedprefs");
@@ -383,7 +386,10 @@ void handleRestoreFromBackup(JsonDocument& msg) {
   if (!prefsStr.isEmpty()) writeFile("/prefs.json", prefsStr);
 
   String timingStr = backup["timingprefs"].as<String>();
-  if (!timingStr.isEmpty()) writeFile("/timingprefs.json", timingStr);
+  if (!timingStr.isEmpty()) {
+    writeFile("/timingprefs.json", timingStr);
+    loadTimingPrefs();
+  }
 
   // Replace all saved prefs
   clearDirectory("/savedprefs");
@@ -553,31 +559,24 @@ void sendState(const String& clientID) {
   JsonObject prefs = state["prefs"].to<JsonObject>();
   buildPrefsJson(prefs, p);
 
-  // Read timingprefs once — used for both prefNames ordering and prefs merge
-  String timingJson = readFile("/timingprefs.json");
-  JsonDocument timingDoc;
-  bool timingLoaded = !timingJson.isEmpty() && deserializeJson(timingDoc, timingJson) == DeserializationError::Ok;
-
   // Build prefNames from /savedprefs/ directory, applying saved order
   {
     JsonArray names = state["prefNames"].to<JsonArray>();
     String arr[16];
     int n = listSavedPrefNames(arr, 16);
-    if (timingLoaded) n = applyPrefOrder(arr, n, timingDoc);
+    if (!timingPrefsDoc.isNull()) n = applyPrefOrder(arr, n, timingPrefsDoc);
     for (int i = 0; i < n; i++) names.add(arr[i]);
   }
 
-  if (timingLoaded) {
-    for (JsonPair kv : timingDoc.as<JsonObject>()) prefs[kv.key()] = kv.value();
+  if (!timingPrefsDoc.isNull()) {
+    for (JsonPair kv : timingPrefsDoc.as<JsonObject>()) prefs[kv.key()] = kv.value();
     // Ensure includedInCycles is always present (may be absent in older timingprefs.json)
     if (!prefs["includedInCycles"].is<JsonObject>()) prefs["includedInCycles"].to<JsonObject>();
   } else {
     prefs["useTimer"] = false;
-    prefs["weeklyTimer"] = false;
     prefs["dimmer"] = dimmer;
     JsonObject evt = prefs["schedule"].to<JsonArray>().add<JsonObject>();
     evt["prefName"] = "OFF"; evt["time"] = "00:00"; evt["fadeIn"] = 10; evt["fadeOut"] = 30;
-    prefs["weeklySchedule"].to<JsonArray>();
     prefs["includedInCycles"].to<JsonObject>();
   }
 
@@ -593,35 +592,36 @@ void broadcastState() {
 void mergeTimingPrefs(JsonObjectConst timingObj) {
   bool prevUseTimer = useTimer;
 
-  String existing = readFile("/timingprefs.json");
-  JsonDocument merged;
-  if (!existing.isEmpty()) deserializeJson(merged, existing);
-  for (JsonPairConst kv : timingObj) merged[kv.key()] = kv.value();
+  for (JsonPairConst kv : timingObj) timingPrefsDoc[kv.key()] = kv.value();
 
   // If timer is being disabled, persist dimmer=1 before writing
-  if (!merged["useTimer"].as<bool>()) merged["dimmer"] = 1.0f;
+  if (!timingPrefsDoc["useTimer"].as<bool>()) timingPrefsDoc["dimmer"] = 1.0f;
 
-  // Write first so loadTimingPrefs and checkSchedule both see the updated data
-  String out; serializeJsonPretty(merged, out); writeFile("/timingprefs.json", out);
-  loadTimingPrefs();
+  // Update globals and write file
+  if (!timingPrefsDoc["useTimer"].isNull()) useTimer = timingPrefsDoc["useTimer"].as<bool>();
+  if (!timingPrefsDoc["dimmer"].isNull())   dimmer   = timingPrefsDoc["dimmer"].as<float>();
+  Serial.println("mergeTimingPrefs: useTimer=" + String(useTimer) + " dimmer=" + String(dimmer));
+  saveTimingPrefs();
 
   if (useTimer) {
     // Only re-apply the active event when something schedule-relevant actually changed.
     // If the controller just echoes back useTimer:true it received from us, we must not
     // reset lastTriggeredEventKey — that would re-fire the schedule and override prefs.
     bool timerJustEnabled = !prevUseTimer;
-    bool scheduleChanged = !timingObj["schedule"].isNull() ||
-                           !timingObj["weeklySchedule"].isNull() ||
-                           !timingObj["weeklyTimer"].isNull();
+    bool scheduleChanged = !timingObj["schedule"].isNull();
     if (timerJustEnabled || scheduleChanged) lastTriggeredEventKey = "";
     checkSchedule();
     computeNextEventMs();
   }
-  // When timer disabled, dimmer already set to 1 via loadTimingPrefs reading the file
+  // When timer disabled, dimmer already set to 1 above and persisted via saveTimingPrefs
 }
 
 void handleControllerMessage(const String& clientID, const String& message) {
-  if (message == "ECHO") { sendToClient(clientID, "ECHO"); return; }
+  if (message == "ECHO") {
+    sendToClient(clientID, "ECHO");
+    sendState(clientID);
+    return;
+  }
 
   JsonDocument doc;
   if (message.isEmpty() || deserializeJson(doc, message) != DeserializationError::Ok) return;
@@ -633,7 +633,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
     if (update.isNull()) return;
 
     static const char* timingKeys[] = {
-      "useTimer","weeklyTimer","schedule","weeklySchedule","dimmer","includedInCycles", nullptr
+      "useTimer","schedule","dimmer","includedInCycles", nullptr
     };
     JsonDocument regularDoc, timingDoc;
     for (JsonPair kv : update) {
@@ -689,16 +689,11 @@ void handleControllerMessage(const String& clientID, const String& message) {
 
     LittleFS.remove(savedPrefPath(name).c_str());
 
-    // Remove from includedInCycles in timingprefs.json
-    String timingJson = readFile("/timingprefs.json");
-    if (!timingJson.isEmpty()) {
-      JsonDocument timingDoc;
-      if (deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
-        JsonObject inc = timingDoc["includedInCycles"].as<JsonObject>();
-        if (!inc.isNull()) inc.remove(name);
-        String timingOut; serializeJsonPretty(timingDoc, timingOut);
-        writeFile("/timingprefs.json", timingOut);
-      }
+    // Remove from includedInCycles in timingPrefsDoc
+    JsonObject inc = timingPrefsDoc["includedInCycles"].as<JsonObject>();
+    if (!inc.isNull()) {
+      inc.remove(name);
+      saveTimingPrefs();
     }
 
     if (currentPrefName == name) {
@@ -737,24 +732,17 @@ void handleControllerMessage(const String& clientID, const String& message) {
     writeFile(savedPrefPath(newName).c_str(), savedJson);
     LittleFS.remove(savedPrefPath(originalName).c_str());
 
-    // Rename in timingprefs.json (includedInCycles + schedule events)
-    String timingJson = readFile("/timingprefs.json");
-    if (!timingJson.isEmpty()) {
-      JsonDocument timingDoc;
-      if (deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
-        JsonObject inc = timingDoc["includedInCycles"].as<JsonObject>();
-        if (!inc.isNull() && inc.containsKey(originalName)) {
-          bool val = inc[originalName].as<bool>();
-          inc.remove(originalName);
-          inc[newName.c_str()] = val;
-        }
-        for (JsonObject evt : timingDoc["schedule"].as<JsonArray>())
-          if (evt["prefName"].as<String>() == originalName) evt["prefName"] = newName;
-        for (JsonObject evt : timingDoc["weeklySchedule"].as<JsonArray>())
-          if (evt["prefName"].as<String>() == originalName) evt["prefName"] = newName;
-        String timingOut; serializeJsonPretty(timingDoc, timingOut);
-        writeFile("/timingprefs.json", timingOut);
+    // Rename in timingPrefsDoc (includedInCycles + schedule events)
+    {
+      JsonObject inc = timingPrefsDoc["includedInCycles"].as<JsonObject>();
+      if (!inc.isNull() && inc.containsKey(originalName)) {
+        bool val = inc[originalName].as<bool>();
+        inc.remove(originalName);
+        inc[newName.c_str()] = val;
       }
+      for (JsonObject evt : timingPrefsDoc["schedule"].as<JsonArray>())
+        if (evt["prefName"].as<String>() == originalName) evt["prefName"] = newName;
+      saveTimingPrefs();
     }
 
     if (currentPrefName == originalName) {
@@ -776,12 +764,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
 
     String names[16];
     int n = listSavedPrefNames(names, 16);
-
-    String timingJson = readFile("/timingprefs.json");
-    JsonDocument timingDoc;
-    if (!timingJson.isEmpty() && deserializeJson(timingDoc, timingJson) == DeserializationError::Ok) {
-      n = applyPrefOrder(names, n, timingDoc);
-    }
+    n = applyPrefOrder(names, n, timingPrefsDoc);
 
     int from = -1, to = -1;
     for (int i = 0; i < n; i++) {
@@ -797,10 +780,9 @@ void handleControllerMessage(const String& clientID, const String& message) {
     }
     names[to] = tmp;
 
-    timingDoc["prefOrder"].to<JsonArray>();
-    for (int i = 0; i < n; i++) timingDoc["prefOrder"].add(names[i]);
-    String timingOut; serializeJsonPretty(timingDoc, timingOut);
-    writeFile("/timingprefs.json", timingOut);
+    timingPrefsDoc["prefOrder"].to<JsonArray>();
+    for (int i = 0; i < n; i++) timingPrefsDoc["prefOrder"].add(names[i]);
+    saveTimingPrefs();
     broadcastState();
   }
 }
@@ -865,8 +847,10 @@ void handleAdminCommand(JsonDocument& msg) {
     }
     sendResponse(messageID, "OK");
   } else if (type == "gettimingprefs") {
-    String s = readFile("/timingprefs.json");
-    sendResponse(messageID, s.isEmpty() ? "{}" : s);
+    String s;
+    if (timingPrefsDoc.isNull()) s = "{}";
+    else serializeJsonPretty(timingPrefsDoc, s);
+    sendResponse(messageID, s);
   } else if (type == "settimingprefs") {
     writeFile("/timingprefs.json", cmd["data"].as<String>());
     loadTimingPrefs();
@@ -1034,20 +1018,18 @@ void checkPingTimeout() {
 
 void advanceDim() {
   dimmer = (dimmer >= 0.5f) ? 0.0f : 1.0f;
+  Serial.println("advanceDim: dimmer=" + String(dimmer));
   saveDimmer();
   broadcastState();
 }
 
 // Load next saved preset. Cycles only includedInCycles presets; falls back to all presets if none are included.
 void advanceCycle() {
-  String timingJson = readFile("/timingprefs.json");
-  JsonDocument timingDoc;
-  if (!timingJson.isEmpty()) deserializeJson(timingDoc, timingJson);
-  JsonObject inc = timingDoc["includedInCycles"].as<JsonObject>();
+  JsonObject inc = timingPrefsDoc["includedInCycles"].as<JsonObject>();
 
   String names[16];
   int n = listSavedPrefNames(names, 16);
-  n = applyPrefOrder(names, n, timingDoc);
+  n = applyPrefOrder(names, n, timingPrefsDoc);
   String cyclable[16];
   int cycleCount = 0;
   for (int i = 0; i < n; i++) {
@@ -1120,26 +1102,28 @@ void checkFadePin() {
 
 // ===================== TIMING =====================
 
-// Persist the dimmer global to timingprefs.json.
-// The read is necessary to preserve schedule/cycle data that has no in-memory globals.
-void saveDimmer() {
-  String json = readFile("/timingprefs.json");
-  JsonDocument doc;
-  if (!json.isEmpty()) deserializeJson(doc, json);
-  doc["dimmer"] = dimmer;
+void saveTimingPrefs() {
   String out;
-  serializeJsonPretty(doc, out);
+  serializeJsonPretty(timingPrefsDoc, out);
   writeFile("/timingprefs.json", out);
+}
+
+void saveDimmer() {
+  timingPrefsDoc["dimmer"] = dimmer;
+  saveTimingPrefs();
 }
 
 void loadTimingPrefs() {
   String json = readFile("/timingprefs.json");
+  timingPrefsDoc.clear();
   if (json.isEmpty()) return;
-  JsonDocument doc;
-  if (deserializeJson(doc, json) != DeserializationError::Ok) return;
-  if (!doc["useTimer"].isNull())    useTimer    = doc["useTimer"].as<bool>();
-  if (!doc["weeklyTimer"].isNull()) weeklyTimer = doc["weeklyTimer"].as<bool>();
-  if (!doc["dimmer"].isNull())      dimmer      = doc["dimmer"].as<float>();
+  if (deserializeJson(timingPrefsDoc, json) != DeserializationError::Ok) {
+    timingPrefsDoc.clear();
+    return;
+  }
+  if (!timingPrefsDoc["useTimer"].isNull()) useTimer = timingPrefsDoc["useTimer"].as<bool>();
+  if (!timingPrefsDoc["dimmer"].isNull())   dimmer   = timingPrefsDoc["dimmer"].as<float>();
+  Serial.println("loadTimingPrefs: useTimer=" + String(useTimer) + " dimmer=" + String(dimmer));
 }
 
 int parseTimeMinutes(const String& s) {
@@ -1165,6 +1149,7 @@ void triggerScheduleEvent(JsonObject evt) {
   }
 
   dimmer = isOff ? 0.0f : 1.0f;
+  Serial.println("triggerScheduleEvent: prefName=" + prefName + " dimmer=" + String(dimmer));
 
   // Persist dimmer so subsequent loadTimingPrefs() calls don't override the schedule-set value
   saveDimmer();
@@ -1180,36 +1165,20 @@ void computeNextEventMs() {
     return;
   }
 
-  String json = readFile("/timingprefs.json");
-  if (json.isEmpty()) return;
-  JsonDocument doc;
-  if (deserializeJson(doc, json) != DeserializationError::Ok) return;
-
-  JsonArray sched = weeklyTimer
-    ? doc["weeklySchedule"].as<JsonArray>()
-    : doc["schedule"].as<JsonArray>();
+  JsonArray sched = timingPrefsDoc["schedule"].as<JsonArray>();
   if (sched.isNull() || sched.size() == 0) return;
 
   int nowMin = t.tm_hour * 60 + t.tm_min;
   const int DAY = 24 * 60;
 
-  int minDistFwd = DAY * 7 + 1;
+  int minDistFwd = DAY + 1;
   for (JsonObject evt : sched) {
-    int evtMin = parseTimeMinutes(evt["time"].as<String>());
-    int dist;
-    if (weeklyTimer) {
-      int evtDay = evt["weekday"] | 0;
-      int dayDiff = (evtDay - t.tm_wday + 7) % 7;
-      dist = dayDiff * DAY + (evtMin - nowMin);
-      if (dist <= 0) dist += 7 * DAY;
-    } else {
-      dist = (evtMin - nowMin + DAY) % DAY;
-      if (dist == 0) dist = DAY;
-    }
+    int dist = (parseTimeMinutes(evt["time"].as<String>()) - nowMin + DAY) % DAY;
+    if (dist == 0) dist = DAY;
     if (dist < minDistFwd) minDistFwd = dist;
   }
 
-  if (minDistFwd < DAY * 7 + 1)
+  if (minDistFwd < DAY + 1)
     nextEventMs = millis() + (unsigned long)minDistFwd * 60000UL;
 }
 
@@ -1234,14 +1203,7 @@ void checkSchedule() {
   struct tm t;
   if (!getLocalTime(&t)) return;
 
-  String json = readFile("/timingprefs.json");
-  if (json.isEmpty()) return;
-  JsonDocument doc;
-  if (deserializeJson(doc, json) != DeserializationError::Ok) return;
-
-  JsonArray sched = weeklyTimer
-    ? doc["weeklySchedule"].as<JsonArray>()
-    : doc["schedule"].as<JsonArray>();
+  JsonArray sched = timingPrefsDoc["schedule"].as<JsonArray>();
   if (sched.isNull() || sched.size() == 0) return;
 
   int nowMin = t.tm_hour * 60 + t.tm_min;
@@ -1250,17 +1212,14 @@ void checkSchedule() {
   // Find the active event: most recent past event (wraps midnight)
   int activeIdx = -1, activeDistBack = DAY + 1;
   for (int i = 0; i < (int)sched.size(); i++) {
-    JsonObject evt = sched[i];
-    if (weeklyTimer && (evt["weekday"] | 0) != t.tm_wday) continue;
-    int dist = (nowMin - parseTimeMinutes(evt["time"].as<String>()) + DAY) % DAY;
+    int dist = (nowMin - parseTimeMinutes(sched[i]["time"].as<String>()) + DAY) % DAY;
     if (dist < activeDistBack) { activeDistBack = dist; activeIdx = i; }
   }
   if (activeIdx < 0) return;
 
   JsonObject activeEvt = sched[activeIdx];
   // Key on time only (not prefName) so editing an event's pref doesn't re-trigger it
-  String evtKey = String(weeklyTimer ? (int)(activeEvt["weekday"] | 0) : -1) + ":" +
-                  activeEvt["time"].as<String>();
+  String evtKey = activeEvt["time"].as<String>();
 
   if (evtKey != lastTriggeredEventKey) {
     lastTriggeredEventKey = evtKey;
@@ -1461,7 +1420,7 @@ void setup() {
 
   if (buttonPin >= 0) {
     pinMode(buttonPin, INPUT_PULLUP);
-    fadePinLastState = digitalRead(buttonPin);
+    fadePinLastState = !digitalRead(buttonPin);  // INPUT_PULLUP: LOW=pressed, so invert
     Serial.println("Button pin: GPIO " + String(buttonPin));
   }
 
