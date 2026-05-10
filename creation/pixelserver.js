@@ -20,15 +20,7 @@ function execute(command){
   })
 }
 
-execute("npm run serve") // Run vue server
-let printerIP = process.env.PRINTER_IP
-execute(`arp -a | grep "${process.env.PRINTER_MAC}"`).then(line => {
-  if (!line) return
-  let match = line.match(/\(([\d\.]*)\)/)
-  if (!match) return
-  printerIP = match[1]
-  console.log(printerIP)
-})
+execute("npm run serve") // vue server
 
 const postListeners = []
 const getListeners = []
@@ -292,11 +284,6 @@ addPOSTListener(async (response, body) => {
     gcodeContents = gcodeContents.replace(chunkToReplace, chunkLines.join("\n"))
     await fs.promises.writeFile(gcodeFilePath, gcodeContents)
   }
-  console.log("Uploading gcode")
-  let gcodePrinterFile = body.fullProjectName.split("/")[1] + "_qr.gcode"
-  await execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
-  let resp = await execute(`curl -X PUT 'http://${printerIP}/api/v1/files/usb/${gcodePrinterFile}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}' -T ${gcodeFilePath}`)
-  console.log(resp)
   console.log("All Done!")
   return true
 })
@@ -524,25 +511,6 @@ async function generateModule(info, module) {
   return moduleString
 }
 
-addPOSTListener(async (response, body) => {
-  if (!body || body.type != "cleanup") return false
-
-  let name = body.fullProjectName.split("/")[1].toLowerCase()
-
-  let fileData = await (await fetch(`http://${printerIP}/api/v1/files/usb`, {
-    headers: { "X-Api-Key": process.env.PRINTER_LINK_API_KEY},
-  })).json()
-
-  console.log(`Cleaning up "${name}" files`)
-  for (let {display_name} of fileData.children) {
-    if (display_name.toLowerCase().startsWith(name)) {
-      execute(`curl -X DELETE 'http://${printerIP}/api/v1/files/usb/${encodeURIComponent(display_name)}' -H 'X-Api-Key: ${process.env.PRINTER_LINK_API_KEY}'`)
-        .then(() => console.log(`Deleted ${display_name}`))
-    }
-  }
-  return true
-})
-
 
 addGETListener((response, request) => {
   if (request.url.endsWith("projectlist.json")) {
@@ -556,8 +524,8 @@ addGETListener((response, request) => {
 
 let projects = []
 async function findAllButtons() {
-  // TODO: Log diff when there's a change
-  projects = []
+  const oldByName = Object.fromEntries(projects.map(p => [p.name, p]))
+  const newProjects = []
   const folderNames = (await fs.promises.readdir("./projects/", { withFileTypes: true }))
       .filter(file => file.isDirectory())
       .map(directory => directory.name)
@@ -571,14 +539,30 @@ async function findAllButtons() {
       const fileContents = (await fs.promises.readFile(path)).toString()
       const match = fileContents.match(/\/\/.*v(\d+(\.\d+)+)/)
       const version = match ? match[1] : "1"
-      projects.push({
+      newProjects.push({
         name: fullName,
         shortName,
         version,
       })
     }
   }
-  projects = projects.sort(p => p.name)
+  newProjects.sort(p => p.name)
+
+  const newByName = Object.fromEntries(newProjects.map(p => [p.name, p]))
+  for (const p of newProjects) {
+    if (!oldByName[p.name]) {
+      console.log(`Project added: ${p.name} v${p.version}`)
+    } else if (oldByName[p.name].version !== p.version) {
+      console.log(`Project updated: ${p.name} v${oldByName[p.name].version} → v${p.version}`)
+    }
+  }
+  for (const p of projects) {
+    if (!newByName[p.name]) {
+      console.log(`Project removed: ${p.name}`)
+    }
+  }
+
+  projects = newProjects
 }
 findAllButtons()
 setInterval(findAllButtons, 10 * 1000)

@@ -184,6 +184,9 @@ class Edge {
   delta() {
     return this.verticies[1].ogCoords.sub(this.verticies[0].ogCoords)
   }
+  center() {
+    return this.verticies[1].ogCoords.add(this.verticies[0].ogCoords).scale(0.5)
+  }
   length() {
     return this.delta().length()
   }
@@ -213,6 +216,7 @@ class Edge {
     return otherVertex
   }
   toVector(fromVertex, useOogIfAvailable) {
+    fromVertex = resolveVertex(fromVertex)
     let toVertex = this.otherVertex(fromVertex)
     let end, start
     if (useOogIfAvailable) {

@@ -23,11 +23,7 @@
     <div class="button" @click="downloadGitFiles">Create git files</div>
     <div class="button" @click="removeGitFiles">Remove git files</div>
     <div class="button" @click="genPrints">Generate Prints</div>
-    <!-- <div class="button" @click="genModel('simple')">Simple 3D Model</div> -->
-    <!-- <div class="button" @click="genModel('simplest')">Ultra Simple 3D Model</div> -->
     <div class="button" @click="genModel('parts')">3D Model with part IDs</div>
-    <div class="button" @click="cleanup">Cleanup Printer Files</div>
-    <!-- <div class="button" @click="configure">Configure Default Orb</div> -->
   </div>
 
   <div id="settings">
