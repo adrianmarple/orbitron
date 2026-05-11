@@ -820,12 +820,12 @@ if (config.TEMP_ORB) {
   setInterval(cleanupTempOrb, 60 * 1000)
 }
 
-let priorityToCurrentText = {}
 _sendToPython = function(message) {
   python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
 }
 }
 
+let priorityToCurrentText = {}
 function sendToPython(message) {
   if (_sendToPython) _sendToPython(message)
 }
