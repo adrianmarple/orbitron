@@ -126,6 +126,9 @@ String connectedClients[MAX_CLIENTS];
 int clientCount = 0;
 String currentPrefName = "";
 
+// --- Geometry loaded flag ---
+bool geometryLoaded = false;  // true once real geometry (SIZE > 1) is in memory
+
 // --- Timing state ---
 bool useTimer = false;
 float dimmer = 1.0f;
@@ -413,51 +416,57 @@ void handleRestoreFromBackup(JsonDocument& msg) {
 //   uint16_t[SIZE][MAX_NEIGHBORS] neighbors (0xffff-padded),
 //   uint16_t[RAW_SIZE] raw_to_unique,
 //   float[SIZE][3] coords
+
+// Download geometry from relay to LittleFS cache. No-op if cache already exists.
+// Must be called with WiFi connected.
+void fetchGeometryToCache() {
+  if (pixelsName.isEmpty() || pixelsName == "null" || relayHost.isEmpty()) return;
+
+  String cacheName = pixelsName;
+  cacheName.replace("/", "-");
+  String cachePath = "/" + cacheName + ".bin";
+  if (LittleFS.exists(cachePath)) return;
+
+  // Clean up any stale .bin files from previous pixel configs
+  String stalePaths[16];
+  int staleCount = 0;
+  File root = LittleFS.open("/");
+  File entry = root.openNextFile();
+  while (entry && staleCount < 16) {
+    String name = String(entry.name());
+    if (!name.startsWith("/")) name = "/" + name;
+    entry.close();
+    if (name.endsWith(".bin")) stalePaths[staleCount++] = name;
+    entry = root.openNextFile();
+  }
+  root.close();
+  for (int i = 0; i < staleCount; i++) LittleFS.remove(stalePaths[i].c_str());
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  HTTPClient http;
+  String url = "https://" + relayHost + "/pixels/" + pixelsName + ".bin";
+  Serial.println("Fetching geometry: " + url);
+  http.begin(client, url);
+  int code = http.GET();
+  if (code == 200) {
+    File out = LittleFS.open(cachePath, "w");
+    if (out) { http.writeToStream(&out); out.close(); }
+    else Serial.println("Failed to open " + cachePath + " for write");
+  } else {
+    Serial.println("Geometry fetch failed: HTTP " + String(code));
+  }
+  http.end();
+}
+
+// Load geometry from LittleFS cache into memory. Falls back to 1-pixel mode if cache missing.
+// Safe to call a second time under render_mutex (e.g. after fetchGeometryToCache on S3).
 void loadGeometry() {
-  // Cache file is named after the pixels config (/ replaced with - for flat FS)
   String cacheName = pixelsName;
   cacheName.replace("/", "-");
   String cachePath = "/" + cacheName + ".bin";
 
   File f = LittleFS.open(cachePath, "r");
-  if (!f) {
-    // Clean up any stale .bin files from previous pixel configs
-    {
-      String stalePaths[16];
-      int staleCount = 0;
-      File root = LittleFS.open("/");
-      File entry = root.openNextFile();
-      while (entry && staleCount < 16) {
-        String name = String(entry.name());
-        if (!name.startsWith("/")) name = "/" + name;
-        entry.close();
-        if (name.endsWith(".bin")) stalePaths[staleCount++] = name;
-        entry = root.openNextFile();
-      }
-      root.close();
-      for (int i = 0; i < staleCount; i++) LittleFS.remove(stalePaths[i].c_str());
-    }
-
-    if (!pixelsName.isEmpty() && pixelsName != "null" && !relayHost.isEmpty()) {
-      WiFiClientSecure client;
-      client.setInsecure();
-      HTTPClient http;
-      String url = "https://" + relayHost + "/pixels/" + pixelsName + ".bin";
-      Serial.println("Fetching geometry: " + url);
-      http.begin(client, url);
-      int code = http.GET();
-      if (code == 200) {
-        File out = LittleFS.open(cachePath, "w");
-        if (out) { http.writeToStream(&out); out.close(); }
-        else Serial.println("Failed to open " + cachePath + " for write");
-      } else {
-        Serial.println("Geometry fetch failed: HTTP " + String(code));
-      }
-      http.end();
-      f = LittleFS.open(cachePath, "r");
-    }
-  }
-
   if (!f) {
     Serial.println("Geometry unavailable, falling back to 1-pixel mode");
     SIZE = 1; RAW_SIZE = 1;
@@ -496,10 +505,12 @@ void loadGeometry() {
 
   setupPatternScratch(idlePattern);
 
-  if (!strip) {
-    strip = new Adafruit_NeoPixel(RAW_SIZE, PIN, NEO_GRB + NEO_KHZ800);
-    strip->begin();
-  }
+  // Always recreate strip — safe because caller holds render_mutex on second call.
+  delete strip;
+  strip = new Adafruit_NeoPixel(RAW_SIZE, PIN, NEO_GRB + NEO_KHZ800);
+  strip->begin();
+
+  geometryLoaded = (SIZE > 1);
 }
 
 // ===================== WEBSOCKET =====================
@@ -1430,39 +1441,14 @@ void setup() {
     Serial.println("Button pin: GPIO " + String(buttonPin));
   }
 
-  // WiFi (blocks until connected, starts captive portal AP if NVS creds fail)
-  connectWiFi();
-
-  // Sync time via NTP
-  configTzTime(timezone.c_str(), "pool.ntp.org", "time.nist.gov");
-  Serial.println("NTP configured (tz: " + timezone + ")");
-
-  // Load geometry (fetches from relay if not cached; skipped if PIXELS is unset).
-  // On S3 with PSRAM, allocated in PSRAM (ps_malloc) — doesn't consume DMA-capable RAM.
+  // Load geometry from cache so render loop can start immediately.
+  // WiFi, NTP, geometry fetch (if cache missing), and WebSocket init happen in networkTask.
+  // On S3 with PSRAM, geometry is allocated in PSRAM so internal DMA RAM stays free for RMT.
   loadGeometry();
-  checkSchedule();
-  computeNextEventMs();
-  computeNextBackupMs();
-
-  // WebSocket — geometry already loaded so relay can send state immediately on connect.
-  if (!relayHost.isEmpty() && !orbID.isEmpty()) {
-    wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
-    wsClient.onEvent(webSocketEvent);
-    wsClient.setReconnectInterval(5000);
-    Serial.println("WebSocket connecting to " + relayHost);
-    unsigned long wsDeadline = millis() + 10000;
-    while (!wsClient.isConnected() && millis() < wsDeadline) {
-      wsClient.loop();
-      delay(10);
-    }
-    Serial.println(wsClient.isConnected() ? "WebSocket connected" : "WebSocket did not connect in time, continuing");
-  }
-
-  lastPingReceived = millis();
 
   render_mutex = xSemaphoreCreateMutex();
   xTaskCreatePinnedToCore(networkTask, "net", 16384, nullptr, 1, nullptr, 0);
-  vTaskPrioritySet(nullptr, 2);  // render task (this task) higher priority than networkTask
+  vTaskPrioritySet(nullptr, 2);
 }
 
 // Matches Python's render_pulse button feedback. Direction (0,1,0), PULSE_COLOR=[100,100,100].
@@ -1518,6 +1504,36 @@ void renderButtonPulse() {
 }
 
 void networkTask(void*) {
+  // Network init deferred from setup() so render loop can start immediately.
+  connectWiFi();
+  configTzTime(timezone.c_str(), "pool.ntp.org", "time.nist.gov");
+  Serial.println("NTP configured (tz: " + timezone + ")");
+
+  if (!geometryLoaded) {
+    fetchGeometryToCache();
+    xSemaphoreTake(render_mutex, portMAX_DELAY);
+    loadGeometry();
+    xSemaphoreGive(render_mutex);
+  }
+
+  if (!relayHost.isEmpty() && !orbID.isEmpty()) {
+    wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
+    wsClient.onEvent(webSocketEvent);
+    wsClient.setReconnectInterval(5000);
+    Serial.println("WebSocket connecting to " + relayHost);
+    unsigned long wsDeadline = millis() + 10000;
+    while (!wsClient.isConnected() && millis() < wsDeadline) {
+      wsClient.loop();
+      delay(10);
+    }
+    Serial.println(wsClient.isConnected() ? "WebSocket connected" : "WebSocket did not connect in time, continuing");
+  }
+
+  lastPingReceived = millis();
+  checkSchedule();
+  computeNextEventMs();
+  computeNextBackupMs();
+
   for (;;) {
     wsClient.loop();
     checkPingTimeout();
