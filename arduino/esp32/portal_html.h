@@ -49,6 +49,7 @@ const char PORTAL_HTML[] PROGMEM = R"EOF(
       font-size: 16px;
       display: flex;
       min-height: 100vh;
+      min-height: 100dvh;
     }
     #main {
       width: 100%;

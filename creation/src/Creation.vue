@@ -508,6 +508,7 @@ export default {
 html, body, #app {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 body {
   margin: 0;
@@ -566,6 +567,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 95vh;
+  height: 95dvh;
   overflow-y: scroll;
 }
 .actions {
@@ -591,12 +593,14 @@ body {
   justify-content: center;
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .side-box {
   width: calc(50% - 300px);
   min-width: 50px;
   height: 100vh;
+  height: 100dvh;
   z-index: -1;
   position: fixed;
 }
@@ -615,6 +619,7 @@ body {
   display: grid;
   grid-template-rows: 1fr auto;
   min-height: 100vh;
+  min-height: 100dvh;
   position: fixed;
 }
 

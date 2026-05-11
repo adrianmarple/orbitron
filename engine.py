@@ -1097,9 +1097,9 @@ def run_core_loop():
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.3, duration=1, width=0.1)
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.7, duration=1, width=0.1)
       else:
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.2, duration=1, width=0.1)
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.25, duration=1, width=0.1)
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.5, duration=1, width=0.1)
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.8, duration=1, width=0.1)
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.75, duration=1, width=0.1)
 
     if ap_active:
       duration = 6.0

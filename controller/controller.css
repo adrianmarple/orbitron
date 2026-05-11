@@ -24,6 +24,7 @@ body, #app, .main {
   width: 100vw;
   height: 100%;
   max-height: 100vh;
+  max-height: 100dvh;
   margin: 0;
   font-family: Avenir, Helvetica, Arial, sans-serif;
   color: white;
@@ -186,6 +187,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   border: 5.5rem solid #080808;
   font-size: 2rem;
   min-height: 100vh;
+  min-height: 100dvh;
   box-sizing: border-box;
   height: fit-content;
   display: flex;
@@ -436,6 +438,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   width: 100%;
   height: 100%;
   max-height: 100vh;
+  max-height: 100dvh;
   top: 0;
   z-index: 3;
   padding-bottom: 0;
@@ -921,6 +924,7 @@ input[type="range"]::-moz-range-thumb {
   align-items: center;
   width: 100%;
   max-height: max(66vh, 50rem);
+  max-height: max(66dvh, 50rem);
   /* max-height: 54rem; */
   overflow-y: scroll;
   overflow-x: hidden;
@@ -1223,6 +1227,7 @@ input[type="range"]::-moz-range-thumb {
 #backup-modal .box {
   padding: 6rem 4rem 3rem;
   max-height: 80vh;
+  max-height: 80dvh;
   overflow-y: auto;
 }
 #backup-modal .modal-header {
@@ -1326,6 +1331,7 @@ input[type="range"]::-moz-range-thumb {
   position: absolute;
   width: 100vw;
   min-height: 100vh;
+  min-height: 100dvh;
   box-sizing: border-box;
   padding: 6rem 2rem;
   display: flex;
@@ -1472,6 +1478,7 @@ input[type="range"]::-moz-range-thumb {
   left: 5rem;
   right: 5rem;
   top: 15vh;
+  top: 15dvh;
   padding: 2.5rem;
   text-align: center;
   font-size: 4em;
@@ -1614,6 +1621,7 @@ input[type="range"]::-moz-range-thumb {
   justify-content: center;
   position: fixed;
   bottom:  30vh;
+  bottom:  30dvh;
   z-index: 1;
 }
 .joystick-nub {

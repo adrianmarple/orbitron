@@ -1558,9 +1558,9 @@ void renderButtonPulse() {
     pts[1] = 0.7f; pws[1] = 0.1f;
     pulse_count = 2;
   } else {
-    pts[0] = 0.2f; pws[0] = 0.1f;
+    pts[0] = 0.25f; pws[0] = 0.1f;
     pts[1] = 0.5f;  pws[1] = 0.1f;
-    pts[2] = 0.8f; pws[2] = 0.1f;
+    pts[2] = 0.75f; pws[2] = 0.1f;
     pulse_count = 3;
   }
 
