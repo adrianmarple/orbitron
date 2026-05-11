@@ -1558,9 +1558,9 @@ void renderButtonPulse() {
     pts[1] = 0.7f; pws[1] = 0.1f;
     pulse_count = 2;
   } else {
-    pts[0] = 0.15f; pws[0] = 0.1f;
+    pts[0] = 0.2f; pws[0] = 0.1f;
     pts[1] = 0.5f;  pws[1] = 0.1f;
-    pts[2] = 0.85f; pws[2] = 0.1f;
+    pts[2] = 0.8f; pws[2] = 0.1f;
     pulse_count = 3;
   }
 
@@ -1587,8 +1587,8 @@ void renderAPRings() {
     int u = raw_to_unique[i];
     float dot = -coords[u][1];  // direction (0,-1,0): south pole origin
     float add = 0.0f;
-    for (int n = 0; n < 3; n++) {
-      float t = 1.0f - fmodf(millis()/2000.0f + n/3.0f, 1.0f);
+    for (int n = 0; n < 4; n++) {
+      float t = 1.0f - fmodf(millis()/6000.0f + n/4.0f, 1.0f);
       add += pulseSample(dot, t, width);
     }
     if (add <= 0.0f) continue;

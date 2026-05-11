@@ -197,9 +197,7 @@ def update():
       game.ontimeout()
     game.render()
 
-    if display is None:
-      update_first_pixel()
-    else:
+    if display is not None:
       update_text_display()
 
     raw_pixels = np.minimum(raw_pixels, 255)
@@ -222,40 +220,6 @@ def update():
 
 
 # ================================ Text/status display =========================================
-
-def update_first_pixel():
-  if prefs.fade() == 0:
-    return
-
-  color = np.array((0,0,0))
-  flashing = False
-  if current_text == "$LOADING":
-    color = np.array(np.array((100, 100, 100)))
-    flashing = True
-  elif current_text == "CONNECTING":
-    color = np.array(np.array((100, 100, 100)))
-    flashing = True
-  elif current_text.startswith("JOIN WIFI"):
-    color = np.array((255, 0, 255))
-    flashing = True
-  elif current_text.startswith("VISIT URL"):
-    color = np.array((0, 0, 255))
-    flashing = True
-  elif current_text.startswith("ADD SSID"):
-    color = np.array((0, 255, 255))
-  elif current_text.startswith("ADDING SSID"):
-    color = np.array((0, 255, 0))
-  elif current_text == "CONNECTION ERROR":
-    color = np.array((255, 0, 0))
-    flashing = True
-  elif current_text == "CHECKING FOR INTERNET":
-    color = np.array((255, 255, 0))
-  else:
-    return
-
-  if flashing:
-    color = color * ((sin(time() * pi) + 1) / 2) # Can't use *= here for some reason
-  color_pixel(0, color)
 
 
 previous_text = ""
@@ -977,7 +941,7 @@ def render_pulse(direction=None, color=None,
 
   if color is not None:
     global raw_pixels
-    raw_pixels += np.array(np.outer(ds, color), dtype="<u1")
+    raw_pixels = np.clip(raw_pixels + np.outer(ds, color), 0, 255).astype("<u1")
   return np.array(ds).ravel()
 
 # Assume direction is normalized
@@ -986,7 +950,7 @@ def render_ring(direction, color, width):
   ds = np.matmul(direction, unique_coord_matrix)
   ds = ds * 6 + width/2
   ds = np.clip(np.multiply(ds, (width - ds))/4,0,1)
-  raw_pixels += np.array(np.outer(ds, color), dtype="<u1")
+  raw_pixels = np.clip(raw_pixels + np.outer(ds, color), 0, 255).astype("<u1")
 
 def multi_lerp(x, control_points):
   if x < 0:
@@ -1133,15 +1097,15 @@ def run_core_loop():
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.3, duration=1, width=0.1)
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.7, duration=1, width=0.1)
       else:
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.15, duration=1, width=0.1)
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.2, duration=1, width=0.1)
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.5, duration=1, width=0.1)
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.85, duration=1, width=0.1)
+        render_pulse(color=PULSE_COLOR, start_time=time() - 0.8, duration=1, width=0.1)
 
     if ap_active:
-      duration = 2.0
-      for n in range(3):
-        t_mod = (time() - n * duration / 3) % duration
-        render_pulse(direction=(0,-1,0), color=PULSE_COLOR, start_time=time()-t_mod, duration=duration, width=0.1)
+      duration = 6.0
+      for n in range(4):
+        t_mod = (time() - n * duration / 4) % duration
+        render_pulse(direction=(0,-1,0), color=PULSE_COLOR, start_time=time()-t_mod, duration=duration, width=0.1, reverse=True)
 
     display_pixels(raw_pixels)
     broadcast_state()
