@@ -160,6 +160,14 @@ void applyPrefs(Prefs& p) {
 //   template: #define STRIP_SET(i, c) strip.setPixelColor(i, c)
 //   esp32:    #define STRIP_SET(i, c) strip->setPixelColor(i, c)
 
+// Matches Python's render_pulse shape formula. Returns brightness in [0, ~1].
+// dot: pixel's dot product with the pulse direction. t: wavefront position [0,1].
+inline float pulseSample(float dot, float t, float width) {
+  float ds = (dot/4.0f + 0.75f)/width + (-0.5f*(t + 1.0f)/width + 1.0f - t);
+  float v = ds*(1.0f - ds)/3.0f;
+  return (v > 0.0f) ? v*v*12.0f : 0.0f;
+}
+
 inline uint32_t packColor(int r, int g, int b) {
   if (r > 255) r = 255;
   if (g > 255) g = 255;
@@ -344,9 +352,8 @@ void runPulses() {
     t = 1.0f - t;
     for (int i = 0; i < SIZE; i++) {
       float dot = pulses[p].x*coords[i][0]+pulses[p].y*coords[i][1]+pulses[p].z*coords[i][2];
-      float ds = (dot/4.0f+0.75f)/width+(-0.5f*(t+1.0f)/width+1.0f-t);
-      float v = ds*(1.0f-ds)/3.0f; if (v<0.0f) v=0.0f;
-      float vv = v*v*12.0f; pattern_target[i] += vv; if (pattern_target[i]>1.0f) pattern_target[i]=1.0f;
+      float vv = pulseSample(dot, t, width);
+      pattern_target[i] += vv; if (pattern_target[i]>1.0f) pattern_target[i]=1.0f;
     }
   }
   int active_count = 0;

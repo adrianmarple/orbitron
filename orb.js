@@ -821,18 +821,21 @@ if (config.TEMP_ORB) {
 }
 
 let priorityToCurrentText = {}
-_displayText = function(text, priority) {
-  priority = priority || 0
-  if (text == priorityToCurrentText[priority]) return
-  priorityToCurrentText[priority] = text
-  let message = { type: "text", text, priority }
+_sendToPython = function(message) {
   python_process.stdin.write(JSON.stringify(message) + "\n", "utf8")
 }
 }
 
+function sendToPython(message) {
+  if (_sendToPython) _sendToPython(message)
+}
+
 // Done to pierce through the closure. Should only be used if there is only one orb.
-function displayText(...args) {
-  _displayText(...args)
+function displayText(text, priority) {
+  priority = priority || 0
+  if (text == priorityToCurrentText[priority]) return
+  priorityToCurrentText[priority] = text
+  sendToPython({ type: "text", text, priority })
 }
 
 let startAccessPointHandler = null
@@ -841,5 +844,5 @@ function registerAccessPointHandler(handler) {
 }
 
 module.exports = {
-  displayText, startOrb, registerAccessPointHandler,
+  displayText, sendToPython, startOrb, registerAccessPointHandler,
 }

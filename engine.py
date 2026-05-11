@@ -26,6 +26,7 @@ SWITCH_GRACE_FRAMES = 3
 POWER_DRAW_COEFFICIENTS = np.array([0.00013, 0.00013, 0.00013])
 
 cur_switch_grace_frames = 0
+ap_active = False
 
 base_settings = {
   "SELECTION_WEIGHTS": [0, 1, 1, 1, 1, 1],
@@ -1135,6 +1136,12 @@ def run_core_loop():
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.15, duration=1, width=0.1)
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.5, duration=1, width=0.1)
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.85, duration=1, width=0.1)
+
+    if ap_active:
+      duration = 2.0
+      for n in range(3):
+        t_mod = (time() - n * duration / 3) % duration
+        render_pulse(direction=(0,-1,0), color=PULSE_COLOR, start_time=time()-t_mod, duration=duration, width=0.1)
 
     display_pixels(raw_pixels)
     broadcast_state()

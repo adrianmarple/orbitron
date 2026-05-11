@@ -52,6 +52,9 @@ def consume_input():
       if message["type"] == "text":
         engine.display_text(message["text"], priority=message.get("priority", 0))
         continue
+      if message["type"] == "accessPoint":
+        engine.ap_active = message["active"]
+        continue
 
       # Global commands
         # Game stuff

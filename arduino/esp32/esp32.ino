@@ -145,6 +145,7 @@ unsigned long nextBackupMs = ULONG_MAX;
 // On S3: tasks run on separate cores so this prevents true concurrent access.
 // On C3/C6: tasks share one core; mutex is still correct, just has no parallelism benefit.
 SemaphoreHandle_t render_mutex = nullptr;
+volatile bool apActive = false;
 
 
 // ===================== PREFS =====================
@@ -1335,10 +1336,12 @@ void runCaptivePortal() {
   Serial.println("Portal HTTP server started");
 
   // Loop until connected
+  apActive = true;
   while (WiFi.status() != WL_CONNECTED) {
     portalDNS.processNextRequest();
     portalHTTP.handleClient();
   }
+  apActive = false;
 
   portalHTTP.stop();
   portalDNS.stop();
@@ -1486,12 +1489,8 @@ void renderButtonPulse() {
     int u = raw_to_unique[i];
     float dot = coords[u][1];  // direction (0,1,0)
     float add = 0.0f;
-    for (int p = 0; p < pulse_count; p++) {
-      float t = pts[p], w = pws[p];
-      float ds = (dot/4.0f + 0.75f)/w + (-0.5f*(t + 1.0f)/w + 1.0f - t);
-      float v = ds*(1.0f - ds)/3.0f;
-      if (v > 0.0f) add += v*v*12.0f;
-    }
+    for (int p = 0; p < pulse_count; p++)
+      add += pulseSample(dot, pts[p], pws[p]);
     if (add <= 0.0f) continue;
     int brightness = (int)(add * pulse_brightness);
     if (brightness > 255) brightness = 255;
@@ -1500,6 +1499,27 @@ void renderButtonPulse() {
     int g = min(255, (int)((c >> 8)  & 0xff) + brightness);
     int b = min(255, (int)(c & 0xff)          + brightness);
     strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+  }
+}
+
+void renderAPRings() {
+  float width = 0.1f;
+  for (int i = 0; i < RAW_SIZE; i++) {
+    int u = raw_to_unique[i];
+    float dot = -coords[u][1];  // direction (0,-1,0): south pole origin
+    float add = 0.0f;
+    for (int n = 0; n < 3; n++) {
+      float t = 1.0f - fmodf(millis()/2000.0f + n/3.0f, 1.0f);
+      add += pulseSample(dot, t, width);
+    }
+    if (add <= 0.0f) continue;
+    int v = (int)(add * 100.0f);
+    if (v > 255) v = 255;
+    uint32_t c = strip->getPixelColor(i);
+    strip->setPixelColor(i, packColor(
+      min(255, (int)((c >> 16) & 0xff) + v),
+      min(255, (int)((c >> 8)  & 0xff) + v),
+      min(255, (int)(c & 0xff)          + v)));
   }
 }
 
@@ -1614,6 +1634,7 @@ void loop() {
   }
 
   renderButtonPulse();
+  if (apActive) renderAPRings();
 
   strip->show();
 

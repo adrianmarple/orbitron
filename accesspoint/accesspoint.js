@@ -5,7 +5,7 @@ const fs = require('fs')
 const { execFile } = require('child_process')
 const path = require('path')
 const { checkConnection, execute, delay, config } = require('../lib')
-const { displayText, registerAccessPointHandler } = require('../orb')
+const { displayText, sendToPython, registerAccessPointHandler } = require('../orb')
 
 const PORTAL_HTML_PATH = path.join(__dirname, 'captiveportal.html')
 const AP_SSID = `Lumatron-${config.ORB_ID}`
@@ -37,6 +37,7 @@ async function startAccessPoint() {
   await execute(`nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "${AP_SSID}" ipv4.method shared ipv6.method shared`)
   await execute('nmcli connection up OrbHotspot')
   console.log("STARTED ACCESS POINT")
+  sendToPython({ type: "accessPoint", active: true })
   forceExitAccessPointLoop = false
   someoneConnectedToAccessPoint = false
   accessPointLoop()
@@ -70,6 +71,7 @@ function nmcli(...args) {
 async function stopAccessPoint(ssid, password) {
   forceExitAccessPointLoop = true
   someoneConnectedToAccessPoint = false
+  sendToPython({ type: "accessPoint", active: false })
   await removeWifiProfile("OrbHotspot")
   if (ssid) {
     displayText(`ADDING SSID ${ssid}`)
