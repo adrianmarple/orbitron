@@ -575,7 +575,7 @@ var app = new Vue({
       const orbEl = el && el.closest('.orb-wrapper')
       if (!orbEl) return null
       const index = Array.from(orbEl.parentElement.children).indexOf(orbEl)
-      return this.registeredIDs[index] ?? null
+      return this.visibleIDs[index] ?? null
     },
     startMomentumScroll(app, velocity) {
       if (this.momentumAnimationFrame) cancelAnimationFrame(this.momentumAnimationFrame)
@@ -661,8 +661,8 @@ var app = new Vue({
       document.addEventListener('pointerup', onUpFiltered)
       document.addEventListener('pointercancel', onUpFiltered)
     },
-    _moveGhost(ghost, event) {
-      ghost.style.left = (event.clientX - ghost.offsetWidth/2) + 'px'
+    _moveGhost(ghost, event, lockX) {
+      if (!lockX) ghost.style.left = (event.clientX - ghost.offsetWidth/2) + 'px'
       ghost.style.top  = (event.clientY - ghost.offsetHeight/2) + 'px'
       if (this.dragEdgeScrollRAF) { cancelAnimationFrame(this.dragEdgeScrollRAF); this.dragEdgeScrollRAF = null }
       const EDGE_ZONE = 80
@@ -799,9 +799,11 @@ var app = new Vue({
       const rect = this.dragSourceEl.getBoundingClientRect()
       const ghost = this.dragSourceEl.cloneNode(true)
       ghost.style.cssText = `
-        position:fixed;width:${rect.width}px;
+        position:fixed;
+        box-sizing:border-box;
+        width:${rect.width}px;
         height:${rect.height}px;
-        left:${x - rect.width/2}px;
+        left:${rect.left}px;
         top:${y - rect.height/2}px;
         pointer-events:none;
         z-index:1000;
@@ -813,7 +815,7 @@ var app = new Vue({
       event.preventDefault()
       if (!this.dragGhost) return
       this.draggingPrefTargetName = this.prefDragTargetName(event)
-      this._moveGhost(this.dragGhost, event)
+      this._moveGhost(this.dragGhost, event, true)
     },
     onPrefDragDrop(event) {
       if (this.dragEdgeScrollRAF) { cancelAnimationFrame(this.dragEdgeScrollRAF); this.dragEdgeScrollRAF = null }
