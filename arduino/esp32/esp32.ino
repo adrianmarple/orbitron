@@ -61,6 +61,8 @@ uint16_t (*dupes_to_uniques)[2] = nullptr;
 uint16_t (*neighbors)[MAX_NEIGHBORS] = nullptr;
 uint16_t *raw_to_unique = nullptr;
 float (*coords)[3] = nullptr;
+float bbox_min[3] = {0, 0, 0};
+float bbox_max[3] = {0, 0, 0};
 
 // --- Pattern state (heap-allocated in loadGeometry) ---
 // Scratch: one shared block for pattern-specific arrays; carved per pattern by setupPatternScratch().
@@ -135,6 +137,16 @@ float dimmer = 1.0f;
 String lastTriggeredEventKey = "";
 unsigned long nextEventMs = 0;
 JsonDocument timingPrefsDoc;  // in-memory cache of /timingprefs.json
+
+// Fade state, recomputed by checkSchedule()
+bool fadeStateValid = false;
+float curEventMin = 0.0f;     // current event start, minute-of-day
+float nextEventMin = 0.0f;    // next event start, minute-of-day
+bool curIsOff = true;
+bool prevIsOff = true;
+bool nextIsOff = true;
+float prevFadeIn = 10.0f;     // minutes
+float nextFadeOut = 30.0f;    // minutes
 
 // --- Backup state ---
 unsigned long nextBackupMs = ULONG_MAX;
@@ -503,6 +515,14 @@ void loadGeometry() {
     f.close();
     Serial.printf("Geometry loaded: SIZE=%d RAW_SIZE=%d\n", SIZE, RAW_SIZE);
   }
+
+  // Compute bounding box. Initialized to include the origin (matches Pi engine.py).
+  for (int d = 0; d < 3; d++) { bbox_min[d] = 0.0f; bbox_max[d] = 0.0f; }
+  for (int i = 0; i < SIZE; i++)
+    for (int d = 0; d < 3; d++) {
+      if (coords[i][d] < bbox_min[d]) bbox_min[d] = coords[i][d];
+      if (coords[i][d] > bbox_max[d]) bbox_max[d] = coords[i][d];
+    }
 
   setupPatternScratch(idlePattern);
 
@@ -1149,9 +1169,10 @@ int parseTimeMinutes(const String& s) {
   return s.substring(0, 2).toInt() * 60 + s.substring(3, 5).toInt();
 }
 
-void triggerScheduleEvent(JsonObject evt) {
+void triggerScheduleEvent(JsonObject evt, JsonObject prevEvt) {
   String prefName = evt["prefName"].as<String>();
   bool isOff = (prefName == "OFF");
+  bool prevWasOff = (prevEvt["prefName"].as<String>() == "OFF");
 
   if (!isOff) {
     String savedJson = readFile(savedPrefPath(prefName).c_str());
@@ -1166,11 +1187,16 @@ void triggerScheduleEvent(JsonObject evt) {
     }
   }
 
-  dimmer = isOff ? 0.0f : 1.0f;
-  Serial.println("triggerScheduleEvent: prefName=" + prefName + " dimmer=" + String(dimmer));
+  // Match Pi update_schedule(): only reset dimmer when transitioning to/from OFF.
+  // Non-OFF → non-OFF leaves dimmer alone (so manual dim persists across events).
+  bool changed = false;
+  if (isOff)            { dimmer = 0.0f; changed = true; }
+  else if (prevWasOff)  { dimmer = 1.0f; changed = true; }
+  Serial.println("triggerScheduleEvent: prefName=" + prefName +
+                 " prevOff=" + String(prevWasOff) + " dimmer=" + String(dimmer));
 
   // Persist dimmer so subsequent loadTimingPrefs() calls don't override the schedule-set value
-  saveDimmer();
+  if (changed) saveDimmer();
 }
 
 // Precompute when the next schedule event fires and store as millis() deadline.
@@ -1217,6 +1243,7 @@ void computeNextBackupMs() {
 }
 
 void checkSchedule() {
+  fadeStateValid = false;
   if (!useTimer) return;
   struct tm t;
   if (!getLocalTime(&t)) return;
@@ -1226,24 +1253,76 @@ void checkSchedule() {
 
   int nowMin = t.tm_hour * 60 + t.tm_min;
   const int DAY = 24 * 60;
+  int n = (int)sched.size();
 
   // Find the active event: most recent past event (wraps midnight)
   int activeIdx = -1, activeDistBack = DAY + 1;
-  for (int i = 0; i < (int)sched.size(); i++) {
+  for (int i = 0; i < n; i++) {
     int dist = (nowMin - parseTimeMinutes(sched[i]["time"].as<String>()) + DAY) % DAY;
     if (dist < activeDistBack) { activeDistBack = dist; activeIdx = i; }
   }
   if (activeIdx < 0) return;
 
   JsonObject activeEvt = sched[activeIdx];
+  int activeMin = parseTimeMinutes(activeEvt["time"].as<String>());
+
+  // Find prev and next events relative to active. Single-event schedule: prev=next=active.
+  int prevIdx = activeIdx, nextIdx = activeIdx;
+  if (n > 1) {
+    int prevDist = DAY + 1, nextDist = DAY + 1;
+    for (int i = 0; i < n; i++) {
+      if (i == activeIdx) continue;
+      int em = parseTimeMinutes(sched[i]["time"].as<String>());
+      int back = (activeMin - em + DAY) % DAY; if (back == 0) back = DAY;
+      int fwd  = (em - activeMin + DAY) % DAY; if (fwd  == 0) fwd  = DAY;
+      if (back < prevDist) { prevDist = back; prevIdx = i; }
+      if (fwd  < nextDist) { nextDist = fwd;  nextIdx = i; }
+    }
+  }
+
+  JsonObject prevEvt = sched[prevIdx];
+  JsonObject nextEvt = sched[nextIdx];
+
+  // Cache fade state
+  curEventMin  = (float)activeMin;
+  nextEventMin = (float)parseTimeMinutes(nextEvt["time"].as<String>());
+  curIsOff  = (activeEvt["prefName"].as<String>() == "OFF");
+  prevIsOff = (prevEvt["prefName"].as<String>()   == "OFF");
+  nextIsOff = (nextEvt["prefName"].as<String>()   == "OFF");
+  prevFadeIn  = prevEvt["fadeIn"].isNull()  ? 10.0f : prevEvt["fadeIn"].as<float>();
+  nextFadeOut = nextEvt["fadeOut"].isNull() ? 30.0f : nextEvt["fadeOut"].as<float>();
+  fadeStateValid = true;
+
   // Key on time only (not prefName) so editing an event's pref doesn't re-trigger it
   String evtKey = activeEvt["time"].as<String>();
-
   if (evtKey != lastTriggeredEventKey) {
     lastTriggeredEventKey = evtKey;
-    triggerScheduleEvent(activeEvt);
+    triggerScheduleEvent(activeEvt, prevEvt);
     broadcastState();
   }
+}
+
+// Matches Python prefs.fade(): linear fade-in from previous event, fade-out toward next,
+// with durations only honored on transitions involving an OFF event (else 0.2 min crossfade).
+// Capped by manual dimmer.
+float computeFade() {
+  float clampedDimmer = constrain(dimmer, 0.0f, 1.0f);
+  if (!useTimer || !fadeStateValid || curIsOff) return clampedDimmer;
+  struct tm t;
+  if (!getLocalTime(&t)) return clampedDimmer;
+
+  float nowMin = t.tm_hour * 60.0f + t.tm_min + t.tm_sec / 60.0f;
+  const float DAY = 24.0f * 60.0f;
+  float elapsed   = fmodf(nowMin - curEventMin  + DAY, DAY);
+  float remaining = fmodf(nextEventMin - nowMin + DAY, DAY);
+
+  float startDur = max(0.01f, prevIsOff ? prevFadeIn  : 0.2f);
+  float endDur   = max(0.01f, nextIsOff ? nextFadeOut : 0.2f);
+  float startFade = elapsed   / startDur;
+  float endFade   = remaining / endDur;
+  float fade = min(startFade, endFade);
+  fade = constrain(fade, 0.0f, 1.0f);
+  return min(fade, clampedDimmer);
 }
 
 // ===================== CAPTIVE PORTAL =====================
@@ -1601,8 +1680,8 @@ void loop() {
     default:                 runDefault();    break;
   }
 
-  // Apply dimmer as post-render pixel scale
-  float d = constrain(dimmer, 0.0f, 1.0f);
+  // Apply timer fade + manual dimmer as post-render pixel scale
+  float d = computeFade();
   if (d < 0.999f) {
     for (int i = 0; i < RAW_SIZE; i++) {
       uint32_t c = strip->getPixelColor(i);

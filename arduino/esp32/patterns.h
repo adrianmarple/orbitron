@@ -40,6 +40,7 @@ int fluid_head_buffer[MAX_HEADS];
 #define MAX_PULSES 8
 struct PulseState { float x, y, z; unsigned long start_ms, duration_ms; bool active; };
 PulseState pulses[MAX_PULSES];
+float pulses_base_duration_s = 5.0f;  // tracks 70/idleFrameRate; rescales in-flight pulses on change
 
 float lf_global_time = 0.0f;
 unsigned long lf_last_ms = 0;
@@ -222,7 +223,7 @@ void runDefault() {
     int head = fluid_heads[i];
     for (int j = 0; j < MAX_NEIGHBORS; j++) {
       if (new_head_count >= MAX_HEADS) break;
-      int n = neighbors[head][j]; if (n == 0xffff) continue;
+      int n = neighbors[head][j]; if (n == 0xffff) break;
       float x = (fluid_values[dupes_to_uniques[n][0]] + 0.01f) * density_scale;
       if (x * 0x10000 < random(0xffff)) fluid_head_buffer[new_head_count++] = n;
     }
@@ -303,11 +304,11 @@ void runStatic() {
   for (int i = 0; i < RAW_SIZE; i++) {
     int u = raw_to_unique[i];
     float target_v = (1.0f + dx*coords[u][0] + dy*coords[u][1] + dz*coords[u][2]) / 2.0f;
+    if (target_v < 0.0f) target_v = 0.0f; if (target_v > 1.0f) target_v = 1.0f;
     float tv = target_v*inv_threshold; if (tv>1.0f) tv=1.0f;
-    float scale = target_v*ab;
-    int r = (int)((end_r+delta_r*tv)*scale);
-    int g = (int)((end_g+delta_g*tv)*scale);
-    int b = (int)((end_b+delta_b*tv)*scale);
+    int r = (int)((end_r+delta_r*tv)*ab);
+    int g = (int)((end_g+delta_g*tv)*ab);
+    int b = (int)((end_b+delta_b*tv)*ab);
     STRIP_SET(i, packColor(r, g, b));
   }
 }
@@ -341,6 +342,20 @@ void runSin() {
 void runPulses() {
   unsigned long now_ms = millis();
   float width = rippleWidth/100.0f;
+
+  // If idleFrameRate changed, rescale in-flight pulses so their visual progress is preserved.
+  // ratio < 1 = pulses get faster; ratio > 1 = slower.
+  float new_base = 70.0f / idleFrameRate;
+  if (new_base != pulses_base_duration_s && pulses_base_duration_s > 0.0f) {
+    float ratio = new_base / pulses_base_duration_s;
+    for (int p = 0; p < MAX_PULSES; p++) {
+      if (!pulses[p].active) continue;
+      pulses[p].start_ms    = (unsigned long)((float)pulses[p].start_ms * ratio + (float)now_ms * (1.0f - ratio));
+      pulses[p].duration_ms = (unsigned long)((float)pulses[p].duration_ms * ratio);
+    }
+    pulses_base_duration_s = new_base;
+  }
+
   for (int i = 0; i < SIZE; i++) pattern_target[i] = 0.0f;
   bool pulse_is_visible = false;
   for (int p = 0; p < MAX_PULSES; p++) {
@@ -360,15 +375,17 @@ void runPulses() {
   for (int p = 0; p < MAX_PULSES; p++) if (pulses[p].active) active_count++;
   float max_pulses = idleDensity/10.0f; if (max_pulses<2.0f) max_pulses=2.0f;
   if (active_count < (int)max_pulses) {
-    float spawn_chance = idleDensity/50.0f/idleFrameRate;
+    // Spawn rate uses the engine framerate (30), not idleFrameRate, to match Pi.
+    float spawn_chance = idleDensity/50.0f/30.0f;
     if (spawn_chance*0x10000 > random(0xffff) || !pulse_is_visible) {
       for (int p = 0; p < MAX_PULSES; p++) {
         if (!pulses[p].active) {
-          float rx=(random(0x10001)-0x8000)/(float)0x8000, ry=(random(0x10001)-0x8000)/(float)0x8000, rz=(random(0x10001)-0x8000)/(float)0x8000;
-          float rmag=sqrtf(rx*rx+ry*ry+rz*rz); if (rmag<0.001f) rmag=1.0f;
-          pulses[p].x=rx/rmag; pulses[p].y=ry/rmag; pulses[p].z=rz/rmag;
+          // Origin: random point in geometry bounding box (NOT normalized), matches Pi.
+          pulses[p].x = bbox_min[0] + ((float)random(0x10001)/0x10000)*(bbox_max[0]-bbox_min[0]);
+          pulses[p].y = bbox_min[1] + ((float)random(0x10001)/0x10000)*(bbox_max[1]-bbox_min[1]);
+          pulses[p].z = bbox_min[2] + ((float)random(0x10001)/0x10000)*(bbox_max[2]-bbox_min[2]);
           pulses[p].start_ms=now_ms;
-          float dur_s = (70.0f/idleFrameRate)*(1.0f+random(0x10000)/(float)0x10000);
+          float dur_s = pulses_base_duration_s*(1.0f+random(0x10000)/(float)0x10000);
           pulses[p].duration_ms=(unsigned long)(dur_s*1000.0f);
           pulses[p].active=true; break;
         }
