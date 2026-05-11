@@ -1108,7 +1108,6 @@ def run_core_loop():
     if pin_start_time and stopped:
       pin_start_time = 0
       click_count += 1
-      print(click_count)
       last_release_time = time()
 
     if pin_start_time and click_count == 0 and time() - pin_start_time > LONG_PRESS_TIME:
@@ -1126,8 +1125,9 @@ def run_core_loop():
 
     if pin_start_time > 0:
       if click_count == 0:
-        render_pulse(color=PULSE_COLOR, start_time=pin_start_time-LONG_PRESS_TIME,
-                     duration=2*LONG_PRESS_TIME, width=0.15)
+        phase = (time() - pin_start_time) / LONG_PRESS_TIME
+        render_pulse(color=PULSE_COLOR * (0.2 + phase*phase), start_time=time() - 0.5,
+                     duration=1, width=(1-phase)*0.7)
       elif click_count == 1:
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.3, duration=1, width=0.1)
         render_pulse(color=PULSE_COLOR, start_time=time() - 0.7, duration=1, width=0.1)

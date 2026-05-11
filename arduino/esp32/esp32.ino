@@ -1466,7 +1466,7 @@ void setup() {
 }
 
 // Matches Python's render_pulse button feedback. Direction (0,1,0), PULSE_COLOR=[100,100,100].
-// click_count==0: single growing pulse approaching long-press threshold.
+// click_count==0: centered pulse, shrinking width and growing brightness as long-press approaches.
 // click_count==1: two fixed-phase pulses. click_count>=2: three fixed-phase pulses.
 void renderButtonPulse() {
   if (!fadePinLastState || fadePinLongFired) return;
@@ -1475,10 +1475,16 @@ void renderButtonPulse() {
   // (t, width) pairs — t is normalized position in a duration=1 pulse
   float pts[3], pws[3];
   int pulse_count = 0;
+  float pulse_brightness = 100.0f;
 
   if (fadePinClickCount == 0) {
-    float t = (float)((now - fadePinPressStart) + LONG_PRESS_TIME) / (float)(2 * LONG_PRESS_TIME);
-    if (t < 1.0f) { pts[0] = t; pws[0] = 0.15f; pulse_count = 1; }
+    float phase = (float)(now - fadePinPressStart) / (float)LONG_PRESS_TIME;
+    if (phase < 1.0f) {
+      pts[0] = 0.5f;
+      pws[0] = (1.0f - phase) * 0.7f;
+      pulse_brightness = (0.2f + phase * phase) * 100.0f;
+      pulse_count = 1;
+    }
   } else if (fadePinClickCount == 1) {
     pts[0] = 0.3f; pws[0] = 0.1f;
     pts[1] = 0.7f; pws[1] = 0.1f;
@@ -1501,7 +1507,7 @@ void renderButtonPulse() {
       if (v > 0.0f) add += v*v*12.0f;
     }
     if (add <= 0.0f) continue;
-    int brightness = (int)(add * 100.0f);
+    int brightness = (int)(add * pulse_brightness);
     if (brightness > 255) brightness = 255;
     uint32_t c = strip->getPixelColor(i);
     int r = min(255, (int)((c >> 16) & 0xff) + brightness);
