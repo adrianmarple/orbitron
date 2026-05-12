@@ -7,10 +7,9 @@ module.exports={
   // CONTINUOUS_INTEGRATION: false,
   // FULL_BRIGHTNESS_ON_POWER_ON: true,  // Set dimmer=1 on power-on boot (not software restarts). Arduino default: true; Pi default: false
   // IS_FLAT: true,
-  // SHORT_PRESS_ACTION: "DIM",          // "DIM" or "CYCLE"
-  // LONG_PRESS_ACTION: "CYCLE",         // "DIM" or "CYCLE"
-  // DOUBLE_CLICK_ACTION: "",            // "DIM", "CYCLE", or "ACCESS_POINT"
-  // TRIPLE_CLICK_ACTION: "ACCESS_POINT",// "DIM", "CYCLE", or "ACCESS_POINT"
+  // SHORT_PRESS_ACTION: "DIM",            // "DIM", "CYCLE", or "ACCESS_POINT"; fires on release
+  // LONG_PRESS_ACTION: "CYCLE",           // "DIM", "CYCLE", or "ACCESS_POINT"; fires after 0.7s held
+  // EXTRA_LONG_PRESS_ACTION: "ACCESS_POINT", // "DIM", "CYCLE", or "ACCESS_POINT"; fires after 4s held
   // LOG_INCOMING_MESSAGES: "update.dimmer",
   // NO_ACCESS_POINT: true,
   // SKIP_AC_ON_POWER: true, // Don't auto-launch AP when WiFi fails right after a power-on

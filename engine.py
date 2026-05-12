@@ -1021,17 +1021,13 @@ def run_core_loop():
   display_text(config.get("DEFAULT_TEXT_DISPLAY", ""), 4)
 
   pin_start_time = 0
-  click_count = 0
-  last_release_time = 0
-  MULTI_CLICK_WINDOW = 0.4
+  long_fired = False
+  extra_long_fired = False
   LONG_PRESS_TIME = 0.7
+  EXTRA_LONG_PRESS_TIME = 4.0
   PULSE_COLOR = np.array([100,100,100])
 
   def perform_action(type):
-    nonlocal click_count, last_release_time, pin_start_time
-    pin_start_time = 0
-    click_count = 0
-    last_release_time = 0
     if type == "DIM":
       prefs.advance_manual_fade()
     elif type == "CYCLE":
@@ -1041,8 +1037,7 @@ def run_core_loop():
 
   short_action = config.get("SHORT_PRESS_ACTION", "DIM")
   long_action = config.get("LONG_PRESS_ACTION", "CYCLE")
-  double_action = config.get("DOUBLE_CLICK_ACTION", "")
-  triple_action = config.get("TRIPLE_CLICK_ACTION", "ACCESS_POINT")
+  extra_long_action = config.get("EXTRA_LONG_PRESS_ACTION", "ACCESS_POINT")
 
   if config.get("MANUAL_FADE_PIN"):
     input_type = GPIO.HIGH if config.get("PIN_INPUT_TYPE", "LOW") == "HIGH" else GPIO.LOW
@@ -1069,37 +1064,25 @@ def run_core_loop():
 
     if started:
       pin_start_time = time()
+      long_fired = False
+      extra_long_fired = False
 
     if pin_start_time and stopped:
+      if not long_fired:
+        perform_action(short_action)
       pin_start_time = 0
-      click_count += 1
-      last_release_time = time()
+      long_fired = False
+      extra_long_fired = False
 
-    if pin_start_time and click_count == 0 and time() - pin_start_time > LONG_PRESS_TIME:
+    if pin_start_time and not long_fired and time() - pin_start_time > LONG_PRESS_TIME:
+      long_fired = True
       perform_action(long_action)
 
-    if click_count > 0 and not pin_start_time and time() - last_release_time > MULTI_CLICK_WINDOW:
-      if click_count == 1:
-        perform_action(short_action)
-      elif click_count == 2:
-        perform_action(double_action)
-      else:
-        perform_action(triple_action)
+    if pin_start_time and not extra_long_fired and time() - pin_start_time > EXTRA_LONG_PRESS_TIME:
+      extra_long_fired = True
+      perform_action(extra_long_action)
 
     update()
-
-    if pin_start_time > 0:
-      if click_count == 0:
-        phase = (time() - pin_start_time) / LONG_PRESS_TIME
-        render_pulse(color=PULSE_COLOR * (0.2 + phase*phase), start_time=time() - 0.5,
-                     duration=1, width=(1-phase)*0.7)
-      elif click_count == 1:
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.3, duration=1, width=0.1)
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.7, duration=1, width=0.1)
-      else:
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.25, duration=1, width=0.1)
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.5, duration=1, width=0.1)
-        render_pulse(color=PULSE_COLOR, start_time=time() - 0.75, duration=1, width=0.1)
 
     if ap_active:
       duration = 6.0

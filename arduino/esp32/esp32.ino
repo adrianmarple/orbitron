@@ -108,15 +108,13 @@ bool skipAcOnPower = false;
 int buttonPin = -1;  // -1 = disabled
 String shortPressAction = "DIM";
 String longPressAction = "CYCLE";
-String doubleClickAction = "";
-String tripleClickAction = "ACCESS_POINT";
+String extraLongPressAction = "ACCESS_POINT";
 bool fadePinLastState = false;  // true = pressed
 unsigned long fadePinPressStart = 0;
 bool fadePinLongFired = false;
-int fadePinClickCount = 0;
-unsigned long fadePinLastReleaseTime = 0;
-const unsigned long MULTI_CLICK_WINDOW = 400;
+bool fadePinExtraLongFired = false;
 const unsigned long LONG_PRESS_TIME = 700;
+const unsigned long EXTRA_LONG_PRESS_TIME = 4000;
 bool virtualButtonState = false;  // true = pressed; set by buttonStart/buttonEnd messages
 
 // --- WebSocket ---
@@ -1097,14 +1095,13 @@ void advanceCycle() {
 }
 
 void performPinAction(const String& action) {
-  fadePinClickCount = 0;
   if (action == "DIM") advanceDim();
   else if (action == "CYCLE") advanceCycle();
   else if (action == "ACCESS_POINT") runCaptivePortal();
 }
 
-// Poll fade pin each loop(). Accumulates clicks; fires after MULTI_CLICK_WINDOW of inactivity.
-// 1 click = short, 2 = double, 3+ = triple. Long press fires immediately at LONG_PRESS_TIME.
+// Poll fade pin each loop(). Short fires immediately on release.
+// Long fires while held past LONG_PRESS_TIME. Extra-long fires while held past EXTRA_LONG_PRESS_TIME.
 void checkFadePin() {
   // true = pressed. OR logic: pressed if hardware OR virtual is pressed.
   bool state = virtualButtonState;
@@ -1115,25 +1112,22 @@ void checkFadePin() {
     // Rising edge: press started
     fadePinPressStart = now;
     fadePinLongFired = false;
+    fadePinExtraLongFired = false;
   } else if (fadePinLastState && !state) {
-    // Falling edge: released
-    if (!fadePinLongFired) {
-      fadePinClickCount++;
-      fadePinLastReleaseTime = now;
+    // Falling edge: released. Short fires only if neither long nor extra-long fired.
+    if (!fadePinLongFired) performPinAction(shortPressAction);
+    fadePinLongFired = false;
+    fadePinExtraLongFired = false;
+  } else if (state) {
+    unsigned long held = now - fadePinPressStart;
+    if (!fadePinLongFired && held >= LONG_PRESS_TIME) {
+      fadePinLongFired = true;
+      performPinAction(longPressAction);
     }
-  } else if (state && !fadePinLongFired && fadePinClickCount == 0 && (now - fadePinPressStart >= LONG_PRESS_TIME)) {
-    // Still held past long-press threshold
-    fadePinLongFired = true;
-    fadePinClickCount = 0;
-    performPinAction(longPressAction);
-  }
-
-  // Multi-click window expired — dispatch based on click count
-  if (fadePinClickCount > 0 && !state && (now - fadePinLastReleaseTime >= MULTI_CLICK_WINDOW)) {
-    if (fadePinClickCount == 1) performPinAction(shortPressAction);
-    else if (fadePinClickCount == 2) performPinAction(doubleClickAction);
-    else performPinAction(tripleClickAction);
-    fadePinClickCount = 0;
+    if (!fadePinExtraLongFired && held >= EXTRA_LONG_PRESS_TIME) {
+      fadePinExtraLongFired = true;
+      performPinAction(extraLongPressAction);
+    }
   }
 
   fadePinLastState = state;
@@ -1502,8 +1496,7 @@ void setup() {
     buttonPin = (rawButtonPin == 0) ? -1 : rawButtonPin;
     shortPressAction = doc["SHORT_PRESS_ACTION"] | "DIM";
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
-    doubleClickAction = doc["DOUBLE_CLICK_ACTION"] | "";
-    tripleClickAction = doc["TRIPLE_CLICK_ACTION"] | "ACCESS_POINT";
+    extraLongPressAction = doc["EXTRA_LONG_PRESS_ACTION"] | "ACCESS_POINT";
     fullBrightnessOnPowerOn = doc["FULL_BRIGHTNESS_ON_POWER_ON"] | true;
     skipAcOnPower = doc["SKIP_AC_ON_POWER"] | false;
   }
@@ -1536,54 +1529,6 @@ void setup() {
   render_mutex = xSemaphoreCreateMutex();
   xTaskCreatePinnedToCore(networkTask, "net", 16384, nullptr, 1, nullptr, 0);
   vTaskPrioritySet(nullptr, 2);
-}
-
-// Matches Python's render_pulse button feedback. Direction (0,1,0), PULSE_COLOR=[100,100,100].
-// click_count==0: centered pulse, shrinking width and growing brightness as long-press approaches.
-// click_count==1: two fixed-phase pulses. click_count>=2: three fixed-phase pulses.
-void renderButtonPulse() {
-  if (!fadePinLastState || fadePinLongFired) return;
-  unsigned long now = millis();
-
-  // (t, width) pairs — t is normalized position in a duration=1 pulse
-  float pts[3], pws[3];
-  int pulse_count = 0;
-  float pulse_brightness = 100.0f;
-
-  if (fadePinClickCount == 0) {
-    float phase = (float)(now - fadePinPressStart) / (float)LONG_PRESS_TIME;
-    if (phase < 1.0f) {
-      pts[0] = 0.5f;
-      pws[0] = (1.0f - phase) * 0.7f;
-      pulse_brightness = (0.2f + phase * phase) * 100.0f;
-      pulse_count = 1;
-    }
-  } else if (fadePinClickCount == 1) {
-    pts[0] = 0.3f; pws[0] = 0.1f;
-    pts[1] = 0.7f; pws[1] = 0.1f;
-    pulse_count = 2;
-  } else {
-    pts[0] = 0.25f; pws[0] = 0.1f;
-    pts[1] = 0.5f;  pws[1] = 0.1f;
-    pts[2] = 0.75f; pws[2] = 0.1f;
-    pulse_count = 3;
-  }
-
-  for (int i = 0; i < RAW_SIZE; i++) {
-    int u = raw_to_unique[i];
-    float dot = coords[u][1];  // direction (0,1,0)
-    float add = 0.0f;
-    for (int p = 0; p < pulse_count; p++)
-      add += pulseSample(dot, pts[p], pws[p]);
-    if (add <= 0.0f) continue;
-    int brightness = (int)(add * pulse_brightness);
-    if (brightness > 255) brightness = 255;
-    uint32_t c = strip->getPixelColor(i);
-    int r = min(255, (int)((c >> 16) & 0xff) + brightness);
-    int g = min(255, (int)((c >> 8)  & 0xff) + brightness);
-    int b = min(255, (int)(c & 0xff)          + brightness);
-    strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
-  }
 }
 
 void renderAPRings() {
@@ -1717,7 +1662,6 @@ void loop() {
     }
   }
 
-  renderButtonPulse();
   if (apActive) renderAPRings();
 
   strip->show();
