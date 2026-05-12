@@ -4,7 +4,7 @@
 // Pixel geometry fetched automatically from https://<relayHost>/pixels/<pixelsName>.bin
 //
 // On first boot with no /pixels.bin on flash:
-//   set config.json: { "ORB_ID": "myorb", "RELAY_HOST": "my.lumatron.art", "PIXELS": "archimedes/rhombicosidodecahedron" }
+//   set config.json: { "ORB_ID": "myorb", "PIXELS": "archimedes/octtrue" }
 //   the device will download geometry on first WiFi connect and cache it to /pixels.bin
 
 #include <Adafruit_NeoPixel.h>
@@ -1475,7 +1475,6 @@ void setup() {
   if (configJson.isEmpty()) {
     JsonDocument doc;
     doc["ORB_ID"] = "arduino";
-    doc["RELAY_HOST"] = "my.lumatron.art";
     doc["PIXELS"] = "archimedes/octtrue";
     serializeJsonPretty(doc, configJson);
     writeFile("/config.json", configJson);

@@ -2,11 +2,46 @@
 
 Lumatron is a LED sculpture system. You are free to play with this code, but as per the license you may not make money from it.
 
+
+## TL;DR
+```
+       ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+       │  Controller  │  │    Admin     │  │   Emulator   │
+       │   (browser)  │  │   (browser)  │  │   (browser)  │
+       └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+              │ WSS :7777       │ HTTPS           │ WSS
+              ▼                 ▼                 ▼
+       ┌──────────────────────────────────────────────────┐
+       │             Relay server (HTTPS + WSS)           │
+       │           e.g. my.lumatron.art / localhost       │
+       └──────┬─────────────────┬─────────────────────────┘
+              │                 │                   ▲
+              │ WSS             │ WSS (out)         │
+              ▼                 ▼                   │
+       ┌──────────────┐  ┌─────────────┐            │ stls
+       │ Raspberry Pi │  │   Arduino   │◄─────────┐ │
+       │ Node + Py    │◄─│  esp32.ino  │──────────┤ │
+       └──────┬───────┘  └────┬────────┘   pixels │ │
+              │ drives        │ drives       info │ │
+              ▼               ▼                   │ │
+       ╔═══════════════════════╗         ┌────────┴─┴────┐
+       ║   Physical piece      ║◄────────┤   Creation    │
+       ║   (LED sculpture)     ║ designs │ console (dev) │
+       ╚═══════════════════════╝         └───────────────┘
+```
+
+- Orbs always connect *outbound* to the relay, so they work behind NATs without port forwarding.
+- The relay routes controller / admin / emulator messages to the right orb over its open WebSocket, and serves the websites for the controller, admin, and emulator.
+- The Creation console is a dev-time tool (port 8000): it designs the physical piece (3D-printable parts) and writes geometry (pixel info and stls) into the repo.
+- Each physical piece is driven by exactly one orb (Pi *or* Arduino).
+- In dev (`DEV_MODE: true`), a single machine plays all roles: relay, local Pi-style orb, and emulator standing in for a real piece.
+
+
 ## Connecting an existing piece to the internet
 
 Here's how to connect a piece that does not already have an internet connection (if no piece is already connected to the same wifi you're on these instructions can also be viewed by visiting `https://my.lumatron.art`)
 - Plug in the Lumatron box into the power source and the box into the piece (do not plug the piece directly into the usb-c wall plug)
-- Wait for a few minutes for the box to boot up (until pink light is flashing)
+- Wait for the box to boot up and the access point pattern (waves eminating from the bottom point) to show (takes a couple minutes for the raspberry pi based boxes)
 - Join the wifi named Lumatron-*name*
 - Enter the wifi name (SSID) and password in the captive portal
 - Visit or refresh `https://my.lumatron.art` once the first pixel turns off
@@ -56,14 +91,19 @@ See [the games folder README](games)
 
 ## Connect a piece to your own server
 
-- Request an unlocked SD along with a piece, email adrian@marplebot.com an request it be unlocked remotely, or follow the **Micro SD card setup** instructions below
-- Get local IP address (once the admin console is set up, you'll be able to get the ip address directly from there)
-  - MacOS: `sudo nmap -sn $(ipconfig getifaddr en0)/24`
-  - Linux: `sudo nmap -sn $(hostname -I | cut -d' ' -f1)/24`
-- `ssh pi@<IP address>` (password `lumatron`) into the piece
-- Change the password by running `passwd`
-- Edit `orbitron/config.js` to add the line `RELAY_HOST: "your-domain-or-ip",` (also remove `ORB_KEY` if it's there)
-- Run `pm2 restart all`
+- Arduino
+  - Clear entire arduino flash `esptool.py --chip esp32c3 --port /dev/ttyUSB0 erase_flash`
+  - Edit arduino/esp32/esp32.ino: find and replace "my.lumatron.art" with your server
+  - Upload using `scripts/arduino_upload.sh`
+- Raspberry pi
+  - Request an unlocked SD along with a piece, email adrian@marplebot.com an request it be unlocked remotely, or follow the **Micro SD card setup** instructions below
+  - Get local IP address (once the admin console is set up, you'll be able to get the ip address directly from there)
+    - MacOS: `sudo nmap -sn $(ipconfig getifaddr en0)/24`
+    - Linux: `sudo nmap -sn $(hostname -I | cut -d' ' -f1)/24`
+  - `ssh pi@<IP address>` (password `lumatron`) into the piece
+  - Change the password by running `passwd`
+  - Edit `orbitron/config.js` to add the line `RELAY_HOST: "your-domain-or-ip",` (also remove `ORB_KEY` if it's there)
+  - Run `pm2 restart all`
 - Test by visiting `https://your_domain.com` again (you should now see the piece)
 
 ## The admin console
@@ -90,6 +130,13 @@ Here's a list of things I would welcome receiving PRs for.
 - Clarifications or other improvements to any READMEs
 - UX improvements or other quality of life features for the controller
 - General optimizations or improvements
+
+# Arduino setup
+Requires a Xiao esp32c3, esp32c6, or esp32s3
+- Run `scripts/arduino_install.sh`
+- Plug into your computer
+- Run `scripts/arduino_upload.sh` to compile and upload to your arduino
+- For the first time after installing, check for an access point and add a wifi connection
 
 # Micro SD card setup
 
