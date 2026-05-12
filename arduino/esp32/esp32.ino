@@ -102,6 +102,7 @@ bool continuousIntegration = false;
 bool dontReconnect = false;
 float maxAvgPixelBrightness = 0;  // 0 = disabled; 0-255 average per channel
 bool fullBrightnessOnPowerOn = true;
+bool skipAcOnPower = false;
 
 // --- Manual fade pin ---
 int buttonPin = -1;  // -1 = disabled
@@ -1453,6 +1454,9 @@ void connectWiFi() {
   }
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("WiFi connected: " + WiFi.localIP().toString());
+  } else if (!skipAcOnPower && esp_reset_reason() == ESP_RST_POWERON) {
+    Serial.println("WiFi unavailable on power-up, launching portal");
+    runCaptivePortal();
   } else {
     Serial.println("WiFi unavailable, continuing without portal");
   }
@@ -1501,6 +1505,7 @@ void setup() {
     doubleClickAction = doc["DOUBLE_CLICK_ACTION"] | "";
     tripleClickAction = doc["TRIPLE_CLICK_ACTION"] | "ACCESS_POINT";
     fullBrightnessOnPowerOn = doc["FULL_BRIGHTNESS_ON_POWER_ON"] | true;
+    skipAcOnPower = doc["SKIP_AC_ON_POWER"] | false;
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 

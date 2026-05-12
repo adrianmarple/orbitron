@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 const http = require('http')
+const os = require('os')
 const qs = require('querystring')
 const fs = require('fs')
 const { execFile } = require('child_process')
 const path = require('path')
 const { checkConnection, execute, delay, config } = require('../lib')
 const { displayText, sendToPython, registerAccessPointHandler } = require('../orb')
+
+const RECENT_BOOT_THRESHOLD_S = 5 * 60
 
 const PORTAL_HTML_PATH = path.join(__dirname, 'captiveportal.html')
 const AP_SSID = `Lumatron-${config.ORB_ID}`
@@ -199,7 +202,8 @@ async function networkCheck() {
     if (connected) {
       numTimesNetworkRestartWorked += 1
       setTimeout(networkCheck, 120e3)
-    } else if (!(await hasSavedWifiCredentials())) {
+    } else if (!(await hasSavedWifiCredentials()) ||
+               (!config.SKIP_AC_ON_POWER && os.uptime() < RECENT_BOOT_THRESHOLD_S)) {
       numTimesAccessPointStarted += 1
       await startAccessPoint()
       await delay(120e3)

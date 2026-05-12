@@ -74,7 +74,6 @@ var app = new Vue({
     helpMessage: null,
     showAboutPage: false,
     blurred: false,
-    renamingSave: "",
     saveNames: [],
     showBackups: false,
     backupList: null,
@@ -898,9 +897,6 @@ var app = new Vue({
     login() {
       this.send({type: "login", loginCode: this.loginCode})
     },
-    lg(x) {
-      return Math.log(x)/Math.log(2)
-    },
     preciseTime() {
       let t = Date.now()
       if(t != this.lastMessageTimestamp){
@@ -960,30 +956,6 @@ var app = new Vue({
       this.send({ type: "prefs", update: { includedInCycles: updated } })
     },
 
-    saveFocused(name) {
-      this.renamingSave = name
-    },
-    saveBlurred(name, i) {
-      let self = this
-      let originalName = this.renamingSave
-      this.saveNames[i] = this.renamingSave
-      this.renamingSave = ""
-
-      if (name == "" || name == originalName) { 
-        return
-      }
-
-      if (this.saveNames.includes(name)) {
-        this.speedbumpMessage = `The save name "${name}" is already being used.`
-      } else {
-        this.speedbumpMessage = `Would you like to rename ${originalName} to ${name}?`
-        this.speedbumpCallback = () => {
-          self.send({type: "renamePref", originalName, newName: name})
-          this.saveNames[i] = this.renamingSave
-        }
-      }
-    },
-
     stripSaveName(name) {
       return name.replace(/[^0-9a-zA-Z ]/gi, '')
     },
@@ -997,9 +969,6 @@ var app = new Vue({
     },
     advanceCycle(orbID) {
       this.send({type: "advanceCycle"}, orbID)
-    },
-    startAccessPoint(orbID) {
-      this.send({type: "startAccessPoint"}, orbID)
     },
     onButtonPointerDown(id) {
       this.activeButtonOrbID = id

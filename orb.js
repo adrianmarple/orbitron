@@ -497,10 +497,6 @@ function bindDataEvents(peer) {
         console.log(config.LOG_INCOMING_MESSAGES, logContent)
       }
     }
-    if (content.type === 'startAccessPoint') {
-      if (startAccessPointHandler) startAccessPointHandler()
-      return
-    }
     python_process.stdin.write(JSON.stringify(content) + "\n", "utf8")
     if (["prefs", "clearPrefs", "loadPrefs", "advanceManualFade", "advanceCycle"].includes(content.type)) {
       shouldUpdateTetheree = true
