@@ -1,13 +1,12 @@
 // v1.0.1
 module.exports = () => {
-  setThinStrip()
   MAX_SLOT_SEGMENT_LENGTH = 30
 
   buildArchimedean([
     [PHI/2, 1/PHI/2, 1/2],
     [1, 0, 0],
   ], {
-    edgeLength: 10,
+    edgeLength: 6,
   })
 
   rotateZAll(0.36486382811348295)

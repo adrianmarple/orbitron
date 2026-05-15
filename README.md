@@ -94,7 +94,10 @@ See [the games folder README](games)
 - Arduino
   - Clear entire arduino flash `esptool.py --chip esp32c3 --port /dev/ttyUSB0 erase_flash`
   - Edit arduino/esp32/esp32.ino: find and replace "my.lumatron.art" with your server
-  - Upload using `scripts/arduino_upload.sh`
+  - Install adruino cli if you haven't already: `scripts/arduino_install.sh`
+    - Note two github hooks are installed with this script. One runs `scripts/arduino_build.sh` on git push and uploads the compiled firmware to the server
+    - The server url is currently hardcoded, so you should edit "arduino_build.sh" to use your own server, if you want to push to your own repo.
+  - Upload to the arduino using `scripts/arduino_upload.sh`
 - Raspberry pi
   - Request an unlocked SD along with a piece, email adrian@marplebot.com an request it be unlocked remotely, or follow the **Micro SD card setup** instructions below
   - Get local IP address (once the admin console is set up, you'll be able to get the ip address directly from there)
@@ -138,7 +141,7 @@ Requires a Xiao esp32c3, esp32c6, or esp32s3
 - Run `scripts/arduino_upload.sh` to compile and upload to your arduino
 - For the first time after installing, check for an access point and add a wifi connection
 
-# Micro SD card setup
+# Raspberry Pi setup
 
 - Download [an unlocked SD card image](https://www.dropbox.com/scl/fi/ce7uv4ptdwy640emwvc8e/lumatron.zip) from dropbox
 - Burn to SD card using `dd` or [Balena Etcher](https://etcher.balena.io/)

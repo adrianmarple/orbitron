@@ -1,13 +1,14 @@
 // v1.0.1
 module.exports = () => {
-  setThinStrip()
   MAX_SLOT_SEGMENT_LENGTH = 30
+  CHANNEL_DEPTH = 12
+  CHANNEL_WIDTH = 11
 
   buildArchimedean([
     [PHI, 1/PHI, 0],
     [1, 1, 1],
   ], {
-    edgeLength: 10,
+    edgeLength: 5,
   })
 
   let xAngle = verticies[8].ogCoords.angleTo(DOWN)
@@ -34,13 +35,13 @@ module.exports = () => {
   printPostProcessingFunction = printInfo => {
     bracketCapturePostProcessing({
       indicies: {5: 0, "top": 2, "bottom": 3},
-      glassROffset: 1,
+      glassROffset: -1,
       highOverhang: 3,
       lowOverhang: 2.5,
     })(printInfo)
     printInfo.prints.push({
       type: "union",
-      suffix: "bottom_with_hole",
+      suffix: "top_with_hole",
       components: [
         {
           type: "difference",
@@ -79,12 +80,6 @@ module.exports = () => {
     })
   }
 
-  EulerianPath(20)
-
-  // let polePoint = verticies[80].ogCoords
-  // polePoint = polePoint.scale(PIXEL_DISTANCE)
-  //   .add(polePoint.normalize().scale(CHANNEL_DEPTH/2 + THICKNESS + EXTRA_COVER_THICKNESS))
-  // polePoint.y = 0
-  // console.log("Pole radius", polePoint.length())
+  EulerianPath(50)
 }
  

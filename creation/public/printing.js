@@ -220,7 +220,7 @@ function flipPrint(print) {
 function bracketCapturePostProcessing({
   glassT = 1.5,
   captureWallExtra = 1.5,
-  glassROffset = 4,
+  glassROffset = 0,
   highOverhang = 6,
   lowOverhang = 4.8,
   indicies = {},
@@ -306,56 +306,78 @@ function bracketCapturePostProcessing({
       let glassR = Math.round(innerR - glassROffset)
       let lowR = innerR + captureWall / slope
       let highR = innerR - captureWall / slope
-      let slopeAngle = -Math.atan(slope) * 180 / Math.PI
+      let slopeAngle = -Math.atan(slope)
       // rotY bisects the wallAngle to center the bracket between the two face edges.
-      let rotY = -90 - wallAngle / 2 * 180 / Math.PI
+      let rotY = -Math.PI/2 - wallAngle / 2
       let sectorAngle = 360 / n
 
       console.log(`Glass Radius for ${n}-gon:`, glassR)
 
-      function makeBracketCode(open) {
-        return { code:`
-            sectorPoints = concat([[0, 0]],
-                [100 * cos(${sectorAngle / 2}), 100 * sin(${sectorAngle / 2})],
-                [100 * cos(${-sectorAngle / 2}), 100 * sin(${-sectorAngle / 2})]
-                // [for(a = [${sectorAngle / 2} : 10 : 360 - ${sectorAngle / 2}])
-                //     [100 * cos(a), 100 * sin(a)]
-                // ]
-            );
-            rotate([${slopeAngle}, ${rotY}, 0])
-            translate([0, ${outerR}, 0])
-            rotate([0, 0, -90])
-            intersection() {
-              difference() {
-                cylinder(h=${2 * captureWall}, r1=${lowR}, r2=${highR}, $fn=${n}, center=true);
+      bracketOrientationOperations = [
+        {type: "rotate", vector: [0, 0, -Math.PI/2]},
+        {type: "translate", position: [0, outerR, 0]},
+        {type: "rotate", vector: [slopeAngle, rotY, 0]},
+      ]
+      bracketCore = {
+        type: 'union',
+        components: [
+          print,
+          {
+            type: "prefix",
+            code: `
+              sectorPoints = concat([[0, 0]],
+                  [100 * cos(${sectorAngle / 2}), 100 * sin(${sectorAngle / 2})],
+                  [100 * cos(${-sectorAngle / 2}), 100 * sin(${-sectorAngle / 2})]
+              );`
+          },
+          {
+            operations: bracketOrientationOperations,
+            code:`
+              intersection() {
+                difference() {
+                  cylinder(h=${2 * captureWall}, r1=${lowR}, r2=${highR}, $fn=${n}, center=true);
 
-                cylinder(h=${glassT}, r=${glassR + 0.5}, $fn=${n}, center=true);
-                if (${open}) {
-                  translate([0, 0, ${-captureWall}])
-                  cylinder(h=${captureWall}, r=${glassR + 0.5}, $fn=${n});
+                  cylinder(h=100, r=${glassR - lowOverhang}, $fn=${n});
+                  translate([0, 0, ${-captureWall} - 1])
+                  cylinder(h=${captureWall} + 1, r=${glassR - highOverhang}, $fn=${n});
                 }
-
-                cylinder(h=100, r=${glassR - lowOverhang}, $fn=${n});
                 translate([0, 0, ${-captureWall} - 1])
-                cylinder(h=${captureWall} + 1, r=${glassR - highOverhang}, $fn=${n});
-              }
-              translate([0, 0, ${-captureWall} - 1])
-              linear_extrude(${2*captureWall + 2})
-              polygon([[0, 0],
-                [100 * cos(${sectorAngle / 2}), 100 * sin(${sectorAngle / 2})],
-                [100 * cos(${-sectorAngle / 2}), 100 * sin(${-sectorAngle / 2})]
-              ]);
-            }` }
+                linear_extrude(${2*captureWall + 2})
+                polygon([[0, 0],
+                  [100 * cos(${sectorAngle / 2}), 100 * sin(${sectorAngle / 2})],
+                  [100 * cos(${-sectorAngle / 2}), 100 * sin(${-sectorAngle / 2})]
+                ]);
+              }`
+          }
+        ],
       }
       newPrints.push({
-        type: 'union',
+        type: 'difference',
         suffix: `wall${n}`,
-        components: [print, makeBracketCode(false)]
+        components: [
+          bracketCore,
+          {
+            operations: bracketOrientationOperations,
+            code: `
+              cylinder(h=${glassT}, r=${glassR + 0.5}, $fn=${n}, center=true);`
+          }
+        ]
       })
       newPrints.push({
-        type: 'union',
+        type: 'difference',
         suffix: `wall${n}_open`,
-        components: [print, makeBracketCode(true)]
+        components: [
+          bracketCore,
+          {
+            operations: bracketOrientationOperations,
+            code: `
+            union() {
+              cylinder(h=${glassT}, r=${glassR + 0.5}, $fn=${n}, center=true);
+              translate([0, 0, ${-captureWall}])
+              cylinder(h=${captureWall}, r=${glassR + 0.5}, $fn=${n});
+            }`
+          }
+        ]
       })
     }
 

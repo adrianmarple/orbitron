@@ -20,7 +20,7 @@ module.exports = async () => {
   let standoffX = 18/2
   let standoffYDist = 26
   let standoffLength = 10.2
-  let standoffHeight = 4
+  let standoffHeight = 4.4
 
   let innerWidth = 23
   let innerLength = standoffYDist + 2*standoffLength
