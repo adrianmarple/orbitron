@@ -3,6 +3,7 @@ module.exports = () => {
   MAX_SLOT_SEGMENT_LENGTH = 30
   CHANNEL_DEPTH = 12
   CHANNEL_WIDTH = 11
+  BORDER = 1.4
 
   buildArchimedean([
     [PHI, 1/PHI, 0],
