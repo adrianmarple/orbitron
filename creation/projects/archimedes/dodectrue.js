@@ -36,7 +36,7 @@ module.exports = () => {
   printPostProcessingFunction = printInfo => {
     bracketCapturePostProcessing({
       indicies: {5: 0, "top": 2, "bottom": 3},
-      glassROffset: -1,
+      glassROffset: -1.5,
       highOverhang: 3,
       lowOverhang: 2.5,
     })(printInfo)
@@ -63,7 +63,7 @@ module.exports = () => {
           code: `
           difference() {
             rotate([${wireAngle},0,0])
-            translate([0,0,-1])
+            translate([0,0,-3])
             difference() {
               union() {
                 cylinder(h=${h2}, d=${d1}, $fn=64);

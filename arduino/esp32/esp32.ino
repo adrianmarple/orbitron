@@ -951,6 +951,18 @@ void performOTA() {
   WiFiClientSecure client;
   client.setInsecure();  // TODO: implement certificate pinning
   wsClient.disconnect();
+
+  // Render one final frame with pixel 0 forced to green as the OTA indicator,
+  // then hold render_mutex through the entire update so the render loop blocks
+  // (no chaotic partial-frame flashing while the network task hogs the CPU).
+  // Pixel 0 is only lit when the dimmer/fade isn't fully off.
+  xSemaphoreTake(render_mutex, portMAX_DELAY);
+  if (strip) {
+    renderFrame();
+    if (computeFade() > 0.0f) strip->setPixelColor(0, 0x00ff00);
+    strip->show();
+  }
+
   t_httpUpdate_return ret = httpUpdate.update(client, url);
   switch (ret) {
     case HTTP_UPDATE_OK:
@@ -967,6 +979,7 @@ void performOTA() {
       wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
       break;
   }
+  xSemaphoreGive(render_mutex);
 }
 
 void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
@@ -1603,21 +1616,9 @@ void networkTask(void*) {
   }
 }
 
-void loop() {
-  if (!strip) {  // allocation error fallback
-    delay(10);
-    return;
-  }
-
-  xSemaphoreTake(render_mutex, portMAX_DELAY);
-  if (!strip) {
-    xSemaphoreGive(render_mutex);
-    delay(10);
-    return;
-  }
-
-  unsigned long loop_start = millis();
-
+// Pattern switch + dimmer post-scale + power cap. Caller holds render_mutex
+// and is responsible for any overlays (AP rings, OTA indicator) and strip->show().
+void renderFrame() {
   switch (idlePattern) {
     case PATTERN_STATIC:     runStatic();     break;
     case PATTERN_SIN:        runSin();        break;
@@ -1660,6 +1661,24 @@ void loop() {
       }
     }
   }
+}
+
+void loop() {
+  if (!strip) {  // allocation error fallback
+    delay(10);
+    return;
+  }
+
+  xSemaphoreTake(render_mutex, portMAX_DELAY);
+  if (!strip) {
+    xSemaphoreGive(render_mutex);
+    delay(10);
+    return;
+  }
+
+  unsigned long loop_start = millis();
+
+  renderFrame();
 
   if (apActive) renderAPRings();
 
