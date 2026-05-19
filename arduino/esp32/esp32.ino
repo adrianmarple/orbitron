@@ -975,16 +975,15 @@ void performOTA() {
   client.setInsecure();  // TODO: implement certificate pinning
   wsClient.disconnect();
 
-  // Render one final frame with pixel 0 forced to green as the OTA indicator,
-  // then hold render_mutex through the entire update so the render loop blocks
-  // (no chaotic partial-frame flashing while the network task hogs the CPU).
-  // Pixel 0 is only lit when the dimmer/fade isn't fully off.
-  xSemaphoreTake(render_mutex, portMAX_DELAY);
-  if (leds) {
-    renderFrame();
-    if (computeFade() > 0.0f) STRIP_SET(0, 0x00ff00);
-    stripShow();
-  }
+  // // Render one final frame with pixel 0 forced to green as the OTA indicator,
+  // // then hold render_mutex through the entire update so the render loop blocks
+  // // Pixel 0 is only lit when the dimmer/fade isn't fully off.
+  // xSemaphoreTake(render_mutex, portMAX_DELAY);
+  // if (leds) {
+  //   renderFrame();
+  //   if (computeFade() > 0.0f) STRIP_SET(0, 0x00ff00);
+  //   stripShow();
+  // }
 
   t_httpUpdate_return ret = httpUpdate.update(client, url);
   switch (ret) {
@@ -1002,7 +1001,7 @@ void performOTA() {
       wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
       break;
   }
-  xSemaphoreGive(render_mutex);
+  // xSemaphoreGive(render_mutex);
 }
 
 void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
