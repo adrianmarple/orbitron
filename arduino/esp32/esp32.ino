@@ -7,7 +7,7 @@
 //   set config.json: { "ORB_ID": "myorb", "PIXELS": "archimedes/octtrue" }
 //   the device will download geometry on first WiFi connect and cache it to /pixels.bin
 
-#include <Adafruit_NeoPixel.h>
+#include "ws2812_rmt.h"
 #include <math.h>
 #include "mbedtls/sha256.h"
 #include <WiFi.h>
@@ -21,6 +21,11 @@
 #include <LittleFS.h>
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
+
+// Forward declaration so Arduino's auto-generated function prototypes (which
+// it inserts right after this include block) can use Prefs& as a parameter
+// type. The full struct is defined later in patterns.h.
+struct Prefs;
 
 #ifdef CONFIG_IDF_TARGET_ESP32C6
   #define PIN 18               // GPIO 18 = D10 on XIAO ESP32-C6
@@ -43,7 +48,7 @@
 #define MAX_NEIGHBORS 6  // compile-time max; actual neighbor count per pixel determined by pixels.bin
 
 // On S3 (which has OPI PSRAM), allocate geometry in PSRAM so internal DMA-capable
-// RAM stays free for the RMT encoding buffer used by strip->show().
+// RAM stays free for I2SClocklessLedDriver's I2S DMA buffers.
 // ps_malloc/ps_calloc prefer PSRAM when available (PSRAM=opi in FQBN) and fall
 // back to regular heap automatically. On C3/C6 (no PSRAM), use plain malloc/calloc.
 #ifdef CONFIG_IDF_TARGET_ESP32S3
@@ -80,9 +85,25 @@ float *linesine_positions = nullptr; // LINESINE: points into scratch
 float *render_values = nullptr;      // permanent; used for inter-frame temporal smoothing
 
 // --- Strip ---
-Adafruit_NeoPixel *strip = nullptr;
+// Custom RMT TX driver (ws2812_rmt.h) using ESP-IDF's rmt_tx with a DMA
+// buffer sized to hold the entire frame — no mid-frame ISR, so Wi-Fi can't
+// perturb WS2812 timing. leds is in GRB byte order (wire format).
+uint8_t *leds = nullptr;  // 3 bytes/LED in GRB order (matches WS2812 wire)
 
-#define STRIP_SET(i, c) strip->setPixelColor(i, c)
+inline void stripSet(int i, uint32_t c) {
+  uint8_t* p = leds + i*3;
+  p[0] = (c >> 8)  & 0xff;  // G
+  p[1] = (c >> 16) & 0xff;  // R
+  p[2] =  c        & 0xff;  // B
+}
+inline uint32_t stripGet(int i) {
+  uint8_t* p = leds + i*3;
+  return ((uint32_t)p[1] << 16) | ((uint32_t)p[0] << 8) | (uint32_t)p[2];
+}
+void stripShow() { if (leds) ws2812_show(leds, RAW_SIZE * 3); }
+
+#define STRIP_SET(i, c) stripSet(i, c)
+#define STRIP_GET(i)    stripGet(i)
 #include "patterns.h"
 
 Prefs defaultPrefs = {
@@ -525,10 +546,12 @@ void loadGeometry() {
 
   setupPatternScratch(idlePattern);
 
-  // Always recreate strip — safe because caller holds render_mutex on second call.
-  delete strip;
-  strip = new Adafruit_NeoPixel(RAW_SIZE, PIN, NEO_GRB + NEO_KHZ800);
-  strip->begin();
+  // (Re)allocate the GRB pixel buffer and (re)init the RMT-DMA driver.
+  // ws2812_begin is idempotent — safe on the second loadGeometry() call
+  // after first-boot geometry fetch.
+  free(leds);
+  leds = (uint8_t*)calloc(RAW_SIZE * 3, sizeof(uint8_t));
+  ws2812_begin(PIN, RAW_SIZE);
 
   geometryLoaded = (SIZE > 1);
 }
@@ -957,10 +980,10 @@ void performOTA() {
   // (no chaotic partial-frame flashing while the network task hogs the CPU).
   // Pixel 0 is only lit when the dimmer/fade isn't fully off.
   xSemaphoreTake(render_mutex, portMAX_DELAY);
-  if (strip) {
+  if (leds) {
     renderFrame();
-    if (computeFade() > 0.0f) strip->setPixelColor(0, 0x00ff00);
-    strip->show();
+    if (computeFade() > 0.0f) STRIP_SET(0, 0x00ff00);
+    stripShow();
   }
 
   t_httpUpdate_return ret = httpUpdate.update(client, url);
@@ -1448,6 +1471,10 @@ bool hasSavedWifiCredentials() {
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(!dontReconnect);
+  // Keep the radio in active mode rather than the default DTIM-based modem
+  // sleep — the periodic radio wake-ups produce non-deterministic interrupt
+  // bursts that can disrupt WS2812 timing under DMA-RMT. Costs ~50-100mA.
+  WiFi.setSleep(WIFI_PS_NONE);
   if (!hasSavedWifiCredentials()) {
     Serial.println("No saved WiFi credentials, launching portal");
     runCaptivePortal();
@@ -1556,8 +1583,8 @@ void renderAPRings() {
     if (add <= 0.0f) continue;
     int v = (int)(add * 100.0f);
     if (v > 255) v = 255;
-    uint32_t c = strip->getPixelColor(i);
-    strip->setPixelColor(i, packColor(
+    uint32_t c = STRIP_GET(i);
+    STRIP_SET(i, packColor(
       min(255, (int)((c >> 16) & 0xff) + v),
       min(255, (int)((c >> 8)  & 0xff) + v),
       min(255, (int)(c & 0xff)          + v)));
@@ -1617,7 +1644,7 @@ void networkTask(void*) {
 }
 
 // Pattern switch + dimmer post-scale + power cap. Caller holds render_mutex
-// and is responsible for any overlays (AP rings, OTA indicator) and strip->show().
+// and is responsible for any overlays (AP rings, OTA indicator) and strip->Show().
 void renderFrame() {
   switch (idlePattern) {
     case PATTERN_STATIC:     runStatic();     break;
@@ -1634,11 +1661,11 @@ void renderFrame() {
   float d = computeFade();
   if (d < 0.999f) {
     for (int i = 0; i < RAW_SIZE; i++) {
-      uint32_t c = strip->getPixelColor(i);
+      uint32_t c = STRIP_GET(i);
       uint8_t r = ((c >> 16) & 0xff) * d;
       uint8_t g = ((c >> 8)  & 0xff) * d;
       uint8_t b = (c & 0xff)          * d;
-      strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+      STRIP_SET(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
     }
   }
 
@@ -1646,31 +1673,31 @@ void renderFrame() {
   if (maxAvgPixelBrightness > 0) {
     long total = 0;
     for (int i = 0; i < RAW_SIZE; i++) {
-      uint32_t c = strip->getPixelColor(i);
+      uint32_t c = STRIP_GET(i);
       total += ((c >> 16) & 0xff) + ((c >> 8) & 0xff) + (c & 0xff);
     }
     long maxTotal = (long)(maxAvgPixelBrightness * RAW_SIZE * 3);
     if (total > maxTotal) {
       float scale = (float)maxTotal / total;
       for (int i = 0; i < RAW_SIZE; i++) {
-        uint32_t c = strip->getPixelColor(i);
+        uint32_t c = STRIP_GET(i);
         uint8_t r = ((c >> 16) & 0xff) * scale;
         uint8_t g = ((c >> 8)  & 0xff) * scale;
         uint8_t b = (c & 0xff)          * scale;
-        strip->setPixelColor(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+        STRIP_SET(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
       }
     }
   }
 }
 
 void loop() {
-  if (!strip) {  // allocation error fallback
+  if (!leds) {  // allocation error fallback
     delay(10);
     return;
   }
 
   xSemaphoreTake(render_mutex, portMAX_DELAY);
-  if (!strip) {
+  if (!leds) {
     xSemaphoreGive(render_mutex);
     delay(10);
     return;
@@ -1682,7 +1709,7 @@ void loop() {
 
   if (apActive) renderAPRings();
 
-  strip->show();
+  stripShow();
 
   float frame_rate = 30;
   if (idlePattern == PATTERN_DEFAULT || idlePattern == PATTERN_FIREFLIES)

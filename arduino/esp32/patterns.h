@@ -1,5 +1,11 @@
 #pragma once
 #include <math.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+
+// Defined in esp32.ino. applyPrefs takes it to keep pattern-state mutations
+// (setupPatternScratch's memset + pointer reassigns) out of the render loop.
+extern SemaphoreHandle_t render_mutex;
 
 // Pattern IDs
 #define PATTERN_DEFAULT     0
@@ -130,6 +136,11 @@ void setupPatternScratch(int pattern) {
 }
 
 void applyPrefs(Prefs& p) {
+  // Mutex may be null on the boot-time call from setup() before
+  // xSemaphoreCreateMutex; in that case there's no other task running, so
+  // synchronization is unnecessary.
+  if (render_mutex) xSemaphoreTake(render_mutex, portMAX_DELAY);
+
   start_r = (p.gradientStartColor >> 16) & 0xff;
   start_g = (p.gradientStartColor >> 8) & 0xff;
   start_b = p.gradientStartColor & 0xff;
@@ -155,11 +166,13 @@ void applyPrefs(Prefs& p) {
   float frame_delta = (1.0f / p.idleFrameRate) * expf(2.7f - p.idleBlend / 17.0f);
   alpha = 1.0f - expf(-10.0f * frame_delta);
   brightness_factor = (p.brightness / 100.0f) * (p.brightness / 100.0f);
+
+  if (render_mutex) xSemaphoreGive(render_mutex);
 }
 
-// STRIP_SET(i, color) must be defined by the including file:
+// STRIP_SET(i, color) must be defined by the including file (color is packed 0x00RRGGBB):
 //   template: #define STRIP_SET(i, c) strip.setPixelColor(i, c)
-//   esp32:    #define STRIP_SET(i, c) strip->setPixelColor(i, c)
+//   esp32:    #define STRIP_SET(i, c) strip->SetPixelColor(i, HtmlColor(c))
 
 // Matches Python's render_pulse shape formula. Returns brightness in [0, ~1].
 // dot: pixel's dot product with the pulse direction. t: wavefront position [0,1].

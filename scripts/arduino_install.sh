@@ -31,9 +31,9 @@ arduino-cli core install esp32:esp32
 
 # Install required libraries
 echo "Installing libraries..."
-arduino-cli lib install "Adafruit NeoPixel"
 arduino-cli lib install "WebSockets"
 arduino-cli lib install "ArduinoJson"
+# LED driver is in-tree (arduino/esp32/ws2812_rmt.h) — no library install needed
 
 # Install git hooks
 echo "Installing git hooks..."

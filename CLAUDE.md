@@ -114,13 +114,14 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 - **Button pin**: defaults to D9 (GPIO 9 on C3, GPIO 20 on C6, GPIO 8 on S3). Override via `BUTTON_PIN` in config.json; set to `0` to disable. Button must be wired to GND; pin uses `INPUT_PULLUP`.
 - **Recommended board**: Seeed XIAO ESP32-C3, ESP32-C6, or ESP32-S3 (S3 has 8MB OPI PSRAM, required for large pixel counts)
 - **arduino-cli boards**: `esp32:esp32:esp32c3`, `esp32:esp32:esp32c6`, and `esp32:esp32:esp32s3` (all built by the build script)
-- **PSRAM and pixel count limits**: `strip->show()` (via Adafruit NeoPixel / RMT) mallocs `RAW_SIZE * 96` bytes of DMA-capable internal RAM on every frame. On C3/C6 (~320KB internal RAM), this limits practical RAW_SIZE to ~600. On S3, geometry is allocated in PSRAM (`ps_malloc` via `GEO_MALLOC`/`GEO_CALLOC` macros, enabled by `PSRAM=opi` in the FQBN) so internal RAM stays free for the RMT buffer — RAW_SIZE up to ~1200 works. C3/C6 use plain `malloc`/`calloc` for geometry since they have no PSRAM.
+- **LED driver**: in-tree at `arduino/esp32/ws2812_rmt.h` — a minimal wrapper over ESP-IDF's `rmt_tx` driver with `with_dma = true` and `mem_block_symbols` sized to hold the whole frame, so the DMA streams the entire frame end-to-end with no mid-frame ISR servicing. Wi-Fi interrupts cannot perturb timing. The `uint8_t *leds` buffer is GRB-ordered (3 bytes/LED, matching WS2812 wire format) and is allocated/re-allocated in `loadGeometry`. (History: started on Adafruit NeoPixel which had per-frame DMA-buffer churn and was the dominant glitch cause; tried NeoPixelBus but its RMT method conflicts with arduino-esp32 3.x's new RMT driver and its I2S method isn't implemented for S3; tried FastLED with the new RMT driver — improved glitches but didn't eliminate them on a connected controller; tried I2SClocklessLedDriver — better but still glitched when Wi-Fi was active, and its FULL_DMA_BUFFER mode is broken for S3. Rolling our own avoids every one of those library issues.)
+- **PSRAM and pixel count**: With a single-allocation pixel buffer, practical RAW_SIZE on C3/C6 (~320KB internal RAM) should easily exceed the prior ~600 ceiling; S3 still gets PSRAM via `ps_malloc` (`GEO_MALLOC`/`GEO_CALLOC` macros, enabled by `PSRAM=opi` in the FQBN) and comfortably handles RAW_SIZE >1000. C3/C6 use plain `malloc`/`calloc` for geometry since they have no PSRAM.
 
 ### Required Arduino libraries
-- Adafruit NeoPixel
 - WebSockets (Markus Sattler — **not** WebSockets_Generic)
 - ArduinoJson
 - LittleFS (built into ESP32 core)
+- (LED driver is in-tree at `arduino/esp32/ws2812_rmt.h` — no library install needed)
 
 ### Config (`/config.json` on LittleFS)
 JSON file written directly to the device. Key fields:
