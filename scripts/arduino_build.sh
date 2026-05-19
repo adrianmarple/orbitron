@@ -31,7 +31,7 @@ BUILD_DIR=$(mktemp -d)
 trap "rm -rf $BUILD_DIR" EXIT
 
 CHIPS=("esp32c3" "esp32c6" "esp32s3")
-FQBNS=("esp32:esp32:esp32c3:PartitionScheme=min_spiffs,CDCOnBoot=cdc" "esp32:esp32:esp32c6:PartitionScheme=min_spiffs,CDCOnBoot=cdc" "esp32:esp32:esp32s3:PartitionScheme=min_spiffs,CDCOnBoot=cdc,PSRAM=opi")
+FQBNS=("esp32:esp32:esp32c3:PartitionScheme=custom,CDCOnBoot=cdc" "esp32:esp32:esp32c6:PartitionScheme=custom,CDCOnBoot=cdc" "esp32:esp32:esp32s3:PartitionScheme=custom,CDCOnBoot=cdc,PSRAM=opi")
 
 for i in "${!CHIPS[@]}"; do
   CHIP="${CHIPS[$i]}"
@@ -43,6 +43,8 @@ for i in "${!CHIPS[@]}"; do
   arduino-cli compile \
     --fqbn "$FQBN" \
     --build-property "compiler.cpp.extra_flags=-DFIRMWARE_VERSION_NUM=$VERSION" \
+    --build-property "build.partitions=partitions" \
+    --build-property "upload.maximum_size=1769472" \
     --output-dir "$CHIP_BUILD_DIR" \
     arduino/esp32
 

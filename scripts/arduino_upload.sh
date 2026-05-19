@@ -33,9 +33,9 @@ if [ -z "$CHIP" ]; then
 fi
 
 case "$CHIP" in
-  esp32c3) FQBN="esp32:esp32:esp32c3:PartitionScheme=min_spiffs,CDCOnBoot=cdc" ;;
-  esp32c6) FQBN="esp32:esp32:esp32c6:PartitionScheme=min_spiffs,CDCOnBoot=cdc" ;;
-  esp32s3) FQBN="esp32:esp32:esp32s3:PartitionScheme=min_spiffs,CDCOnBoot=cdc,PSRAM=opi" ;;
+  esp32c3) FQBN="esp32:esp32:esp32c3:PartitionScheme=custom,CDCOnBoot=cdc" ;;
+  esp32c6) FQBN="esp32:esp32:esp32c6:PartitionScheme=custom,CDCOnBoot=cdc" ;;
+  esp32s3) FQBN="esp32:esp32:esp32s3:PartitionScheme=custom,CDCOnBoot=cdc,PSRAM=opi" ;;
   *) echo "Error: unknown chip '$CHIP'. Use esp32c3, esp32c6, or esp32s3." >&2; exit 1 ;;
 esac
 
@@ -48,6 +48,8 @@ echo "Compiling version $VERSION for $CHIP on $PORT..."
 arduino-cli compile \
   --fqbn "$FQBN" \
   --build-property "compiler.cpp.extra_flags=-DFIRMWARE_VERSION_NUM=$VERSION" \
+  --build-property "build.partitions=partitions" \
+  --build-property "upload.maximum_size=1769472" \
   --upload \
   --port "$PORT" \
   arduino/esp32

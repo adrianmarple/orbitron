@@ -145,7 +145,7 @@ JSON file written directly to the device. Key fields:
 ### OTA firmware updates
 - Firmware is compiled **locally** via `bash scripts/arduino_build.sh [server-host]`
   - Regenerates `portal_html.h` via `scripts/gen_portal_header.py`
-  - Compiles for each supported chip (`esp32c3`, `esp32c6`, `esp32s3`) using the corresponding FQBN with `PartitionScheme=min_spiffs` and build flags `-DFIRMWARE_VERSION_NUM=<gitCount> -DESP32`
+  - Compiles for each supported chip (`esp32c3`, `esp32c6`, `esp32s3`) using the corresponding FQBN with `PartitionScheme=custom` (uses `arduino/esp32/partitions.csv`: two 1.7MB OTA app slots + 576KB LittleFS) and build flags `-DFIRMWARE_VERSION_NUM=<gitCount> -DESP32`
   - Uploads each binary to `https://<relay>/firmware/upload?chip=<chip>&version=<version>&key=<key>`
   - Server defaults to `my.lumatron.art`; `staging` branch uses `staging.lumatron.art`
 - Relay serves per-chip binaries at `https://<relay>/firmware/<chip>.bin` (e.g. `esp32c3.bin`, `esp32c6.bin`, `esp32s3.bin`)
