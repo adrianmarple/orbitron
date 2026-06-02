@@ -126,7 +126,7 @@ bool fullBrightnessOnPowerOn = true;
 bool skipAcOnPower = false;
 
 // --- Manual fade pin ---
-int buttonPin = -1;  // -1 = disabled
+int buttonPin = 0;  // 0 = disabled (GPIO 0 isn't used as a button on any supported board)
 String shortPressAction = "DIM";
 String longPressAction = "CYCLE";
 String extraLongPressAction = "ACCESS_POINT";
@@ -1140,7 +1140,7 @@ void performPinAction(const String& action) {
 void checkFadePin() {
   // true = pressed. OR logic: pressed if hardware OR virtual is pressed.
   bool state = virtualButtonState;
-  if (buttonPin >= 0) state = state || !digitalRead(buttonPin);  // INPUT_PULLUP: LOW = pressed
+  if (buttonPin) state = state || !digitalRead(buttonPin);  // INPUT_PULLUP: LOW = pressed
   unsigned long now = millis();
 
   if (!fadePinLastState && state) {
@@ -1530,8 +1530,7 @@ void setup() {
     continuousIntegration = doc["CONTINUOUS_INTEGRATION"] | false;
     dontReconnect = doc["DONT_RECONNECT"] | false;
     maxAvgPixelBrightness = doc["MAX_AVG_PIXEL_BRIGHTNESS"] | 0.0f;
-    int rawButtonPin = doc["BUTTON_PIN"] | DEFAULT_BUTTON_PIN;
-    buttonPin = (rawButtonPin == 0) ? -1 : rawButtonPin;
+    buttonPin = doc["BUTTON_PIN"] | DEFAULT_BUTTON_PIN;
     shortPressAction = doc["SHORT_PRESS_ACTION"] | "DIM";
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
     extraLongPressAction = doc["EXTRA_LONG_PRESS_ACTION"] | "ACCESS_POINT";
@@ -1539,7 +1538,7 @@ void setup() {
     // Default to "skip" if the piece has a hardware button (user can launch
     // AP via long-press); otherwise default to "don't skip" so the AP comes
     // up automatically when WiFi fails on a fresh boot.
-    skipAcOnPower = doc["SKIP_AC_ON_POWER"] | (buttonPin >= 0);
+    skipAcOnPower = doc["SKIP_AC_ON_POWER"] | (bool)buttonPin;
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 
@@ -1556,7 +1555,7 @@ void setup() {
   }
   Serial.println("Prefs loaded (dimmer=" + String(dimmer) + ")");
 
-  if (buttonPin >= 0) {
+  if (buttonPin) {
     pinMode(buttonPin, INPUT_PULLUP);
     fadePinLastState = !digitalRead(buttonPin);  // INPUT_PULLUP: LOW=pressed, so invert
     Serial.println("Button pin: GPIO " + String(buttonPin));
