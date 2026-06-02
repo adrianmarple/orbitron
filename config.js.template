@@ -12,7 +12,7 @@ module.exports={
   // EXTRA_LONG_PRESS_ACTION: "ACCESS_POINT", // "DIM", "CYCLE", or "ACCESS_POINT"; fires after 4s held
   // LOG_INCOMING_MESSAGES: "update.dimmer",
   // NO_ACCESS_POINT: true,
-  // SKIP_AC_ON_POWER: true, // Don't auto-launch AP when WiFi fails right after a power-on
+  // SKIP_AC_ON_POWER: true, // Don't auto-launch AP when WiFi fails right after a power-on. Defaults to true if MANUAL_FADE_PIN is set (user can press the button), false otherwise
   // DONT_RECONNECT: true,  // Attempt WiFi once on boot; never retry if it drops
   INCLUDE: {
     // games: true,

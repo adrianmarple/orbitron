@@ -10,6 +10,13 @@ const { displayText, sendToPython, registerAccessPointHandler } = require('../or
 
 const RECENT_BOOT_THRESHOLD_S = 5 * 60
 
+// Default to "skip" if the piece has a hardware button (user can launch AP via
+// long-press); without a button, default to "don't skip" so the AP comes up
+// automatically when WiFi fails on a fresh boot.
+const SKIP_AC_ON_POWER = config.SKIP_AC_ON_POWER !== undefined
+  ? config.SKIP_AC_ON_POWER
+  : !!config.MANUAL_FADE_PIN
+
 const PORTAL_HTML_PATH = path.join(__dirname, 'captiveportal.html')
 const AP_SSID = `Lumatron-${config.ORB_ID}`
 
@@ -203,7 +210,7 @@ async function networkCheck() {
       numTimesNetworkRestartWorked += 1
       setTimeout(networkCheck, 120e3)
     } else if (!(await hasSavedWifiCredentials()) ||
-               (!config.SKIP_AC_ON_POWER && os.uptime() < RECENT_BOOT_THRESHOLD_S)) {
+               (!SKIP_AC_ON_POWER && os.uptime() < RECENT_BOOT_THRESHOLD_S)) {
       numTimesAccessPointStarted += 1
       await startAccessPoint()
       await delay(120e3)

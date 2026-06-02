@@ -1536,7 +1536,10 @@ void setup() {
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
     extraLongPressAction = doc["EXTRA_LONG_PRESS_ACTION"] | "ACCESS_POINT";
     fullBrightnessOnPowerOn = doc["FULL_BRIGHTNESS_ON_POWER_ON"] | true;
-    skipAcOnPower = doc["SKIP_AC_ON_POWER"] | false;
+    // Default to "skip" if the piece has a hardware button (user can launch
+    // AP via long-press); otherwise default to "don't skip" so the AP comes
+    // up automatically when WiFi fails on a fresh boot.
+    skipAcOnPower = doc["SKIP_AC_ON_POWER"] | (buttonPin >= 0);
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 
