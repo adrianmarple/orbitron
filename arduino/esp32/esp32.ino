@@ -148,6 +148,15 @@ String connectedClients[MAX_CLIENTS];
 int clientCount = 0;
 String currentPrefName = "";
 
+// Updates the in-memory name and writes to flash only if the value changed.
+// Avoids a flash write per prefs tweak (which disables interrupts for ~50ms
+// and can underrun the WS2812 DMA encoder, producing visible glitches).
+void setCurrentPrefName(const String& name) {
+  if (currentPrefName == name) return;
+  currentPrefName = name;
+  writeFile("/currentprefname.txt", name);
+}
+
 // --- Geometry loaded flag ---
 bool geometryLoaded = false;  // true once real geometry (SIZE > 1) is in memory
 
@@ -435,7 +444,7 @@ void handleRestoreFromBackup(JsonDocument& msg) {
     writeFile(path.c_str(), kv.value().as<String>());
   }
 
-  writeFile("/currentprefname.txt", "");
+  setCurrentPrefName("");
   Serial.println("Backup restored, restarting...");
   delay(500);
   ESP.restart();
@@ -704,8 +713,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
       Prefs p = loadPrefs();
       p = prefsFromJson(regularDoc, p);
       savePrefs(p); applyPrefs(p);
-      currentPrefName = "";
-      writeFile("/currentprefname.txt", "");
+      setCurrentPrefName("");
     }
     broadcastState();
 
@@ -718,8 +726,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
     buildPrefsJson(entryDoc.to<JsonObject>(), p);
     String out; serializeJsonPretty(entryDoc, out);
     writeFile(savedPrefPath(name).c_str(), out);
-    currentPrefName = name;
-    writeFile("/currentprefname.txt", name);
+    setCurrentPrefName(name);
     broadcastState();
 
   } else if (type == "loadPrefs") {
@@ -733,8 +740,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
 
     Prefs p = prefsFromJson(savedDoc, defaultPrefs);
     savePrefs(p); applyPrefs(p);
-    currentPrefName = name;
-    writeFile("/currentprefname.txt", name);
+    setCurrentPrefName(name);
     broadcastState();
 
   } else if (type == "deletePrefs") {
@@ -750,17 +756,13 @@ void handleControllerMessage(const String& clientID, const String& message) {
       saveTimingPrefs();
     }
 
-    if (currentPrefName == name) {
-      currentPrefName = "";
-      writeFile("/currentprefname.txt", "");
-    }
+    if (currentPrefName == name) setCurrentPrefName("");
     broadcastState();
 
   } else if (type == "clearPrefs") {
     Prefs p = defaultPrefs;
     savePrefs(p); applyPrefs(p);
-    currentPrefName = "";
-    writeFile("/currentprefname.txt", "");
+    setCurrentPrefName("");
     broadcastState();
 
   } else if (type == "advanceManualFade") {
@@ -799,10 +801,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
       saveTimingPrefs();
     }
 
-    if (currentPrefName == originalName) {
-      currentPrefName = newName;
-      writeFile("/currentprefname.txt", newName);
-    }
+    if (currentPrefName == originalName) setCurrentPrefName(newName);
     broadcastState();
 
   } else if (type == "buttonStart") {
@@ -892,8 +891,7 @@ void handleAdminCommand(JsonDocument& msg) {
       Prefs p = loadPrefs();
       p = prefsFromJson(update, p);
       savePrefs(p); applyPrefs(p);
-      currentPrefName = "";
-      writeFile("/currentprefname.txt", "");
+      setCurrentPrefName("");
       broadcastState();
     }
     sendResponse(messageID, "OK");
@@ -953,7 +951,7 @@ void handleOrbMessage(JsonDocument& msg) {
     wrapper[msg["name"].as<String>()] = msg["value"];
     p = prefsFromJson(wrapper, p);
     savePrefs(p); applyPrefs(p);
-    currentPrefName = ""; writeFile("/currentprefname.txt", "");
+    setCurrentPrefName("");
     broadcastState();
   } else if (type == "setprefs") {
     // Bulk pref update: { type: "setprefs", prefs: { ... } }
@@ -963,7 +961,7 @@ void handleOrbMessage(JsonDocument& msg) {
     for (JsonPair kv : prefs) doc[kv.key()] = kv.value();
     p = prefsFromJson(doc, p);
     savePrefs(p); applyPrefs(p);
-    currentPrefName = ""; writeFile("/currentprefname.txt", "");
+    setCurrentPrefName("");
     broadcastState();
   }
 }
@@ -1124,8 +1122,7 @@ void advanceCycle() {
   if (deserializeJson(savedDoc, savedJson) != DeserializationError::Ok) return;
   Prefs p = prefsFromJson(savedDoc, defaultPrefs);
   savePrefs(p); applyPrefs(p);
-  currentPrefName = nextName;
-  writeFile("/currentprefname.txt", currentPrefName);
+  setCurrentPrefName(nextName);
   broadcastState();
 }
 
@@ -1211,8 +1208,7 @@ void triggerScheduleEvent(JsonObject evt, JsonObject prevEvt) {
       if (deserializeJson(savedDoc, savedJson) == DeserializationError::Ok) {
         Prefs p = prefsFromJson(savedDoc, defaultPrefs);
         savePrefs(p); applyPrefs(p);
-        currentPrefName = prefName;
-        writeFile("/currentprefname.txt", prefName);
+        setCurrentPrefName(prefName);
       }
     }
   }
