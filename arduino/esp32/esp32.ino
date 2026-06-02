@@ -167,6 +167,20 @@ String lastTriggeredEventKey = "";
 unsigned long nextEventMs = 0;
 JsonDocument timingPrefsDoc;  // in-memory cache of /timingprefs.json
 
+// --- State drift detection ---
+// Cached hash of the most recent state JSON (excluding transient timestamp).
+// Broadcast periodically as STATE_HASH:<hex> so controllers can detect drift
+// from missed state messages and request a resync.
+uint32_t currentStateHash = 0;
+unsigned long nextStateHashMs = 0;
+const unsigned long STATE_HASH_INTERVAL_MS = 3000;
+
+inline uint32_t fnv1a(const char* s, size_t len) {
+  uint32_t h = 2166136261u;
+  for (size_t i = 0; i < len; i++) { h ^= (uint8_t)s[i]; h *= 16777619u; }
+  return h;
+}
+
 // Fade state, recomputed by checkSchedule()
 bool fadeStateValid = false;
 float curEventMin = 0.0f;     // current event start, minute-of-day
@@ -611,7 +625,6 @@ void sendToClient(const String& clientID, const String& message) {
 void sendState(const String& clientID) {
   Prefs p = loadPrefs();
   JsonDocument state;
-  state["timestamp"] = (long)millis();
   state["isArduino"] = true;
   state["gameInfo"] = nullptr;
   state["currentText"] = "";
@@ -643,9 +656,23 @@ void sendState(const String& clientID) {
     prefs["includedInCycles"].to<JsonObject>();
   }
 
+  // Compute hash from the stable state (without transient timestamp). Then
+  // add timestamp + hash and serialize a second time for the actual send.
+  String stableStr;
+  serializeJson(state, stableStr);
+  currentStateHash = fnv1a(stableStr.c_str(), stableStr.length());
+
+  state["timestamp"] = (long)millis();
+  state["stateHash"] = String(currentStateHash, HEX);
   String stateStr;
   serializeJson(state, stateStr);
   sendToClient(clientID, stateStr);
+}
+
+void broadcastStateHash() {
+  if (clientCount == 0) return;
+  String msg = "STATE_HASH:" + String(currentStateHash, HEX);
+  for (int i = 0; i < clientCount; i++) sendToClient(connectedClients[i], msg);
 }
 
 void broadcastState() {
@@ -682,6 +709,12 @@ void mergeTimingPrefs(JsonObjectConst timingObj) {
 void handleControllerMessage(const String& clientID, const String& message) {
   if (message == "ECHO") {
     sendToClient(clientID, "ECHO");
+    sendState(clientID);
+    return;
+  }
+  if (message == "RESYNC") {
+    // Controller detected a state-hash mismatch — send a fresh state without
+    // also echoing (ECHO has openOrb-handshake semantics we don't want here).
     sendState(clientID);
     return;
   }
@@ -1634,6 +1667,10 @@ void networkTask(void*) {
       Serial.println("2am backup/OTA triggered");
       sendBackup("");  // sendBackup calls computeNextBackupMs() to reschedule
       performOTA();
+    }
+    if (now >= nextStateHashMs) {
+      broadcastStateHash();
+      nextStateHashMs = now + STATE_HASH_INTERVAL_MS;
     }
 
     delay(1);

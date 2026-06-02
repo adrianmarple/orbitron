@@ -1135,6 +1135,12 @@ var app = new Vue({
         this.idToOrb[orbID].resolveEcho()
         return
       }
+      if (typeof data === "string" && data.startsWith("STATE_HASH:")) {
+        const hash = data.slice("STATE_HASH:".length)
+        const lastHash = this.idToOrb[orbID]?.state?.stateHash
+        if (lastHash && lastHash !== hash) this.send("RESYNC", orbID)
+        return
+      }
       let message = JSON.parse(data)
       if (message.invalidLogin) {
         this.speedbumpMessage = "Invalid login code"
