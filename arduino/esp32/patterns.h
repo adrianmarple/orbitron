@@ -135,12 +135,13 @@ void setupPatternScratch(int pattern) {
   }
 }
 
+// Caller is responsible for holding render_mutex (or for being on a code path
+// where the render task isn't running, e.g. setup() before tasks start).
+// Typically called via savePrefsAndApply() which acquires the mutex once for
+// both savePrefs and applyPrefs — that single lock also covers the flash
+// write inside savePrefs, ensuring it happens between frames (no DMA active)
+// so the WS2812 encoder ISR can't underrun.
 void applyPrefs(Prefs& p) {
-  // Mutex may be null on the boot-time call from setup() before
-  // xSemaphoreCreateMutex; in that case there's no other task running, so
-  // synchronization is unnecessary.
-  if (render_mutex) xSemaphoreTake(render_mutex, portMAX_DELAY);
-
   start_r = (p.gradientStartColor >> 16) & 0xff;
   start_g = (p.gradientStartColor >> 8) & 0xff;
   start_b = p.gradientStartColor & 0xff;
@@ -166,8 +167,6 @@ void applyPrefs(Prefs& p) {
   float frame_delta = (1.0f / p.idleFrameRate) * expf(2.7f - p.idleBlend / 17.0f);
   alpha = 1.0f - expf(-10.0f * frame_delta);
   brightness_factor = (p.brightness / 100.0f) * (p.brightness / 100.0f);
-
-  if (render_mutex) xSemaphoreGive(render_mutex);
 }
 
 // STRIP_SET(i, color) must be defined by the including file (color is packed 0x00RRGGBB):

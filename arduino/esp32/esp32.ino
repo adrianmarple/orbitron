@@ -151,10 +151,15 @@ String currentPrefName = "";
 // Updates the in-memory name and writes to flash only if the value changed.
 // Avoids a flash write per prefs tweak (which disables interrupts for ~50ms
 // and can underrun the WS2812 DMA encoder, producing visible glitches).
+// Holds render_mutex around the write so it happens between frames (no DMA
+// active), same protection as savePrefsAndApply.
 void setCurrentPrefName(const String& name) {
   if (currentPrefName == name) return;
+  bool took = (render_mutex != nullptr);
+  if (took) xSemaphoreTake(render_mutex, portMAX_DELAY);
   currentPrefName = name;
   writeFile("/currentprefname.txt", name);
+  if (took) xSemaphoreGive(render_mutex);
 }
 
 // --- Geometry loaded flag ---
@@ -394,6 +399,19 @@ Prefs loadPrefs() {
 
 void savePrefs(Prefs& p) {
   writeFile("/prefs.json", prefsToJson(p));
+}
+
+// Save + apply prefs with a single render_mutex acquisition. The mutex is
+// held while we (a) write prefs.json to flash (~50ms with all interrupts
+// disabled) and (b) mutate the pattern globals. The render task can't be
+// mid-stripShow() during this — its DMA isn't active, so the flash write's
+// interrupt-disable can't underrun the WS2812 encoder ISR.
+void savePrefsAndApply(Prefs& p) {
+  bool took = (render_mutex != nullptr);
+  if (took) xSemaphoreTake(render_mutex, portMAX_DELAY);
+  savePrefs(p);
+  applyPrefs(p);
+  if (took) xSemaphoreGive(render_mutex);
 }
 
 // ===================== BACKUP =====================
@@ -745,7 +763,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
     if (!regularDoc.as<JsonObject>().isNull()) {
       Prefs p = loadPrefs();
       p = prefsFromJson(regularDoc, p);
-      savePrefs(p); applyPrefs(p);
+      savePrefsAndApply(p);
       setCurrentPrefName("");
     }
     broadcastState();
@@ -772,7 +790,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
     if (deserializeJson(savedDoc, savedJson) != DeserializationError::Ok) return;
 
     Prefs p = prefsFromJson(savedDoc, defaultPrefs);
-    savePrefs(p); applyPrefs(p);
+    savePrefsAndApply(p);
     setCurrentPrefName(name);
     broadcastState();
 
@@ -794,7 +812,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
 
   } else if (type == "clearPrefs") {
     Prefs p = defaultPrefs;
-    savePrefs(p); applyPrefs(p);
+    savePrefsAndApply(p);
     setCurrentPrefName("");
     broadcastState();
 
@@ -923,7 +941,7 @@ void handleAdminCommand(JsonDocument& msg) {
     if (!update.isNull()) {
       Prefs p = loadPrefs();
       p = prefsFromJson(update, p);
-      savePrefs(p); applyPrefs(p);
+      savePrefsAndApply(p);
       setCurrentPrefName("");
       broadcastState();
     }
@@ -933,8 +951,7 @@ void handleAdminCommand(JsonDocument& msg) {
     JsonDocument doc;
     if (deserializeJson(doc, prefsJson) == DeserializationError::Ok) {
       Prefs p = prefsFromJson(doc, defaultPrefs);
-      savePrefs(p);
-      applyPrefs(p);
+      savePrefsAndApply(p);
     }
     sendResponse(messageID, "OK");
   } else if (type == "gettimingprefs") {
@@ -983,7 +1000,7 @@ void handleOrbMessage(JsonDocument& msg) {
     JsonDocument wrapper;
     wrapper[msg["name"].as<String>()] = msg["value"];
     p = prefsFromJson(wrapper, p);
-    savePrefs(p); applyPrefs(p);
+    savePrefsAndApply(p);
     setCurrentPrefName("");
     broadcastState();
   } else if (type == "setprefs") {
@@ -993,7 +1010,7 @@ void handleOrbMessage(JsonDocument& msg) {
     JsonDocument doc;
     for (JsonPair kv : prefs) doc[kv.key()] = kv.value();
     p = prefsFromJson(doc, p);
-    savePrefs(p); applyPrefs(p);
+    savePrefsAndApply(p);
     setCurrentPrefName("");
     broadcastState();
   }
@@ -1154,7 +1171,7 @@ void advanceCycle() {
   JsonDocument savedDoc;
   if (deserializeJson(savedDoc, savedJson) != DeserializationError::Ok) return;
   Prefs p = prefsFromJson(savedDoc, defaultPrefs);
-  savePrefs(p); applyPrefs(p);
+  savePrefsAndApply(p);
   setCurrentPrefName(nextName);
   broadcastState();
 }
@@ -1240,7 +1257,7 @@ void triggerScheduleEvent(JsonObject evt, JsonObject prevEvt) {
       JsonDocument savedDoc;
       if (deserializeJson(savedDoc, savedJson) == DeserializationError::Ok) {
         Prefs p = prefsFromJson(savedDoc, defaultPrefs);
-        savePrefs(p); applyPrefs(p);
+        savePrefsAndApply(p);
         setCurrentPrefName(prefName);
       }
     }
@@ -1574,8 +1591,7 @@ void setup() {
   // Load and apply prefs (write defaults on first boot so getprefs returns something)
   currentPrefName = readFile("/currentprefname.txt");
   Prefs p = loadPrefs();
-  savePrefs(p);  // always re-save to ensure format is current
-  applyPrefs(p);
+  savePrefsAndApply(p);  // re-save to normalize format, then apply (no mutex contention at boot)
   loadTimingPrefs();
   if (fullBrightnessOnPowerOn && esp_reset_reason() == ESP_RST_POWERON && dimmer != 1.0f) {
     dimmer = 1.0f;
