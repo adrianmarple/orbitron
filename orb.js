@@ -420,6 +420,16 @@ class ClientConnection {
         this.send("ECHO")
         return
       }
+      if (data == "RESYNC") {
+        // Controller detected a STATE_HASH mismatch — send the latest state
+        // to just this peer. Fresh timestamp so the dedup check lets it through.
+        if (state) {
+          let msg = {...state, timestamp: preciseTime()}
+          if (this.pid !== undefined) msg.self = this.pid
+          this.send(JSON.stringify(msg))
+        }
+        return
+      }
 
       let content = JSON.parse(data)
       if(content.timestamp > this.latestMessage){
@@ -649,9 +659,19 @@ let connectionQueue = []
 // Communications with python script
 
 state = null
-stateString = ""
-broadcastCounter = 0
-const counterThreshold = 35
+let currentStateHash = '0'    // FNV-1a hex of last broadcast's stable state
+let lastBroadcastMs = 0       // Date.now() at the last broadcast; suppresses heartbeat during rapid bursts (gameplay)
+const STATE_HASH_INTERVAL_MS = 3000
+const STATE_HASH_SUPPRESS_MS = 500  // skip heartbeat if a broadcast happened this recently
+
+function fnv1a(s) {
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0).toString(16)
+}
 
 lastMessageTimestamp = 0
 lastMessageTimestampCount = 0
@@ -670,18 +690,23 @@ function broadcast(baseMessage) {
   baseMessage.timestamp = preciseTime()
   tether(baseMessage)
 
-  broadcastCounter++
   baseMessage.notimeout = NO_TIMEOUT
+
+  // Hash the stable subset (excluding the transient timestamp and the
+  // per-broadcast-clearing prefTimestamps). The controller compares this hash
+  // against periodic STATE_HASH heartbeats to detect missed broadcasts.
+  let stable = {...baseMessage}
+  delete stable.timestamp
+  delete stable.prefTimestamps
+  currentStateHash = fnv1a(JSON.stringify(stable))
+  baseMessage.stateHash = currentStateHash
+
+  // Cache the state for new-peer onboarding (upkeep uses {...state} when
+  // adding a peer). Strip timestamp so each onboarded peer gets a fresh one.
   let newState = {...baseMessage}
   delete newState.timestamp
-  let newStateString = JSON.stringify(newState)
-  let noChange = newStateString == stateString
-  if(noChange && broadcastCounter % counterThreshold != 0){
-    return
-  }
   state = newState
-  stateString = newStateString
-  broadcastCounter = 0
+
   for (let id in connections) {
     baseMessage.self = parseInt(id)
     connections[id].send(JSON.stringify(baseMessage))
@@ -693,7 +718,18 @@ function broadcast(baseMessage) {
   }
   delete baseMessage.queuePosition
   delete baseMessage.timestamp
+  lastBroadcastMs = Date.now()
 }
+
+// Periodic STATE_HASH heartbeat so controllers can detect drift from missed
+// broadcasts. Suppressed during rapid broadcast bursts (e.g. gameplay), since
+// the broadcasts themselves are already syncing state.
+setInterval(() => {
+  if (Date.now() - lastBroadcastMs < STATE_HASH_SUPPRESS_MS) return
+  let msg = "STATE_HASH:" + currentStateHash
+  for (let id in connections) connections[id].send(msg)
+  for (let peer of connectionQueue) peer.send(msg)
+}, STATE_HASH_INTERVAL_MS)
 
 // Restart python if it stop sending updates
 last_python_stdout = 0
