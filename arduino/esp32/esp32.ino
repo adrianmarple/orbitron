@@ -680,6 +680,14 @@ void sendState(const String& clientID) {
     evt["prefName"] = "OFF"; evt["time"] = "00:00"; evt["fadeIn"] = 10; evt["fadeOut"] = 30;
     prefs["includedInCycles"].to<JsonObject>();
   }
+  // Always ship the full timing schema. Vue 2's reactivity is only set up for
+  // keys present in the initial state.prefs broadcast — if useTimer (or any
+  // other timing toggle) is missing, the checkbox v-model and the watcher
+  // that pushes changes back to the orb both go dormant for it.
+  if (prefs["useTimer"].isNull())               prefs["useTimer"]    = false;
+  if (prefs["weeklyTimer"].isNull())            prefs["weeklyTimer"] = false;
+  if (!prefs["schedule"].is<JsonArray>())       prefs["schedule"].to<JsonArray>();
+  if (!prefs["weeklySchedule"].is<JsonArray>()) prefs["weeklySchedule"].to<JsonArray>();
 
   // Compute hash from the stable state (without transient timestamp). Then
   // add timestamp + hash and serialize a second time for the actual send.
@@ -754,7 +762,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
     if (update.isNull()) return;
 
     static const char* timingKeys[] = {
-      "useTimer","schedule","dimmer","includedInCycles", nullptr
+      "useTimer","weeklyTimer","schedule","weeklySchedule","dimmer","includedInCycles", nullptr
     };
     JsonDocument regularDoc, timingDoc;
     for (JsonPair kv : update) {

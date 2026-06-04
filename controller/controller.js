@@ -389,7 +389,7 @@ var app = new Vue({
       return this.prefs.weeklyTimer ? "weeklySchedule" : "schedule"
     },
     allTimersAreOff() {
-      for (let event of this.prefs[this.scheduleType]) {
+      for (let event of this.prefs[this.scheduleType] || []) {
         if (event.prefName != 'OFF') {
           return false
         }
