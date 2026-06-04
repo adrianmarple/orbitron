@@ -85,25 +85,30 @@ float *linesine_positions = nullptr; // LINESINE: points into scratch
 float *render_values = nullptr;      // permanent; used for inter-frame temporal smoothing
 
 // --- Strip ---
-// Custom RMT TX driver (ws2812_rmt.h) using ESP-IDF's rmt_tx with a DMA
-// buffer sized to hold the entire frame — no mid-frame ISR, so Wi-Fi can't
-// perturb WS2812 timing. leds is in GRB byte order (wire format).
-uint8_t *leds = nullptr;  // 3 bytes/LED in GRB order (matches WS2812 wire)
+// Renderers write into `pixels` (float RGB, AOS) without clipping, so additive
+// blending has free headroom. stripShow() clips to 0..255 and packs into
+// `leds` (GRB byte order, the WS2812 wire format) just before DMA. `leds`
+// stays in internal SRAM because DMA needs it; `pixels` uses GEO_CALLOC, so
+// on S3 it lands in PSRAM (frees ~18KB of internal SRAM at 1500 LEDs; the
+// per-frame PSRAM access overhead is ~500-800us, well under the frame budget).
+uint8_t *leds = nullptr;          // 3 bytes/LED in GRB order (matches WS2812 wire)
+float (*pixels)[3] = nullptr;     // RGB float, [RAW_SIZE][3]
 
-inline void stripSet(int i, uint32_t c) {
-  uint8_t* p = leds + i*3;
-  p[0] = (c >> 8)  & 0xff;  // G
-  p[1] = (c >> 16) & 0xff;  // R
-  p[2] =  c        & 0xff;  // B
+void stripShow() {
+  if (!leds || !pixels) return;
+  for (int i = 0; i < RAW_SIZE; i++) {
+    float fr = pixels[i][0], fg = pixels[i][1], fb = pixels[i][2];
+    if (fr < 0) fr = 0; else if (fr > 255) fr = 255;
+    if (fg < 0) fg = 0; else if (fg > 255) fg = 255;
+    if (fb < 0) fb = 0; else if (fb > 255) fb = 255;
+    uint8_t* p = leds + i*3;
+    p[0] = (uint8_t)fg;
+    p[1] = (uint8_t)fr;
+    p[2] = (uint8_t)fb;
+  }
+  ws2812_show(leds, RAW_SIZE * 3);
 }
-inline uint32_t stripGet(int i) {
-  uint8_t* p = leds + i*3;
-  return ((uint32_t)p[1] << 16) | ((uint32_t)p[0] << 8) | (uint32_t)p[2];
-}
-void stripShow() { if (leds) ws2812_show(leds, RAW_SIZE * 3); }
 
-#define STRIP_SET(i, c) stripSet(i, c)
-#define STRIP_GET(i)    stripGet(i)
 #include "patterns.h"
 
 Prefs defaultPrefs = {
@@ -591,7 +596,9 @@ void loadGeometry() {
   // ws2812_begin is idempotent — safe on the second loadGeometry() call
   // after first-boot geometry fetch.
   free(leds);
+  free(pixels);
   leds = (uint8_t*)calloc(RAW_SIZE * 3, sizeof(uint8_t));
+  pixels = (float (*)[3])GEO_CALLOC(RAW_SIZE, sizeof(float[3]));
   ws2812_begin(PIN, RAW_SIZE);
 
   geometryLoaded = (SIZE > 1);
@@ -1027,9 +1034,9 @@ void performOTA() {
   // then hold render_mutex through the entire update so the render loop blocks
   // Pixel 0 is only lit when the dimmer/fade isn't fully off.
   xSemaphoreTake(render_mutex, portMAX_DELAY);
-  if (leds) {
+  if (leds && pixels) {
     renderFrame();
-    if (computeFade() > 0.0f) STRIP_SET(0, 0x00ff00);
+    if (computeFade() > 0.0f) { pixels[0][0] = 0; pixels[0][1] = 255; pixels[0][2] = 0; }
     stripShow();
   }
 
@@ -1627,13 +1634,10 @@ void renderAPRings() {
       add += pulseSample(dot, t, width);
     }
     if (add <= 0.0f) continue;
-    int v = (int)(add * 100.0f);
-    if (v > 255) v = 255;
-    uint32_t c = STRIP_GET(i);
-    STRIP_SET(i, packColor(
-      min(255, (int)((c >> 16) & 0xff) + v),
-      min(255, (int)((c >> 8)  & 0xff) + v),
-      min(255, (int)(c & 0xff)          + v)));
+    float v = add * 100.0f;
+    pixels[i][0] += v;
+    pixels[i][1] += v;
+    pixels[i][2] += v;
   }
 }
 
@@ -1711,43 +1715,43 @@ void renderFrame() {
   float d = computeFade();
   if (d < 0.999f) {
     for (int i = 0; i < RAW_SIZE; i++) {
-      uint32_t c = STRIP_GET(i);
-      uint8_t r = ((c >> 16) & 0xff) * d;
-      uint8_t g = ((c >> 8)  & 0xff) * d;
-      uint8_t b = (c & 0xff)          * d;
-      STRIP_SET(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+      pixels[i][0] *= d;
+      pixels[i][1] *= d;
+      pixels[i][2] *= d;
     }
   }
 
-  // Apply MAX_AVG_PIXEL_BRIGHTNESS power cap
+  // Apply MAX_AVG_PIXEL_BRIGHTNESS power cap. Sum the clamped (0..255) values
+  // so the cap matches what'll actually drive the LEDs, not the headroom above.
   if (maxAvgPixelBrightness > 0) {
-    long total = 0;
+    float total = 0;
     for (int i = 0; i < RAW_SIZE; i++) {
-      uint32_t c = STRIP_GET(i);
-      total += ((c >> 16) & 0xff) + ((c >> 8) & 0xff) + (c & 0xff);
+      for (int c = 0; c < 3; c++) {
+        float v = pixels[i][c];
+        if (v > 255) v = 255; else if (v < 0) v = 0;
+        total += v;
+      }
     }
-    long maxTotal = (long)(maxAvgPixelBrightness * RAW_SIZE * 3);
+    float maxTotal = (float)maxAvgPixelBrightness * RAW_SIZE * 3;
     if (total > maxTotal) {
-      float scale = (float)maxTotal / total;
+      float scale = maxTotal / total;
       for (int i = 0; i < RAW_SIZE; i++) {
-        uint32_t c = STRIP_GET(i);
-        uint8_t r = ((c >> 16) & 0xff) * scale;
-        uint8_t g = ((c >> 8)  & 0xff) * scale;
-        uint8_t b = (c & 0xff)          * scale;
-        STRIP_SET(i, ((uint32_t)r << 16) | ((uint32_t)g << 8) | b);
+        pixels[i][0] *= scale;
+        pixels[i][1] *= scale;
+        pixels[i][2] *= scale;
       }
     }
   }
 }
 
 void loop() {
-  if (!leds) {  // allocation error fallback
+  if (!leds || !pixels) {  // allocation error fallback
     delay(10);
     return;
   }
 
   xSemaphoreTake(render_mutex, portMAX_DELAY);
-  if (!leds) {
+  if (!leds || !pixels) {
     xSemaphoreGive(render_mutex);
     delay(10);
     return;

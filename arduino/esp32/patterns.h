@@ -169,26 +169,12 @@ void applyPrefs(Prefs& p) {
   brightness_factor = (p.brightness / 100.0f) * (p.brightness / 100.0f);
 }
 
-// STRIP_SET(i, color) must be defined by the including file (color is packed 0x00RRGGBB):
-//   template: #define STRIP_SET(i, c) strip.setPixelColor(i, c)
-//   esp32:    #define STRIP_SET(i, c) strip->SetPixelColor(i, HtmlColor(c))
-
 // Matches Python's render_pulse shape formula. Returns brightness in [0, ~1].
 // dot: pixel's dot product with the pulse direction. t: wavefront position [0,1].
 inline float pulseSample(float dot, float t, float width) {
   float ds = (dot/4.0f + 0.75f)/width + (-0.5f*(t + 1.0f)/width + 1.0f - t);
   float v = ds*(1.0f - ds)/3.0f;
   return (v > 0.0f) ? v*v*12.0f : 0.0f;
-}
-
-inline uint32_t packColor(int r, int g, int b) {
-  if (r > 255) r = 255;
-  if (g > 255) g = 255;
-  if (b > 255) b = 255;
-  if (r < 0) r = 0;
-  if (g < 0) g = 0;
-  if (b < 0) b = 0;
-  return ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
 }
 
 void applyTargetValues(float brightness_scale) {
@@ -203,10 +189,9 @@ void applyTargetValues(float brightness_scale) {
     render_values[i] = v2;
     float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
     float scale = v2 * bf;
-    int r = (int)((end_r + delta_r * tv) * scale);
-    int g = (int)((end_g + delta_g * tv) * scale);
-    int b = (int)((end_b + delta_b * tv) * scale);
-    STRIP_SET(i, packColor(r, g, b));
+    pixels[i][0] = (end_r + delta_r * tv) * scale;
+    pixels[i][1] = (end_g + delta_g * tv) * scale;
+    pixels[i][2] = (end_b + delta_b * tv) * scale;
   }
 }
 
@@ -218,10 +203,9 @@ void applyFluidValues(float* fv, float brightness_scale) {
     float v = fv[i]; render_values[i] = v;
     float tv = v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
     float scale = v * bf;
-    int r = (int)((end_r + delta_r * tv) * scale);
-    int g = (int)((end_g + delta_g * tv) * scale);
-    int b = (int)((end_b + delta_b * tv) * scale);
-    STRIP_SET(i, packColor(r, g, b));
+    pixels[i][0] = (end_r + delta_r * tv) * scale;
+    pixels[i][1] = (end_g + delta_g * tv) * scale;
+    pixels[i][2] = (end_b + delta_b * tv) * scale;
   }
 }
 
@@ -258,10 +242,9 @@ void runDefault() {
     render_values[i] = v2;
     float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
     float scale = v2 * brightness_factor;
-    int r = (int)((end_r + delta_r * tv) * scale);
-    int g = (int)((end_g + delta_g * tv) * scale);
-    int b = (int)((end_b + delta_b * tv) * scale);
-    STRIP_SET(i, packColor(r, g, b));
+    pixels[i][0] = (end_r + delta_r * tv) * scale;
+    pixels[i][1] = (end_g + delta_g * tv) * scale;
+    pixels[i][2] = (end_b + delta_b * tv) * scale;
   }
 }
 
@@ -299,10 +282,9 @@ void runFireflies() {
     float v2 = render_values[i] * one_minus_alpha + target_v * alpha; render_values[i] = v2;
     float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
     float scale = v2 * brightness_factor;
-    int r = (int)((end_r+delta_r*tv)*scale);
-    int g = (int)((end_g+delta_g*tv)*scale);
-    int b = (int)((end_b+delta_b*tv)*scale);
-    STRIP_SET(i, packColor(r, g, b));
+    pixels[i][0] = (end_r+delta_r*tv)*scale;
+    pixels[i][1] = (end_g+delta_g*tv)*scale;
+    pixels[i][2] = (end_b+delta_b*tv)*scale;
   }
 }
 
@@ -318,10 +300,9 @@ void runStatic() {
     float target_v = (1.0f + dx*coords[u][0] + dy*coords[u][1] + dz*coords[u][2]) / 2.0f;
     if (target_v < 0.0f) target_v = 0.0f; if (target_v > 1.0f) target_v = 1.0f;
     float tv = target_v*inv_threshold; if (tv>1.0f) tv=1.0f;
-    int r = (int)((end_r+delta_r*tv)*ab);
-    int g = (int)((end_g+delta_g*tv)*ab);
-    int b = (int)((end_b+delta_b*tv)*ab);
-    STRIP_SET(i, packColor(r, g, b));
+    pixels[i][0] = (end_r+delta_r*tv)*ab;
+    pixels[i][1] = (end_g+delta_g*tv)*ab;
+    pixels[i][2] = (end_b+delta_b*tv)*ab;
   }
 }
 
@@ -344,10 +325,9 @@ void runSin() {
     if (target_v<0.0f) target_v=0.0f; if (target_v>1.0f) target_v=1.0f;
     float tv = target_v*inv_threshold; if (tv>1.0f) tv=1.0f;
     float scale = target_v*brightness_factor;
-    int r = (int)((end_r+delta_r*tv)*scale);
-    int g = (int)((end_g+delta_g*tv)*scale);
-    int b = (int)((end_b+delta_b*tv)*scale);
-    STRIP_SET(i, packColor(r, g, b));
+    pixels[i][0] = (end_r+delta_r*tv)*scale;
+    pixels[i][1] = (end_g+delta_g*tv)*scale;
+    pixels[i][2] = (end_b+delta_b*tv)*scale;
   }
 }
 
@@ -420,10 +400,9 @@ void runLightField() {
     render_values[i]=v;
     float tv=v*inv_threshold; if (tv>1.0f) tv=1.0f;
     float scale=v*brightness_factor;
-    int r = (int)((end_r+delta_r*tv)*scale);
-    int g = (int)((end_g+delta_g*tv)*scale);
-    int b = (int)((end_b+delta_b*tv)*scale);
-    STRIP_SET(i, packColor(r, g, b));
+    pixels[i][0] = (end_r+delta_r*tv)*scale;
+    pixels[i][1] = (end_g+delta_g*tv)*scale;
+    pixels[i][2] = (end_b+delta_b*tv)*scale;
   }
 }
 
@@ -477,9 +456,8 @@ void runLineSine() {
     if (wave_v < 0.0f) wave_v = 0.0f;
     float tv = wave_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
     float scale = wave_v * brightness_factor;
-    int r = (int)((end_r + delta_r * tv) * scale);
-    int g = (int)((end_g + delta_g * tv) * scale);
-    int b = (int)((end_b + delta_b * tv) * scale);
-    STRIP_SET(i, packColor(r, g, b));
+    pixels[i][0] = (end_r + delta_r * tv) * scale;
+    pixels[i][1] = (end_g + delta_g * tv) * scale;
+    pixels[i][2] = (end_b + delta_b * tv) * scale;
   }
 }
