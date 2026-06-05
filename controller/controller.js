@@ -141,6 +141,10 @@ var app = new Vue({
       }, 10)
     }
 
+    // Set rem synchronously so the first render uses the real value
+    // instead of the placeholder (which produces negative SVG widths).
+    this.setRem()
+
     addEventListener("resize", () => {
       this.setRem()
       this.checkOverscroll()
