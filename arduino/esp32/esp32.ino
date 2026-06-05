@@ -1040,13 +1040,20 @@ void performOTA() {
   client.setInsecure();  // TODO: implement certificate pinning
   wsClient.disconnect();
 
-  // Render one final frame with pixel 0 forced to green as the OTA indicator,
-  // then hold render_mutex through the entire update so the render loop blocks
-  // Pixel 0 is only lit when the dimmer/fade isn't fully off.
+  // Render one final frame with pixel 0 (and its dupe) forced to blue as the
+  // OTA indicator, then hold render_mutex through the entire update so the
+  // render loop blocks. Only lit when the dimmer/fade isn't fully off.
   xSemaphoreTake(render_mutex, portMAX_DELAY);
   if (leds && pixels) {
     renderFrame();
-    if (computeFade() > 0.0f) { pixels[0][0] = 0; pixels[0][1] = 255; pixels[0][2] = 0; }
+    if (computeFade() > 0.0f) {
+      for (int k = 0; k < 2; k++) {
+        int r = dupes_to_uniques[0][k];
+        pixels[r][0] = 0;
+        pixels[r][1] = 0;
+        pixels[r][2] = 150;
+      }
+    }
     stripShow();
   }
 
