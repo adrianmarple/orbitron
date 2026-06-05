@@ -212,6 +212,10 @@ unsigned long nextBackupMs = ULONG_MAX;
 // On C3/C6: tasks share one core; mutex is still correct, just has no parallelism benefit.
 SemaphoreHandle_t render_mutex = nullptr;
 volatile bool apActive = false;
+// Set by the button (polled in loop() so it responds before networkTask is up)
+// and consumed by networkTask to launch the captive portal, which has to run
+// on networkTask so loop() can keep rendering the AP rings.
+volatile bool apTriggerRequested = false;
 
 
 // ===================== PREFS =====================
@@ -1203,7 +1207,7 @@ void advanceCycle() {
 void performPinAction(const String& action) {
   if (action == "DIM") advanceDim();
   else if (action == "CYCLE") advanceCycle();
-  else if (action == "ACCESS_POINT") runCaptivePortal();
+  else if (action == "ACCESS_POINT") apTriggerRequested = true;
 }
 
 // Poll fade pin each loop(). Short fires immediately on release.
@@ -1706,7 +1710,10 @@ void networkTask(void*) {
   for (;;) {
     wsClient.loop();
     checkPingTimeout();
-    checkFadePin();
+    if (apTriggerRequested) {
+      apTriggerRequested = false;
+      runCaptivePortal();
+    }
 
     unsigned long now = millis();
     if (now >= nextEventMs) {
@@ -1802,6 +1809,14 @@ void loop() {
   int delay_time = (int)(1000.0f / frame_rate - (millis() - loop_start));
 
   xSemaphoreGive(render_mutex);
+
+  // Poll the button here (instead of in networkTask) so it's responsive
+  // immediately at boot — networkTask spends several seconds connecting to
+  // WiFi before reaching its polling loop. DIM/CYCLE actions run inline here;
+  // ACCESS_POINT defers to networkTask via apTriggerRequested because the
+  // captive portal blocks until WiFi connects, which would freeze rendering
+  // (including the AP rings) if it ran on the loop task.
+  checkFadePin();
 
   delay(max(delay_time, 1));  // always yield at least 1ms so idle task feeds WDT
 }
