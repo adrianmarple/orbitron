@@ -136,11 +136,13 @@ JSON file written directly to the device. Key fields:
 - `LONG_PRESS_ACTION` — `"CYCLE"` (default) or `"DIM"`
 
 ### WiFi / Captive Portal
-- On boot, `connectWiFi()` tries saved NVS credentials (10s timeout). If that fails, `runCaptivePortal()` spins up an AP (`Lumatron-<orbID>`) with a captive portal.
+- Multiple networks are supported via `WiFiMulti`. Credentials are stored in `/wifi.json` on LittleFS as an array of `{ssid, pass}` and loaded into `wifiMulti` on boot; it connects to the strongest reachable saved network. This file is deliberately **not** exposed by `GET_CONFIG` or the backup, so passwords are never readable from the admin console.
+- On boot, `connectWiFi()` loads `/wifi.json` and runs `wifiMulti.run()` (up to ~20s). If no networks are saved, `runCaptivePortal()` spins up an AP (`Lumatron-<orbID>`) with a captive portal. If networks are saved but none are reachable, it continues without portal (except on cold power-on, which launches the portal unless `SKIP_AC_ON_POWER`).
+- **Migration**: firmware predating multi-network support saved one credential to NVS. NVS survives OTA, so on first boot of the new firmware `migrateNvsCredential()` reads that SSID+password (`esp_wifi_get_config`) and seeds `/wifi.json` with it — existing orbs migrate with no user action. After migration, `/wifi.json` is the single source of truth; `WiFi.persistent(false)` keeps `WiFiMulti`'s `begin()` calls from rewriting the legacy NVS slot.
 - Portal served from `accesspoint/captiveportal.html` (embedded in flash as `arduino/esp32/portal_html.h` via `scripts/gen_portal_header.py`). **Run the script after editing the HTML**: `python3 scripts/gen_portal_header.py`
 - Portal routes: `GET /` (HTML), `GET /info` (orbID+version), `GET /scan` (network list JSON), `POST /connect` (WiFi.begin + wait), plus OS probe redirects (`/generate_204`, `/hotspot-detect.html`, `/ncsi.txt`).
-- Credentials are saved automatically to NVS by `WiFi.begin(ssid, pass)` — no config.json involvement.
-- The portal appears on every boot when WiFi fails (not just first boot).
+- A successful portal `/connect` appends the network to `/wifi.json` (deduped by SSID via `saveWifiCredential`), so connecting to a new network adds to the list rather than replacing the previous one.
+- The portal appears on every boot when no networks are saved (not just first boot).
 
 ### OTA firmware updates
 - Firmware is compiled **locally** via `bash scripts/arduino_build.sh [server-host]`

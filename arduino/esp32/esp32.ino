@@ -12,6 +12,7 @@
 #include <sys/time.h>
 #include "mbedtls/sha256.h"
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include <esp_wifi.h>
 #include <WiFiClientSecure.h>
 #include <DNSServer.h>
@@ -127,6 +128,7 @@ String orbKey;  // sha256(orbID + masterKey); empty = no auth required
 String timezone;
 bool continuousIntegration = false;
 bool dontReconnect = false;
+WiFiMulti wifiMulti;  // multi-network connect; credentials live in /wifi.json
 float maxAvgPixelBrightness = 0;  // 0 = disabled; 0-255 average per channel
 bool fullBrightnessOnPowerOn = true;
 bool skipAcOnPower = false;
@@ -992,7 +994,8 @@ void handleAdminCommand(JsonDocument& msg) {
   } else if (type == "clearwifi") {
     sendResponse(messageID, "OK");
     delay(200);
-    WiFi.disconnect(/*wifioff=*/false, /*eraseap=*/true);
+    LittleFS.remove("/wifi.json");                        // clear the saved network list (source of truth)
+    WiFi.disconnect(/*wifioff=*/false, /*eraseap=*/true); // also clear the legacy NVS slot
     delay(300);
     ESP.restart();
   } else if (type == "restart") {
@@ -1519,6 +1522,9 @@ void runCaptivePortal() {
       portalDNS.processNextRequest();
     }
     if (WiFi.status() == WL_CONNECTED) {
+      // Persist to /wifi.json (the source of truth) rather than relying on the
+      // single NVS slot, so this network joins the multi-network list.
+      saveWifiCredential(ssid, password);
       String ip = WiFi.localIP().toString();
       portalHTTP.send(200, "application/json", "{\"success\":true,\"ip\":\"" + ip + "\"}");
       Serial.println("Portal: connected, IP=" + ip);
@@ -1546,15 +1552,78 @@ void runCaptivePortal() {
   Serial.println("Portal: WiFi connected, IP=" + WiFi.localIP().toString());
 }
 
-// Returns true if WiFi credentials are saved in NVS.
-bool hasSavedWifiCredentials() {
-  wifi_config_t conf;
-  if (esp_wifi_get_config(WIFI_IF_STA, &conf) != ESP_OK) return false;
-  return strlen((const char*)conf.sta.ssid) > 0;
+// WiFi credentials are stored in /wifi.json as an array of {ssid, pass}.
+// This file is intentionally NOT exposed by GET_CONFIG or the backup so that
+// passwords are never readable from the admin console.
+
+// Add/update one network in /wifi.json (dedupes by SSID, updating its password)
+// and register it with wifiMulti. No-op for an empty SSID.
+void saveWifiCredential(const String& ssid, const String& pass) {
+  if (ssid.isEmpty()) return;
+  JsonDocument doc;
+  String json = readFile("/wifi.json");
+  if (!json.isEmpty()) deserializeJson(doc, json);
+  if (!doc.is<JsonArray>()) doc.to<JsonArray>();
+  JsonArray arr = doc.as<JsonArray>();
+  bool found = false;
+  for (JsonObject net : arr) {
+    if (ssid == (const char*)(net["ssid"] | "")) {
+      net["pass"] = pass;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    JsonObject net = arr.add<JsonObject>();
+    net["ssid"] = ssid;
+    net["pass"] = pass;
+  }
+  String out;
+  serializeJson(doc, out);
+  writeFile("/wifi.json", out);
+  wifiMulti.addAP(ssid.c_str(), pass.c_str());
 }
 
-// Try NVS creds first. If no creds saved, run captive portal.
-// If creds exist but network is unavailable, continue without portal.
+// Populate wifiMulti from /wifi.json. Returns the number of networks loaded.
+int loadWifiCredentials() {
+  String json = readFile("/wifi.json");
+  if (json.isEmpty()) return 0;
+  JsonDocument doc;
+  if (deserializeJson(doc, json) != DeserializationError::Ok) return 0;
+  int count = 0;
+  for (JsonObject net : doc.as<JsonArray>()) {
+    String ssid = net["ssid"] | "";
+    if (ssid.isEmpty()) continue;
+    String pass = net["pass"] | "";
+    wifiMulti.addAP(ssid.c_str(), pass.c_str());
+    count++;
+  }
+  return count;
+}
+
+// One-time migration: firmware that predates multi-network support saved a
+// single credential to NVS (via WiFi.begin in the portal). NVS survives OTA,
+// so on first boot of this firmware we import that credential into /wifi.json.
+// Must be called after WiFi.mode(WIFI_STA) so esp_wifi_get_config is valid.
+void migrateNvsCredential() {
+  if (!readFile("/wifi.json").isEmpty()) return;  // already migrated/seeded
+  wifi_config_t conf;
+  if (esp_wifi_get_config(WIFI_IF_STA, &conf) != ESP_OK) return;
+  if (strlen((const char*)conf.sta.ssid) == 0) return;
+  // ssid/password may not be null-terminated when at max length; bound them.
+  char ssidBuf[33];
+  memcpy(ssidBuf, conf.sta.ssid, 32);
+  ssidBuf[32] = '\0';
+  char passBuf[65];
+  memcpy(passBuf, conf.sta.password, 64);
+  passBuf[64] = '\0';
+  saveWifiCredential(String(ssidBuf), String(passBuf));
+  Serial.println("Migrated NVS WiFi credential for SSID: " + String(ssidBuf));
+}
+
+// Connect using the networks in /wifi.json (via wifiMulti, which picks the
+// strongest available). If none are saved, run the captive portal.
+// If networks exist but none are reachable, continue without portal.
 void connectWiFi() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(!dontReconnect);
@@ -1562,19 +1631,24 @@ void connectWiFi() {
   // sleep — the periodic radio wake-ups produce non-deterministic interrupt
   // bursts that can disrupt WS2812 timing under DMA-RMT. Costs ~50-100mA.
   WiFi.setSleep(WIFI_PS_NONE);
-  if (!hasSavedWifiCredentials()) {
+  // Credentials live in /wifi.json now; don't let begin() rewrite the NVS slot.
+  WiFi.persistent(false);
+
+  migrateNvsCredential();          // one-time import of pre-multi-network creds
+  int n = loadWifiCredentials();   // populate wifiMulti from /wifi.json
+  if (n == 0) {
     Serial.println("No saved WiFi credentials, launching portal");
     runCaptivePortal();
     return;
   }
-  WiFi.begin();  // uses last credentials stored in NVS
-  Serial.println("Connecting to WiFi: " + WiFi.SSID() + "...");
+
+  Serial.printf("Connecting via WiFiMulti (%d saved network%s)...\n", n, n == 1 ? "" : "s");
   unsigned long t0 = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 10000) {
+  while (wifiMulti.run(8000) != WL_CONNECTED && millis() - t0 < 20000) {
     delay(200);
   }
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("WiFi connected: " + WiFi.localIP().toString());
+    Serial.println("WiFi connected: " + WiFi.SSID() + " " + WiFi.localIP().toString());
   } else if (!skipAcOnPower && esp_reset_reason() == ESP_RST_POWERON) {
     Serial.println("WiFi unavailable on power-up, launching portal");
     runCaptivePortal();
