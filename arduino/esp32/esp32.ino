@@ -9,6 +9,7 @@
 
 #include "ws2812_rmt.h"
 #include <math.h>
+#include <sys/time.h>
 #include "mbedtls/sha256.h"
 #include <WiFi.h>
 #include <esp_wifi.h>
@@ -727,12 +728,13 @@ void mergeTimingPrefs(JsonObjectConst timingObj) {
   saveTimingPrefs();
 
   if (useTimer) {
-    // Only re-apply the active event when something schedule-relevant actually changed.
-    // If the controller just echoes back useTimer:true it received from us, we must not
-    // reset lastTriggeredEventKey — that would re-fire the schedule and override prefs.
-    bool timerJustEnabled = !prevUseTimer;
-    bool scheduleChanged = !timingObj["schedule"].isNull();
-    if (timerJustEnabled || scheduleChanged) lastTriggeredEventKey = "";
+    // Only force a re-trigger when the timer is first turned on. checkSchedule
+    // already triggers naturally when the active event's evtKey differs from
+    // lastTriggeredEventKey, which covers genuine schedule edits. Resetting on
+    // every echo of `schedule` (the controller round-trips it after each state
+    // broadcast) would re-fire the active event seconds after the real trigger
+    // — visible as a brief render hiccup and pattern-scratch reset.
+    if (!prevUseTimer) lastTriggeredEventKey = "";
     checkSchedule();
     computeNextEventMs();
   }
@@ -1313,8 +1315,17 @@ void computeNextEventMs() {
     if (dist < minDistFwd) minDistFwd = dist;
   }
 
-  if (minDistFwd < DAY + 1)
-    nextEventMs = millis() + (unsigned long)minDistFwd * 60000UL;
+  // Subtract the sub-minute already elapsed so we fire on the event's actual
+  // wall-clock boundary, not the next whole-minute boundary measured from now
+  // (gap during which computeFade's `remaining` wraps to ~DAY and saturates
+  // fade to 1, popping the previous preset to full brightness). gettimeofday
+  // gives microsecond precision once NTP has synced; convert to ms.
+  if (minDistFwd < DAY + 1) {
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    unsigned long subMinMs = (unsigned long)((tv.tv_sec % 60) * 1000 + tv.tv_usec / 1000);
+    nextEventMs = millis() + (unsigned long)minDistFwd * 60000UL - subMinMs;
+  }
 }
 
 // Precompute millis() deadline for the next 2am auto-backup.
@@ -1401,8 +1412,13 @@ float computeFade() {
   if (!useTimer || !fadeStateValid || curIsOff) return clampedDimmer;
   struct tm t;
   if (!getLocalTime(&t)) return clampedDimmer;
-
-  float nowMin = t.tm_hour * 60.0f + t.tm_min + t.tm_sec / 60.0f;
+  struct timeval tv;
+  gettimeofday(&tv, nullptr);
+  // tm_sec is integer; add tv_usec so nowMin advances every frame, not every
+  // second. Otherwise the fade `d` is constant for ~30 frames at a time and
+  // every pixel steps in lockstep at the second boundary, masking the natural
+  // per-pixel/per-channel uint8 quantization waves.
+  float nowMin = t.tm_hour * 60.0f + t.tm_min + (t.tm_sec + tv.tv_usec / 1e6f) / 60.0f;
   const float DAY = 24.0f * 60.0f;
   float elapsed   = fmodf(nowMin - curEventMin  + DAY, DAY);
   float remaining = fmodf(nextEventMin - nowMin + DAY, DAY);
