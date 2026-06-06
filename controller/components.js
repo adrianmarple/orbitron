@@ -509,13 +509,31 @@ Vue.component('vector3', {
     },
     updateFromPrefs() {
       let v = this.$root.prefs[this.name].split(",").map(x => parseFloat(x))
-      this.theta = Math.atan2(v[0], v[2])
       this.sigma = -Math.atan(v[1] / Math.sqrt(v[0]*v[0] + v[2]*v[2]))
-      if (this.theta < 0) {
-        this.theta += Math.PI*4
-      } else {
-        this.theta += Math.PI*2
+      // theta lives in [0, 4π) and the mesh is rotated by theta/2, but the saved
+      // vector only encodes azimuth mod 2π — so two "sheets" (base and base+2π)
+      // produce the identical vector. Always snapping to the upper sheet (the old
+      // behavior) jumped theta by 2π whenever a drag crossed into the lower sheet,
+      // which is a 180° mesh flip. Instead pick whichever sheet is closest to the
+      // current theta so reconstruction (re-triggered by our own continuous pref
+      // writes) stays continuous and never flips mid-drag.
+      let base = Math.atan2(v[0], v[2])
+      if (base < 0) {
+        base += Math.PI*2
       }
+      const DOUBLE_TURN = Math.PI*4
+      let current = this.theta
+      let best = base
+      let bestDist = Infinity
+      for (let candidate of [base, base + Math.PI*2]) {
+        let d = Math.abs(candidate - current)
+        d = Math.min(d, DOUBLE_TURN - d)
+        if (d < bestDist) {
+          bestDist = d
+          best = candidate
+        }
+      }
+      this.theta = best
       this.setRotation()
     },
     startMove(event) {
