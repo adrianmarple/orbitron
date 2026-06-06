@@ -156,18 +156,13 @@ String connectedClients[MAX_CLIENTS];
 int clientCount = 0;
 String currentPrefName = "";
 
-// Updates the in-memory name and writes to flash only if the value changed.
-// Avoids a flash write per prefs tweak (which disables interrupts for ~50ms
-// and can underrun the WS2812 DMA encoder, producing visible glitches).
-// Holds render_mutex around the write so it happens between frames (no DMA
-// active), same protection as savePrefsAndApply.
+// Updates the in-memory name and writes to flash only if the value changed,
+// avoiding a flash write per prefs tweak. writeFile holds render_mutex around
+// the actual write, so the flash erase can't underrun the WS2812 DMA.
 void setCurrentPrefName(const String& name) {
   if (currentPrefName == name) return;
-  bool took = (render_mutex != nullptr);
-  if (took) xSemaphoreTake(render_mutex, portMAX_DELAY);
   currentPrefName = name;
   writeFile("/currentprefname.txt", name);
-  if (took) xSemaphoreGive(render_mutex);
 }
 
 // --- Geometry loaded flag ---
@@ -208,8 +203,11 @@ float nextFadeOut = 30.0f;    // minutes
 unsigned long nextBackupMs = ULONG_MAX;
 
 // --- Render mutex ---
-// Taken by the network task when handling a WebSocket event (modifying shared state).
+// Taken by the network task when handling a WebSocket event (modifying shared state)
+// and by every flash write (writeFile/removeFile), so a flash erase can never
+// stall the CPU mid-frame and underrun the WS2812 DMA.
 // Taken by loop() for the duration of each render frame.
+// Recursive so nested holders (savePrefsAndApply -> savePrefs -> writeFile) don't deadlock.
 // On S3: tasks run on separate cores so this prevents true concurrent access.
 // On C3/C6: tasks share one core; mutex is still correct, just has no parallelism benefit.
 SemaphoreHandle_t render_mutex = nullptr;
@@ -385,7 +383,7 @@ void clearDirectory(const char* dirPath) {
     entry = dir.openNextFile();
   }
   dir.close();
-  for (int i = 0; i < count; i++) LittleFS.remove(paths[i].c_str());
+  for (int i = 0; i < count; i++) removeFile(paths[i].c_str());
 }
 
 String readFile(const char* path) {
@@ -396,9 +394,24 @@ String readFile(const char* path) {
   return s;
 }
 
+// All flash mutations go through writeFile/removeFile, which hold render_mutex
+// so the operation (a LittleFS sector erase disables the flash cache and stalls
+// the other core for tens of ms) can never land mid-frame and underrun the
+// WS2812 DMA. render_mutex is recursive, so callers that already hold it (e.g.
+// savePrefsAndApply, which locks across savePrefs + applyPrefs) nest harmlessly.
+// Flash reads don't erase/disable the cache, so readFile is intentionally left
+// unguarded to avoid stalling frames.
 void writeFile(const char* path, const String& content) {
+  xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
   File f = LittleFS.open(path, "w");
   if (f) { f.print(content); f.close(); }
+  xSemaphoreGiveRecursive(render_mutex);
+}
+
+void removeFile(const char* path) {
+  xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
+  LittleFS.remove(path);
+  xSemaphoreGiveRecursive(render_mutex);
 }
 
 Prefs loadPrefs() {
@@ -419,11 +432,10 @@ void savePrefs(Prefs& p) {
 // mid-stripShow() during this — its DMA isn't active, so the flash write's
 // interrupt-disable can't underrun the WS2812 encoder ISR.
 void savePrefsAndApply(Prefs& p) {
-  bool took = (render_mutex != nullptr);
-  if (took) xSemaphoreTake(render_mutex, portMAX_DELAY);
+  xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
   savePrefs(p);
   applyPrefs(p);
-  if (took) xSemaphoreGive(render_mutex);
+  xSemaphoreGiveRecursive(render_mutex);
 }
 
 // ===================== BACKUP =====================
@@ -526,7 +538,7 @@ void fetchGeometryToCache() {
     entry = root.openNextFile();
   }
   root.close();
-  for (int i = 0; i < staleCount; i++) LittleFS.remove(stalePaths[i].c_str());
+  for (int i = 0; i < staleCount; i++) removeFile(stalePaths[i].c_str());
 
   WiFiClientSecure client;
   client.setInsecure();
@@ -536,9 +548,14 @@ void fetchGeometryToCache() {
   http.begin(client, url);
   int code = http.GET();
   if (code == 200) {
+    // Hold render_mutex across the streamed write so its sector erases can't
+    // underrun the DMA. This is a one-time first-boot fetch; rendering is just
+    // the placeholder, so briefly pausing it here is harmless.
+    xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
     File out = LittleFS.open(cachePath, "w");
     if (out) { http.writeToStream(&out); out.close(); }
     else Serial.println("Failed to open " + cachePath + " for write");
+    xSemaphoreGiveRecursive(render_mutex);
   } else {
     Serial.println("Geometry fetch failed: HTTP " + String(code));
   }
@@ -821,7 +838,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
     String name = doc["name"].as<String>();
     if (name.isEmpty()) return;
 
-    LittleFS.remove(savedPrefPath(name).c_str());
+    removeFile(savedPrefPath(name).c_str());
 
     // Remove from includedInCycles in timingPrefsDoc
     JsonObject inc = timingPrefsDoc["includedInCycles"].as<JsonObject>();
@@ -860,7 +877,7 @@ void handleControllerMessage(const String& clientID, const String& message) {
     String savedJson = readFile(savedPrefPath(originalName).c_str());
     if (savedJson.isEmpty()) return;
     writeFile(savedPrefPath(newName).c_str(), savedJson);
-    LittleFS.remove(savedPrefPath(originalName).c_str());
+    removeFile(savedPrefPath(originalName).c_str());
 
     // Rename in timingPrefsDoc (includedInCycles + schedule events)
     {
@@ -994,7 +1011,7 @@ void handleAdminCommand(JsonDocument& msg) {
   } else if (type == "clearwifi") {
     sendResponse(messageID, "OK");
     delay(200);
-    LittleFS.remove("/wifi.json");                        // clear the saved network list (source of truth)
+    removeFile("/wifi.json");                             // clear the saved network list (source of truth)
     WiFi.disconnect(/*wifioff=*/false, /*eraseap=*/true); // also clear the legacy NVS slot
     delay(300);
     ESP.restart();
@@ -1050,7 +1067,7 @@ void performOTA() {
   // Render one final frame with pixel 0 (and its dupe) forced to blue as the
   // OTA indicator, then hold render_mutex through the entire update so the
   // render loop blocks. Only lit when the dimmer/fade isn't fully off.
-  xSemaphoreTake(render_mutex, portMAX_DELAY);
+  xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
   if (leds && pixels) {
     renderFrame();
     if (computeFade() > 0.0f) {
@@ -1080,7 +1097,7 @@ void performOTA() {
       wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
       break;
   }
-  xSemaphoreGive(render_mutex);
+  xSemaphoreGiveRecursive(render_mutex);
 }
 
 void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
@@ -1667,6 +1684,10 @@ void setup() {
 
   randomSeed(esp_random());
 
+  // Create the render mutex first, before any flash write or prefs apply below,
+  // so writeFile/removeFile can unconditionally rely on it existing.
+  render_mutex = xSemaphoreCreateRecursiveMutex();
+
   LittleFS.begin(true);  // true = format if mount fails
   LittleFS.mkdir("/savedprefs");
   Serial.println("LittleFS mounted");
@@ -1727,7 +1748,6 @@ void setup() {
   // On S3 with PSRAM, geometry is allocated in PSRAM so internal DMA RAM stays free for RMT.
   loadGeometry();
 
-  render_mutex = xSemaphoreCreateMutex();
   xTaskCreatePinnedToCore(networkTask, "net", 16384, nullptr, 1, nullptr, 0);
   vTaskPrioritySet(nullptr, 2);
 }
@@ -1758,9 +1778,9 @@ void networkTask(void*) {
 
   if (!geometryLoaded) {
     fetchGeometryToCache();
-    xSemaphoreTake(render_mutex, portMAX_DELAY);
+    xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
     loadGeometry();
-    xSemaphoreGive(render_mutex);
+    xSemaphoreGiveRecursive(render_mutex);
   }
 
   if (!relayHost.isEmpty() && !orbID.isEmpty()) {
@@ -1862,9 +1882,9 @@ void loop() {
     return;
   }
 
-  xSemaphoreTake(render_mutex, portMAX_DELAY);
+  xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
   if (!leds || !pixels) {
-    xSemaphoreGive(render_mutex);
+    xSemaphoreGiveRecursive(render_mutex);
     delay(10);
     return;
   }
@@ -1882,7 +1902,7 @@ void loop() {
     frame_rate = idleFrameRate;
   int delay_time = (int)(1000.0f / frame_rate - (millis() - loop_start));
 
-  xSemaphoreGive(render_mutex);
+  xSemaphoreGiveRecursive(render_mutex);
 
   // Poll the button here (instead of in networkTask) so it's responsive
   // immediately at boot — networkTask spends several seconds connecting to
