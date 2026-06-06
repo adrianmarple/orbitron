@@ -397,6 +397,9 @@ def fade():
   if start_fade_duration <= 0:
     start_fade_duration = 0.01
   start_fade = (now - start).total_seconds() / start_fade_duration / 60
+  # No fade-in when the active event didn't change the preset.
+  if current["prefName"] == previous["prefName"]:
+    start_fade = 1
 
   end_fade_duration = next.get("fadeOut", 30) if next["prefName"] == "OFF" else 0.2
   try:
@@ -407,7 +410,10 @@ def fade():
   if end_fade_duration <= 0:
     end_fade_duration = 0.01
   end_fade = (end - now).total_seconds() / end_fade_duration / 60
-  
+  # No fade-out when the next event won't change the preset.
+  if next["prefName"] == current["prefName"]:
+    end_fade = 1
+
   fade = min(start_fade, end_fade)
   fade = min(fade, 1)
   fade = max(fade, 0)

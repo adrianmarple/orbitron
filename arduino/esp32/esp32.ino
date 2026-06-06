@@ -198,6 +198,8 @@ float nextEventMin = 0.0f;    // next event start, minute-of-day
 bool curIsOff = true;
 bool prevIsOff = true;
 bool nextIsOff = true;
+bool startSamePreset = false; // prev event's preset == active's: skip the fade-in
+bool endSamePreset = false;   // next event's preset == active's: skip the fade-out
 float prevFadeIn = 10.0f;     // minutes
 float nextFadeOut = 30.0f;    // minutes
 
@@ -1447,9 +1449,15 @@ void checkSchedule() {
   // Cache fade state
   curEventMin  = (float)activeMin;
   nextEventMin = (float)parseTimeMinutes(nextEvt["time"].as<String>());
-  curIsOff  = (activeEvt["prefName"].as<String>() == "OFF");
-  prevIsOff = (prevEvt["prefName"].as<String>()   == "OFF");
-  nextIsOff = (nextEvt["prefName"].as<String>()   == "OFF");
+  String activeName = activeEvt["prefName"].as<String>();
+  String prevName   = prevEvt["prefName"].as<String>();
+  String nextName   = nextEvt["prefName"].as<String>();
+  curIsOff  = (activeName == "OFF");
+  prevIsOff = (prevName   == "OFF");
+  nextIsOff = (nextName   == "OFF");
+  // Skip the crossfade dip across a boundary where the preset doesn't change.
+  startSamePreset = (activeName == prevName);
+  endSamePreset   = (nextName   == activeName);
   prevFadeIn  = prevEvt["fadeIn"].isNull()  ? 10.0f : prevEvt["fadeIn"].as<float>();
   nextFadeOut = nextEvt["fadeOut"].isNull() ? 30.0f : nextEvt["fadeOut"].as<float>();
   fadeStateValid = true;
@@ -1484,8 +1492,9 @@ float computeFade() {
 
   float startDur = max(0.01f, prevIsOff ? prevFadeIn  : 0.2f);
   float endDur   = max(0.01f, nextIsOff ? nextFadeOut : 0.2f);
-  float startFade = elapsed   / startDur;
-  float endFade   = remaining / endDur;
+  // No fade-in/out when the preset isn't changing across that boundary.
+  float startFade = startSamePreset ? 1.0f : elapsed   / startDur;
+  float endFade   = endSamePreset   ? 1.0f : remaining / endDur;
   float fade = min(startFade, endFade);
   fade = constrain(fade, 0.0f, 1.0f);
   return min(fade, clampedDimmer);
