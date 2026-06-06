@@ -269,13 +269,22 @@ Vue.component('vector2', {
   data() {
     return {
       isMoving: false,
+      resyncTimer: null,
       style: {},
       value: { angle: 0, magnitude: 0 },
     }
   },
   mounted() {
     this.updateFromPrefs()
-    this.$watch(() => this.$root.prefs[this.name], () => { this.updateFromPrefs() })
+    // Don't pull from prefs while dragging or settling — the live drag drives the
+    // arrow, and lagging echoes (e.g. the Arduino's debounced round-trip) would
+    // snap it back to stale positions. endMove schedules one resync once settled.
+    this.$watch(() => this.$root.prefs[this.name], () => {
+      if (!this.isMoving && this.resyncTimer == null) this.updateFromPrefs()
+    })
+  },
+  unmounted() {
+    clearTimeout(this.resyncTimer)
   },
   computed: {
     halfWidth() {
@@ -304,10 +313,21 @@ Vue.component('vector2', {
     },
     startMove(event) {
       this.isMoving = true
+      // Cancel a pending post-drag resync; we're dragging again.
+      clearTimeout(this.resyncTimer)
+      this.resyncTimer = null
       this.onMove(event)
     },
     endMove() {
+      if (!this.isMoving) return
       this.isMoving = false
+      // Resync to the settled prefs value 0.2s after the drag ends (watcher stays
+      // suppressed until then so echoes don't snap the arrow back).
+      clearTimeout(this.resyncTimer)
+      this.resyncTimer = setTimeout(() => {
+        this.resyncTimer = null
+        this.updateFromPrefs()
+      }, 200)
     },
     onMove(event) {
       if (!this.isMoving) return
@@ -374,6 +394,7 @@ Vue.component('vector3', {
       theta: 0,
       sigma: 0,
       start: null,
+      resyncTimer: null,
       animationFrameId: null,
     }
   },
@@ -381,11 +402,18 @@ Vue.component('vector3', {
     this.load()
     this.updateFromPrefs()
     window.addEventListener('resize', this.resize)
-    this.$watch(() => this.$root.prefs[this.name], () => { this.updateFromPrefs() })
+    // Don't pull angles from prefs while a drag is in progress or settling — the
+    // live drag drives the mesh directly, and folding in lagging echoes (e.g. the
+    // Arduino's debounced round-trip) snaps it back to slightly stale positions.
+    // endMove schedules a single resync once things have settled.
+    this.$watch(() => this.$root.prefs[this.name], () => {
+      if (this.start == null && this.resyncTimer == null) this.updateFromPrefs()
+    })
   },
   unmounted() {
     window.removeEventListener('resize', this.resize)
     cancelAnimationFrame(this.animationFrameId)
+    clearTimeout(this.resyncTimer)
   },
   computed: {
     halfWidth() {
@@ -538,9 +566,20 @@ Vue.component('vector3', {
     },
     startMove(event) {
       this.start = {x: event.clientX, y: event.clientY}
+      // Cancel a pending post-drag resync; we're dragging again.
+      clearTimeout(this.resyncTimer)
+      this.resyncTimer = null
     },
     endMove() {
+      if (!this.start) return
       this.start = null
+      // Resync to the settled prefs value 0.2s after the drag ends (keeps the
+      // watcher suppressed until then so echoes don't snap the mesh back).
+      clearTimeout(this.resyncTimer)
+      this.resyncTimer = setTimeout(() => {
+        this.resyncTimer = null
+        this.updateFromPrefs()
+      }, 200)
     },
     onMove(event) {
       if (!this.start) return
