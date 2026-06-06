@@ -155,6 +155,7 @@ unsigned long lastPingReceived = 0;
 String connectedClients[MAX_CLIENTS];
 int clientCount = 0;
 String currentPrefName = "";
+uint32_t prefsHash = 0;  // fnv1a of last-written prefs.json; skips no-op rewrites
 
 // Updates the in-memory name and writes to flash only if the value changed,
 // avoiding a flash write per prefs tweak. writeFile holds render_mutex around
@@ -174,6 +175,7 @@ float dimmer = 1.0f;
 String lastTriggeredEventKey = "";
 unsigned long nextEventMs = 0;
 JsonDocument timingPrefsDoc;  // in-memory cache of /timingprefs.json
+uint32_t timingPrefsHash = 0; // fnv1a of last-written timingprefs; skips no-op rewrites
 
 // --- State drift detection ---
 // Cached hash of the most recent state JSON (excluding transient timestamp).
@@ -415,15 +417,29 @@ void removeFile(const char* path) {
 }
 
 Prefs loadPrefs() {
+  Prefs p = defaultPrefs;
   String json = readFile("/prefs.json");
-  if (json.isEmpty()) return defaultPrefs;
-  JsonDocument doc;
-  if (deserializeJson(doc, json) != DeserializationError::Ok) return defaultPrefs;
-  return prefsFromJson(doc, defaultPrefs);
+  if (!json.isEmpty()) {
+    JsonDocument doc;
+    if (deserializeJson(doc, json) == DeserializationError::Ok) p = prefsFromJson(doc, defaultPrefs);
+  }
+  // Seed the dedupe hash from the loaded content (serialized the same way
+  // savePrefs does) so an unchanged echo doesn't trigger a rewrite.
+  String out = prefsToJson(p);
+  prefsHash = fnv1a(out.c_str(), out.length());
+  return p;
 }
 
 void savePrefs(Prefs& p) {
-  writeFile("/prefs.json", prefsToJson(p));
+  String out = prefsToJson(p);
+  // Skip the write if content is unchanged. A timing-pref edit triggers a state
+  // broadcast that the controller reconciles and echoes back; a round-trip
+  // mismatch on a regular pref (e.g. a dirToString direction) would otherwise
+  // rewrite all of prefs.json on each echo. Mirrors saveTimingPrefs.
+  uint32_t h = fnv1a(out.c_str(), out.length());
+  if (h == prefsHash) return;
+  prefsHash = h;
+  writeFile("/prefs.json", out);
 }
 
 // Save + apply prefs with a single render_mutex acquisition. The mutex is
@@ -1268,6 +1284,13 @@ void checkFadePin() {
 void saveTimingPrefs() {
   String out;
   serializeJsonPretty(timingPrefsDoc, out);
+  // Skip the write if nothing actually changed. The controller round-trips the
+  // timing fields (schedule, dimmer, ...) after every state broadcast, so
+  // without this each echo would rewrite the file — a full sector erase that
+  // stalls the render loop. Mirrors setCurrentPrefName's write-on-change guard.
+  uint32_t h = fnv1a(out.c_str(), out.length());
+  if (h == timingPrefsHash) return;
+  timingPrefsHash = h;
   writeFile("/timingprefs.json", out);
 }
 
@@ -1284,6 +1307,11 @@ void loadTimingPrefs() {
     timingPrefsDoc.clear();
     return;
   }
+  // Seed the dedupe hash from the loaded content (serialized the same way
+  // saveTimingPrefs does) so an unchanged echo doesn't trigger a rewrite.
+  String out;
+  serializeJsonPretty(timingPrefsDoc, out);
+  timingPrefsHash = fnv1a(out.c_str(), out.length());
   if (!timingPrefsDoc["useTimer"].isNull()) useTimer = timingPrefsDoc["useTimer"].as<bool>();
   if (!timingPrefsDoc["dimmer"].isNull())   dimmer   = timingPrefsDoc["dimmer"].as<float>();
   Serial.println("loadTimingPrefs: useTimer=" + String(useTimer) + " dimmer=" + String(dimmer));
