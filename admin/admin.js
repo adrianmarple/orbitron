@@ -466,13 +466,14 @@ new Vue({
       this.powerValue = 1
       this.powerStep = 1
       this.stepIncreasing = true
-      this.sendPrefsUpdate({ brightness: 234, idlePattern: "static", idleColor: "fixed", dimmer: 1 })
       this.sendPowerValue()
+      this.sendPrefsUpdate({ brightness: 234, idlePattern: "static", idleColor: "gradient", dimmer: 1 })
     },
 
     sendPowerValue() {
       let powerHex = this.powerValue.toString(16).padStart(2, '0')
-      this.sendPrefsUpdate({ fixedColor: `#${powerHex}${powerHex}${powerHex}`, idlePattern: "static" })
+      let color = `#${powerHex}${powerHex}${powerHex}`
+      this.sendPrefsUpdate({ gradientStartColor: color, gradientEndColor: color, idlePattern: "static" })
     },
 
     async nextPowerValue(wasGood) {
