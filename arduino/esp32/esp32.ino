@@ -132,6 +132,11 @@ WiFiMulti wifiMulti;  // multi-network connect; credentials live in /wifi.json
 float maxAvgPixelBrightness = 0;  // 0 = disabled; 0-255 average per channel
 bool fullBrightnessOnPowerOn = true;
 bool skipAcOnPower = false;
+// Boot-stability marker: /unstableboot is written each boot and only deleted
+// after STABLE_UPTIME_MS of uninterrupted runtime, so its presence at boot means
+// the previous run reset before stabilizing (the overcurrent-sag signature).
+const unsigned long STABLE_UPTIME_MS = 10000;
+bool bootStableMarked = false;
 
 // --- Manual fade pin ---
 int buttonPin = 0;  // 0 = disabled (GPIO 0 isn't used as a button on any supported board)
@@ -1762,11 +1767,16 @@ void setup() {
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 
-  // Overcurrent recovery: a brownout reset means the last frame pulled the rail
-  // too low, so walk the power cap down by 1 before driving any LEDs. Repeated
-  // brownouts ratchet it down until the supply can sustain it. Apply to the
-  // in-memory value too so this very boot already renders at the lower cap.
-  if (esp_reset_reason() == ESP_RST_BROWNOUT) {
+  // Overcurrent recovery via the boot-stability marker. If /unstableboot is still
+  // present, the previous run reset before reaching STABLE_UPTIME_MS — the
+  // signature of an overcurrent sag dragging the rail down as soon as the LEDs
+  // light (brownout, panic, or a hard reset all look the same this way). Deliberate
+  // software restarts (setconfig, OTA) report ESP_RST_SW and are excluded so a
+  // quick intentional reboot isn't mistaken for instability. When detected, walk
+  // the power cap down by 1 before driving any LEDs; repeated resets ratchet it
+  // down until the supply can sustain it. Apply to the in-memory value too so this
+  // very boot already renders at the lower cap. Re-arm the marker for this boot.
+  if (LittleFS.exists("/unstableboot") && esp_reset_reason() != ESP_RST_SW) {
     JsonDocument doc;
     deserializeJson(doc, readFile("/config.json"));
     int cap = doc["MAX_AVG_PIXEL_BRIGHTNESS"] | 255;  // missing = uncapped: start from full
@@ -1776,8 +1786,9 @@ void setup() {
     String out;
     serializeJsonPretty(doc, out);
     writeFile("/config.json", out);
-    Serial.println("Brownout reset: MAX_AVG_PIXEL_BRIGHTNESS lowered to " + String(cap));
+    Serial.println("Unstable boot: MAX_AVG_PIXEL_BRIGHTNESS lowered to " + String(cap));
   }
+  writeFile("/unstableboot", "1");  // deleted in loop() once STABLE_UPTIME_MS is reached
 
   // Load and apply prefs (write defaults on first boot so getprefs returns something)
   currentPrefName = readFile("/currentprefname.txt");
@@ -1907,14 +1918,18 @@ void renderFrame() {
     }
   }
 
-  // Apply MAX_AVG_PIXEL_BRIGHTNESS power cap. Sum the clamped (0..255) values
-  // so the cap matches what'll actually drive the LEDs, not the headroom above.
+  // Apply MAX_AVG_PIXEL_BRIGHTNESS power cap. Clamp each pixel to the 0..255 range
+  // the LEDs actually receive *first*, writing it back, then sum and scale those
+  // clamped values. Otherwise a pixel driven past 255 counts as 255 in the sum but
+  // gets scaled from its raw (over-255) value, so the scale under-corrects and the
+  // cap leaks — worse the further the pattern pushes past 255.
   if (maxAvgPixelBrightness > 0) {
     float total = 0;
     for (int i = 0; i < RAW_SIZE; i++) {
       for (int c = 0; c < 3; c++) {
         float v = pixels[i][c];
         if (v > 255) v = 255; else if (v < 0) v = 0;
+        pixels[i][c] = v;
         total += v;
       }
     }
@@ -1950,6 +1965,14 @@ void loop() {
   if (apActive) renderAPRings();
 
   stripShow();
+
+  // Once we've rendered uninterrupted for STABLE_UPTIME_MS, clear the boot marker
+  // so this boot no longer counts as unstable. removeFile nests harmlessly on the
+  // render_mutex we already hold.
+  if (!bootStableMarked && millis() > STABLE_UPTIME_MS) {
+    bootStableMarked = true;
+    removeFile("/unstableboot");
+  }
 
   float frame_rate = 30;
   if (idlePattern == PATTERN_DEFAULT || idlePattern == PATTERN_FIREFLIES)
