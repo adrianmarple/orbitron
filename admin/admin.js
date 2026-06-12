@@ -143,6 +143,11 @@ new Vue({
   },
 
   methods: {
+    formatTime(iso) {
+      if (!iso) return ""
+      return new Date(iso).toLocaleString()
+    },
+
     async genOrbID() {
       let orbID = createRandomID()
       this.config = upsertKeyValueInConfig(this.config, 'ORB_ID', orbID, "exports")

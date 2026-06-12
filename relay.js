@@ -23,6 +23,7 @@ const FIRMWARE_DIR = path.join(__dirname, 'firmware')
 const SUPPORTED_CHIPS = ['esp32c3', 'esp32c6', 'esp32s3']
 const firmwareBin = chip => path.join(FIRMWARE_DIR, `${chip}.bin`)
 const firmwareVersionFile = chip => path.join(FIRMWARE_DIR, `${chip}.version.txt`)
+const firmwareUploadTimeFile = chip => path.join(FIRMWARE_DIR, `${chip}.uploaded.txt`)
 let compiledFirmwareVersions = {}  // chip -> version number
 
 const MASTER_KEY_FILE = path.join(__dirname, 'masterkey.txt')
@@ -395,8 +396,13 @@ addGETListener(async (response, _, filePath, queryParams) => {
 addGETListener(async (response, orbID, filePath) => {
   if (filePath != "/admin/versions") return false
   let gitCount = parseInt((await execute("git rev-list --count HEAD")).trim())
+  let latestCommitTime = (await execute("git log -1 --format=%cI")).trim()
+  let firmwareUploadTimes = {}  // chip -> ISO timestamp
+  for (const chip of SUPPORTED_CHIPS) {
+    try { firmwareUploadTimes[chip] = (await fs.promises.readFile(firmwareUploadTimeFile(chip), 'utf8')).trim() } catch(_) {}
+  }
   noCorsHeader(response, 'text/json')
-  response.end(JSON.stringify({ gitCount, arduinoVersions: compiledFirmwareVersions }))
+  response.end(JSON.stringify({ gitCount, arduinoVersions: compiledFirmwareVersions, firmwareUploadTimes, latestCommitTime }))
   return true
 })
 
@@ -542,6 +548,7 @@ addPOSTListener(async (response, body, filePath, queryParams) => {
   await fs.promises.mkdir(FIRMWARE_DIR, { recursive: true })
   await fs.promises.writeFile(firmwareBin(chip), body)
   await fs.promises.writeFile(firmwareVersionFile(chip), String(version))
+  await fs.promises.writeFile(firmwareUploadTimeFile(chip), new Date().toISOString())
   compiledFirmwareVersions[chip] = parseInt(version)
   console.log(`Firmware uploaded: ${chip} version ${compiledFirmwareVersions[chip]}`)
   sendToArduinos("HAS_UPDATE")

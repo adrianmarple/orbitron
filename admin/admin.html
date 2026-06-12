@@ -83,6 +83,13 @@
       {{ rightOpen ? '▶' : '◀' }}
     </div>
 
+    <div class="version-times">
+      <div v-for="(time, chip) in versions.firmwareUploadTimes" :key="chip">
+        {{ chip }} uploaded: {{ formatTime(time) }}
+      </div>
+      <div v-if="versions.latestCommitTime">Latest commit: {{ formatTime(versions.latestCommitTime) }}</div>
+    </div>
+
     <div class="type-buttons">
       <div v-for="orb in orbInfo" class="button orb" @click="setOrb(orb.id)">
         <div class="left">
