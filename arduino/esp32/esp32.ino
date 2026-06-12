@@ -1762,6 +1762,23 @@ void setup() {
   }
   Serial.println("Config loaded: ORB_ID=" + orbID + " RELAY_HOST=" + relayHost);
 
+  // Overcurrent recovery: a brownout reset means the last frame pulled the rail
+  // too low, so walk the power cap down by 1 before driving any LEDs. Repeated
+  // brownouts ratchet it down until the supply can sustain it. Apply to the
+  // in-memory value too so this very boot already renders at the lower cap.
+  if (esp_reset_reason() == ESP_RST_BROWNOUT) {
+    JsonDocument doc;
+    deserializeJson(doc, readFile("/config.json"));
+    int cap = doc["MAX_AVG_PIXEL_BRIGHTNESS"] | 255;  // missing = uncapped: start from full
+    cap = max(1, cap - 1);
+    doc["MAX_AVG_PIXEL_BRIGHTNESS"] = cap;
+    maxAvgPixelBrightness = cap;
+    String out;
+    serializeJsonPretty(doc, out);
+    writeFile("/config.json", out);
+    Serial.println("Brownout reset: MAX_AVG_PIXEL_BRIGHTNESS lowered to " + String(cap));
+  }
+
   // Load and apply prefs (write defaults on first boot so getprefs returns something)
   currentPrefName = readFile("/currentprefname.txt");
   Prefs p = loadPrefs();
