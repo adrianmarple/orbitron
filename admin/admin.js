@@ -52,6 +52,9 @@ new Vue({
   },
 
   computed: {
+    selectedResetReason() {
+      return this.orbInfo.find(orb => orb.id == this.orbID)?.resetReason
+    },
     width() {
       return Math.min(700, this.innerWidth)
     },

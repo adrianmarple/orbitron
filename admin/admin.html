@@ -37,6 +37,7 @@
     <div class="names">
       {{ orbID }}
       <div v-if="alias">Alias: {{ alias }}</div>
+      <div v-if="selectedResetReason" class="reset-reason">Reset: {{ selectedResetReason }}</div>
     </div>
 
     <div class="actions">

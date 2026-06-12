@@ -665,6 +665,7 @@ void sendInfoDump() {
   // Tack on fields not stored in config.json
   configDoc["ARDUINO"] = true;
   configDoc["FIRMWARE_VERSION"] = FIRMWARE_VERSION;
+  configDoc["RESET_REASON"] = resetReasonName(esp_reset_reason());
 
   JsonDocument msg;
   msg["type"] = "info";
@@ -1718,10 +1719,27 @@ void connectWiFi() {
 
 // ===================== SETUP / LOOP =====================
 
+const char* resetReasonName(esp_reset_reason_t reason) {
+  switch (reason) {
+    case ESP_RST_POWERON:   return "POWERON";
+    case ESP_RST_EXT:       return "EXT";
+    case ESP_RST_SW:        return "SW";
+    case ESP_RST_PANIC:     return "PANIC";
+    case ESP_RST_INT_WDT:   return "INT_WDT";
+    case ESP_RST_TASK_WDT:  return "TASK_WDT";
+    case ESP_RST_WDT:       return "WDT";
+    case ESP_RST_DEEPSLEEP: return "DEEPSLEEP";
+    case ESP_RST_BROWNOUT:  return "BROWNOUT";
+    case ESP_RST_SDIO:      return "SDIO";
+    default:                return "UNKNOWN";
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("========================================");
   Serial.println("  Firmware version: " + FIRMWARE_VERSION);
+  Serial.println("  Reset reason: " + String(resetReasonName(esp_reset_reason())));
   Serial.println("========================================");
 
   randomSeed(esp_random());
