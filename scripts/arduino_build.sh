@@ -30,8 +30,8 @@ echo "Building firmware version $VERSION for $SERVER..."
 BUILD_DIR=$(mktemp -d)
 trap "rm -rf $BUILD_DIR" EXIT
 
-CHIPS=("esp32c3" "esp32c6" "esp32s3")
-FQBNS=("esp32:esp32:esp32c3:PartitionScheme=custom,CDCOnBoot=cdc" "esp32:esp32:esp32c6:PartitionScheme=custom,CDCOnBoot=cdc" "esp32:esp32:esp32s3:PartitionScheme=custom,CDCOnBoot=cdc,PSRAM=opi")
+CHIPS=("esp32s3" "esp32c6" "esp32c3")
+FQBNS=("esp32:esp32:esp32s3:PartitionScheme=custom,CDCOnBoot=cdc,PSRAM=opi" "esp32:esp32:esp32c6:PartitionScheme=custom,CDCOnBoot=cdc" "esp32:esp32:esp32c3:PartitionScheme=custom,CDCOnBoot=cdc")
 
 for i in "${!CHIPS[@]}"; do
   CHIP="${CHIPS[$i]}"
