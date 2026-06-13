@@ -695,6 +695,23 @@ void sendToClient(const String& clientID, const String& message) {
   wsClient.sendTXT(out);
 }
 
+// Monotonic-across-reboots timestamp for state messages. Returns NTP epoch
+// milliseconds once the clock is synced, falling back to millis() during the
+// brief pre-sync window after boot. millis() resets to 0 on every reboot, so a
+// post-restart state would carry a smaller timestamp than the pre-restart one
+// and get rejected by the controller's stale-message dedup guard — stalling
+// RESYNC convergence after a restore/restart. Epoch time keeps increasing
+// across reboots and avoids that.
+long long stateTimestamp() {
+  time_t now = time(nullptr);
+  if (now > 1704067200L) {  // NTP-synced (after 2024-01-01)
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    return (long long)tv.tv_sec * 1000LL + tv.tv_usec / 1000LL;
+  }
+  return (long long)millis();
+}
+
 void sendState(const String& clientID) {
   Prefs p = loadPrefs();
   JsonDocument state;
@@ -743,7 +760,7 @@ void sendState(const String& clientID) {
   serializeJson(state, stableStr);
   currentStateHash = fnv1a(stableStr.c_str(), stableStr.length());
 
-  state["timestamp"] = (long)millis();
+  state["timestamp"] = stateTimestamp();
   state["stateHash"] = String(currentStateHash, HEX);
   String stateStr;
   serializeJson(state, stateStr);
