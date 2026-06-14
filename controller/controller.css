@@ -196,50 +196,6 @@ a > .fancy-box:hover, a.fancy-box:hover {
   width: 41rem;
   z-index: 1;
 }
-.light {
-  font-size: 7rem;
-  line-height: 0;
-  position: relative;
-  bottom: 0.2rem;
-}
-.light.magenta {
-  color: magenta;
-  text-shadow: 0 0 1rem magenta,  0 0 0.5rem magenta;
-}
-.light.magenta.flashing {
-  animation: magentalight 1s linear infinite alternate;
-}
-@keyframes magentalight {
-  from {text-shadow: 0 0 0 magenta,  0 0 0.5rem magenta; opacity: 0; }
-  to {text-shadow: 0 0 1rem magenta,  0 0 0.5rem magenta; opacity: 1; }
-}
-.light.red {
-  color: red;
-  text-shadow: 0 0 1rem red,  0 0 0.5rem red;
-}
-.light.yellow {
-  color: yellow;
-  text-shadow: 0 0 1rem yellow,  0 0 0.5rem yellow;
-}
-.light.green {
-  color: green;
-  text-shadow: 0 0 1rem green,  0 0 0.5rem green;
-}
-.light.cyan {
-  color: cyan;
-  text-shadow: 0 0 1rem cyan,  0 0 0.5rem cyan;
-}
-.light.blue {
-  color: blue;
-  text-shadow: 0 0 1.5rem blue,  0 0 1rem blue,  0 0 0.75rem blue;
-}
-.light.blue.flashing {
-  animation: bluelight 1s linear infinite alternate;
-}
-@keyframes bluelight {
-  from {text-shadow: 0 0 0 blue,  0 0 0.25rem blue,  0 0 0.5rem blue; opacity: 0; }
-  to {text-shadow: 0 0 1rem blue,  0 0 1rem blue,  0 0 0.5rem blue; opacity: 1; }
-}
 
 #registration a {
   text-decoration: underline;
@@ -385,6 +341,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
 }
 
 #registration .instructions {
+  font-size: 1.8rem;
   display: flex;
   flex-direction: column;
 }
@@ -393,7 +350,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   flex-direction: column;
 }
 #registration .instructions > div > div {
-  margin: 2rem 0;
+  margin: 1.5rem 0;
 }
 #registration .instructions img {
   display: inline-block;
