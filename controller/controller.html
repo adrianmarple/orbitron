@@ -398,7 +398,7 @@
       <slider v-if="!['weather', 'static', 'sin', 'lightfield'].includes(prefs.idlePattern)" 
           title="Blur over time" key="idleBlend"
           help="How much each frame is blended with the previous one."></slider>
-      <slider title="Brightness" key="brightness"  :max="200"></slider>
+      <slider title="Brightness" key="brightness"  :max="maxBrightness"></slider>
       <!-- <div class="horiz-box">
         <div class="button" style="font-size: 3rem; width: 38rem; height: 4rem; display: flex; justify-content: center;" @click="advanceManualFade">
           {{ dimmerString }}

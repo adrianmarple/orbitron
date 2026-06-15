@@ -63,6 +63,7 @@ module.exports={
   // APA102_SCLK_PIN: 11,        // APA102 only: SPI SCLK GPIO pin (default 11)
   // MAX_POWER_DRAW: 3,          // Estimated Volts
   // MAX_AVG_PIXEL_BRIGHTNESS: 100,  // 0-255 white
+  // MAX_BRIGHTNESS_OVERRIDE: 150,   // Max value of the controller's Brightness slider (default 150)
   // BEAT_PIN: 15,               // board pin 10/GPIO pin 15
   // MANUAL_FADE_PIN: 24,        // board pin 18/GPIO pin 24
   // PIN_INPUT_TYPE: "LOW",      // "HIGH"

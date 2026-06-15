@@ -314,6 +314,10 @@ var app = new Vue({
       return this.idToOrb[this.orbID] || {}
     },
 
+    maxBrightness() {
+      return this.orbInfo.MAX_BRIGHTNESS_OVERRIDE ?? 150
+    },
+
     navBarItems() {
       let items = ['colors', 'pattern', 'save', 'timing']
         .filter(name => !this.exclude[name])
