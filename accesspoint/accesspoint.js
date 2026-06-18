@@ -185,7 +185,7 @@ async function hasSavedWifiCredentials() {
   const out = await execute("nmcli -t -f NAME,TYPE connection show")
   return out.split('\n').some(line => {
     const [name, type] = line.split(':')
-    return type === 'wifi' && name !== 'OrbHotspot'
+    return /wireless|wifi/i.test(type) && name !== 'OrbHotspot'
   })
 }
 
