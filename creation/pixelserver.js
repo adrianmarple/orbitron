@@ -95,7 +95,11 @@ async function serverHandler(request, response) {
       // } catch {}
       let handled = false
       for (const listener of postListeners) {
-        handled = await listener(response, body, rawbody)
+        try {
+          handled = await listener(response, body, rawbody)
+        } catch(e) {
+          console.error(e)
+        }
         if(handled) break
       }
       if(!handled){
@@ -108,9 +112,14 @@ async function serverHandler(request, response) {
   }
 
   if (request.method === 'GET') {
+    let handled = false
     for (let listener of getListeners) {
-      let result = await listener(response, request)
-      if (result) return
+      try {
+        handled = await listener(response, request)
+      } catch(e) {
+        console.error(e)
+      }
+      if (handled) return
     }
     respondWithFile(response, request.url)
   }

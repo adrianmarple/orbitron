@@ -1146,10 +1146,12 @@ function zeroFoldAllEdges({ linearStartingVertex, edgesToNotFold=[], edgeOffsets
     }
   }
 
+  let INDEX = 0
+
   let c = 0
   while (twoEdgeVertecies.length > 0) {
     c++;
-    if (c > 1000) break;
+    if (c > 10000) break;
     let vertex = twoEdgeVertecies.shift()
     let v0 = vertex.edges[0].otherVertex(vertex)
     let v1 = vertex.edges[1].otherVertex(vertex)
