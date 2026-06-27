@@ -789,12 +789,13 @@ function edgeCleanup(dontDoubleEdges) {
   }
 
   if (!dontDoubleEdges) {
-    for (let vertex of verticies) {
-      if (vertex.edges.length % 2 == 1) {
-        doubleEdges()
-        break
-      }
-    }
+    doubleEdges()
+    // for (let vertex of verticies) {
+    //   if (vertex.edges.length % 2 == 1) {
+    //     doubleEdges()
+    //     break
+    //   }
+    // }
   }
 }
 
