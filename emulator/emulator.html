@@ -77,6 +77,13 @@ p {
   width: 100%;
   height: 100%;
 }
+/* Hide the controller on small (mobile) viewports.
+   Threshold = 2 * controller width (290) + toggle button width (200) */
+@media (max-width: 780px) {
+  #controller {
+    display: none;
+  }
+}
 
 #text-display {
   position: fixed;
