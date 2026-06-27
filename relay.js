@@ -192,12 +192,6 @@ function bindOrb(socket, orbID) {
   connectedOrbs[orbID] = socket
   socket.lastActivityTime = Date.now()
 
-  // The orb may have just rebooted (e.g. restore-from-backup) while its
-  // controllers stayed connected to the relay. Its connectedClients[] is now
-  // empty, so replay the connect handshake for each still-connected client.
-  // This re-registers them on the orb and triggers an immediate sendState push
-  // so controllers pick up the new state right away instead of waiting on the
-  // STATE_HASH heartbeat to detect drift.
   for (const clientID in connectedClients[orbID] ?? {}) {
     try {
       socket.send(JSON.stringify({

@@ -16,6 +16,12 @@ fixExternalWifi()
 const NO_TIMEOUT = process.argv.includes('-t')
 let tempOrbIDs = []
 
+// Kill any orphaned main.py processes left over from a previous Node crash.
+// Run ONCE at process startup, before any engine is spawned — never per-orb,
+// otherwise spinning up a second orb (e.g. a temp /view orb on the relay) would
+// kill the already-running orbs' engines too.
+try { execSync(`pkill -KILL -f "${__dirname}/main.py"`) } catch(e) {}
+
 
 
 function startOrb(config) {
@@ -747,8 +753,6 @@ setInterval(() => {
 
 let env = {...process.env, CONFIG: JSON.stringify(config)}
 let python_process = null
-// Kill any orphaned main.py processes left over from a previous Node crash
-try { execSync(`pkill -KILL -f "${__dirname}/main.py"`) } catch(e) {}
 restartEngine()
 
 let raw_pixels = null

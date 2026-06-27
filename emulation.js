@@ -45,14 +45,18 @@ class Emulator {
     this.config = config
     this.orbEmulatorConnections = {}
     emulators[config.ORB_ID] = this
-    
-    addGETListener(this.pixelsGETListener.bind(this))
-    addGETListener(this.webpageGETListener.bind(this))
+
+    // Keep the bound references so destroy() can actually remove them
+    this.pixelsGETListener = this.pixelsGETListener.bind(this)
+    this.webpageGETListener = this.webpageGETListener.bind(this)
+    addGETListener(this.pixelsGETListener)
+    addGETListener(this.webpageGETListener)
   }
 
   destroy() {
     removeGETListener(this.pixelsGETListener)
     removeGETListener(this.webpageGETListener)
+    delete emulators[this.config.ORB_ID]
   }
 
   broadcast(message) {
