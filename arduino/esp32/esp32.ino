@@ -23,6 +23,7 @@
 #include <LittleFS.h>
 #include <HTTPClient.h>
 #include <HTTPUpdate.h>
+#include <esp_sntp.h>
 
 // Forward declaration so Arduino's auto-generated function prototypes (which
 // it inserts right after this include block) can use Prefs& as a parameter
@@ -196,10 +197,17 @@ inline uint32_t fnv1a(const char* s, size_t len) {
   return h;
 }
 
-// Fade state, recomputed by checkSchedule()
+// Fade state, recomputed by checkSchedule(). Published atomically under
+// render_mutex so computeFade() (core 1) never reads a half-updated set.
 bool fadeStateValid = false;
-float curEventMin = 0.0f;     // current event start, minute-of-day
-float nextEventMin = 0.0f;    // next event start, minute-of-day
+// Monotonic anchor for the current event's start. checkSchedule() converts the
+// current event's wall-clock time into a millis() timestamp once per re-anchor
+// (using a single simultaneous read of both clocks); computeFade() then drives
+// the whole fade off millis() alone. nextEventMs is the matching far-end anchor.
+// This keeps both ends of the fade on one monotonic clock, so a momentary
+// wall-vs-millis disagreement at a boundary can only clamp the fade to 0 (dark),
+// never wrap to a full day and pop to full brightness.
+unsigned long curEventStartMs = 0;
 bool curIsOff = true;
 bool prevIsOff = true;
 bool nextIsOff = true;
@@ -207,6 +215,13 @@ bool startSamePreset = false; // prev event's preset == active's: skip the fade-
 bool endSamePreset = false;   // next event's preset == active's: skip the fade-out
 float prevFadeIn = 10.0f;     // minutes
 float nextFadeOut = 30.0f;    // minutes
+
+// Set by the SNTP sync callback (onTimeSync) whenever NTP steps the wall clock.
+// networkTask re-anchors on the next loop so millis() deadlines computed from a
+// stale/wrong wall clock get corrected. Also re-anchor periodically as a backstop.
+volatile bool timeSyncPending = false;
+unsigned long nextReanchorMs = 0;
+const unsigned long REANCHOR_INTERVAL_MS = 60000;
 
 // --- Backup state ---
 unsigned long nextBackupMs = ULONG_MAX;
@@ -1376,6 +1391,14 @@ void triggerScheduleEvent(JsonObject evt, JsonObject prevEvt) {
   if (changed) saveDimmer();
 }
 
+// SNTP notifies us on every successful sync (first fix after boot and any later
+// corrective step). Flag it so networkTask re-anchors the schedule from the
+// corrected wall clock — the millis() deadlines were derived from the old time and
+// would otherwise fire at the wrong moment. Runs in SNTP context; keep it trivial.
+void onTimeSync(struct timeval* /*tv*/) {
+  timeSyncPending = true;
+}
+
 // Precompute when the next schedule event fires and store as millis() deadline.
 void computeNextEventMs() {
   nextEventMs = ULONG_MAX;
@@ -1429,13 +1452,17 @@ void computeNextBackupMs() {
 }
 
 void checkSchedule() {
-  fadeStateValid = false;
-  if (!useTimer) return;
+  // Note: do NOT clear fadeStateValid up front. Clearing it here (then setting it
+  // true at the end) opens a window where computeFade() on the other core sees an
+  // invalid state and returns full manual brightness — a single-frame pop. Instead
+  // leave the last-published state live until we atomically publish a new one, and
+  // only mark invalid on paths where there genuinely is no schedule to fade.
+  if (!useTimer) { fadeStateValid = false; return; }
   struct tm t;
-  if (!getLocalTime(&t)) return;
+  if (!getLocalTime(&t)) { fadeStateValid = false; return; }
 
   JsonArray sched = timingPrefsDoc["schedule"].as<JsonArray>();
-  if (sched.isNull() || sched.size() == 0) return;
+  if (sched.isNull() || sched.size() == 0) { fadeStateValid = false; return; }
 
   int nowMin = t.tm_hour * 60 + t.tm_min;
   const int DAY = 24 * 60;
@@ -1447,7 +1474,7 @@ void checkSchedule() {
     int dist = (nowMin - parseTimeMinutes(sched[i]["time"].as<String>()) + DAY) % DAY;
     if (dist < activeDistBack) { activeDistBack = dist; activeIdx = i; }
   }
-  if (activeIdx < 0) return;
+  if (activeIdx < 0) { fadeStateValid = false; return; }
 
   JsonObject activeEvt = sched[activeIdx];
   int activeMin = parseTimeMinutes(activeEvt["time"].as<String>());
@@ -1469,21 +1496,45 @@ void checkSchedule() {
   JsonObject prevEvt = sched[prevIdx];
   JsonObject nextEvt = sched[nextIdx];
 
-  // Cache fade state
-  curEventMin  = (float)activeMin;
-  nextEventMin = (float)parseTimeMinutes(nextEvt["time"].as<String>());
+  // Anchor the current event's start to the monotonic clock. Read the wall clock
+  // to sub-minute precision and pair it with millis() taken at the same instant:
+  // "we are `elapsedMin` into the active event, and millis() reads X, so the event
+  // started at X - elapsedMin". From here computeFade() runs purely on millis()
+  // until the next re-anchor. Re-anchoring every boundary / minute / NTP-sync means
+  // wall-vs-millis drift never accumulates and NTP steps are absorbed here, off the
+  // render path.
+  struct timeval tv;
+  gettimeofday(&tv, nullptr);
+  float nowMinPrecise = t.tm_hour * 60.0f + t.tm_min + (t.tm_sec + tv.tv_usec / 1e6f) / 60.0f;
+  float elapsedMin = fmodf(nowMinPrecise - (float)activeMin + (float)DAY, (float)DAY);
+  unsigned long anchorMs = millis() - (unsigned long)(elapsedMin * 60000.0f);
+
+  // Compute the new fade state into locals, then publish it in one shot under
+  // render_mutex so computeFade() (which runs under render_mutex in renderFrame)
+  // never observes a torn mix of old and new fields.
   String activeName = activeEvt["prefName"].as<String>();
   String prevName   = prevEvt["prefName"].as<String>();
   String nextName   = nextEvt["prefName"].as<String>();
-  curIsOff  = (activeName == "OFF");
-  prevIsOff = (prevName   == "OFF");
-  nextIsOff = (nextName   == "OFF");
+  bool   newCurIsOff  = (activeName == "OFF");
+  bool   newPrevIsOff = (prevName   == "OFF");
+  bool   newNextIsOff = (nextName   == "OFF");
   // Skip the crossfade dip across a boundary where the preset doesn't change.
-  startSamePreset = (activeName == prevName);
-  endSamePreset   = (nextName   == activeName);
-  prevFadeIn  = prevEvt["fadeIn"].isNull()  ? 10.0f : prevEvt["fadeIn"].as<float>();
-  nextFadeOut = nextEvt["fadeOut"].isNull() ? 30.0f : nextEvt["fadeOut"].as<float>();
-  fadeStateValid = true;
+  bool   newStartSame = (activeName == prevName);
+  bool   newEndSame   = (nextName   == activeName);
+  float  newPrevFadeIn  = prevEvt["fadeIn"].isNull()  ? 10.0f : prevEvt["fadeIn"].as<float>();
+  float  newNextFadeOut = nextEvt["fadeOut"].isNull() ? 30.0f : nextEvt["fadeOut"].as<float>();
+
+  xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
+  curEventStartMs = anchorMs;
+  curIsOff        = newCurIsOff;
+  prevIsOff       = newPrevIsOff;
+  nextIsOff       = newNextIsOff;
+  startSamePreset = newStartSame;
+  endSamePreset   = newEndSame;
+  prevFadeIn      = newPrevFadeIn;
+  nextFadeOut     = newNextFadeOut;
+  fadeStateValid  = true;
+  xSemaphoreGiveRecursive(render_mutex);
 
   // Key on time only (not prefName) so editing an event's pref doesn't re-trigger it
   String evtKey = activeEvt["time"].as<String>();
@@ -1497,27 +1548,35 @@ void checkSchedule() {
 // Matches Python prefs.fade(): linear fade-in from previous event, fade-out toward next,
 // with durations only honored on transitions involving an OFF event (else 0.2 min crossfade).
 // Capped by manual dimmer.
+//
+// Runs entirely on millis() against the anchors checkSchedule() published
+// (curEventStartMs / nextEventMs), never the wall clock. This is what makes the
+// old full-brightness pop structurally impossible: the previous version read the
+// wall clock here and used fmodf(... + DAY, DAY), so if the wall clock landed a
+// hair on the far side of a boundary before checkSchedule() re-ran on the other
+// core, `remaining` wrapped to ~1440 min and saturated the fade to 1.0. Here the
+// two ends of the fade share the exact millis() clock that fires the boundary, and
+// overshoot clamps to 0 (dark, the correct fade endpoint) instead of wrapping.
 float computeFade() {
   float clampedDimmer = constrain(dimmer, 0.0f, 1.0f);
   if (!useTimer || !fadeStateValid || curIsOff) return clampedDimmer;
-  struct tm t;
-  if (!getLocalTime(&t)) return clampedDimmer;
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-  // tm_sec is integer; add tv_usec so nowMin advances every frame, not every
-  // second. Otherwise the fade `d` is constant for ~30 frames at a time and
-  // every pixel steps in lockstep at the second boundary, masking the natural
-  // per-pixel/per-channel uint8 quantization waves.
-  float nowMin = t.tm_hour * 60.0f + t.tm_min + (t.tm_sec + tv.tv_usec / 1e6f) / 60.0f;
-  const float DAY = 24.0f * 60.0f;
-  float elapsed   = fmodf(nowMin - curEventMin  + DAY, DAY);
-  float remaining = fmodf(nextEventMin - nowMin + DAY, DAY);
+  unsigned long now = millis();
 
-  float startDur = max(0.01f, prevIsOff ? prevFadeIn  : 0.2f);
-  float endDur   = max(0.01f, nextIsOff ? nextFadeOut : 0.2f);
+  // curEventStartMs is anchored into the past, so `now - curEventStartMs` is a
+  // genuine elapsed count (unsigned modular arithmetic is correct even if the
+  // anchor underflowed shortly after boot). remaining counts down toward the same
+  // deadline that triggers the next checkSchedule(); a signed diff clamped at 0
+  // means a boundary crossing can never wrap to a full day.
+  float elapsedMs   = (float)(now - curEventStartMs);
+  long  remainingRaw = (long)(nextEventMs - now);
+  float remainingMs = remainingRaw > 0 ? (float)remainingRaw : 0.0f;
+
+  // Durations are in minutes; convert to ms. min 0.01 min guards divide-by-zero.
+  float startDur = max(0.01f, prevIsOff ? prevFadeIn  : 0.2f) * 60000.0f;
+  float endDur   = max(0.01f, nextIsOff ? nextFadeOut : 0.2f) * 60000.0f;
   // No fade-in/out when the preset isn't changing across that boundary.
-  float startFade = startSamePreset ? 1.0f : elapsed   / startDur;
-  float endFade   = endSamePreset   ? 1.0f : remaining / endDur;
+  float startFade = startSamePreset ? 1.0f : elapsedMs   / startDur;
+  float endFade   = endSamePreset   ? 1.0f : remainingMs / endDur;
   float fade = min(startFade, endFade);
   fade = constrain(fade, 0.0f, 1.0f);
   return min(fade, clampedDimmer);
@@ -1874,6 +1933,7 @@ void networkTask(void*) {
   // Network init deferred from setup() so render loop can start immediately.
   connectWiFi();
   configTzTime(timezone.c_str(), "pool.ntp.org", "time.nist.gov");
+  sntp_set_time_sync_notification_cb(onTimeSync);  // re-anchor schedule on every NTP step
   Serial.println("NTP configured (tz: " + timezone + ")");
 
   if (!geometryLoaded) {
@@ -1900,6 +1960,7 @@ void networkTask(void*) {
   checkSchedule();
   computeNextEventMs();
   computeNextBackupMs();
+  nextReanchorMs = millis() + REANCHOR_INTERVAL_MS;
 
   for (;;) {
     wsClient.loop();
@@ -1910,6 +1971,20 @@ void networkTask(void*) {
     }
 
     unsigned long now = millis();
+    // An NTP step (first fix or later correction) invalidates the millis() deadlines
+    // derived from the old wall clock — re-anchor immediately. The periodic re-anchor
+    // is a backstop for any missed sync callback and for slow wall-vs-millis drift;
+    // both run off the render path and re-derive from a single consistent snapshot,
+    // so they can only correct the schedule, never pop the fade.
+    if (timeSyncPending || now >= nextReanchorMs) {
+      if (timeSyncPending) {
+        timeSyncPending = false;
+        Serial.println("NTP sync: re-anchoring schedule");
+      }
+      checkSchedule();
+      computeNextEventMs();
+      nextReanchorMs = now + REANCHOR_INTERVAL_MS;
+    }
     if (now >= nextEventMs) {
       Serial.println("Timer event triggered");
       checkSchedule();
