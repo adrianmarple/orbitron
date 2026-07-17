@@ -588,7 +588,7 @@ addGETListener(async (response, orbID, filePath)=>{
   info.orbID = orbID
   info.isCurrentlyConnected = !!connectedOrbs[orbID]
   info.isArduino = localConfig.ARDUINO || false
-  info.name = config.ALIASES[orbID] ?? orbID
+  info.name = config.ALIASES[orbID] ?? localConfig.ORB_ID ?? orbID
   if (config.ALIASES[orbID]) {
     info.alias = config.ALIASES[orbID]
   }
