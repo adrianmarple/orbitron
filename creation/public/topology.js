@@ -788,18 +788,22 @@ function edgeCleanup(dontDoubleEdges) {
     }
   }
 
+
   if (!dontDoubleEdges) {
-    doubleEdges()
-    // for (let vertex of verticies) {
-    //   if (vertex.edges.length % 2 == 1) {
-    //     doubleEdges()
-    //     break
-    //   }
-    // }
+    let oddCount = 0
+    for (let vertex of verticies) {
+      if (vertex.edges.length % 2 == 1) {
+        oddCount += 1
+      }
+    }
+    if (oddCount != 0 && oddCount != 2) {
+      doubleEdges() // logicially cannot have a simple Eulerian path so must double edges
+    }
   }
 }
 
 function doubleEdges() {
+  if (edges[0].dual) return // doubleEdges should be idempotent
   for (let edge of [...edges]) {
     var edgeCopy = edge.clone()
     for (let v of edge.verticies) {
