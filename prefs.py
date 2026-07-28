@@ -135,6 +135,11 @@ def update(update, client_timestamp=None):
   if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
     client_timestamp = 0
 
+  # Drop unknown keys so one bad key can't discard the whole update below
+  for key in [key for key in update if key not in current_prefs]:
+    print("Ignoring unknown pref: %s" % key, file=sys.stderr)
+    del update[key]
+
   no_change = True
   for key, value in update.items():
     if current_prefs[key] != value:

@@ -3,7 +3,7 @@ const { config } = require('./lib')
 const WebSocket = require('ws')
 const http = require('http')
 const https = require('https')
-const { addGETListener, removeGETListener, respondWithFile } = require('./server')
+const { addListener, removeListener, respondWithFile } = require('./server')
 
 // ---Orb Emulator Server---
 let orbEmulatorServer
@@ -49,13 +49,13 @@ class Emulator {
     // Keep the bound references so destroy() can actually remove them
     this.pixelsGETListener = this.pixelsGETListener.bind(this)
     this.webpageGETListener = this.webpageGETListener.bind(this)
-    addGETListener(this.pixelsGETListener)
-    addGETListener(this.webpageGETListener)
+    addListener('GET', this.pixelsGETListener)
+    addListener('GET', this.webpageGETListener)
   }
 
   destroy() {
-    removeGETListener(this.pixelsGETListener)
-    removeGETListener(this.webpageGETListener)
+    removeListener('GET', this.pixelsGETListener)
+    removeListener('GET', this.webpageGETListener)
     delete emulators[this.config.ORB_ID]
   }
 
@@ -65,14 +65,14 @@ class Emulator {
     }
   }
 
-  pixelsGETListener(response, orbID, filePath) {
+  pixelsGETListener({response, orbID, filePath}) {
     if (orbID != this.config.ORB_ID.toLowerCase()) return
     if (!filePath.endsWith('/pixels.json')) return
 
     respondWithFile(response, this.config.PIXELS_FILE)
     return true
   }
-  webpageGETListener(response, orbID, filePath) {
+  webpageGETListener({response, orbID, filePath}) {
     if (orbID != this.config.ORB_ID.toLowerCase()) return
     if (!filePath.includes('dev') && !filePath.includes('view')) return
 

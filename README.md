@@ -124,6 +124,39 @@ You can set up pieces so that pushing to github automatically triggers pieces to
 - Direct a github action to point to your server
 - Add `CONTINUOUS_INTEGRATION: true,` to the config of a piece you want to restart on receiving updates
 
+# REST API
+
+Most things the controller can do can also be done over plain HTTP (useful for scripting: Home Assistant, Shortcuts, cron, or any other forms of automation). This includes preferences, saved presets, the timer schedule, and dimming, but omits game inputs. It is served by the server (i.e. `my.lumatron.art`) under `/api/v1`.
+
+`GET /api/v1/orbs` lists the pieces available to you. Every other path is relative to `/api/v1/orbs/<piece>`, where `<piece>` is a piece's name or its alias (e.g. `https://my.lumatron.art/api/v1/orbs/kitchen/prefs`).
+
+| Method | Path | Body | Description |
+|---|---|---|---|
+| `GET` | `/prefs` | — | All current settings (pattern, colors, brightness) |
+| `PATCH` | `/prefs` | `{"<key>": value, ...}` | Change one or more settings, leaving the rest alone |
+| `DELETE` | `/prefs` | — | Reset all settings back to defaults |
+| `POST` | `/dim` | — | Step brightness, the same as the hardware button |
+| `GET` | `/presets` | — | Saved preset names, which one is current, and cycle membership |
+| `PUT` | `/presets/<name>` | — | Save the current settings as `<name>` |
+| `POST` | `/presets/<name>/load` | — | Switch to `<name>` |
+| `DELETE` | `/presets/<name>` | — | Delete `<name>` |
+| `POST` | `/presets/<name>/copy` | `{"copyName": "..."}` | Copy `<name>` to a new preset |
+| `POST` | `/presets/<name>/rename` | `{"newName": "..."}` | Rename `<name>` |
+| `POST` | `/presets/<name>/reorder` | `{"targetName": "..."}` | Move `<name>` in front of `targetName` |
+| `POST` | `/presets/cycle` | — | Advance to the next preset in the cycle |
+| `GET` | `/schedule` | — | Timer settings, plus the daily and weekly schedules |
+| `PUT` | `/schedule` | `{"useTimer": true, "schedule": [...]}` | Update timer settings |
+| `GET` | `/state` | — | Everything at once, including game state |
+
+Preset names may contain spaces, so URL-encode them (`/presets/Evening%20Glow/load`).
+
+A few things worth knowing:
+- There's no authentication by default, which is the same as the controller — anyone who knows a piece's name can already control it. To lock it down, add `REST_API_KEY: "some-secret",` to your server's `config.js` and send `Authorization: Bearer some-secret` with every request.
+- `GET /api/v1/orbs` only lists pieces on the same wifi as whoever is asking, so the whole fleet isn't enumerable.
+- The API connects to a piece the same way a controller does, but without claiming one of the six player slots, so it won't interfere with games or with anyone using the controller. Changes made either way show up in the other immediately.
+
+See [API.md](API.md) for the full endpoint reference.
+
 # Contributions Welcome
 
 Here's a list of things I would welcome receiving PRs for.

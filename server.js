@@ -5,21 +5,24 @@ const https = require('https')
 const fs = require('fs')
 const path = require('path')
 
-const getListeners = []
-const postListeners = []
+// Listeners are keyed by HTTP method. Each one receives a single context object
+// { response, request, method, filePath, queryParams, orbID, body, headers }
+// and returns truthy to claim the request.
+const listeners = {}
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
-function addGETListener(callback){
-  getListeners.push(callback)
+function addListener(method, callback){
+  method = method.toUpperCase()
+  if(!listeners[method]){
+    listeners[method] = []
+  }
+  listeners[method].push(callback)
 }
-function removeGETListener(callback) {
-  getListeners.remove(callback)
-}
-
-function addPOSTListener(callback){
-  postListeners.push(callback)
-}
-function removePOSTListener(callback) {
-  postListeners.remove(callback)
+function removeListener(method, callback) {
+  method = method.toUpperCase()
+  if(listeners[method]){
+    listeners[method].remove(callback)
+  }
 }
 
 function getContentType(filePath){
@@ -93,34 +96,21 @@ function respondWithFile(response, filePath, replacements){
   });
 }
 
-async function serverHandler(request, response) {
-  // Github webhook to restart pm2 after a push
-  if (request.method === 'POST') {
+function readBody(request) {
+  return new Promise(resolve => {
     let chunks = []
     request.on('data', function(data) {
       chunks.push(data)
     })
-    request.on('end', async function() {
-      let body = Buffer.concat(chunks)
-      let handled = false
-      let [filePath, query] = request.url.split('?')
-      let queryParams = Object.fromEntries(new URLSearchParams(query || ''))
-      for (const listener of postListeners) {
-        handled = await listener(response, body, filePath, queryParams, request.headers)
-        if(handled) break
-      }
-      if(!handled){
-        // console.log("UNHANDLED SERVER POST: ", request.url)
-        if (!response.writableEnded) {
-          response.writeHead(500)
-          response.end('unhandled post')
-        }
-      }
+    request.on('end', function() {
+      resolve(Buffer.concat(chunks))
     })
-    return
-  }
+  })
+}
 
-  // http GET stuff
+async function serverHandler(request, response) {
+  let method = request.method.toUpperCase()
+
   let [filePath, search] = request.url.split("?")
   let queryParams = {}
   if (search) {
@@ -131,17 +121,41 @@ async function serverHandler(request, response) {
   }
   if(filePath.endsWith('/'))
     filePath = filePath.substring(0,filePath.length-1)
-  let handled = false
   let processed = filePath.split("/")
   let orbID = processed.length > 1 ? processed[1] : ''
   orbID = orbID.toLowerCase()
   orbID = config.reverseAliases[orbID] ?? orbID
-  for (const listener of getListeners) {
-    handled = await listener(response, orbID, filePath, queryParams, request)
+
+  let body = BODY_METHODS.has(method) ? await readBody(request) : null
+  let context = {
+    response,
+    request,
+    method,
+    filePath,
+    queryParams,
+    orbID,
+    body,
+    headers: request.headers,
+  }
+
+  let handled = false
+  for (const listener of listeners[method] ?? []) {
+    handled = await listener(context)
     if(handled) break
   }
-  if(!handled){
+  if(handled) return
+
+  if(method === 'GET'){
     respondWithFile(response, filePath)
+  } else if (!response.writableEnded) {
+    // console.log("UNHANDLED SERVER REQUEST: ", method, request.url)
+    if(method === 'POST'){
+      response.writeHead(500)
+      response.end('unhandled post')
+    } else {
+      response.writeHead(405)
+      response.end('method not allowed')
+    }
   }
 }
 
@@ -237,5 +251,5 @@ async function closeRedirectServer(){
 
 
 module.exports = {
-  addGETListener, addPOSTListener, removeGETListener, removePOSTListener, respondWithFile
+  addListener, removeListener, respondWithFile
 }

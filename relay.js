@@ -6,16 +6,17 @@ const fs = require('fs')
 const path = require('path')
 const { config, execute, processAdminCommand, noCorsHeader } = require('./lib')
 const { pullAndRestart, restartOrbitron } = require('./gitupdate')
-const { addGETListener, respondWithFile, addPOSTListener } = require('./server')
+const { addListener, respondWithFile } = require('./server')
 const crypto = require('crypto')
 function sha256(str) { return crypto.createHash('sha256').update(str).digest('hex') }
 const { startOrb } = require('./orb')
+const { initRestApi } = require('./restapi')
 
 const connectedOrbs = {}
 const orbToIP = {}
 const connectedClients = {}
 const awaitingMessages = {}
-let orbInfoCache = {}
+const orbInfoCache = {}
 let BACKUPS_DIR = "./backups/"
 
 // --- Arduino OTA firmware ---
@@ -177,7 +178,7 @@ setInterval(serverPingHandler, 3000)
 
 async function loadOrbInfoCache() {
   try {
-    orbInfoCache = JSON.parse(await fs.promises.readFile("./orbinfocache.json", "utf8"))
+    Object.assign(orbInfoCache, JSON.parse(await fs.promises.readFile("./orbinfocache.json", "utf8")))
   } catch(_) {}
 }
 
@@ -198,6 +199,8 @@ function bindOrb(socket, orbID) {
         clientID: clientID,
         message: "{}",
         closed: false,
+        // Preserve observer status so the REST client doesn't come back as a player
+        observer: connectedClients[orbID][clientID].isObserver,
       }))
     } catch(e) {
       console.log("Error replaying client handshake on orb reconnect", orbID, clientID, e)
@@ -397,8 +400,11 @@ function bindClient(socket, orbID, clientID) {
 } // END web socket section
 
 
+// Registered first so it can't be claimed by the looser matches below
+initRestApi({ connectedOrbs, connectedClients, orbInfoCache, orbToIP, ipFromRequest })
+
 // Serve admin UI at /admin (no query params)
-addGETListener(async (response, _, filePath, queryParams) => {
+addListener('GET', async ({response, filePath, queryParams}) => {
   if (filePath != "/admin") return false
   if (Object.keys(queryParams).length > 0) return false
   respondWithFile(response, "/admin/admin.html")
@@ -406,7 +412,7 @@ addGETListener(async (response, _, filePath, queryParams) => {
 })
 
 // Serve version info for admin UI (used to show how far behind each orb is)
-addGETListener(async (response, orbID, filePath) => {
+addListener('GET', async ({response, filePath}) => {
   if (filePath != "/admin/versions") return false
   let gitCount = parseInt((await execute("git rev-list --count HEAD")).trim())
   let latestCommitTime = (await execute("git log -1 --format=%cI")).trim()
@@ -420,7 +426,7 @@ addGETListener(async (response, orbID, filePath) => {
 })
 
 // Admin commands for this relay
-addGETListener(async (response, orbID, _, queryParams) => {
+addListener('GET', async ({response, orbID, queryParams}) => {
   if (orbID != "admin") return false
   let command = await processAdminCommand(queryParams)
   if (!command) return false
@@ -461,7 +467,7 @@ addGETListener(async (response, orbID, _, queryParams) => {
 })
 
 // Admin commands for orbs
-addGETListener(async (response, orbID, filePath, queryParams) => {
+addListener('GET', async ({response, orbID, filePath, queryParams}) => {
   let pathParts = filePath.split("/")
   if (pathParts.length < 3 || pathParts[2] != "admin") return false
 
@@ -503,7 +509,7 @@ addGETListener(async (response, orbID, filePath, queryParams) => {
 
 
 // Get all orbs on same IP
-addGETListener(async (response, _, filePath, __, request)=>{
+addListener('GET', async ({response, filePath, request})=>{
   if (filePath != "/localorbs") return
 
   const clientIP = ipFromRequest(request)
@@ -523,7 +529,7 @@ addGETListener(async (response, _, filePath, __, request)=>{
 })
 
 // Serve compiled Arduino firmware binary
-addGETListener(async (response, _, filePath, queryParams) => {
+addListener('GET', async ({response, filePath, queryParams}) => {
   if (!filePath.startsWith('/firmware/') || !filePath.endsWith('.bin')) return
   const chip = path.basename(filePath, '.bin')
   if (!SUPPORTED_CHIPS.includes(chip)) {
@@ -547,7 +553,7 @@ addGETListener(async (response, _, filePath, queryParams) => {
 })
 
 // Accept locally-built Arduino firmware binary and notify Arduino orbs to OTA
-addPOSTListener(async (response, body, filePath, queryParams) => {
+addListener('POST', async ({response, body, filePath, queryParams}) => {
   if (filePath !== '/firmware/upload') return false
   const { version, chip, key } = queryParams
   if (key !== sha256(version + masterKey)) {
@@ -571,7 +577,7 @@ addPOSTListener(async (response, body, filePath, queryParams) => {
 })
 
 // Get basic info on orb
-addGETListener(async (response, orbID, filePath)=>{
+addListener('GET', async ({response, orbID, filePath})=>{
   if (!filePath.includes("/info")) return
 
   noCorsHeader(response, 'text/json')
@@ -598,7 +604,7 @@ addGETListener(async (response, orbID, filePath)=>{
 
 // Serve pixel geometry as binary for Arduino ESP32 devices
 // Format: uint16 SIZE, uint16 RAW_SIZE, dupes_to_uniques, neighbors (MAX_NEIGHBORS=6, 0xffff-padded), raw_to_unique, coords
-addGETListener((response, _, filePath) => {
+addListener('GET', ({response, filePath}) => {
   if (!filePath.startsWith('/pixels/') || !filePath.endsWith('.bin')) return false
   const MAX_NEIGHBORS = 6
   const pixelsName = filePath.slice('/pixels/'.length, -'.bin'.length)
@@ -638,7 +644,7 @@ addGETListener((response, _, filePath) => {
   return true
 })
 
-addGETListener((response, orbID, filePath) => {
+addListener('GET', ({response, orbID, filePath}) => {
   if(!filePath.includes('view')) return
 
   // Validate that the pixel file exists before spinning up a temp orb
@@ -666,7 +672,7 @@ addGETListener((response, orbID, filePath) => {
 
 // Serve actual controller
 // Important that this goes last
-addGETListener(async (response, orbID, filePath) => {
+addListener('GET', async ({response, orbID, filePath}) => {
   if(filePath.includes(".") || filePath.split("/").length > 2) return
 
   if (filePath == "") { // Home page is same as controller now
@@ -696,7 +702,7 @@ addGETListener(async (response, orbID, filePath) => {
 })
 
 // Process notification of git update
-addPOSTListener(async (response, body, filePath, queryParams, headers) => {
+addListener('POST', async ({response, body, filePath, queryParams, headers}) => {
   if (!headers['x-github-event']) return false
 
   if (config.WEBHOOK_SECRET) {

@@ -282,7 +282,7 @@ function connectOrbToRelay(){
       let clientID = data.clientID
       let clientConnection = getClientConnection(clientID)
       if(!clientConnection && !data.closed){
-        clientConnection = createClientConnection(clientID, socket)
+        clientConnection = createClientConnection(clientID, socket, data.observer)
       }
       if(clientConnection) {
         if(data.closed){
@@ -392,14 +392,18 @@ const clientConnections = {}
 function getClientConnection(clientID) {
   return clientConnections[clientID]
 }
-function createClientConnection(clientID, socket){
+function createClientConnection(clientID, socket, isObserver){
   if(!clientConnections[clientID]) {
     let clientConnection = new ClientConnection(clientID)
     clientConnection.on("close", () => {
       delete clientConnections[clientID]
     })
     clientConnection.setSocket(socket)
-    bindPlayer(clientConnection)
+    if(isObserver){
+      bindObserver(clientConnection)
+    } else {
+      bindPlayer(clientConnection)
+    }
     clientConnections[clientID] = clientConnection
   }
   return clientConnections[clientID]
@@ -493,6 +497,20 @@ function bindPlayer(socket) {
   upkeep() // Will claim player if available
 }
 
+// Observers receive state and can change prefs, but never occupy a player slot.
+// Since they have no pid, bindDataEvents never stamps `self` on their messages,
+// so the python side ignores any player commands they send.
+function bindObserver(peer) {
+  if(observers.includes(peer)){
+    return
+  }
+  observers.push(peer)
+  bindDataEvents(peer)
+  if(state){
+    peer.send(JSON.stringify({...state, timestamp: preciseTime()}))
+  }
+}
+
 function bindDataEvents(peer) {
   peer.on('message', content => {
     if (typeof(peer.pid)==="number" && connections[peer.pid]) {
@@ -527,6 +545,7 @@ function bindDataEvents(peer) {
     } else {
       connectionQueue = connectionQueue.filter(elem => elem !== peer)
     }
+    observers.remove(peer)
   })
 }
 
@@ -660,6 +679,7 @@ setInterval(upkeep, 1000)
 let MAX_PLAYERS = 6
 let connections = {}
 let connectionQueue = []
+let observers = []
 
 
 // Communications with python script
@@ -723,6 +743,10 @@ function broadcast(baseMessage) {
     connectionQueue[i].send(JSON.stringify(baseMessage))
   }
   delete baseMessage.queuePosition
+  // Observers have no player slot, so no self or queuePosition
+  for (let peer of observers) {
+    peer.send(JSON.stringify(baseMessage))
+  }
   delete baseMessage.timestamp
   lastBroadcastMs = Date.now()
 }
@@ -735,6 +759,7 @@ setInterval(() => {
   let msg = "STATE_HASH:" + currentStateHash
   for (let id in connections) connections[id].send(msg)
   for (let peer of connectionQueue) peer.send(msg)
+  for (let peer of observers) peer.send(msg)
 }, STATE_HASH_INTERVAL_MS)
 
 // Restart python if it stop sending updates
@@ -846,7 +871,9 @@ function cleanupTempOrb() {
   process.removeListener('SIGHUP', handleParentKill)
   python_process.kill('SIGKILL')
 
-  orbToRelaySocket.close()
+  if (orbToRelaySocket) {
+    orbToRelaySocket.close()
+  }
   for (let interval of intervals) {
     clearInterval(interval)
   }

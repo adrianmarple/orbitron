@@ -10,6 +10,7 @@ import importlib
 # import pkgutil
 import os
 import sys
+import traceback
 import numpy as np
 from time import time
 from threading import Thread
@@ -124,6 +125,11 @@ def consume_input():
         engine.button_stopped = True
     except json.decoder.JSONDecodeError:
       print("Bad input:\n%s" % line, file=sys.stderr)
+    except Exception:
+      # Never let one bad message kill the input thread, which would leave the
+      # orb rendering but deaf to all further input.
+      print("Error handling input:\n%s" % line, file=sys.stderr)
+      traceback.print_exc(file=sys.stderr)
 
 
 thread = Thread(target=consume_input)
