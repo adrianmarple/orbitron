@@ -146,7 +146,7 @@ Most things the controller can do can also be done over plain HTTP (useful for s
 | `POST` | `/presets/cycle` | — | Advance to the next preset in the cycle |
 | `GET` | `/schedule` | — | Timer settings, plus the daily and weekly schedules |
 | `PUT` | `/schedule` | `{"useTimer": true, "schedule": [...]}` | Update timer settings |
-| `GET` | `/state` | — | Everything at once, including game state |
+| `GET` | `/state` | — | All of the above at once |
 
 Preset names may contain spaces, so URL-encode them (`/presets/Evening%20Glow/load`).
 

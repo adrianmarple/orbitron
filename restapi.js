@@ -181,6 +181,12 @@ function parseBody(body) {
 function prefsSummary(state) {
   return { prefs: state.prefs }
 }
+function stateSummary(state) {
+  // gameInfo is left out on purpose; this API covers lighting only
+  let summary = {...state}
+  delete summary.gameInfo
+  return summary
+}
 function presetsSummary(state) {
   return {
     names: state.prefNames,
@@ -414,7 +420,7 @@ async function handleOrb(context, orbID, rest) {
   switch (rest[0]) {
     case "state":
       if (rest.length == 1 && method == "GET") {
-        respondJSON(response, 200, client.state)
+        respondJSON(response, 200, stateSummary(client.state))
         handled = true
       }
       break

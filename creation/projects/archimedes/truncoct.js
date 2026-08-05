@@ -1,4 +1,13 @@
 module.exports = () => {
+  // Params for Raph's piece
+  // (v)0.9
+  // WALL_THICKNESS = 1.8
+  // THICKNESS = 2
+  // NOTCH_DEPTH = 5.2
+
+  // portPartID = "1R"
+  // PORT_TYPE = "USBC_INTEGRATED"
+
   NO_EMBOSSING = true
   CHANNEL_LATCH_ANGLE = -6
 
@@ -62,8 +71,8 @@ module.exports = () => {
       printInfo.prints[2],
       printInfo.prints[3],
     ]
-    printInfo.prints[0].suffix = "square_wall"
-    printInfo.prints[1].suffix = "hex_wall"
+    printInfo.prints[0].suffix = "hex_wall"
+    printInfo.prints[1].suffix = "square_wall"
     printInfo.prints[2].suffix = "bottom"
     printInfo.prints[3].suffix = "top"
 

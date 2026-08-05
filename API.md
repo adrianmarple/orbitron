@@ -48,10 +48,10 @@ Scoped by source IP, so other orbs aren't exposed. Orbs configured with `NO_LOCA
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/v1/orbs/:orb/state` | The orb's full state broadcast |
+| `GET` | `/api/v1/orbs/:orb/state` | The orb's lighting state in one call |
 
-Everything the controller receives: `prefs`, `prefNames`, `currentPrefName`, `currentText`, and
-`gameInfo` (`null` when idle).
+`prefs`, `prefNames`, `currentPrefName`, and `currentText`. `gameInfo` is omitted, since this API
+doesn't cover games.
 
 ### Preferences
 
@@ -71,16 +71,41 @@ rather than silently dropped, so a typo is visible:
 The authoritative key list is whatever `GET /prefs` returns for that orb, since it varies with
 firmware version. The main ones:
 
-- **Pattern** — `idlePattern` (`default`, `static`, `fireflies`, `lightning`, `pulses`, `sin`,
-  `lightfield`, `hourglass`, `linesine`, `weather`), `idleFrameRate`, `idleBlend`, `idleDensity`,
-  `staticRotation`, `staticRotationTime`, `staticDirection`, `patternBias`, `useBias`,
-  `rippleWidth`, `sinDirection`, `sinMin`, `sinRadial`, `sinRadialReverse`, `sinWaveCycles`,
-  `disableBeatMode`, `hourglassStart`, `hourglassEnd`
-- **Color** — `idleColor` (`rainbow`, `fixed`, `gradient`, `tricolor`), `brightness`, `fixedColor`,
-  `gradientStartColor`, `gradientEndColor`, `gradientThreshold`, `fadeToBlack`, `rainbowDuration`,
-  `rainbowFade`, `tricolor1`, `tricolor2`, `tricolor3`, `tricolorThreshold1`, `tricolorThreshold2`
+| Key | Type | Default | Pi only | Description |
+|---|---|---|---|---|
+| `idlePattern` | enum | `"default"` | | Which animation runs: `default`, `static`, `fireflies`, `lightning`, `pulses`, `sin`, `lightfield`, `hourglass`, `linesine`, `weather`. `hourglass` and `weather` are Pi only. An orb's config can override the default with `IDLE`. |
+| `idleFrameRate` | number | `15` | | Animation speed, for every pattern — an actual frame rate only for `default` and `fireflies`. Controller range 5–30. |
+| `idleBlend` | number | `60` | | How much of the previous frame each frame blends in (motion smear). Unused by `weather`, `static`, `sin`, `lightfield`. |
+| `idleDensity` | number | `70` | | How much is lit at once — head/source count for `default`, `fireflies`, `lightning`, `pulses`, `sin`. Minimum 10. |
+| `staticRotation` | bool | `false` | | `static`: sweep the direction over time instead of holding `staticDirection`. |
+| `staticRotationTime` | number | `8` | | `static`: seconds per full rotation, when `staticRotation` is on. |
+| `staticDirection` | vector | `"1,1,0"` | | `static` (and `hourglass`): the axis the gradient runs along. |
+| `patternBias` | vector | `"0,1,0"` | | `fireflies`: the direction the fireflies tend to travel. |
+| `useBias` | bool | `true` | ✓ | The controller's "Use bias" toggle beside `patternBias`. Stored only — the render pipeline always applies the bias vector. |
+| `rippleWidth` | number | `9` | | `pulses`: width of each expanding ring, 1–50. |
+| `sinDirection` | vector | `"1,0,0"` | | `sin`: the direction the wave travels. Ignored when `sinRadial` is on. |
+| `sinMin` | number | `25` | | `sin`: the trough value; the wave always peaks at 255. Negative values (down to -255) render as black but still shape everything above the trough. |
+| `sinRadial` | bool | `false` | ✓ | `sin`: waves start at the center and move outward instead of travelling along `sinDirection`. |
+| `sinRadialReverse` | bool | `false` | ✓ | `sin`: with `sinRadial` on, move inward instead. |
+| `sinWaveCycles` | number | `4` | | `linesine`: how many wave cycles fit around the line/ring, 1–10. |
+| `disableBeatMode` | bool | `false` | ✓ | `default`: opt out of beat-reactive brightness, on orbs wired for it (`BEAT_PIN`). |
+| `hourglassStart` | `"HH:MM"` | `"00:00"` | ✓ | `hourglass`: when the daily fill begins. |
+| `hourglassEnd` | `"HH:MM"` | `"23:59"` | ✓ | `hourglass`: when it finishes. |
+| `idleColor` | enum | `"gradient"` | ✓ | Color mode: `rainbow`, `fixed`, `gradient`. Arduino orbs render `gradient` and report it as fixed, so only a Pi has a choice. |
+| `brightness` | number | `100` | | Master brightness, applied quadratically. |
+| `fixedColor` | color | `"#ffffff"` | ✓ | `fixed`: the one color everything is drawn in. |
+| `gradientStartColor` | color | `"#25ff59"` | | `gradient`: the color the brighter pixels take. |
+| `gradientEndColor` | color | `"#00607c"` | | `gradient`: the color the dimmer pixels take. |
+| `gradientThreshold` | number | `66` | | `gradient`: where the two meet — lower is more start color, higher is more end color. Minimum 1. |
+| `fadeToBlack` | bool | `true` | ✓ | Controller-side flag: gates the blend-threshold sliders in the UI. The render pipeline doesn't read it. |
+| `rainbowDuration` | number | `10` | ✓ | `rainbow`: seconds for one full cycle through the rainbow. |
+| `rainbowFade` | number | `0` | ✓ | `rainbow`: how much of the rainbow is on the orb at once. `0` is a single solid color cycling over time. |
+
+A ✓ in "Pi only" means the Arduino (ESP32) firmware doesn't carry that pref at all, so it never appears in that orb's `GET /prefs` and `PATCH`ing it returns `400 Unknown preference(s)`.
 
 Colors are `#rrggbb` strings; directions are `"x,y,z"` strings.
+
+Note `idleColor` can be set to `tricolor` with cooresponding fields `tricolor1`, `tricolor2`, `tricolor3`, `tricolorThreshold1`, `tricolorThreshold2`. These are a pi only special case (needs an explicit INCLUDE in an orbs config to appear in the controller), but you can technically still use these.
 
 ### Brightness / dimmer
 
