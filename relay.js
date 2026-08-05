@@ -4,7 +4,7 @@ const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const path = require('path')
-const { config, execute, processAdminCommand, noCorsHeader } = require('./lib')
+const { config, execute, processAdminCommand, noCorsHeader, ianaToPosix } = require('./lib')
 const { pullAndRestart, restartOrbitron } = require('./gitupdate')
 const { addListener, respondWithFile } = require('./server')
 const crypto = require('crypto')
@@ -525,6 +525,21 @@ addListener('GET', async ({response, filePath, request})=>{
   }
 
   response.end(JSON.stringify(localOrbs))
+  return true
+})
+
+// Resolve an IANA timezone name to a POSIX TZ string for Arduino ESP32 devices,
+// which have no tzdata of their own. e.g. /tz/America/Los_Angeles -> PST8PDT,M3.2.0,M11.1.0
+addListener('GET', ({response, filePath}) => {
+  if (!filePath.startsWith('/tz/')) return false
+  const posix = ianaToPosix(filePath.slice('/tz/'.length))
+  if (!posix) {
+    response.writeHead(404)
+    response.end('Unknown timezone')
+    return true
+  }
+  noCorsHeader(response, 'text/plain')
+  response.end(posix)
   return true
 })
 

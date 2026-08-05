@@ -1,5 +1,6 @@
 const crypto = require("crypto")
 const fs = require('fs')
+const path = require('path')
 let { exec, execSync } = require('child_process')
 
 //load and process config and environment variables
@@ -20,10 +21,6 @@ if(config.KEY_LOCATION){
 }
 const PYTHON_EXECUTABLE = fs.existsSync(`${__dirname}/.venv/bin/python3`)
     ? `${__dirname}/.venv/bin/python3` : '/home/pi/.env/bin/python3'
-
-if (!config.DEV_MODE && config.TIMEZONE) {
-  execute(`timedatectl set-timezone ${config.TIMEZONE}`)
-}
 
 //add timestamps to logs
 const clog = console.log
@@ -111,8 +108,124 @@ function noCorsHeader(response, contentType) {
   })
 }
 
+
+// pi requires IANA timezones while arduino requires POSIx
+// TIMEZONE accepts both and converts as needed
+const ZONEINFO_DIR = "/usr/share/zoneinfo"
+const IANA_NAME_REGEX = /^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+.-]+)*$/
+
+// "America/Los_Angeles" -> "PST8PDT,M3.2.0,M11.1.0" (null if unresolvable).
+function ianaToPosix(zone) {
+  if (typeof zone != "string") return null
+  zone = zone.trim()
+  // Validate before touching the filesystem (this is reachable from an HTTP path).
+  // The regex allows "." inside later segments, so ".." needs its own rejection.
+  if (!IANA_NAME_REGEX.test(zone)) return null
+  if (zone.split("/").includes("..")) return null
+
+  let contents
+  try {
+    contents = fs.readFileSync(path.join(ZONEINFO_DIR, zone)).toString("latin1")
+  } catch {
+    return null
+  }
+  // The footer is the last newline-delimited line. TZif v1-only files have none.
+  let end = contents.lastIndexOf("\n")
+  if (end < 1) return null
+  let start = contents.lastIndexOf("\n", end - 1)
+  if (start < 0) return null
+  return contents.slice(start + 1, end).trim() || null
+}
+
+// POSIX -> IANA is many-to-one: 26 zones share "EST5EDT,M3.2.0,M11.1.0" and 34 share
+// "CET-1CEST,M3.5.0,M10.5.0/3". Scanning alphabetically would answer America/Detroit
+// and Africa/Ceuta, so check canonical zones first. Equivalent zones have identical
+// rules, so where several match, list order is purely cosmetic.
+const PREFERRED_ZONES = [
+  "America/Los_Angeles", "America/Denver", "America/Phoenix", "America/Chicago",
+  "America/New_York", "America/Anchorage", "Pacific/Honolulu", "America/Toronto",
+  "America/Vancouver", "America/Mexico_City", "America/Sao_Paulo", "America/Bogota",
+  "America/Argentina/Buenos_Aires", "Europe/London", "Europe/Dublin", "Europe/Lisbon",
+  "Europe/Paris", "Europe/Berlin", "Europe/Madrid", "Europe/Rome", "Europe/Amsterdam",
+  "Europe/Stockholm", "Europe/Warsaw", "Europe/Athens", "Europe/Helsinki",
+  "Europe/Kyiv", "Europe/Moscow", "Europe/Istanbul", "Africa/Johannesburg",
+  "Africa/Cairo", "Africa/Lagos", "Africa/Nairobi", "Asia/Jerusalem", "Asia/Dubai",
+  "Asia/Tehran", "Asia/Karachi", "Asia/Kolkata", "Asia/Kathmandu", "Asia/Dhaka",
+  "Asia/Bangkok", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Singapore", "Asia/Tokyo",
+  "Asia/Seoul", "Australia/Perth", "Australia/Brisbane", "Australia/Adelaide",
+  "Australia/Sydney", "Pacific/Auckland", "UTC",
+]
+
+// Every region directory and zone file in zoneinfo is capitalized; this skips the
+// *.tab metadata, posixrules, and the legacy lowercase aliases.
+function listZoneinfoZones(dir = ZONEINFO_DIR, prefix = "") {
+  let zones = []
+  let entries
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true })
+  } catch {
+    return zones
+  }
+  entries.sort((a, b) => a.name < b.name ? -1 : 1)
+  for (let entry of entries) {
+    if (!/^[A-Z]/.test(entry.name)) continue
+    if (entry.isSymbolicLink()) continue
+    let name = prefix ? prefix + "/" + entry.name : entry.name
+    if (entry.isDirectory()) {
+      zones = zones.concat(listZoneinfoZones(path.join(dir, entry.name), name))
+    } else if (name.includes("/")) {
+      zones.push(name)
+    }
+  }
+  return zones
+}
+
+// "PST8PDT,M3.2.0,M11.1.0" -> "America/Los_Angeles" (null if nothing matches).
+function posixToIana(posix) {
+  if (typeof posix != "string") return null
+  posix = posix.trim()
+  if (!posix) return null
+  for (let zone of PREFERRED_ZONES) {
+    if (ianaToPosix(zone) == posix) return zone
+  }
+  // Only exotic zones reach the full scan; it costs ~10ms for all 553 of them.
+  for (let zone of listZoneinfoZones()) {
+    if (ianaToPosix(zone) == posix) return zone
+  }
+  return null
+}
+
+// timedatectl accepts IANA names only, but TIMEZONE may hold a POSIX string
+// so normalize before handing it to the shell.
+function setSystemTimezone(tz) {
+  let zone = tz.trim()
+  // Any name zoneinfo knows is usable as-is, which also covers single-segment zones
+  // like "UTC" that a "contains /" test would misclassify. Guard on the directory
+  // existing so a system without tzdata still passes a plain name straight through.
+  if (!ianaToPosix(zone) && fs.existsSync(ZONEINFO_DIR)) {
+    let resolved = posixToIana(zone)
+    if (!resolved) {
+      console.error(`TIMEZONE "${zone}" is neither an IANA name nor a recognized POSIX TZ string; leaving system timezone unchanged`)
+      return
+    }
+    console.log(`TIMEZONE "${zone}" resolved to ${resolved}`)
+    zone = resolved
+  }
+  // TIMEZONE can arrive from a restored backup, so never interpolate it unvalidated.
+  if (!IANA_NAME_REGEX.test(zone) || zone.split("/").includes("..")) {
+    console.error(`TIMEZONE "${zone}" is not a valid timezone name; leaving system timezone unchanged`)
+    return
+  }
+  execute(`timedatectl set-timezone ${zone}`)
+}
+
+if (!config.DEV_MODE && config.TIMEZONE) {
+  setSystemTimezone(config.TIMEZONE)
+}
+
 module.exports = {
-  execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand, noCorsHeader
+  execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand, noCorsHeader,
+  ianaToPosix, posixToIana,
 }
 
 

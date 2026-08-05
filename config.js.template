@@ -68,7 +68,7 @@ module.exports={
   // MANUAL_FADE_PIN: 24,        // board pin 18/GPIO pin 24
   // PIN_INPUT_TYPE: "LOW",      // "HIGH"
   // TEXT_DISPLAY: "Seg14x4",
-  // TIMEZONE: "America/Los_Angeles",
+  // TIMEZONE: "America/Los_Angeles",   // IANA name; a POSIX TZ string is also accepted
 
   // ===================== Server/Dev =====================
   // DEV_MODE: false,

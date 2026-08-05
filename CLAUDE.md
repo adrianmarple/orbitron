@@ -129,7 +129,7 @@ JSON file written directly to the device. Key fields:
 - `RELAY_HOST` — relay server domain (e.g. `"my.lumatron.art"`)
 - `PIXELS` — pixel geometry name (e.g. `"archimedes/rhombicosidodecahedron"`)
 - `ORB_KEY` — `sha256(orbID + masterKey)`; set via admin UI "Set ORB_KEY" button
-- `TIMEZONE` — POSIX tz string (e.g. `"PST8PDT,M3.2.0,M11.1.0"`)
+- `TIMEZONE` — IANA name (e.g. `"America/Los_Angeles"`), the same form the Pi uses. See "Timezone resolution" below. A raw POSIX TZ string (`"PST8PDT,M3.2.0,M11.1.0"`) is still accepted and used as-is.
 - `CONTINUOUS_INTEGRATION` — if true, polls for server restart then OTAs at 2am
 - `BUTTON_PIN` — GPIO number for hardware button; defaults to D9 (GPIO 9/C3, 20/C6, 8/S3); set to `0` to disable
 - `SHORT_PRESS_ACTION` — `"DIM"` (default) or `"CYCLE"`
@@ -157,6 +157,18 @@ JSON file written directly to the device. Key fields:
 ### Pixel geometry
 - Geometry is fetched from `https://<relay>/pixels/<pixelsName>.bin` on first connect and cached to LittleFS as `/<name>.bin`
 - `patterns.h` (shared with the RP2040 template) lives in `arduino/esp32/patterns.h`
+
+### Timezone resolution
+`TIMEZONE` is canonically an IANA name on both the Pi and the ESP32, but `configTzTime()` needs a POSIX TZ string and the device carries no tzdata. The relay converts.
+
+- Relay serves `GET https://<relay>/tz/<IANA name>` → the POSIX string (e.g. `/tz/America/Los_Angeles` → `PST8PDT,M3.2.0,M11.1.0`). Implemented by `ianaToPosix` in `lib.js`, which reads the POSIX footer that TZif v2+ files store as their last line — so the answer comes from the system tzdata rather than derived DST rules.
+- Device resolves in `resolveTimezone()` (before `configTzTime`) and caches to `/tz.json` as `{"iana", "posix"}`. Storing the IANA key alongside the value makes the cache self-invalidating when `TIMEZONE` changes, so no stale-file sweep is needed. Any cache hit settles resolution with no network at all.
+- `"posix": ""` is a **cached negative**: the relay 404'd, so the value is not a zone name and is used verbatim. Zone names are effectively immutable, so this never needs rechecking — it is what keeps a POSIX config (`MST7`) from re-asking on every boot. Only a definitive 404 is cached this way; an unreachable relay is left uncached, since recording that as a negative would permanently pin a real zone name to UTC after a single offline boot.
+- Falls back cache → `PST8PDT,M3.2.0,M11.1.0` when offline, so a device with no relay never silently lands on UTC.
+- Re-resolved in the 2am block so a long-running device picks up tzdata DST rule changes; applied via `setenv`/`tzset` (not `configTzTime`, which would restart SNTP) followed by a schedule re-anchor.
+- Form detection (`needsTimezoneLookup`): a value containing `,` is a POSIX rule string and is used as-is, since zone names never contain a comma. Everything else is looked up rather than guessed at — the relay has the tzdata, so it either knows the name or 404s, and a 404 means the value is used verbatim. This is what makes bare names (`UTC`, `CET`, `Japan`) behave on the device exactly as on the Pi; passing them to `configTzTime` unresolved makes newlib read them as an abbreviation with a missing offset, give up, and silently sit on UTC — harmless for `UTC` itself, a 9 hour error for `Japan`. The same path leaves comma-less POSIX strings from DST-free zones (`MST7`, `IST-5:30`) working, and upgrades `EST5EDT`/`PST8PDT` to their full rule strings instead of relying on newlib's built-in default DST rules.
+- With no `TIMEZONE` set, both stacks end up on America/Los_Angeles: the ESP32 defaults to its POSIX equivalent (`PST8PDT,M3.2.0,M11.1.0`), and the Pi leaves the system zone alone, which the SD image already ships as `America/Los_Angeles`. So the Pi deliberately has no built-in default — adding one would override a zone set at imaging time.
+- On the Pi (`setSystemTimezone` in `lib.js`) the conversion runs the other way: `timedatectl` accepts IANA only, so a POSIX value is mapped back via `posixToIana`. That mapping is many-to-one (26 zones share `EST5EDT,M3.2.0,M11.1.0`), so a `PREFERRED_ZONES` list is consulted before falling back to scanning zoneinfo — otherwise US Eastern would resolve to `America/Detroit`.
 
 ---
 

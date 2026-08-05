@@ -126,7 +126,8 @@ String orbID;
 String relayHost;
 String pixelsName;
 String orbKey;  // sha256(orbID + masterKey); empty = no auth required
-String timezone;
+String timezone;    // raw TIMEZONE from config: either an IANA name or a POSIX TZ string
+String resolvedTz;  // the POSIX TZ string actually handed to configTzTime
 bool continuousIntegration = false;
 bool dontReconnect = false;
 WiFiMulti wifiMulti;  // multi-network connect; credentials live in /wifi.json
@@ -542,6 +543,118 @@ void handleRestoreFromBackup(JsonDocument& msg) {
   Serial.println("Backup restored, restarting...");
   delay(500);
   ESP.restart();
+}
+
+// ===================== TIMEZONE =====================
+
+// TIMEZONE is canonically an IANA name ("America/Los_Angeles"), the same form the Pi
+// hands to timedatectl. configTzTime needs a POSIX TZ string and there is no tzdata
+// here, so the relay converts for us. The answer is cached to /tz.json keyed by the
+// IANA name, which makes a config change self-invalidating and keeps steady-state
+// boots off the network entirely.
+const char* DEFAULT_POSIX_TZ = "PST8PDT,M3.2.0,M11.1.0";  // == America/Los_Angeles
+const char* TZ_CACHE_PATH = "/tz.json";
+
+// A comma means a POSIX rule string ("PST8PDT,M3.2.0,M11.1.0") and a zone name can
+// never contain one, so those need no lookup and cost no network. Everything else
+// might be a zone name, and rather than guess from the string's shape we just ask:
+// the relay has the tzdata, so it either knows the name or it doesn't. An unknown
+// name 404s and we fall back to using the value verbatim, which is exactly right for
+// the comma-less POSIX strings that DST-free zones produce ("MST7", "IST-5:30").
+bool needsTimezoneLookup(const String& tz) {
+  return !tz.isEmpty() && tz.indexOf(',') < 0;
+}
+
+// Ask the relay for the POSIX TZ string matching a zone name. "" if we got no answer.
+// httpCode receives the status so the caller can tell a definitive 404 ("the tzdata
+// has no such zone") from an inconclusive failure (offline, relay down); it is left 0
+// when the request never went out at all.
+String fetchPosixTz(const String& zone, int& httpCode) {
+  httpCode = 0;
+  if (relayHost.isEmpty() || WiFi.status() != WL_CONNECTED) return "";
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  HTTPClient http;
+  String url = "https://" + relayHost + "/tz/" + zone;
+  Serial.println("Resolving timezone: " + url);
+  http.begin(client, url);
+  httpCode = http.GET();
+  String posix = "";
+  if (httpCode == 200) {
+    posix = http.getString();
+    posix.trim();
+  } else {
+    Serial.println("Timezone resolve failed: HTTP " + String(httpCode));
+  }
+  http.end();
+  return posix;
+}
+
+// Read /tz.json into posixOut, returning false unless it is keyed to the current
+// TIMEZONE. An empty posixOut is a cached negative: the relay has already told us
+// this value is not a zone name, so it is a POSIX string to be used verbatim.
+bool readTzCache(String& posixOut) {
+  String cacheJson = readFile(TZ_CACHE_PATH);
+  if (cacheJson.isEmpty()) return false;
+  JsonDocument doc;
+  if (deserializeJson(doc, cacheJson) != DeserializationError::Ok) return false;
+  String cachedIana = doc["iana"] | "";
+  if (cachedIana != timezone) return false;  // config changed; cache is stale
+  posixOut = doc["posix"] | "";
+  return true;
+}
+
+void writeTzCache(const String& posix) {
+  JsonDocument doc;
+  doc["iana"] = timezone;
+  doc["posix"] = posix;
+  String out;
+  serializeJson(doc, out);
+  writeFile(TZ_CACHE_PATH, out);
+}
+
+// Populate resolvedTz, falling through cache -> relay -> the raw configured value, so
+// a device that is offline (or whose relay is down) still comes up on the best zone
+// available to it. Any cached answer, positive or negative, settles it without
+// touching the network; DST rule changes are picked up by refreshTimezone() instead.
+// Safe to call with no WiFi.
+void resolveTimezone() {
+  if (timezone.isEmpty()) {
+    resolvedTz = DEFAULT_POSIX_TZ;  // an empty TZ would leave newlib on UTC
+    return;
+  }
+  if (!needsTimezoneLookup(timezone)) {
+    resolvedTz = timezone;  // already a POSIX rule string
+    return;
+  }
+
+  String cachedPosix;
+  if (readTzCache(cachedPosix)) {
+    resolvedTz = cachedPosix.isEmpty() ? timezone : cachedPosix;
+    return;
+  }
+
+  int httpCode = 0;
+  String posix = fetchPosixTz(timezone, httpCode);
+  if (!posix.isEmpty()) {
+    resolvedTz = posix;
+    writeTzCache(posix);
+    return;
+  }
+
+  resolvedTz = timezone;
+  if (httpCode == 404) {
+    // Definitive: the relay's tzdata has no such zone, so this is a POSIX string.
+    // Cache that. Zone names are effectively immutable, so the answer cannot go
+    // stale, and this is what stops a POSIX config re-asking on every boot.
+    writeTzCache("");
+    return;
+  }
+  // Inconclusive — offline, relay down, or a transient error. Use the value as-is,
+  // but deliberately do not cache it: recording this as a negative would pin a real
+  // zone name to a verbatim reading (i.e. UTC) permanently after one offline boot.
+  Serial.println("Could not resolve timezone " + timezone + "; using it as-is");
 }
 
 // ===================== GEOMETRY =====================
@@ -1545,6 +1658,31 @@ void checkSchedule() {
   }
 }
 
+// Re-resolve the timezone in case tzdata changed the zone's DST rules since we cached
+// them — a device can stay up for months, well past a rule change taking effect.
+void refreshTimezone() {
+  if (!needsTimezoneLookup(timezone)) return;
+  // A cached negative cannot go stale — the value is not a zone name, and zone names
+  // do not come and go. Only an actual zone's rules are worth re-checking.
+  String cachedPosix;
+  if (readTzCache(cachedPosix) && cachedPosix.isEmpty()) return;
+
+  int httpCode = 0;
+  String posix = fetchPosixTz(timezone, httpCode);
+  if (posix.isEmpty() || posix == resolvedTz) return;
+
+  Serial.println("Timezone rules changed: " + resolvedTz + " -> " + posix);
+  resolvedTz = posix;
+  writeTzCache(posix);
+  // setenv/tzset rather than configTzTime, which would tear down and restart SNTP.
+  setenv("TZ", resolvedTz.c_str(), 1);
+  tzset();
+  // Every getLocalTime()-derived deadline was computed under the old offset.
+  // computeNextBackupMs() is re-run by the sendBackup() that follows this call.
+  checkSchedule();
+  computeNextEventMs();
+}
+
 // Matches Python prefs.fade(): linear fade-in from previous event, fade-out toward next,
 // with durations only honored on transitions involving an OFF event (else 0.2 min crossfade).
 // Capped by manual dimmer.
@@ -1934,9 +2072,11 @@ void renderAPRings() {
 void networkTask(void*) {
   // Network init deferred from setup() so render loop can start immediately.
   connectWiFi();
-  configTzTime(timezone.c_str(), "pool.ntp.org", "time.nist.gov");
+  resolveTimezone();
+  configTzTime(resolvedTz.c_str(), "pool.ntp.org", "time.nist.gov");
   sntp_set_time_sync_notification_cb(onTimeSync);  // re-anchor schedule on every NTP step
-  Serial.println("NTP configured (tz: " + timezone + ")");
+  Serial.println("NTP configured (tz: " + timezone +
+    (resolvedTz == timezone ? "" : " -> " + resolvedTz) + ")");
 
   if (!geometryLoaded) {
     fetchGeometryToCache();
@@ -1994,6 +2134,7 @@ void networkTask(void*) {
     }
     if (now >= nextBackupMs) {
       Serial.println("2am backup/OTA triggered");
+      refreshTimezone();  // before sendBackup, which reschedules off the wall clock
       sendBackup("");  // sendBackup calls computeNextBackupMs() to reschedule
       performOTA();
     }
