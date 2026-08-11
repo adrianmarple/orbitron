@@ -22,7 +22,12 @@ let BACKUPS_DIR = "./backups/"
 // --- Arduino OTA firmware ---
 const FIRMWARE_DIR = path.join(__dirname, 'firmware')
 const SUPPORTED_CHIPS = ['esp32c3', 'esp32c6', 'esp32s3']
+// Support images the web flasher writes alongside the app image. Unlike the app
+// they change only when the ESP32 core or partitions.csv changes, so they carry
+// no version bookkeeping and never trigger an OTA notification.
+const FIRMWARE_PARTS = ['bootloader', 'partitions', 'bootapp0']
 const firmwareBin = chip => path.join(FIRMWARE_DIR, `${chip}.bin`)
+const firmwarePartBin = (chip, part) => path.join(FIRMWARE_DIR, `${chip}-${part}.bin`)
 const firmwareVersionFile = chip => path.join(FIRMWARE_DIR, `${chip}.version.txt`)
 const firmwareUploadTimeFile = chip => path.join(FIRMWARE_DIR, `${chip}.uploaded.txt`)
 let compiledFirmwareVersions = {}  // chip -> version number
@@ -411,6 +416,14 @@ addListener('GET', async ({response, filePath, queryParams}) => {
   return true
 })
 
+// Serve web flasher UI at /flasher. Needs an explicit listener because the
+// controller catch-all below would otherwise redirect a single-segment path.
+addListener('GET', async ({response, filePath}) => {
+  if (filePath != "/flasher") return false
+  respondWithFile(response, "/flasher/flasher.html")
+  return true
+})
+
 // Serve version info for admin UI (used to show how far behind each orb is)
 addListener('GET', async ({response, filePath}) => {
   if (filePath != "/admin/versions") return false
@@ -543,6 +556,35 @@ addListener('GET', ({response, filePath}) => {
   return true
 })
 
+// Serve bootloader/partition-table/otadata images for the web flasher.
+// Must be registered before the /firmware/<chip>.bin handler below, which
+// matches any /firmware/*.bin and would 404 these as an unknown chip.
+addListener('GET', async ({response, filePath}) => {
+  if (!filePath.startsWith('/firmware/') || !filePath.endsWith('.bin')) return false
+  const parts = filePath.split('/')
+  if (parts.length != 4) return false
+  const chip = parts[2]
+  const part = path.basename(parts[3], '.bin')
+  if (!SUPPORTED_CHIPS.includes(chip) || !FIRMWARE_PARTS.includes(part)) {
+    response.writeHead(404)
+    response.end('Unknown chip or part')
+    return true
+  }
+  const binPath = firmwarePartBin(chip, part)
+  if (!fs.existsSync(binPath)) {
+    response.writeHead(404)
+    response.end('No firmware available')
+    return true
+  }
+  let bin = await fs.promises.readFile(binPath)
+  response.writeHead(200, {
+    'Content-Type': 'application/octet-stream',
+    'Content-Length': bin.length,
+  })
+  response.end(bin)
+  return true
+})
+
 // Serve compiled Arduino firmware binary
 addListener('GET', async ({response, filePath, queryParams}) => {
   if (!filePath.startsWith('/firmware/') || !filePath.endsWith('.bin')) return
@@ -581,6 +623,21 @@ addListener('POST', async ({response, body, filePath, queryParams}) => {
     response.writeHead(400); response.end('unknown chip'); return true
   }
   await fs.promises.mkdir(FIRMWARE_DIR, { recursive: true })
+
+  // Support images for the web flasher. Checked against an explicit allow-list
+  // because `part` is interpolated into a filename. These carry no version and
+  // must not notify orbs, or every build would trigger three redundant OTAs.
+  const part = queryParams.part
+  if (part) {
+    if (!FIRMWARE_PARTS.includes(part)) {
+      response.writeHead(400); response.end('unknown part'); return true
+    }
+    await fs.promises.writeFile(firmwarePartBin(chip, part), body)
+    console.log(`Firmware part uploaded: ${chip}-${part}`)
+    response.writeHead(200); response.end('OK')
+    return true
+  }
+
   await fs.promises.writeFile(firmwareBin(chip), body)
   await fs.promises.writeFile(firmwareVersionFile(chip), String(version))
   await fs.promises.writeFile(firmwareUploadTimeFile(chip), new Date().toISOString())

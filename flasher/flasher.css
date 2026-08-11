@@ -1,0 +1,130 @@
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+body {
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  color: #eee;
+}
+a, a:visited { color: #f0f; }
+
+@keyframes animatedBackground {
+  from { background-position: 0 0; }
+  to { background-position: max(100vw, 100vh) max(100vw, 100vh); }
+}
+#background {
+  position: fixed;
+  left: 0; top: 0;
+  z-index: -10;
+  font-size: max(100vw, 100vh);
+  width: 1em; height: 1em;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    #00f 0, #a0a 12.5%, #f00 25%, #a0a 37.5%,
+    #00f 50%, #a0a 62.5%, #f00 75%, #a0a 87.5%, #00f 100%
+  );
+  animation: animatedBackground 20s linear infinite;
+}
+
+#card {
+  background: #080808;
+  border-radius: 12px;
+  padding: 24px 28px 28px;
+  max-width: 560px;
+  width: 100%;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+}
+h1 {
+  margin: 0 0 20px;
+  font-size: 28px;
+}
+p { line-height: 1.5; }
+ol {
+  line-height: 1.7;
+  padding-left: 22px;
+}
+#steps { margin-bottom: 24px; }
+
+.warning {
+  background: rgba(255, 0, 0, 0.14);
+  border-left: 4px solid #f00;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+.success {
+  background: rgba(255, 0, 255, 0.14);
+  border-left: 4px solid #f0f;
+  padding: 12px 14px;
+  border-radius: 4px;
+}
+
+button {
+  width: 100%;
+  padding: 16px;
+  font-size: 19px;
+  font-family: inherit;
+  font-weight: bold;
+  color: #fff;
+  background: #a0a;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { background: #c0c; }
+button:disabled {
+  background: #444;
+  color: #888;
+  cursor: default;
+}
+
+#progress-wrap {
+  margin-top: 20px;
+  height: 10px;
+  background: #222;
+  border-radius: 5px;
+  overflow: hidden;
+}
+#progress-bar {
+  height: 100%;
+  width: 0;
+  background: #f0f;
+  transition: width 0.2s ease;
+}
+#status {
+  margin-top: 12px;
+  min-height: 22px;
+  text-align: center;
+  color: #bbb;
+}
+#status.error { color: #f66; }
+
+#recovery, #done { margin-top: 24px; }
+
+#log-details {
+  margin-top: 24px;
+  color: #888;
+  font-size: 13px;
+}
+summary { cursor: pointer; }
+#log {
+  max-height: 240px;
+  overflow-y: auto;
+  background: #111;
+  padding: 10px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hidden { display: none; }

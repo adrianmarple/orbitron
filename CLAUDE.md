@@ -154,6 +154,17 @@ JSON file written directly to the device. Key fields:
 - Device detects its chip type at compile time via IDF macros (`CONFIG_IDF_TARGET_ESP32C6` etc.) and fetches the matching binary
 - Device checks for updates at 2am daily; if `CONTINUOUS_INTEGRATION: true`, also polls after receiving `GIT_HAS_UPDATE` from relay
 
+### Web flasher (`flasher/`)
+
+`https://<relay>/flasher` reflashes a USB-connected orb from Chrome/Edge via WebSerial, with no installs — for recovering orbs that OTA can't reach (wedged, misconfigured, or with a stale `ORB_KEY`). Uses esptool-js, vendored at `thirdparty/esptool-js.bundle.js` (an ES module, so the page loads it with `<script type="module">`).
+
+- **Wipes the device completely.** `writeFlash({eraseAll: true})` erases the whole chip including NVS, so prefs, presets, timers, `config.json` and `wifi.json` all go. No blank-filesystem image is needed: erased flash is `0xFF`, and `LittleFS.begin(true)` formats on mount failure. Afterwards the orb boots on the `esp32.ino` defaults (`ORB_ID: "arduino"`, `archimedes/octtrue`, `my.lumatron.art`, no `ORB_KEY`) and needs the captive portal for WiFi plus an admin backup restore.
+- **Beware when flashing from staging**: a wiped orb has no `RELAY_HOST`, so it calls home to `my.lumatron.art` regardless of which relay flashed it.
+- Writes four images: bootloader `0x0` (S3/C3/C6 all use `0x0`; only the classic ESP32 uses `0x1000`), partition table `0x8000`, boot_app0 `0xe000`, app `0x10000`.
+- `arduino_build.sh` uploads the three support images per chip with `&part=<bootloader|partitions|bootapp0>`, served at `/firmware/<chip>/<part>.bin`. A `part` upload deliberately skips all version bookkeeping and does **not** fire `HAS_UPDATE` — otherwise every build would trigger three redundant OTAs across the fleet. `part` is checked against an allow-list because it lands in a filename.
+- The app is fetched as `/firmware/<chip>.bin?version=-1`; without the query param the OTA route's `clientVersion >= stored` check returns a bodiless 304.
+- The `/flasher` route needs an explicit listener in `relay.js` (registered before the controller catch-all, which would otherwise redirect a single-segment path to `/`); sub-assets contain a dot and reach the static fallback on their own.
+
 ### Pixel geometry
 - Geometry is fetched from `https://<relay>/pixels/<pixelsName>.bin` on first connect and cached to LittleFS as `/<name>.bin`
 - `patterns.h` (shared with the RP2040 template) lives in `arduino/esp32/patterns.h`

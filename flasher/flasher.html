@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Flasher - Lumatron</title>
+<link rel="shortcut icon" href="/controller/images/ravenstear.png" />
+<link rel="stylesheet" href="/flasher/flasher.css">
+</head>
+
+<body>
+<div id="background"></div>
+
+<div id="card">
+  <h1>Lumatron Arduino Flasher</h1>
+
+  <!-- Shown when the browser has no WebSerial -->
+  <div id="unsupported" class="hidden">
+    <p class="warning">This browser can't talk to USB devices.</p>
+    <p>Open this page in <b>Chrome</b> or <b>Edge</b> on a desktop computer.
+    Safari and Firefox don't support WebSerial, and neither do phones or tablets.</p>
+  </div>
+
+  <div id="main" class="hidden">
+    <div class="warning">
+      <b>This erases the arduino controller completely.</b>
+      Lighting settings, saved presets, timers and the saved WiFi network are all
+      wiped. Afterwards the orb needs to be reconnected to WiFi and have its
+      settings restored.
+    </div>
+
+    <ol id="steps">
+      <li>Open the controller box.</li>
+      <li>Plug the newly exposed USB-C port on the side into this computer with a USB cable.</li>
+      <li>Click the button below and pick the orb from the list that appears, something like: "serial debug unit (cu.usbmodem101)".</li>
+      <li>Leave it plugged in until it says done — about a minute.</li>
+    </ol>
+
+    <button id="flash-button">Connect &amp; Flash</button>
+
+    <div id="progress-wrap" class="hidden">
+      <div id="progress-bar"></div>
+    </div>
+    <div id="status"></div>
+
+    <!-- Shown after a connection failure -->
+    <div id="recovery" class="hidden">
+      <p class="warning">Couldn't connect to the orb.</p>
+      <p>Some boards need to be put into flashing mode by hand:</p>
+      <ol>
+        <li>Hold down the <b>BOOT</b> button (sometimes labelled <b>B</b>).</li>
+        <li>While holding it, press and release <b>RESET</b> (sometimes <b>R</b>).</li>
+        <li>Let go of BOOT, then click the button above again.</li>
+      </ol>
+      <p>If that doesn't help, try a different USB cable — some charge-only cables
+      carry no data.</p>
+    </div>
+
+    <!-- Shown after a successful flash -->
+    <div id="done" class="hidden">
+      <p class="success">Done. The orb is restarting.</p>
+      <p>If its lights don't come back on within a few seconds, unplug the USB
+      cable and plug it back in.</p>
+      <p>To finish setting it up:</p>
+      <ol>
+        <li>On your phone or laptop, join the WiFi network named
+          <b>Lumatron-arduino</b>.</li>
+        <li>A setup page should open by itself. Pick your WiFi network and enter
+          its password.</li>
+        <li>Restore the orb's settings from a backup in the
+          <a href="/admin">admin page</a>.</li>
+      </ol>
+    </div>
+
+    <details id="log-details">
+      <summary>Logs</summary>
+      <pre id="log"></pre>
+    </details>
+  </div>
+</div>
+
+<script type="module" src="/flasher/flasher.js"></script>
+</body>
+</html>
