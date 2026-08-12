@@ -25,14 +25,14 @@
     <div class="warning">
       <b>This erases the arduino controller completely.</b>
       Lighting settings, saved presets, timers and the saved WiFi network are all
-      wiped. Afterwards the orb needs to be reconnected to WiFi and have its
+      wiped. Afterwards the controller needs to be reconnected to WiFi and have its
       settings restored.
     </div>
 
     <ol id="steps">
       <li>Open the controller box.</li>
       <li>Plug the newly exposed USB-C port on the side into this computer with a USB cable.</li>
-      <li>Click the button below and pick the orb from the list that appears, something like: "serial debug unit (cu.usbmodem101)".</li>
+      <li>Click the button below and pick usb connection from the list that appears, something like: "serial debug unit (cu.usbmodem101)".</li>
       <li>Leave it plugged in until it says done — about a minute.</li>
     </ol>
 
@@ -45,7 +45,7 @@
 
     <!-- Shown after a connection failure -->
     <div id="recovery" class="hidden">
-      <p class="warning">Couldn't connect to the orb.</p>
+      <p class="warning">Couldn't connect</p>
       <p>Some boards need to be put into flashing mode by hand:</p>
       <ol>
         <li>Hold down the <b>BOOT</b> button (sometimes labelled <b>B</b>).</li>
@@ -58,17 +58,16 @@
 
     <!-- Shown after a successful flash -->
     <div id="done" class="hidden">
-      <p class="success">Done. The orb is restarting.</p>
-      <p>If its lights don't come back on within a few seconds, unplug the USB
-      cable and plug it back in.</p>
+      <p class="success">Done. The controller is restarting.</p>
       <p>To finish setting it up:</p>
       <ol>
+        <li>Unplug and replug it back in (either internal side or external USB-C ports).</li>
         <li>On your phone or laptop, join the WiFi network named
           <b>Lumatron-arduino</b>.</li>
         <li>A setup page should open by itself. Pick your WiFi network and enter
           its password.</li>
-        <li>Restore the orb's settings from a backup in the
-          <a href="/admin">admin page</a>.</li>
+        <li>Request a restore from backup from an 
+          <a href="/admin">admin</a>.</li>
       </ol>
     </div>
 
