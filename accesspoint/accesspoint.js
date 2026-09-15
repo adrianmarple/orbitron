@@ -36,6 +36,14 @@ async function checkConnectionAndCleanup() {
 let accessedFormTime = 0
 let someoneConnectedToAccessPoint = false
 let forceExitAccessPointLoop = false
+let accessPointStartTime = 0
+
+async function waitForAccessPointDisconnection() {
+  await delay(60e3 - (Date.now() - accessPointStartTime))
+  while (someoneConnectedToAccessPoint) {
+    await delay(10e3)
+  }
+}
 
 async function startAccessPoint() {
   if (!(await execute("ifconfig")).includes("wlan")) {
@@ -43,6 +51,7 @@ async function startAccessPoint() {
     stopAccessPoint()
     return
   }
+  accessPointStartTime = Date.now()
   await removeWifiProfile("OrbHotspot")
   await execute(`nmcli connection add type wifi con-name "OrbHotspot" autoconnect no wifi.mode ap wifi.ssid "${AP_SSID}" ipv4.method shared ipv6.method shared`)
   await execute('nmcli connection up OrbHotspot')
@@ -79,6 +88,7 @@ function nmcli(...args) {
 }
 
 async function stopAccessPoint(ssid, password) {
+  accessPointStartTime = 0
   forceExitAccessPointLoop = true
   someoneConnectedToAccessPoint = false
   sendToPython({ type: "accessPoint", active: false })
@@ -200,6 +210,7 @@ async function networkCheck() {
     }
 
     numTimesNetworkCheckFailed += 1
+    await waitForAccessPointDisconnection()
     await stopAccessPoint()
     await delay(isFirstNetworkCheck ? 15e3 : 60e3)
 
@@ -214,9 +225,7 @@ async function networkCheck() {
       numTimesAccessPointStarted += 1
       await startAccessPoint()
       await delay(120e3)
-      while (someoneConnectedToAccessPoint) {
-        await delay(10e3)
-      }
+      await waitForAccessPointDisconnection()
       setTimeout(networkCheck, 1e3)
     } else {
       setTimeout(networkCheck, 20e3)
