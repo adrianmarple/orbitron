@@ -7,6 +7,7 @@ const fs = require('fs')
 const process = require('process')
 const { spawn, execSync } = require('child_process')
 const os = require('os')
+const zlib = require('zlib')
 const { v4: uuid } = require('uuid')
 const homedir = os.homedir()
 
@@ -23,6 +24,44 @@ let tempOrbIDs = []
 try { execSync(`pkill -KILL -f "${__dirname}/main.py"`) } catch(e) {}
 
 
+
+const PM2_LOG_DIR = "/root/.pm2/logs"
+
+// Returns the log `rotationsBack` rotations behind the live one (0 = live).
+// pm2-logrotate names rotated files `startscript-<stream>__<timestamp>.log`, where the
+// timestamp is whenever rotation actually ran, so we list the directory and order by
+// mtime rather than trying to reconstruct a filename.
+async function readRotatedLog(stream, rotationsBack) {
+  if (stream != "out" && stream != "error") {
+    return `Unknown log stream: ${stream}`
+  }
+  try {
+    if (rotationsBack <= 0) {
+      return (await fs.promises.readFile(`${PM2_LOG_DIR}/startscript-${stream}.log`)).toString()
+    }
+    let prefix = `startscript-${stream}__`
+    let names = (await fs.promises.readdir(PM2_LOG_DIR))
+      .filter(name => name.startsWith(prefix) && (name.endsWith(".log") || name.endsWith(".log.gz")))
+    let rotations = []
+    for (let name of names) {
+      let stats = await fs.promises.stat(`${PM2_LOG_DIR}/${name}`)
+      rotations.push({ name, mtime: stats.mtimeMs })
+    }
+    rotations.sort((a, b) => b.mtime - a.mtime)
+
+    let rotation = rotations[rotationsBack - 1]
+    if (!rotation) {
+      return `No rotated log that far back (${rotations.length} available)`
+    }
+    let contents = await fs.promises.readFile(`${PM2_LOG_DIR}/${rotation.name}`)
+    if (rotation.name.endsWith(".gz")) {
+      contents = zlib.gunzipSync(contents)
+    }
+    return `=== ${rotation.name} ===\n` + contents.toString()
+  } catch (error) {
+    return `Could not read log: ${error.message}`
+  }
+}
 
 function startOrb(config) {
 if (tempOrbIDs.includes(config.ORB_ID)) {
@@ -201,23 +240,19 @@ function connectOrbToRelay(){
           if (config.DEV_MODE) {
             returnData = "no pm2 running"
           } else {
-            returnData = (await fs.promises.readFile("/root/.pm2/logs/startscript-error.log")).toString()
+            try {
+              returnData = (await fs.promises.readFile(`${PM2_LOG_DIR}/startscript-error.log`)).toString()
+            } catch (_) {
+              returnData = "NO startscript-error.log FILE EXISTS"
+            }
           }
         }
         if (command.type == "getlog") {
-          let daysAgo = command.daysAgo || 0
-          let stream = command.stream || "out"
-          let suffix = ""
-          if (daysAgo > 0) {
-            let day = new Date()
-            day.setDate(day.getDate() - daysAgo)
-            suffix = "__" + day.toJSON().slice(0, 10) + "_00-00-00"
-          }
-          try {
-            returnData = (await fs.promises.readFile(`/root/.pm2/logs/startscript-${stream}${suffix}.log`)).toString()
-          } catch(_) {
-            returnData = "Log file does not exist"
-          }
+          // command.daysAgo is really "how many rotations back": 0 is the live log, 1 the
+          // most recently rotated one, and so on. pm2-logrotate timestamps a rotated file
+          // with the moment rotation actually happened, which is not midnight whenever the
+          // orb was powered off or the log outgrew max_size, so the name can't be guessed.
+          returnData = await readRotatedLog(command.stream || "out", command.daysAgo || 0)
         }
         if (command.type == "ip") {
           let interfaces = require('os').networkInterfaces();
