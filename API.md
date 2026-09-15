@@ -91,21 +91,34 @@ firmware version. The main ones:
 | `disableBeatMode` | bool | `false` | ✓ | `default`: opt out of beat-reactive brightness, on orbs wired for it (`BEAT_PIN`). |
 | `hourglassStart` | `"HH:MM"` | `"00:00"` | ✓ | `hourglass`: when the daily fill begins. |
 | `hourglassEnd` | `"HH:MM"` | `"23:59"` | ✓ | `hourglass`: when it finishes. |
-| `idleColor` | enum | `"gradient"` | ✓ | Color mode: `rainbow`, `fixed`, `gradient`. Arduino orbs render `gradient` and report it as fixed, so only a Pi has a choice. |
+| `idleColor` | enum | `"gradient"` | | Color mode: `rainbow`, `fixed`, `gradient`, `tricolor`. |
 | `brightness` | number | `100` | | Master brightness, applied quadratically. |
-| `fixedColor` | color | `"#ffffff"` | ✓ | `fixed`: the one color everything is drawn in. |
-| `gradientStartColor` | color | `"#25ff59"` | | `gradient`: the color the brighter pixels take. |
-| `gradientEndColor` | color | `"#00607c"` | | `gradient`: the color the dimmer pixels take. |
-| `gradientThreshold` | number | `66` | | `gradient`: where the two meet — lower is more start color, higher is more end color. Minimum 1. |
-| `fadeToBlack` | bool | `true` | ✓ | Controller-side flag: gates the blend-threshold sliders in the UI. The render pipeline doesn't read it. |
-| `rainbowDuration` | number | `10` | ✓ | `rainbow`: seconds for one full cycle through the rainbow. |
-| `rainbowFade` | number | `0` | ✓ | `rainbow`: how much of the rainbow is on the orb at once. `0` is a single solid color cycling over time. |
+| `color1` | color | `"#25ff59"` | | `fixed`: the one color everything is drawn in. `gradient`: the color the brighter pixels take. `tricolor`: the first band. |
+| `color2` | color | `"#00607c"` | | `gradient`: the color the dimmer pixels take. `tricolor`: the middle band. Unused by `fixed`. |
+| `color3` | color | `"#ff00aa"` | | `tricolor`: the last band. Unused by every other mode. |
+| `gradientThreshold` | number | `66` | | `gradient`: where the two colors meet — lower is more `color1`, higher is more `color2`. `tricolor`: where `color3` gives way to `color2`. Minimum 1. |
+| `gradientThreshold2` | number | `100` | | `tricolor`: where `color2` gives way to `color1`. Unused by every other mode. Minimum 1. |
+| `rainbowDuration` | number | `10` | | `rainbow`: seconds for one full cycle through the rainbow. |
+| `rainbowFade` | number | `0` | | `rainbow`: how much of the rainbow is on the orb at once. `0` is a single solid color cycling over time. |
 
 A ✓ in "Pi only" means the Arduino (ESP32) firmware doesn't carry that pref at all, so it never appears in that orb's `GET /prefs` and `PATCH`ing it returns `400 Unknown preference(s)`.
 
 Colors are `#rrggbb` strings; directions are `"x,y,z"` strings.
 
-Note `idleColor` can be set to `tricolor` with cooresponding fields `tricolor1`, `tricolor2`, `tricolor3`, `tricolorThreshold1`, `tricolorThreshold2`. These are a pi only special case (needs an explicit INCLUDE in an orbs config to appear in the controller), but you can technically still use these.
+The color slots and blend thresholds used to be one set per mode. Those names are still
+accepted on `PATCH` and mapped onto the merged keys above, so existing scripts keep
+working — but they are never reported back by `GET /prefs`, and a preset re-saved after
+being loaded is rewritten with the new names:
+
+| sent | applied as |
+|---|---|
+| `fixedColor` | `color1` |
+| `gradientStartColor`, `gradientEndColor` | `color1`, `color2` |
+| `tricolor1`, `tricolor2`, `tricolor3` | `color1`, `color2`, `color3` |
+| `tricolorThreshold1`, `tricolorThreshold2` | `gradientThreshold`, `gradientThreshold2` |
+
+`tricolor` needs an explicit `INCLUDE` in an orb's config to appear in the controller's
+mode dropdown, but the API can select it either way.
 
 ### Brightness / dimmer
 
@@ -201,7 +214,7 @@ B=https://my.lumatron.art/api/v1/orbs/myorb
 
 # Warm dim light
 curl -X PATCH $B/prefs -H 'Content-Type: application/json' \
-  -d '{"idleColor":"fixed","fixedColor":"#ff8800","brightness":25}'
+  -d '{"idleColor":"fixed","color1":"#ff8800","brightness":25}'
 
 # Save it, then come back to it later
 curl -X PUT  "$B/presets/Cozy"

@@ -169,7 +169,7 @@ class Idle(Game):
     elif color_string == "timeofday":
       return time_of_day_color()
     else:
-      return get_pref("fixedColor")/255
+      return get_pref("color1")/255
 
   def apply_color(self):
     if get_pref("idleColor") == "rainbow" and get_pref("rainbowFade") > 0:
@@ -181,15 +181,15 @@ class Idle(Game):
     elif get_pref("idleColor") == "gradient":
       rectified_target_values = self.target_values * 100.0 / get_pref("gradientThreshold")
       rectified_target_values = np.minimum(1, rectified_target_values)
-      start = get_pref("gradientStartColor")/255
+      start = get_pref("color1")/255
       start_colors = np.outer(rectified_target_values, start)
-      end = get_pref("gradientEndColor")/255
+      end = get_pref("color2")/255
       end_colors = np.outer(1 - rectified_target_values, end)
       colors = start_colors + end_colors
       self.render_values = self.render_values.reshape(-1, 1) * colors
     elif get_pref("idleColor") == "tricolor":
-      thresh1 = get_pref("tricolorThreshold1") / 100.0
-      thresh2 = get_pref("tricolorThreshold2") / 100.0
+      thresh1 = get_pref("gradientThreshold") / 100.0
+      thresh2 = get_pref("gradientThreshold2") / 100.0
       start_values = self.target_values / (thresh2 - thresh1) - thresh1
       start_values = np.minimum(1, start_values)
       end_values = 1 - self.target_values / thresh1
@@ -197,11 +197,11 @@ class Idle(Game):
       end_values = np.maximum(0, end_values)
       mid_values = 1 - start_values - end_values
       mid_values = np.maximum(0, mid_values)
-      start = get_pref("tricolor1")/255
+      start = get_pref("color1")/255
       start_colors = np.outer(start_values, start)
-      mid = get_pref("tricolor2")/255
+      mid = get_pref("color2")/255
       mid_colors = np.outer(mid_values, mid)
-      end = get_pref("tricolor3")/255
+      end = get_pref("color3")/255
       end_colors = np.outer(end_values, end)
       colors = start_colors + end_colors + mid_colors
       self.render_values = self.render_values.reshape(-1, 1) * colors

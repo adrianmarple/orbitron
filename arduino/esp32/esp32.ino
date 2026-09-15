@@ -115,7 +115,10 @@ void stripShow() {
 #include "patterns.h"
 
 Prefs defaultPrefs = {
-  PATTERN_DEFAULT, 0x25ff59, 0x00607c, 66, 70.0f, 60.0f, 25.0f, 100,
+  PATTERN_DEFAULT,
+  COLOR_GRADIENT, 0x25ff59, 0x00607c, 0xff00aa,
+  66, 100, 10.0f, 0.0f,
+  70.0f, 60.0f, 25.0f, 100,
   0.707f, 0.707f, 0.0f, 0, 8.0f,
   1.0f, 0.0f, 0.0f, 25, 9,
   0.0f, 1.0f, 0.0f, 4.0f
@@ -269,6 +272,21 @@ int patternFromName(const char* name) {
   if (strcmp(name, "linesine") == 0)   return PATTERN_LINESINE;
   return PATTERN_DEFAULT;
 }
+const char* colorName(int c) {
+  switch (c) {
+    case COLOR_FIXED:    return "fixed";
+    case COLOR_RAINBOW:  return "rainbow";
+    case COLOR_TRICOLOR: return "tricolor";
+    default:             return "gradient";
+  }
+}
+int colorFromName(const char* name) {
+  if (!name) return COLOR_GRADIENT;
+  if (strcmp(name, "fixed") == 0)    return COLOR_FIXED;
+  if (strcmp(name, "rainbow") == 0)  return COLOR_RAINBOW;
+  if (strcmp(name, "tricolor") == 0) return COLOR_TRICOLOR;
+  return COLOR_GRADIENT;
+}
 String colorToHex(long color) {
   char buf[8]; snprintf(buf, sizeof(buf), "#%06lx", color & 0xffffff); return String(buf);
 }
@@ -284,11 +302,15 @@ void parseDir(const char* s, float& x, float& y, float& z) {
 
 // Serialize prefs in controller-compatible (Python) format
 void buildPrefsJson(JsonObject doc, Prefs& p) {
-  doc["idleColor"]          = "gradient";  // Arduino only supports gradient
+  doc["idleColor"]          = colorName(p.idleColor);
   doc["idlePattern"]        = patternName(p.idlePattern);
-  doc["gradientStartColor"] = colorToHex(p.gradientStartColor);
-  doc["gradientEndColor"]   = colorToHex(p.gradientEndColor);
+  doc["color1"]             = colorToHex(p.color1);
+  doc["color2"]             = colorToHex(p.color2);
+  doc["color3"]             = colorToHex(p.color3);
   doc["gradientThreshold"]  = p.gradientThreshold;
+  doc["gradientThreshold2"] = p.gradientThreshold2;
+  doc["rainbowDuration"]    = p.rainbowDuration;
+  doc["rainbowFade"]        = p.rainbowFade;
   doc["brightness"]         = p.brightness;
   doc["dimmer"]             = dimmer;
   doc["idleBlend"]          = p.idleBlend;
@@ -317,10 +339,21 @@ Prefs prefsFromJson(JsonVariantConst doc, Prefs& base) {
   // Strings must be strings (they come from our own serialization)
   if (doc["idlePattern"].is<const char*>())
     p.idlePattern = patternFromName(doc["idlePattern"].as<const char*>());
+  if (doc["idleColor"].is<const char*>())
+    p.idleColor = colorFromName(doc["idleColor"].as<const char*>());
+  // Presets written by firmware predating the shared palette name the gradient
+  // pair separately. Read those first so the canonical keys win when both exist;
+  // nothing writes them back, so a preset normalizes on its next save.
   if (doc["gradientStartColor"].is<const char*>())
-    p.gradientStartColor = hexToColor(doc["gradientStartColor"].as<const char*>());
+    p.color1 = hexToColor(doc["gradientStartColor"].as<const char*>());
   if (doc["gradientEndColor"].is<const char*>())
-    p.gradientEndColor = hexToColor(doc["gradientEndColor"].as<const char*>());
+    p.color2 = hexToColor(doc["gradientEndColor"].as<const char*>());
+  if (doc["color1"].is<const char*>())
+    p.color1 = hexToColor(doc["color1"].as<const char*>());
+  if (doc["color2"].is<const char*>())
+    p.color2 = hexToColor(doc["color2"].as<const char*>());
+  if (doc["color3"].is<const char*>())
+    p.color3 = hexToColor(doc["color3"].as<const char*>());
   if (doc["staticDirection"].is<const char*>())
     parseDir(doc["staticDirection"].as<const char*>(), p.staticDirX, p.staticDirY, p.staticDirZ);
   if (doc["sinDirection"].is<const char*>())
@@ -329,6 +362,9 @@ Prefs prefsFromJson(JsonVariantConst doc, Prefs& base) {
     parseDir(doc["patternBias"].as<const char*>(), p.patternBiasX, p.patternBiasY, p.patternBiasZ);
   // Numerics: use as<T>() so string "42" (from HTML range inputs) coerces correctly
   if (!doc["gradientThreshold"].isNull())  p.gradientThreshold  = doc["gradientThreshold"].as<int>();
+  if (!doc["gradientThreshold2"].isNull()) p.gradientThreshold2 = doc["gradientThreshold2"].as<int>();
+  if (!doc["rainbowDuration"].isNull())    p.rainbowDuration    = doc["rainbowDuration"].as<float>();
+  if (!doc["rainbowFade"].isNull())        p.rainbowFade        = doc["rainbowFade"].as<float>();
   if (!doc["brightness"].isNull())         p.brightness         = doc["brightness"].as<int>();
   if (!doc["idleBlend"].isNull())          p.idleBlend          = doc["idleBlend"].as<float>();
   if (!doc["idleDensity"].isNull())        p.idleDensity        = doc["idleDensity"].as<float>();
@@ -2150,6 +2186,7 @@ void networkTask(void*) {
 // Pattern switch + dimmer post-scale + power cap. Caller holds render_mutex
 // and is responsible for any overlays (AP rings, OTA indicator) and strip->Show().
 void renderFrame() {
+  advanceColorFrame();
   switch (idlePattern) {
     case PATTERN_STATIC:     runStatic();     break;
     case PATTERN_SIN:        runSin();        break;

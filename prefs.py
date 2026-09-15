@@ -57,20 +57,13 @@ default_prefs = {
   # COLOR
   "idleColor": "gradient",
   "brightness": 100,
-  "fixedColor": "#ffffff",
-  "gradientStartColor": "#25ff59",
-  "gradientEndColor": "#00607c",
+  "color1": "#25ff59",
+  "color2": "#00607c",
+  "color3": "#ff00aa",
   "gradientThreshold": 66,
-  "fadeToBlack": True,
+  "gradientThreshold2": 100,
   "rainbowDuration": 10.0,
   "rainbowFade": 0.0,
-
-  # beta
-  "tricolor1": "#ff0000",
-  "tricolor2": "#00ff00",
-  "tricolor3": "#0000ff",
-  "tricolorThreshold1": 50,
-  "tricolorThreshold2": 100,
 
 }
 timing_prefs = {
@@ -97,6 +90,33 @@ for (key, value) in list(default_prefs.items()) + list(timing_prefs.items()):
     pref_type[key] = "color"
   if pref_type[key] == str and "," in value:
     pref_type[key] = "vector"
+
+# Support for old colors and blend thresholds unique to various idlecolor types
+legacy_prefs_by_mode = {
+  "fixed":    {"fixedColor": "color1"},
+  "gradient": {"gradientStartColor": "color1", "gradientEndColor": "color2"},
+  "tricolor": {"tricolor1": "color1", "tricolor2": "color2", "tricolor3": "color3",
+               "tricolorThreshold1": "gradientThreshold",
+               "tricolorThreshold2": "gradientThreshold2"},
+}
+legacy_pref_keys = set()
+for mode_mapping in legacy_prefs_by_mode.values():
+  legacy_pref_keys.update(mode_mapping.keys())
+
+def migrate_legacy_prefs(prefs_dict, idle_color):
+  # rainbow and timeofday don't read colors, so fall back to the gradient pair
+  # rather than dropping the palette a later mode switch would want.
+  mapping = legacy_prefs_by_mode.get(idle_color, legacy_prefs_by_mode["gradient"])
+  # The old key wins over the new one it maps onto: gradientThreshold is both a
+  # surviving pref and what tricolorThreshold1 became, so for a tricolor preset
+  # the tricolor value is the one that was actually being rendered.
+  for old_key, new_key in mapping.items():
+    if old_key in prefs_dict:
+      prefs_dict[new_key] = prefs_dict[old_key]
+  for old_key in legacy_pref_keys:
+    prefs_dict.pop(old_key, None)
+  return prefs_dict
+
 
 saved_prefs = {}
 last_known_pref_name = None
@@ -134,6 +154,8 @@ def update(update, client_timestamp=None):
     client_timestamp = time()
   if abs(client_timestamp/1000 - time()) > 0.2: # Ignore clients with clocks/latency more that 200 millis off
     client_timestamp = 0
+
+  migrate_legacy_prefs(update, update.get("idleColor", current_prefs["idleColor"]))
 
   # Drop unknown keys so one bad key can't discard the whole update below
   for key in [key for key in update if key not in current_prefs]:
@@ -275,6 +297,7 @@ def load(name, clobber_prefs=True):
     try:
       f = open(old_path, "r")
       loaded_prefs = json.loads(f.read())
+      migrate_legacy_prefs(loaded_prefs, loaded_prefs.get("idleColor", default_prefs["idleColor"]))
       saved_prefs[name] = loaded_prefs
       f.close()
     except Exception as e:
@@ -557,6 +580,7 @@ def init():
       except:
         loaded_prefs = {}
         print("Failed to load prefs.json", file=sys.stderr)
+    migrate_legacy_prefs(loaded_prefs, loaded_prefs.get("idleColor", default_prefs["idleColor"]))
     current_prefs.update(loaded_prefs)
     identify_name()
     print("Current pref name: %s" % current_pref_name, file=sys.stderr)

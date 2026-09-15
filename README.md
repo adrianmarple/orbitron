@@ -43,6 +43,7 @@ Here's how to connect a piece that does not already have an internet connection 
 - Plug in the Lumatron box into the power source and the box into the piece (do not plug the piece directly into the usb-c wall plug)
 - Wait for the box to boot up and the access point pattern (waves eminating from the bottom point) to show (takes a couple minutes for the raspberry pi based boxes)
 - Join the wifi named Lumatron-*name*
+- (If the captive portal doesn't automatically appear) visit 10.42.0.1 in your browser.
 - Enter the wifi name (SSID) and password in the captive portal
 - Visit or refresh `https://my.lumatron.art` once the first pixel turns off
 

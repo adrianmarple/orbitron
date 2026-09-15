@@ -21,6 +21,20 @@ const SCHEDULE_EVENT_KEYS = ["prefName", "time", "fadeIn", "fadeOut", "weekday"]
 const TIME_PATTERN = /^([01][0-9]|2[0-3]):[0-5][0-9]$/
 const OFF_PREF_NAME = "OFF"
 
+// The per-mode colors and blend thresholds were merged into one shared set. The
+// old names stay valid on PATCH and are rewritten before the update reaches the
+// orb, so every orb only ever sees the merged keys.
+const LEGACY_PREF_ALIASES = {
+  fixedColor: "color1",
+  gradientStartColor: "color1",
+  gradientEndColor: "color2",
+  tricolor1: "color1",
+  tricolor2: "color2",
+  tricolor3: "color3",
+  tricolorThreshold1: "gradientThreshold",
+  tricolorThreshold2: "gradientThreshold2",
+}
+
 // Injected by relay.js so this module doesn't need to reach back into it
 let connectedOrbs
 let connectedClients
@@ -225,7 +239,23 @@ function listOrbs(request) {
 // prefs.update drops unknown keys, but reject them here so a typo is reported
 // rather than silently ignored.
 function unknownPrefKeys(state, update) {
-  return Object.keys(update).filter(key => !(key in state.prefs))
+  return Object.keys(update).filter(key =>
+    !(key in state.prefs) && !(LEGACY_PREF_ALIASES[key] in state.prefs))
+}
+
+// Rewrite legacy names to the key they became. A canonical key already in the
+// body wins, so sending both isn't ambiguous.
+function resolveLegacyPrefs(update) {
+  let resolved = {}
+  for (let key in update) {
+    let canonical = LEGACY_PREF_ALIASES[key]
+    if (!canonical) {
+      resolved[key] = update[key]
+    } else if (!(canonical in update)) {
+      resolved[canonical] = update[key]
+    }
+  }
+  return resolved
 }
 
 function scheduleError(events, name, requireWeekday, prefNames) {
@@ -284,6 +314,7 @@ async function handlePrefs(context, client) {
     respondJSON(response, 400, { error: `Unknown preference(s): ${unknown.join(", ")}` })
     return true
   }
+  update = resolveLegacyPrefs(update)
   client.sendToOrb({ type: "prefs", update })
   await respondAfterWrite(response, client, prefsSummary)
   return true

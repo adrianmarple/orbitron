@@ -351,6 +351,20 @@ var app = new Vue({
         return `Dim (${Math.round(nextDimmerState * 100)}%)`
       }
     },
+    blendHelp() {
+      if (this.prefs.idleColor == 'tricolor') return "Where color 3 gives way to color 2."
+      return "Lower numbers means more color 1; higher numbers, more color 2."
+    },
+    color1Help() {
+      if (this.prefs.idleColor != 'gradient') return ""
+      return `One of the two colors to make a color gradient (different based on each pattern).
+          Depending on the pattern this is associated with brighter LEDs.`
+    },
+    color2Help() {
+      if (this.prefs.idleColor != 'gradient') return ""
+      return `One of the two colors to make a color gradient (different based on each pattern).
+          Depending on the pattern this is associated with darker LEDs.`
+    },
     colorOptions() {
       let options = [['rainbow', 'Rainbow'], ['fixed', 'Fixed color'], ['gradient', 'Gradient']
       ].filter(([val, label]) => !this.exclude[val] && !this.exclude[label])

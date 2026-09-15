@@ -481,7 +481,7 @@ new Vue({
     sendPowerValue() {
       let powerHex = this.powerValue.toString(16).padStart(2, '0')
       let color = `#${powerHex}${powerHex}${powerHex}`
-      this.sendPrefsUpdate({ gradientStartColor: color, gradientEndColor: color, idlePattern: "static" })
+      this.sendPrefsUpdate({ color1: color, color2: color, idlePattern: "static" })
     },
 
     async nextPowerValue(wasGood) {

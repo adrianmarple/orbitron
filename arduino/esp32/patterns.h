@@ -17,12 +17,26 @@ extern SemaphoreHandle_t render_mutex;
 #define PATTERN_LIGHTNING   6
 #define PATTERN_LINESINE    7
 
+// Color mode IDs (idleColor)
+#define COLOR_GRADIENT 0
+#define COLOR_FIXED    1
+#define COLOR_RAINBOW  2
+#define COLOR_TRICOLOR 3
+
 // Prefs struct (shared between template and esp32)
 struct Prefs {
   int idlePattern;          // PATTERN_*, default 0
-  long gradientStartColor;  // packed 0xRRGGBB, default #25ff59
-  long gradientEndColor;    // packed 0xRRGGBB, default #00607c
+  int idleColor;            // COLOR_*, default 0
+  // One palette shared by every color mode: fixed uses color1; gradient uses
+  // color1 (brighter) and color2 (dimmer); tricolor uses all three.
+  long color1;              // packed 0xRRGGBB, default #25ff59
+  long color2;              // packed 0xRRGGBB, default #00607c
+  long color3;              // packed 0xRRGGBB, default #ff00aa
+  // gradient uses gradientThreshold alone; tricolor uses both as its two band edges.
   int gradientThreshold;    // 0-100, default 66
+  int gradientThreshold2;   // 0-100, default 100
+  float rainbowDuration;    // seconds per full hue cycle, default 10.0
+  float rainbowFade;        // 0-100 hue spread across the pattern, default 0
   float idleDensity;        // default 70.0
   float idleBlend;          // 0-100, default 60.0
   float idleFrameRate;      // fps, default 25.0
@@ -53,12 +67,22 @@ unsigned long lf_last_ms = 0;
 float wave_phase = 0.0f;
 unsigned long wave_last_ms = 0;
 float lightning_time_pressure = 0.0f;
+float rainbow_phase = 0.0f;
+unsigned long rainbow_last_ms = 0;
 
 // Prefs-derived globals (set by applyPrefs)
 int idlePattern = PATTERN_DEFAULT;
-int start_r = 0x25, start_g = 0xff, start_b = 0x59;
-int end_r = 0x00, end_g = 0x60, end_b = 0x7c;
-int gradientThreshold = 66;
+int idleColor = COLOR_GRADIENT;
+int c1_r = 0x25, c1_g = 0xff, c1_b = 0x59;
+int c2_r = 0x00, c2_g = 0x60, c2_b = 0x7c;
+int c3_r = 0xff, c3_g = 0x00, c3_b = 0xaa;
+int delta_r = 0x25, delta_g = 0x9f, delta_b = -0x23;  // color1 - color2
+float inv_threshold = 100.0f / 66.0f;
+float rainbow_duration = 10.0f;
+float rainbow_spread = 0.0f;  // rainbowFade/150, hue spread across target values
+float tri_thresh1 = 0.66f;         // gradientThreshold/100
+float tri_inv_thresh1 = 1.0f/0.66f; // 1/tri_thresh1
+float tri_inv_span = 1.0f/0.34f;    // 100/(gradientThreshold2 - gradientThreshold)
 float idleDensity = 70.0f;
 float idleBlend = 60.0f;
 float idleFrameRate = 25.0f;
@@ -142,13 +166,24 @@ void setupPatternScratch(int pattern) {
 // write inside savePrefs, ensuring it happens between frames (no DMA active)
 // so the WS2812 encoder ISR can't underrun.
 void applyPrefs(Prefs& p) {
-  start_r = (p.gradientStartColor >> 16) & 0xff;
-  start_g = (p.gradientStartColor >> 8) & 0xff;
-  start_b = p.gradientStartColor & 0xff;
-  end_r = (p.gradientEndColor >> 16) & 0xff;
-  end_g = (p.gradientEndColor >> 8) & 0xff;
-  end_b = p.gradientEndColor & 0xff;
-  gradientThreshold = p.gradientThreshold;
+  idleColor = p.idleColor;
+  c1_r = (p.color1 >> 16) & 0xff; c1_g = (p.color1 >> 8) & 0xff; c1_b = p.color1 & 0xff;
+  c2_r = (p.color2 >> 16) & 0xff; c2_g = (p.color2 >> 8) & 0xff; c2_b = p.color2 & 0xff;
+  c3_r = (p.color3 >> 16) & 0xff; c3_g = (p.color3 >> 8) & 0xff; c3_b = p.color3 & 0xff;
+  delta_r = c1_r - c2_r;
+  delta_g = c1_g - c2_g;
+  delta_b = c1_b - c2_b;
+  inv_threshold = 100.0f / (p.gradientThreshold != 0 ? p.gradientThreshold : 1);
+  rainbow_duration = p.rainbowDuration > 0.01f ? p.rainbowDuration : 0.01f;
+  rainbow_spread = p.rainbowFade / 150.0f;
+  tri_thresh1 = p.gradientThreshold / 100.0f;
+  if (tri_thresh1 < 0.01f) tri_thresh1 = 0.01f;
+  tri_inv_thresh1 = 1.0f / tri_thresh1;
+  // Keep the span away from zero (and keep its sign) so a gradientThreshold2 at or
+  // below gradientThreshold degrades to a hard edge instead of dividing by zero.
+  float tri_span = (p.gradientThreshold2 - p.gradientThreshold) / 100.0f;
+  if (tri_span < 0.01f && tri_span > -0.01f) tri_span = tri_span < 0.0f ? -0.01f : 0.01f;
+  tri_inv_span = 1.0f / tri_span;
   idleDensity = p.idleDensity;
   idleBlend = p.idleBlend;
   idleFrameRate = p.idleFrameRate;
@@ -169,6 +204,69 @@ void applyPrefs(Prefs& p) {
   brightness_factor = (p.brightness / 100.0f) * (p.brightness / 100.0f);
 }
 
+// One channel of the rainbow triangle wave: a third of the cycle ramping up,
+// a third ramping down, a third dark. Returns 0-255.
+inline float rainbowChannel(float x) {
+  x -= floorf(x);
+  float v = 1.0f - fabsf(x * 3.0f - 1.0f);
+  return v > 0.0f ? v * 255.0f : 0.0f;
+}
+
+// Advances the time-varying parts of the color state. Called once per frame
+// before the pattern runs.
+void advanceColorFrame() {
+  unsigned long now_ms = millis();
+  if (rainbow_last_ms == 0) rainbow_last_ms = now_ms;
+  float dt = (now_ms - rainbow_last_ms) / 1000.0f;
+  rainbow_last_ms = now_ms;
+  if (idleColor == COLOR_RAINBOW)
+    rainbow_phase = fmodf(rainbow_phase + dt / rainbow_duration, 1.0f);
+}
+
+// Writes one pixel's RGB according to the active color mode.
+// target_v is the pattern's pre-blend target value, which drives the color ramp
+// (Python's target_values); scale is that pixel's brightness multiplier, i.e.
+// the post-blend render value times brightness_factor.
+inline void colorPixel(float* px, float target_v, float scale) {
+  switch (idleColor) {
+    case COLOR_FIXED:
+      px[0] = c1_r * scale;
+      px[1] = c1_g * scale;
+      px[2] = c1_b * scale;
+      break;
+    case COLOR_RAINBOW: {
+      // rainbow_spread 0 gives every pixel the same hue, so the whole piece
+      // cycles through the rainbow as one solid color.
+      float hue = sqrtf(target_v > 0.0f ? target_v : 0.0f) * rainbow_spread + rainbow_phase;
+      px[0] = rainbowChannel(hue + 0.33333f) * scale;
+      px[1] = rainbowChannel(hue) * scale;
+      px[2] = rainbowChannel(hue + 0.66666f) * scale;
+      break;
+    }
+    case COLOR_TRICOLOR: {
+      float start_v = target_v * tri_inv_span - tri_thresh1;
+      if (start_v > 1.0f) start_v = 1.0f;
+      float end_v = 1.0f - target_v * tri_inv_thresh1;
+      if (end_v > 1.0f) end_v = 1.0f;
+      if (end_v < 0.0f) end_v = 0.0f;
+      float mid_v = 1.0f - start_v - end_v;
+      if (mid_v < 0.0f) mid_v = 0.0f;
+      px[0] = (c1_r * start_v + c2_r * mid_v + c3_r * end_v) * scale;
+      px[1] = (c1_g * start_v + c2_g * mid_v + c3_g * end_v) * scale;
+      px[2] = (c1_b * start_v + c2_b * mid_v + c3_b * end_v) * scale;
+      break;
+    }
+    default: {
+      float tv = target_v * inv_threshold;
+      if (tv > 1.0f) tv = 1.0f;
+      px[0] = (c2_r + delta_r * tv) * scale;
+      px[1] = (c2_g + delta_g * tv) * scale;
+      px[2] = (c2_b + delta_b * tv) * scale;
+      break;
+    }
+  }
+}
+
 // Matches Python's render_pulse shape formula. Returns brightness in [0, ~1].
 // dot: pixel's dot product with the pulse direction. t: wavefront position [0,1].
 inline float pulseSample(float dot, float t, float width) {
@@ -178,34 +276,22 @@ inline float pulseSample(float dot, float t, float width) {
 }
 
 void applyTargetValues(float brightness_scale) {
-  float inv_threshold = 100.0f / gradientThreshold;
   float one_minus_alpha = 1.0f - alpha;
-  int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
   float bf = brightness_factor * brightness_scale;
   for (int i = 0; i < RAW_SIZE; i++) {
     int u = raw_to_unique[i];
     float target_v = pattern_target[u];
     float v2 = render_values[i] * one_minus_alpha + target_v * alpha;
     render_values[i] = v2;
-    float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = v2 * bf;
-    pixels[i][0] = (end_r + delta_r * tv) * scale;
-    pixels[i][1] = (end_g + delta_g * tv) * scale;
-    pixels[i][2] = (end_b + delta_b * tv) * scale;
+    colorPixel(pixels[i], target_v, v2 * bf);
   }
 }
 
 void applyFluidValues(float* fv, float brightness_scale) {
-  float inv_threshold = 100.0f / gradientThreshold;
-  int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
   float bf = brightness_factor * brightness_scale;
   for (int i = 0; i < RAW_SIZE; i++) {
     float v = fv[i]; render_values[i] = v;
-    float tv = v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = v * bf;
-    pixels[i][0] = (end_r + delta_r * tv) * scale;
-    pixels[i][1] = (end_g + delta_g * tv) * scale;
-    pixels[i][2] = (end_b + delta_b * tv) * scale;
+    colorPixel(pixels[i], v, v * bf);
   }
 }
 
@@ -232,19 +318,13 @@ void runDefault() {
     fluid_values[dupes_to_uniques[fluid_heads[i]][0]] = 1.0f;
     fluid_values[dupes_to_uniques[fluid_heads[i]][1]] = 1.0f;
   }
-  float inv_threshold = 100.0f / gradientThreshold;
   float one_minus_alpha = 1.0f - alpha;
-  int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
   for (int i = 0; i < RAW_SIZE; i++) {
     fluid_values[i] *= 0.86f;
     float target_v = fluid_values[i] * fluid_values[i];
     float v2 = render_values[i] * one_minus_alpha + target_v * alpha;
     render_values[i] = v2;
-    float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = v2 * brightness_factor;
-    pixels[i][0] = (end_r + delta_r * tv) * scale;
-    pixels[i][1] = (end_g + delta_g * tv) * scale;
-    pixels[i][2] = (end_b + delta_b * tv) * scale;
+    colorPixel(pixels[i], target_v, v2 * brightness_factor);
   }
 }
 
@@ -274,17 +354,12 @@ void runFireflies() {
     fluid_values[dupes_to_uniques[n][0]] = 1.0f; fluid_values[dupes_to_uniques[n][1]] = 1.0f;
   }
   memcpy(fluid_heads, fluid_head_buffer, sizeof(fluid_heads)); head_count = new_head_count;
-  float inv_threshold = 100.0f / gradientThreshold, one_minus_alpha = 1.0f - alpha;
-  int delta_r = start_r-end_r, delta_g = start_g-end_g, delta_b = start_b-end_b;
+  float one_minus_alpha = 1.0f - alpha;
   for (int i = 0; i < RAW_SIZE; i++) {
     fluid_values[i] *= 0.84f;
     float target_v = fluid_values[i] * fluid_values[i];
     float v2 = render_values[i] * one_minus_alpha + target_v * alpha; render_values[i] = v2;
-    float tv = target_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = v2 * brightness_factor;
-    pixels[i][0] = (end_r+delta_r*tv)*scale;
-    pixels[i][1] = (end_g+delta_g*tv)*scale;
-    pixels[i][2] = (end_b+delta_b*tv)*scale;
+    colorPixel(pixels[i], target_v, v2 * brightness_factor);
   }
 }
 
@@ -292,17 +367,12 @@ void runStatic() {
   float dx, dy, dz;
   if (staticRotation) { float theta = (millis()/1000.0f)*2.0f*PI/staticRotationTime; dx=sinf(theta); dy=cosf(theta); dz=0.0f; }
   else { dx=staticDirX; dy=staticDirY; dz=staticDirZ; }
-  float inv_threshold = 100.0f/gradientThreshold;
-  int delta_r=start_r-end_r, delta_g=start_g-end_g, delta_b=start_b-end_b;
   float ab = brightness_factor * 0.2f;
   for (int i = 0; i < RAW_SIZE; i++) {
     int u = raw_to_unique[i];
     float target_v = (1.0f + dx*coords[u][0] + dy*coords[u][1] + dz*coords[u][2]) / 2.0f;
     if (target_v < 0.0f) target_v = 0.0f; if (target_v > 1.0f) target_v = 1.0f;
-    float tv = target_v*inv_threshold; if (tv>1.0f) tv=1.0f;
-    pixels[i][0] = (end_r+delta_r*tv)*ab;
-    pixels[i][1] = (end_g+delta_g*tv)*ab;
-    pixels[i][2] = (end_b+delta_b*tv)*ab;
+    colorPixel(pixels[i], target_v, ab);
   }
 }
 
@@ -316,18 +386,12 @@ void runSin() {
   wave_phase = fmodf(wave_phase + speed * dt * 2.0f * PI, 2.0f * PI);
   float phase = wave_phase;
   float min_val = sinMin/255.0f, denom = 2.0f+min_val;
-  float inv_threshold = 100.0f/gradientThreshold;
-  int delta_r=start_r-end_r, delta_g=start_g-end_g, delta_b=start_b-end_b;
   for (int i = 0; i < RAW_SIZE; i++) {
     int u = raw_to_unique[i];
     float dot = sinDirX*coords[u][0]+sinDirY*coords[u][1]+sinDirZ*coords[u][2];
     float target_v = (sinf(-dot*period+phase)+1.0f+min_val)/denom;
     if (target_v<0.0f) target_v=0.0f; if (target_v>1.0f) target_v=1.0f;
-    float tv = target_v*inv_threshold; if (tv>1.0f) tv=1.0f;
-    float scale = target_v*brightness_factor;
-    pixels[i][0] = (end_r+delta_r*tv)*scale;
-    pixels[i][1] = (end_g+delta_g*tv)*scale;
-    pixels[i][2] = (end_b+delta_b*tv)*scale;
+    colorPixel(pixels[i], target_v, target_v*brightness_factor);
   }
 }
 
@@ -391,18 +455,12 @@ void runLightField() {
   unsigned long now_ms = millis();
   float dt = (now_ms-lf_last_ms)/1000.0f; lf_last_ms = now_ms;
   lf_global_time += dt*2.0f*PI*(idleFrameRate/300.0f);
-  float inv_threshold = 100.0f/gradientThreshold;
-  int delta_r=start_r-end_r, delta_g=start_g-end_g, delta_b=start_b-end_b;
   for (int i = 0; i < RAW_SIZE; i++) {
     uint32_t hf=(uint32_t)(i+1)*2654435761u, hb=(uint32_t)(i+1)*2246822519u, hp=(uint32_t)(i+1)*3266489917u;
     float factor=(hf>>16)*(10.0f/65536.0f)+0.5f, rb=(hb>>16)*(0.9f/65536.0f)+0.1f, phase=(hp>>16)*(2.0f*PI/65536.0f);
     float v=fmaxf(sinf(fmodf(lf_global_time*factor+phase,2.0f*PI)),0.0f)*(rb*rb);
     render_values[i]=v;
-    float tv=v*inv_threshold; if (tv>1.0f) tv=1.0f;
-    float scale=v*brightness_factor;
-    pixels[i][0] = (end_r+delta_r*tv)*scale;
-    pixels[i][1] = (end_g+delta_g*tv)*scale;
-    pixels[i][2] = (end_b+delta_b*tv)*scale;
+    colorPixel(pixels[i], v, v*brightness_factor);
   }
 }
 
@@ -447,17 +505,11 @@ void runLineSine() {
   float speed = idleFrameRate * sinWaveCycles / 200.0f;
   wave_phase = fmodf(wave_phase + speed * dt * 2.0f * PI, 2.0f * PI);
   float phase = wave_phase;
-  float inv_threshold = 100.0f / gradientThreshold;
-  int delta_r = start_r - end_r, delta_g = start_g - end_g, delta_b = start_b - end_b;
   for (int i = 0; i < RAW_SIZE; i++) {
     int u = raw_to_unique[i];
     float pos = linesine_positions[u];
     float wave_v = sinf(-pos * sinWaveCycles * 2.0f * PI + phase);
     if (wave_v < 0.0f) wave_v = 0.0f;
-    float tv = wave_v * inv_threshold; if (tv > 1.0f) tv = 1.0f;
-    float scale = wave_v * brightness_factor;
-    pixels[i][0] = (end_r + delta_r * tv) * scale;
-    pixels[i][1] = (end_g + delta_g * tv) * scale;
-    pixels[i][2] = (end_b + delta_b * tv) * scale;
+    colorPixel(pixels[i], wave_v, wave_v * brightness_factor);
   }
 }

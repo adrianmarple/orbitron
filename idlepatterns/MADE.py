@@ -33,9 +33,9 @@ class MADE(Idle):
 
     rectified_target_values = self.target_values * 100.0 / get_pref("gradientThreshold")
     rectified_target_values = np.minimum(1, rectified_target_values)
-    start = get_pref("gradientStartColor")/255
+    start = get_pref("color1")/255
     start_colors = np.outer(rectified_target_values, start)
-    end = get_pref("gradientEndColor")/255
+    end = get_pref("color2")/255
     end_colors = np.outer(1 - rectified_target_values, end)
     colors = start_colors + end_colors
     mix1 = self.letters3 * alpha1 + (1 - self.letters3) * (1 - alpha1)
