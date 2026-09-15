@@ -268,6 +268,8 @@ async function createCover(plain) {
         },
       ]
 
+      let isThisSlotStrong = isStrong
+
       // Logic for fold walls
       // let outgoingFoldWall = vertex1.nextEdge(edge1, false) != edge0
       // let incomingFoldWall = vertex2.nextEdge(edge1, true) != edge2
@@ -329,11 +331,11 @@ async function createCover(plain) {
           axis: [0,1,0],
           angle: 0, // Create stub so other functions can manipulate this angle
         })
-
+        isThisSlotStrong = isStrong && (isOutgoing != fold.yRotationAngle > 0.001)
         fold.addFoldWallInfo({
           edge,
           isOutgoing,
-          isStrong,
+          isStrong: isThisSlotStrong,
           wallLength, farWallLength, nearWallLength,
           angle: isOutgoing ? angle2 : angle1,
           lengthOffset: isOutgoing ? lengthOffset2 : lengthOffset1,
@@ -371,7 +373,7 @@ async function createCover(plain) {
           [e1, n],
           v1,
           [lengthOffset1, CHANNEL_WIDTH/2],
-          isStrong,
+          isThisSlotStrong,
           print, bounds)
       }
 
