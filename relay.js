@@ -108,6 +108,21 @@ async function listBackups(orbID = null) {
   }
 }
 
+const BACKUP_FILE_FIELDS = new Set(["config", "prefs"])
+
+async function readBackupFile(backupName, field) {
+  backupName = path.basename(backupName || "")
+  if (!backupName.endsWith('.bak')) return "Invalid backup file."
+  if (!BACKUP_FILE_FIELDS.has(field)) return "Invalid backup field."
+  let backup
+  try {
+    backup = JSON.parse(await fs.promises.readFile(BACKUPS_DIR + backupName))
+  } catch(e) {
+    return "Error reading backup."
+  }
+  return backup[field] || `(no ${field} in this backup)`
+}
+
 async function performRestore(backupName, targetOrbID, skipAuth = false) {
   backupName = path.basename(backupName)
   if (!backupName.endsWith('.bak')) return { error: "Invalid backup file." }
@@ -469,6 +484,10 @@ addListener('GET', async ({response, orbID, queryParams}) => {
     case "restoreBackup": {
       let result = await performRestore(command.fileName, command.orbID, true)
       response.end(result.error || "OK")
+      return true
+    }
+    case "readBackup": {
+      response.end(await readBackupFile(command.fileName, command.field))
       return true
     }
     case "deleteBackup":

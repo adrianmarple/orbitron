@@ -112,6 +112,8 @@
   <div id="meta-container">
     <div class="left side-box"></div>
     <div id="container">
+        <img v-if="viewing=='backups'" id="close-backups"
+            src="/controller/images/close_white.svg" @click="closeBackups"/>
         <svg id="nav">
           <mask id="nav-mask" x="0" y="0" :width="width" height="100">
             <rect x="0" y="0" :width="width" height="100" fill="white"></rect>
@@ -154,7 +156,11 @@
 
             <!-- Backups -->
             <div v-if="viewing=='backups'" id="backups">
-              <div class="list">
+              <div v-if="backupFileView" class="file">
+                <div class="title">{{ selectedBackup }} {{ backupFileView }}</div>
+                <textarea v-model="backupFileContents" readonly></textarea>
+              </div>
+              <div v-else class="list">
                 <div v-for="fileName in backupList" class="backup"
                     :class="{ selected: selectedBackup == fileName }"
                     @click="selectedBackup = fileName; deleteSelected = false">
@@ -165,7 +171,11 @@
               <div class="row">
                 <div v-if="deleteSelected" class="button" @click="deleteBackup">Delete Backup</div>
                 <div v-else class="button" :class="{ disabled: !selectedBackup }" @click="restoreBackup">Restore Backup</div>
-                <div class="button" @click="viewing = 'config'; deleteSelected = false">Cancel</div>
+                <div v-for="field in ['config', 'prefs']" class="button"
+                    :class="{ disabled: !selectedBackup, selected: backupFileView == field }"
+                    @click="viewBackupFile(field)">
+                  {{ field }}
+                </div>
               </div>
               <div class="row text-with-button">
                 <textarea v-model="manualBackupName"></textarea>

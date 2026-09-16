@@ -34,6 +34,8 @@ new Vue({
       selectedBackup: null,
       deleteSelected: false,
       manualBackupName: "",
+      backupFileView: null,
+      backupFileContents: "",
 
       commandResponses: " ",
       command: "",
@@ -356,7 +358,35 @@ new Vue({
     async viewBackups() {
       this.viewing = "backups"
       this.selectedBackup = null
+      this.hideBackupFile()
       this.backupList = JSON.parse(await this.sendServerCommand({ type: "backuplist" }))
+    },
+
+    hideBackupFile() {
+      this.backupFileView = null
+      this.backupFileContents = ""
+    },
+
+    async viewBackupFile(field) {
+      if (this.backupFileView == field) {
+        this.hideBackupFile()
+        return
+      }
+      this.backupFileView = field
+      this.backupFileContents = ""
+      this.deleteSelected = false
+      let contents = await this.sendServerCommand({
+        type: "readBackup",
+        fileName: this.selectedBackup,
+        field,
+      })
+      if (this.backupFileView == field) this.backupFileContents = contents
+    },
+
+    closeBackups() {
+      this.viewing = 'config'
+      this.deleteSelected = false
+      this.hideBackupFile()
     },
 
     async restoreBackup() {
@@ -365,7 +395,7 @@ new Vue({
         fileName: this.selectedBackup,
         orbID: this.orbID,
       })
-      this.viewing = 'config'
+      this.closeBackups()
     },
 
     async deleteBackup() {
