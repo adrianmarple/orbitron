@@ -13,9 +13,9 @@ insert_h = 10;
 insert_strut_w = 16;
 insert_strut_thick = 3;
 
-main();
+//main();
 //translate([0,0,63])
-//insert();
+insert();
 //translate([0,billboard_y+0.5,90])
 //rotate([90,0,0])
 //instructions();
@@ -37,7 +37,7 @@ module instructions() {
 
 
 module insert() {
-    cylinder(h=insert_h, r=(-billboard_y-billboard_thickness) / 0.866 - 0.1);
+    cylinder(h=insert_h+7, r=(-billboard_y-billboard_thickness) / 0.866 - 0.1);
     for (i = [0:2]) {
         rotate([0,0, 120*i + 60])
         union() {
