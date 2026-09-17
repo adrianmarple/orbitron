@@ -270,11 +270,24 @@ async function createCover(plain) {
 
       let isThisSlotStrong = isStrong
 
+      // A seam sitting on a vertex with more than two edges (vertexZeroFold)
+      function isVertexSeam(vertex) {
+        return vertex.deadendPlain && vertex.edges.filter(e => !e.isDupe).length > 2
+      }
+
+      function seamCutsCorner(vertex, cornerAngle, direction) {
+        if (!isVertexSeam(vertex)) return true
+        let offset = (CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER) /
+            -Math.tan((Math.PI - cornerAngle)/2)
+        if (!isFinite(offset)) return true
+        let normal = vertex.deadendPlain.normal.applyMatrix(R)
+        let miter = direction.scale(offset).addScaledVector(n, CHANNEL_WIDTH/2 + WALL_THICKNESS + BORDER)
+        return Math.sign(miter.dot(normal)) != Math.sign(direction.dot(normal))
+      }
+
       // Logic for fold walls
-      // let outgoingFoldWall = vertex1.nextEdge(edge1, false) != edge0
-      // let incomingFoldWall = vertex2.nextEdge(edge1, true) != edge2
-      let outgoingFoldWall = vertex1.plains.length > 1
-      let incomingFoldWall = vertex2.plains.length > 1
+      let outgoingFoldWall = vertex1.plains.length > 1 && seamCutsCorner(vertex1, a1, e1)
+      let incomingFoldWall = vertex2.plains.length > 1 && seamCutsCorner(vertex2, -a2, e1.negate())
 
       function addFoldWallInfo(isOutgoing) {
         let vertex = isOutgoing ? vertex1 : vertex2
@@ -396,12 +409,14 @@ async function createCover(plain) {
         borderPoints.push(p2)
         borderPoints.push(p1)
 
-        // fold wall miter
+        // fold wall miter. A flat seam has nothing to miter, and the wedge for it degenerates
+        // to a 0.01mm flake sitting astride the cover's edge -- half of it buried, half of it
+        // floating outside the part.
         let skew = Math.tan(angleOfIncidence - Math.PI/2)
         let angle = Math.atan(Math.tan(dihedralAngle/2) / Math.sin(angleOfIncidence))
         let wedgePoint = p1.add(p2).scale(0.5)
         wedgePoint.z = 0
-        print.components.push({
+        if (!epsilonEquals(angle, 0)) print.components.push({
           type: "wedge",
           angle: angle * (IS_BOTTOM ? -1 : 1),
           rotationAngle: -e1.signedAngle(LEFT),
@@ -429,12 +444,12 @@ async function createCover(plain) {
         borderString += pointsToSVGString([p], bounds)
         borderPoints.push(p)
 
-        // fold wall miter
+        // fold wall miter -- see above, a flat seam's wedge is a floating flake
         let skew = -Math.tan(angleOfIncidence - Math.PI/2)
         let angle = Math.atan(Math.tan(dihedralAngle/2) / Math.sin(angleOfIncidence))
         let wedgePoint = deadendPlain.intersection(line).add(p).scale(0.5)
         wedgePoint.z = 0
-        print.components.push({
+        if (!epsilonEquals(angle, 0)) print.components.push({
           type: "wedge",
           angle: angle * (IS_BOTTOM ? -1 : 1),
           rotationAngle: -e2.signedAngle(LEFT),

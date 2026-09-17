@@ -577,7 +577,11 @@ function wallPrint(wall, isLeft, printInfo) {
       minOffset += Math.tan(miterAngle) * WALL_THICKNESS
     }
     let maxOffset = edgeLength - LED_SUPPORT_WIDTH
-    if (wall.isFoldWall && epsilonEquals(wall.dihedralAngle, 0)) {
+    
+    let runsStraightThrough = !wall.left || !wall.right ||
+        wall.left.endVertex.ogCoords.sub(wall.vertex.ogCoords).normalize().dot(
+        wall.right.endVertex.ogCoords.sub(wall.vertex.ogCoords).normalize()) < -0.99
+    if (wall.isFoldWall && epsilonEquals(wall.dihedralAngle, 0) && runsStraightThrough) {
       maxOffset += PIXEL_DISTANCE
     } else {
       maxOffset = Math.min(maxOffset, v0.sub(v1).length()*PIXEL_DISTANCE - 0.1)

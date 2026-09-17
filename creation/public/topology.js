@@ -1275,3 +1275,64 @@ function zeroFold(edge, offset) {
   newVertex.addPlain(plain0)
   newVertex.addPlain(plain1)
 }
+
+// Seams a cover apart *at* an existing vertex rather than partway along an edge
+function vertexZeroFold(vertex, groupA) {
+  vertex = resolveVertex(vertex)
+  groupA = groupA.map(neighbor => {
+    neighbor = resolveVertex(neighbor)
+    return vertex.edges.find(edge => !edge.isDupe && edge.otherVertex(vertex) == neighbor)
+  })
+  if (groupA.includes(undefined)) {
+    console.error("vertexZeroFold given a neighbor that isn't adjacent", vertex)
+    return
+  }
+  let groupB = vertex.edges.filter(edge => !edge.isDupe && !groupA.includes(edge))
+  if (groupB.length == 0) {
+    console.error("vertexZeroFold would leave one side empty", vertex)
+    return
+  }
+
+  // The seam runs between the two groups, so its normal bisects them.
+  let directionA = ZERO
+  let directionB = ZERO
+  for (let edge of groupA) {
+    directionA = directionA.add(edge.toVector(vertex).normalize())
+  }
+  for (let edge of groupB) {
+    directionB = directionB.add(edge.toVector(vertex).normalize())
+  }
+  let foldNormal = directionA.normalize().sub(directionB.normalize())
+  vertex.deadendPlain = new Plain(vertex.ogCoords, foldNormal)
+
+  // setNormal() sums the outgoing edges, which is useless when they're all coplanar,
+  // so give nextEdge() a usable basis before Fold asks for one.
+  if (!vertex.normal) {
+    vertex.normal = vertex.plains[0].normal
+  }
+
+  let plainA = vertex.plains[0]
+  let plainB = plainA.clone()
+  addPlain(plainB)
+  vertex.plains = [plainA, plainB]
+
+  // Relabel everything reachable through groupB. Verticies that hold a plain other than
+  // plainA are already seams of their own, so they get relabelled but not traversed through.
+  let visited = [vertex]
+  let frontier = groupB.map(edge => edge.otherVertex(vertex))
+  for (let i = 0; i < 1000; i++) {
+    if (frontier.length == 0) break
+    let other = frontier.pop()
+    if (visited.includes(other)) continue
+    visited.push(other)
+    if (!other.plains.includes(plainA)) continue
+    let isInterior = other.plains.every(plain => plain == plainA)
+    other.plains = other.plains.map(plain => plain == plainA ? plainB : plain)
+    if (!isInterior) continue
+    for (let edge of other.edges) {
+      if (edge.isDupe) continue
+      frontier.push(edge.otherVertex(other))
+    }
+  }
+  return plainB
+}

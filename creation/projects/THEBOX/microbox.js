@@ -124,7 +124,7 @@ module.exports = async () => {
             code: `
               linear_extrude(height=0.6)
               scale(0.08)
-              import("../../ravenstear.svg", center=true, dpi=25.4);`
+              import("../../microbox ravenstear.svg", center=true, dpi=25.4);`
           },
         ]
       }
