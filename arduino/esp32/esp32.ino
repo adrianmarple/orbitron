@@ -143,6 +143,22 @@ bool skipAcOnPower = false;
 const unsigned long STABLE_UPTIME_MS = 10000;
 bool bootStableMarked = false;
 
+// --- Automated power calibration ---
+// Binary searches MAX_AVG_PIXEL_BRIGHTNESS for the highest value the supply can
+// actually sustain, using the same /unstableboot marker as the ratchet above as
+// the pass/fail signal. State lives in /powercalibration.json so a probe that
+// browns the chip out is resolved on the next boot. Only failures cost a reboot;
+// a probe that survives its dwell advances the search in-process.
+const int POWER_CALIBRATION_MARGIN = 5;          // backed off from the result before saving
+const unsigned long POWER_CALIBRATION_DWELL_MS = 4000;  // how long a probe must hold to pass
+const int POWER_CALIBRATION_MAX_PROBES = 12;     // termination guard; 8 suffices for 1..255
+bool powerCalibrationActive = false;
+int powerCalLo = 1;      // highest value known to hold
+int powerCalHi = 255;    // highest value not yet proven to fail
+int powerCalCand = 0;    // the probe in flight
+int powerCalProbes = 0;
+unsigned long powerCalProbeStart = 0;
+
 // --- Manual fade pin ---
 int buttonPin = 0;  // 0 = disabled (GPIO 0 isn't used as a button on any supported board)
 String shortPressAction = "DIM";
@@ -473,6 +489,84 @@ void removeFile(const char* path) {
   xSemaphoreTakeRecursive(render_mutex, portMAX_DELAY);
   LittleFS.remove(path);
   xSemaphoreGiveRecursive(render_mutex);
+}
+
+// --- Automated power calibration ---
+
+void savePowerCalibration() {
+  JsonDocument doc;
+  doc["lo"] = powerCalLo;
+  doc["hi"] = powerCalHi;
+  doc["cand"] = powerCalCand;
+  doc["probes"] = powerCalProbes;
+  String out;
+  serializeJson(doc, out);
+  writeFile("/powercalibration.json", out);
+}
+
+void endPowerCalibration(int value) {
+  value = constrain(value, 1, 255);
+  JsonDocument doc;
+  deserializeJson(doc, readFile("/config.json"));
+  doc["MAX_AVG_PIXEL_BRIGHTNESS"] = value;
+  String out;
+  serializeJsonPretty(doc, out);
+  writeFile("/config.json", out);
+  removeFile("/powercalibration.json");
+  maxAvgPixelBrightness = value;
+  powerCalibrationActive = false;
+  Serial.println("Power calibration done: MAX_AVG_PIXEL_BRIGHTNESS = " + String(value));
+}
+
+// Apply the next candidate, or finish if the range has closed. The candidate is
+// persisted and the marker armed *before* the LEDs are driven at it, so a probe
+// that kills the chip is still attributable on the next boot.
+void beginPowerCalibrationProbe() {
+  if (powerCalHi < 1) {  // unstable even at the floor -- nothing left to back off from
+    endPowerCalibration(1);
+    return;
+  }
+  if (powerCalLo >= powerCalHi || powerCalProbes >= POWER_CALIBRATION_MAX_PROBES) {
+    endPowerCalibration(powerCalLo - POWER_CALIBRATION_MARGIN);
+    return;
+  }
+  powerCalCand = (powerCalLo + powerCalHi + 1) / 2;  // bias up so lo can reach hi
+  powerCalProbes += 1;
+  savePowerCalibration();
+  writeFile("/unstableboot", "1");
+  maxAvgPixelBrightness = powerCalCand;  // in memory only; config.json is written once at the end
+  powerCalProbeStart = 0;  // started by loop() on the first frame actually driven at cand
+  Serial.println("Power calibration probe " + String(powerCalProbes) +
+      ": lo=" + String(powerCalLo) + " hi=" + String(powerCalHi) + " cand=" + String(powerCalCand));
+}
+
+// Resolve the probe that was in flight when we last rebooted, then continue.
+// Called from setup() when /powercalibration.json exists.
+void resumePowerCalibration() {
+  JsonDocument doc;
+  if (deserializeJson(doc, readFile("/powercalibration.json")) != DeserializationError::Ok ||
+      !doc["cand"].is<int>()) {
+    removeFile("/powercalibration.json");  // malformed; don't trust it
+    return;
+  }
+  powerCalLo = doc["lo"] | 1;
+  powerCalHi = doc["hi"] | 255;
+  powerCalCand = doc["cand"] | 0;
+  powerCalProbes = doc["probes"] | 0;
+  powerCalibrationActive = true;
+
+  if (powerCalCand > 0) {
+    // The marker is still armed, so the probe never reached the end of its dwell.
+    // ESP_RST_SW means a deliberate restart (setconfig, OTA) rather than a sag.
+    bool failed = LittleFS.exists("/unstableboot") && esp_reset_reason() != ESP_RST_SW;
+    if (failed) {
+      powerCalHi = powerCalCand - 1;
+      Serial.println("Power calibration: " + String(powerCalCand) + " browned out");
+    } else {
+      powerCalLo = powerCalCand;
+    }
+  }
+  beginPowerCalibrationProbe();
 }
 
 Prefs loadPrefs() {
@@ -830,6 +924,14 @@ void sendInfoDump() {
   configDoc["ARDUINO"] = true;
   configDoc["FIRMWARE_VERSION"] = FIRMWARE_VERSION;
   configDoc["RESET_REASON"] = resetReasonName(esp_reset_reason());
+  if (powerCalibrationActive) {
+    JsonObject cal = configDoc["POWER_CALIBRATION"].to<JsonObject>();
+    cal["active"] = true;
+    cal["lo"] = powerCalLo;
+    cal["hi"] = powerCalHi;
+    cal["cand"] = powerCalCand;
+    cal["probes"] = powerCalProbes;
+  }
 
   JsonDocument msg;
   msg["type"] = "info";
@@ -1168,6 +1270,31 @@ void handleAdminCommand(JsonDocument& msg) {
 
   if (type == "getconfig") {
     sendResponse(messageID, readFile("/config.json"));
+  } else if (type == "powercalibrate") {
+    if (cmd["cancel"].as<bool>()) {
+      removeFile("/powercalibration.json");
+      powerCalibrationActive = false;
+      sendResponse(messageID, "OK");
+      delay(500);
+      ESP.restart();
+      return;
+    }
+    // Clear any existing cap first: leaving it in place would bound the search at
+    // the old value, so a piece could never calibrate back up.
+    JsonDocument doc;
+    deserializeJson(doc, readFile("/config.json"));
+    doc.remove("MAX_AVG_PIXEL_BRIGHTNESS");
+    String out;
+    serializeJsonPretty(doc, out);
+    writeFile("/config.json", out);
+    powerCalLo = 1;
+    powerCalHi = 255;
+    powerCalCand = 0;
+    powerCalProbes = 0;
+    savePowerCalibration();
+    sendResponse(messageID, "OK");
+    delay(500);
+    ESP.restart();
   } else if (type == "setconfig") {
     String data = cmd["data"].as<String>();
     JsonDocument testDoc;
@@ -1175,6 +1302,9 @@ void handleAdminCommand(JsonDocument& msg) {
       sendResponse(messageID, "ERROR: invalid JSON");
       return;
     }
+    // An unrelated config edit restarts the orb; without this its reboot would be
+    // read as a failed probe on the way back up.
+    removeFile("/powercalibration.json");
     writeFile("/config.json", data);
     sendResponse(messageID, "OK");
     delay(500);
@@ -2046,7 +2176,11 @@ void setup() {
   // the power cap down by 1 before driving any LEDs; repeated resets ratchet it
   // down until the supply can sustain it. Apply to the in-memory value too so this
   // very boot already renders at the lower cap. Re-arm the marker for this boot.
-  if (LittleFS.exists("/unstableboot") && esp_reset_reason() != ESP_RST_SW) {
+  // A calibration in flight owns the marker, so resolve it first and skip the
+  // ratchet -- otherwise the two would fight over MAX_AVG_PIXEL_BRIGHTNESS.
+  if (LittleFS.exists("/powercalibration.json")) {
+    resumePowerCalibration();
+  } else if (LittleFS.exists("/unstableboot") && esp_reset_reason() != ESP_RST_SW) {
     JsonDocument doc;
     deserializeJson(doc, readFile("/config.json"));
     int cap = doc["MAX_AVG_PIXEL_BRIGHTNESS"] | 255;  // missing = uncapped: start from full
@@ -2058,7 +2192,10 @@ void setup() {
     writeFile("/config.json", out);
     Serial.println("Unstable boot: MAX_AVG_PIXEL_BRIGHTNESS lowered to " + String(cap));
   }
-  writeFile("/unstableboot", "1");  // deleted in loop() once STABLE_UPTIME_MS is reached
+  // Calibration arms the marker itself, per probe rather than per boot.
+  if (!powerCalibrationActive) {
+    writeFile("/unstableboot", "1");  // deleted in loop() once STABLE_UPTIME_MS is reached
+  }
 
   // Load and apply prefs (write defaults on first boot so getprefs returns something)
   currentPrefName = readFile("/currentprefname.txt");
@@ -2186,25 +2323,37 @@ void networkTask(void*) {
 // Pattern switch + dimmer post-scale + power cap. Caller holds render_mutex
 // and is responsible for any overlays (AP rings, OTA indicator) and strip->Show().
 void renderFrame() {
-  advanceColorFrame();
-  switch (idlePattern) {
-    case PATTERN_STATIC:     runStatic();     break;
-    case PATTERN_SIN:        runSin();        break;
-    case PATTERN_PULSES:     runPulses();     break;
-    case PATTERN_FIREFLIES:  runFireflies();  break;
-    case PATTERN_LIGHTFIELD: runLightField(); break;
-    case PATTERN_LIGHTNING:  runLightning();  break;
-    case PATTERN_LINESINE:   runLineSine();   break;
-    default:                 runDefault();    break;
-  }
-
-  // Apply timer fade + manual dimmer as post-render pixel scale
-  float d = computeFade();
-  if (d < 0.999f) {
+  // A calibration probe drives the worst case the cap will ever have to hold:
+  // solid white, with the pattern and the fade/dimmer bypassed so nothing can
+  // quietly dim the frame below the cap and let a too-high candidate pass. The
+  // cap below then scales it to exactly powerCalCand on every channel.
+  if (powerCalibrationActive) {
     for (int i = 0; i < RAW_SIZE; i++) {
-      pixels[i][0] *= d;
-      pixels[i][1] *= d;
-      pixels[i][2] *= d;
+      pixels[i][0] = 255;
+      pixels[i][1] = 255;
+      pixels[i][2] = 255;
+    }
+  } else {
+    advanceColorFrame();
+    switch (idlePattern) {
+      case PATTERN_STATIC:     runStatic();     break;
+      case PATTERN_SIN:        runSin();        break;
+      case PATTERN_PULSES:     runPulses();     break;
+      case PATTERN_FIREFLIES:  runFireflies();  break;
+      case PATTERN_LIGHTFIELD: runLightField(); break;
+      case PATTERN_LIGHTNING:  runLightning();  break;
+      case PATTERN_LINESINE:   runLineSine();   break;
+      default:                 runDefault();    break;
+    }
+
+    // Apply timer fade + manual dimmer as post-render pixel scale
+    float d = computeFade();
+    if (d < 0.999f) {
+      for (int i = 0; i < RAW_SIZE; i++) {
+        pixels[i][0] *= d;
+        pixels[i][1] *= d;
+        pixels[i][2] *= d;
+      }
     }
   }
 
@@ -2259,7 +2408,21 @@ void loop() {
   // Once we've rendered uninterrupted for STABLE_UPTIME_MS, clear the boot marker
   // so this boot no longer counts as unstable. removeFile nests harmlessly on the
   // render_mutex we already hold.
-  if (!bootStableMarked && millis() > STABLE_UPTIME_MS) {
+  if (powerCalibrationActive) {
+    if (powerCalProbeStart == 0) {
+      // Time the dwell from the first frame actually pushed to the strip, not from
+      // when setup() picked the candidate -- nothing is lit until here, so starting
+      // earlier would let a probe pass on time spent booting.
+      powerCalProbeStart = millis();
+    } else if (millis() - powerCalProbeStart > POWER_CALIBRATION_DWELL_MS) {
+      // Held for the full dwell, so this candidate is good: disarm the marker
+      // (nothing to resolve on the next boot) and advance the search here, without
+      // a reboot. Only a failure costs one.
+      removeFile("/unstableboot");
+      powerCalLo = powerCalCand;
+      beginPowerCalibrationProbe();
+    }
+  } else if (!bootStableMarked && millis() > STABLE_UPTIME_MS) {
     bootStableMarked = true;
     removeFile("/unstableboot");
   }

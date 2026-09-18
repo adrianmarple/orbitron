@@ -57,6 +57,11 @@ new Vue({
     selectedResetReason() {
       return this.orbInfo.find(orb => orb.id == this.orbID)?.resetReason
     },
+    // Present only while an automated calibration is in flight; it survives the
+    // reboots because the orb reports it on every reconnect.
+    powerCalibration() {
+      return this.orbInfo.find(orb => orb.id == this.orbID)?.powerCalibration
+    },
     width() {
       return Math.min(700, this.innerWidth)
     },
@@ -497,6 +502,15 @@ new Vue({
       }
     },
 
+    // Automated calibration, Arduino only: the orb bisects MAX_AVG_PIXEL_BRIGHTNESS
+    // itself, using its own brownout resets as the pass/fail signal, so nobody has
+    // to watch the piece. It reboots several times before settling.
+    async startAutoCalibration() {
+      await this.sendCommand({ type: "powercalibrate" })
+    },
+    async cancelAutoCalibration() {
+      await this.sendCommand({ type: "powercalibrate", cancel: true })
+    },
     async startPowerCalibration() {
       await this.updatePrefs()
       this.prefsBackup = this.prefs

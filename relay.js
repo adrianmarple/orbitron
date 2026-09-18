@@ -469,6 +469,7 @@ addListener('GET', async ({response, orbID, queryParams}) => {
           alias: config.ALIASES[id],
           isArduino: !!(orbInfoCache[id]?.config?.ARDUINO),
           resetReason: orbInfoCache[id]?.config?.RESET_REASON,
+          powerCalibration: orbInfoCache[id]?.config?.POWER_CALIBRATION,
         })
       }
       response.end(JSON.stringify(orbInfo))

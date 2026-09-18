@@ -204,6 +204,23 @@
                 <div v-if="!calibratingPower" class="row">
                   <div class="button" @click="startPowerCalibration">Start Power Calibration</div>
                 </div>
+
+                <!-- Automated calibration, Arduino only: the orb bisects the cap itself
+                     using its own brownout resets, so nobody has to watch the piece. -->
+                <div v-if="isArduino && !calibratingPower && !powerCalibration" class="row">
+                  Or let the orb find it on its own. It will reboot several times.
+                </div>
+                <div v-if="isArduino && !calibratingPower && !powerCalibration" class="row">
+                  <div class="button" @click="startAutoCalibration">Auto Calibrate</div>
+                </div>
+                <div v-if="powerCalibration" class="row">
+                  Calibrating: trying {{ powerCalibration.cand }}
+                  (between {{ powerCalibration.lo }} and {{ powerCalibration.hi }},
+                  probe {{ powerCalibration.probes }})
+                </div>
+                <div v-if="powerCalibration" class="row">
+                  <div class="button" @click="cancelAutoCalibration">Cancel</div>
+                </div>
               </template>
             </div>
 

@@ -265,7 +265,17 @@ class Fold {
     this.dihedralAngle = n0.angleTo(n1)
 
     let crease = this.edge0.commonPlain().intersection(this.deadendPlain())
-    if (crease.direction.dot(n0.cross(n1)) < 0) {
+    let creaseReference = n0.cross(n1)
+    if (creaseReference.equals(ZERO)) {
+      // A flat seam. n0 x n1 vanishes, so it can't say which way along itself the crease runs,
+      // and the direction is left at whatever the plain intersection happened to produce --
+      // which mirrors the fold wall on about half of them. Orient it away from the corner
+      // between the two edges instead. Collinear halves, i.e. an ordinary zero fold, sum to
+      // zero here and are left exactly as they were.
+      creaseReference = this.edge0.toVector(vertex, true).normalize()
+          .add(this.edge1.toVector(vertex, true).normalize())
+    }
+    if (crease.direction.dot(creaseReference) < 0) {
       crease.direction = crease.direction.negate()
     }
     let aoi = this.edge0.toVector(vertex, true).angleTo(crease.direction)

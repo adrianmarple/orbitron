@@ -577,7 +577,9 @@ function wallPrint(wall, isLeft, printInfo) {
       minOffset += Math.tan(miterAngle) * WALL_THICKNESS
     }
     let maxOffset = edgeLength - LED_SUPPORT_WIDTH
-    
+    // Reaching a pixel past a flat seam assumes the fold wall runs straight through it, which a
+    // zero fold does -- its two halves are the two halves of one edge. A seam on a vertex is
+    // flat too but bends there, so reaching past it puts a support out in the bend.
     let runsStraightThrough = !wall.left || !wall.right ||
         wall.left.endVertex.ogCoords.sub(wall.vertex.ogCoords).normalize().dot(
         wall.right.endVertex.ogCoords.sub(wall.vertex.ogCoords).normalize()) < -0.99
