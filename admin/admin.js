@@ -62,6 +62,18 @@ new Vue({
     powerCalibration() {
       return this.orbInfo.find(orb => orb.id == this.orbID)?.powerCalibration
     },
+    // The orb keeps reporting the block after it finishes so the result is visible,
+    // so a search in flight is `active`, not merely the block being present.
+    autoCalibrating() {
+      return !!this.powerCalibration?.active
+    },
+    autoCalibrationResult() {
+      return this.powerCalibration?.result
+    },
+    // A run that never tripped a reset found no ceiling, so nothing was capped.
+    autoCalibrationFoundNoLimit() {
+      return (this.autoCalibrationResult || "").startsWith("no limit")
+    },
     width() {
       return Math.min(700, this.innerWidth)
     },

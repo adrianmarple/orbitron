@@ -153,6 +153,8 @@ const int POWER_CALIBRATION_MARGIN = 5;          // backed off from the result b
 const unsigned long POWER_CALIBRATION_DWELL_MS = 4000;  // how long a probe must hold to pass
 const int POWER_CALIBRATION_MAX_PROBES = 12;     // termination guard; 8 suffices for 1..255
 bool powerCalibrationActive = false;
+bool powerCalibrationDirty = false;   // set on any state change; networkTask re-sends the info dump
+String powerCalibrationResult = "";   // outcome, reported until the next reboot
 int powerCalLo = 1;      // highest value known to hold
 int powerCalHi = 255;    // highest value not yet proven to fail
 int powerCalCand = 0;    // the probe in flight
@@ -504,18 +506,33 @@ void savePowerCalibration() {
   writeFile("/powercalibration.json", out);
 }
 
+// Finish and report. A search that never saw a single failure never found a
+// ceiling, so there is nothing to cap: either the supply really is adequate, or
+// this board sags without ever resetting -- the strip visibly dims but the chip
+// survives, so the brownout signal simply doesn't apply to it and the visual flow
+// is the only option. Writing a value there would look calibrated while meaning
+// nothing, so leave the cap alone and say so.
 void endPowerCalibration(int value) {
-  value = constrain(value, 1, 255);
+  removeFile("/powercalibration.json");
+  powerCalibrationActive = false;
+  powerCalibrationDirty = true;
+
   JsonDocument doc;
   deserializeJson(doc, readFile("/config.json"));
-  doc["MAX_AVG_PIXEL_BRIGHTNESS"] = value;
-  String out;
-  serializeJsonPretty(doc, out);
-  writeFile("/config.json", out);
-  removeFile("/powercalibration.json");
-  maxAvgPixelBrightness = value;
-  powerCalibrationActive = false;
-  Serial.println("Power calibration done: MAX_AVG_PIXEL_BRIGHTNESS = " + String(value));
+  if (powerCalHi >= 255) {
+    powerCalibrationResult = "no limit found - never reset, even at full brightness";
+  } else {
+    value = constrain(value, 1, 255);
+    doc["MAX_AVG_PIXEL_BRIGHTNESS"] = value;
+    String out;
+    serializeJsonPretty(doc, out);
+    writeFile("/config.json", out);
+    powerCalibrationResult = "MAX_AVG_PIXEL_BRIGHTNESS set to " + String(value);
+  }
+  // Probing left the in-memory cap at the last candidate; put back whatever
+  // config says now that the search is over.
+  maxAvgPixelBrightness = doc["MAX_AVG_PIXEL_BRIGHTNESS"] | 0.0f;
+  Serial.println("Power calibration done: " + powerCalibrationResult);
 }
 
 // Apply the next candidate, or finish if the range has closed. The candidate is
@@ -536,6 +553,7 @@ void beginPowerCalibrationProbe() {
   writeFile("/unstableboot", "1");
   maxAvgPixelBrightness = powerCalCand;  // in memory only; config.json is written once at the end
   powerCalProbeStart = 0;  // started by loop() on the first frame actually driven at cand
+  powerCalibrationDirty = true;
   Serial.println("Power calibration probe " + String(powerCalProbes) +
       ": lo=" + String(powerCalLo) + " hi=" + String(powerCalHi) + " cand=" + String(powerCalCand));
 }
@@ -924,13 +942,14 @@ void sendInfoDump() {
   configDoc["ARDUINO"] = true;
   configDoc["FIRMWARE_VERSION"] = FIRMWARE_VERSION;
   configDoc["RESET_REASON"] = resetReasonName(esp_reset_reason());
-  if (powerCalibrationActive) {
+  if (powerCalibrationActive || powerCalibrationResult.length() > 0) {
     JsonObject cal = configDoc["POWER_CALIBRATION"].to<JsonObject>();
-    cal["active"] = true;
+    cal["active"] = powerCalibrationActive;
     cal["lo"] = powerCalLo;
     cal["hi"] = powerCalHi;
     cal["cand"] = powerCalCand;
     cal["probes"] = powerCalProbes;
+    if (powerCalibrationResult.length() > 0) cal["result"] = powerCalibrationResult;
   }
 
   JsonDocument msg;
@@ -2314,6 +2333,15 @@ void networkTask(void*) {
     if (now >= nextStateHashMs) {
       broadcastStateHash();
       nextStateHashMs = now + STATE_HASH_INTERVAL_MS;
+    }
+    // The search only reconnects when a probe reboots the chip, so on a run where
+    // nothing ever browns out it would finish without the relay ever hearing about
+    // it and admin would sit on a stale candidate forever. Push a dump on every
+    // state change instead. sendInfoDump runs here, in the same task as
+    // wsClient.loop(), so it can't race the socket.
+    if (powerCalibrationDirty && wsClient.isConnected()) {
+      powerCalibrationDirty = false;
+      sendInfoDump();
     }
 
     delay(1);

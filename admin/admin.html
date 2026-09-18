@@ -207,19 +207,26 @@
 
                 <!-- Automated calibration, Arduino only: the orb bisects the cap itself
                      using its own brownout resets, so nobody has to watch the piece. -->
-                <div v-if="isArduino && !calibratingPower && !powerCalibration" class="row">
+                <div v-if="isArduino && !calibratingPower && !autoCalibrating" class="row">
                   Or let the orb find it on its own. It will reboot several times.
                 </div>
-                <div v-if="isArduino && !calibratingPower && !powerCalibration" class="row">
+                <div v-if="isArduino && !calibratingPower && !autoCalibrating" class="row">
                   <div class="button" @click="startAutoCalibration">Auto Calibrate</div>
                 </div>
-                <div v-if="powerCalibration" class="row">
+                <div v-if="autoCalibrating" class="row">
                   Calibrating: trying {{ powerCalibration.cand }}
                   (between {{ powerCalibration.lo }} and {{ powerCalibration.hi }},
                   probe {{ powerCalibration.probes }})
                 </div>
-                <div v-if="powerCalibration" class="row">
+                <div v-if="autoCalibrating" class="row">
                   <div class="button" @click="cancelAutoCalibration">Cancel</div>
+                </div>
+                <div v-if="autoCalibrationResult" class="row">
+                  Auto calibration finished: {{ autoCalibrationResult }}
+                </div>
+                <div v-if="autoCalibrationFoundNoLimit" class="row">
+                  Nothing was capped. Either the supply is fine, or this board dims
+                  without resetting — use the manual calibration above to check.
                 </div>
               </template>
             </div>
