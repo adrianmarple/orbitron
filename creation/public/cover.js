@@ -182,11 +182,13 @@ async function createCover(plain) {
 
       let endCapOffset = CHANNEL_WIDTH * END_CAP_FACTOR * -0.5
       let extraLEDSupportOffset = 0
+      let endCapSupportOffset = 0
       if (epsilonEquals(e0.length(), 0)) {
         a1 = Math.PI/2
         towardsEnd = e1.normalize().multiplyScalar(-1)
         v0 = v0.addScaledVector(towardsEnd, endCapOffset)
         extraLEDSupportOffset = endCapOffset + PIXEL_DISTANCE
+        endCapSupportOffset = endCapOffset
         v1 = v0
         e1 = v2.sub(v1)
       }
@@ -377,6 +379,7 @@ async function createCover(plain) {
           endVertex: vertex1,
           vertex: vertex2,
           extraLEDSupportOffset,
+          endCapSupportOffset,
         }, associatedEdge)
       }
 

@@ -2,21 +2,33 @@ $fn=128;
 
 use <utils.scad>
 
-r = 142.4/2;
-outer_r = 150/2;
-h = 23;
+r = 148/2;
+outer_r = r;
+h=23;
+tripod_offset = 0;
+button_r = 5.2;
+
+front_oval = true;
+oval_w = 25;
+oval_h = 16;
+oval_z = 13;
+
+//r = 142.4/2;
+//outer_r = 150/2;
+//h = 23;
+//tripod_offset = 25.16;
 base_h = 2;
 wall = 2;
 
 screw_r = 5.2;
 nut_r = 8.5;
-button_r = 6;
+//button_r = 6;
 
 hole_r = 3;
 hole_kerf = 0.1;
 roundness = 2;
 
-side_hole_z = 13.6;
+side_hole_z = 14.2;
 side_hole_d = 14;//10.2;
 
 arduino_w = 18;
@@ -81,10 +93,12 @@ difference() {
     
   }
   
-  for (i = [0,1,2]) {
-      rotate([0,0,120*i])
-      translate([0,25.16,0])
-      cylinder(h=wall, r=screw_r);
+  if (tripod_offset != 0) {
+      for (i = [0,1,2]) {
+          rotate([0,0,120*i])
+          translate([0,25.16,0])
+          cylinder(h=wall, r=screw_r);
+      }
   }
   
   // Bottom connection holes
@@ -100,6 +114,17 @@ difference() {
   translate([0, r, h/2 + wall])
   cube([arduino_w + 2*wall, arduino_l + wall+10, h], center=true);
   
+  // Oval for uncertainly placed side hole
+  rotate([0,0,4])
+  translate([0,-r+5,oval_z])
+  rotate([90,0,0])
+  hull() {
+    translate([(oval_w-oval_h)/2,0,0])
+    cylinder(h=10, r=oval_h/2);
+    translate([-(oval_w-oval_h)/2,0,0])
+    cylinder(h=10, r=oval_h/2);
+  }
+      
 }
 
   // arduino holder
@@ -108,15 +133,14 @@ difference() {
       translate([-arduino_w/2 - wall, outer_r - usbc_offset - arduino_l - wall, 0])
       cube([arduino_w + 2*wall, arduino_l + 2*wall, side_hole_z-1.4]);
        
-      translate([0, outer_r - usbc_offset-1, side_hole_z])
-      rotate([-90,0,0])
-      cube([arduino_w + 2*wall, side_hole_d, 6], center=true);
-      //cylinder(h=usbc_offset, d=side_hole_d);
+      translate([0, outer_r - usbc_offset-1, h/2])
+      cube([arduino_w + 2*wall, 6, h], center=true);
+      //cube([arduino_w + 2*wall, 6, side_hole_d+2], center=true);
     }
     
     difference() {
-      cylinder(h=h, r=outer_r + 2);
-      cylinder(h=h, r=outer_r);
+      cylinder(h=h+1, r=outer_r + 2);
+      cylinder(h=h+1, r=outer_r);
     }
     
     //arduino itself

@@ -531,6 +531,12 @@ module.exports = () => {
   generateManufacturingInfo = async function() {
     await originalGenerateManufacturingInfo.apply(this, arguments)
 
+    // genModel calls this a second time with the globals inverted (Creation.vue) to emit the
+    // channel core through the same cover machinery. That solid stands in for the LED channel
+    // and has to follow the skeleton, not the logo, so leave it alone -- conforming it stretches
+    // it out to the logo outline. CHANNEL_DEPTH is only ever negative in that inversion.
+    if (CHANNEL_DEPTH < 0) return
+
     // Covers are rebuilt from scratch on every call, so these bounds are always pre-conform.
     let bounds = { minX: 1e6, minY: 1e6, maxX: -1e6, maxY: -1e6 }
     for (let type of COVER_TYPES) {

@@ -618,7 +618,11 @@ function wallPrint(wall, isLeft, printInfo) {
         }
         if (shouldAddSupport) {
           printInfo.ledWorldPositions.push(worldPosition)
-          position = startV.addScaledVector(E, -supportOffset)
+          // startV is built from the cover's retracted end (cover.js moves v0 in by
+          // endCapOffset at a dead end) but supportOffset is measured from the true
+          // vertex, so undo the retraction to keep supports midway between LEDs.
+          position = startV.addScaledVector(E,
+              -supportOffset - wall.extraLEDSupportOffset - (wall.endCapSupportOffset || 0))
           print.components.push({
             type: "ledSupport",
             position: [position.x, -position.y, WALL_THICKNESS],
