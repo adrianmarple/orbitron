@@ -318,6 +318,26 @@ void parseDir(const char* s, float& x, float& y, float& z) {
   x = y = z = 0.0f; if (!s) return; sscanf(s, "%f,%f,%f", &x, &y, &z);
 }
 
+// Percent-encode a string for use as a URL path segment. The orb ID goes straight into
+// the relay WebSocket path, and a character outside the unreserved set -- a space above
+// all -- makes the HTTP request line malformed, so the relay never sees the real ID.
+String urlEncodePath(const String& s) {
+  static const char* HEX_DIGITS = "0123456789ABCDEF";
+  String out;
+  out.reserve(s.length() + 8);
+  for (unsigned int i = 0; i < s.length(); i++) {
+    char c = s[i];
+    if (isalnum((unsigned char)c) || c == '-' || c == '.' || c == '_' || c == '~') {
+      out += c;
+    } else {
+      out += '%';
+      out += HEX_DIGITS[(c >> 4) & 0xf];
+      out += HEX_DIGITS[c & 0xf];
+    }
+  }
+  return out;
+}
+
 // Serialize prefs in controller-compatible (Python) format
 void buildPrefsJson(JsonObject doc, Prefs& p) {
   doc["idleColor"]          = colorName(p.idleColor);
@@ -1443,12 +1463,12 @@ void performOTA() {
       break;
     case HTTP_UPDATE_NO_UPDATES:
       Serial.println("OTA: already up to date");
-      wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
+      wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + urlEncodePath(orbID)).c_str());
       break;
     case HTTP_UPDATE_FAILED:
       Serial.println("OTA failed: " + httpUpdate.getLastErrorString());
       // reconnect and carry on
-      wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
+      wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + urlEncodePath(orbID)).c_str());
       break;
   }
   xSemaphoreGiveRecursive(render_mutex);
@@ -2278,7 +2298,7 @@ void networkTask(void*) {
   }
 
   if (!relayHost.isEmpty() && !orbID.isEmpty()) {
-    wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + orbID).c_str());
+    wsClient.beginSSL(relayHost.c_str(), 7777, ("/relay/" + urlEncodePath(orbID)).c_str());
     wsClient.onEvent(webSocketEvent);
     wsClient.setReconnectInterval(5000);
     Serial.println("WebSocket connecting to " + relayHost);

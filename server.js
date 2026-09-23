@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { config, execute, restartOrbitron } = require('./lib')
+const { config, execute, restartOrbitron, decodeOrbID } = require('./lib')
 const http = require('http')
 const https = require('https')
 const fs = require('fs')
@@ -123,7 +123,7 @@ async function serverHandler(request, response) {
     filePath = filePath.substring(0,filePath.length-1)
   let processed = filePath.split("/")
   let orbID = processed.length > 1 ? processed[1] : ''
-  orbID = orbID.toLowerCase()
+  orbID = decodeOrbID(orbID).toLowerCase()
   orbID = config.reverseAliases[orbID] ?? orbID
 
   let body = BODY_METHODS.has(method) ? await readBody(request) : null

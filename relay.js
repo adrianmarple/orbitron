@@ -4,7 +4,7 @@ const http = require('http')
 const https = require('https')
 const fs = require('fs')
 const path = require('path')
-const { config, execute, processAdminCommand, noCorsHeader, ianaToPosix } = require('./lib')
+const { config, execute, processAdminCommand, noCorsHeader, ianaToPosix, decodeOrbID } = require('./lib')
 const { pullAndRestart, restartOrbitron } = require('./gitupdate')
 const { addListener, respondWithFile } = require('./server')
 const crypto = require('crypto')
@@ -174,12 +174,12 @@ wsServer.on('connection', (socket, request) => {
   //console.log('WS connection request made to', request.url)
   let meta = url.split("/")
   if(meta[1] == "relay") { // socket from orb to server
-    let orbID = meta[2].toLowerCase()
+    let orbID = decodeOrbID(meta[2]).toLowerCase()
     orbToIP[orbID] = ipFromRequest(request)
     socket.classification = "WS orb to server"
     bindOrb(socket, orbID)
   } else { // client socket connecting to server
-    let orbID = meta[1].toLowerCase()
+    let orbID = decodeOrbID(meta[1]).toLowerCase()
     orbID = config.reverseAliases[orbID] ?? orbID
     let clientID = meta[2]
     socket.clientID = clientID

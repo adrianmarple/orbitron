@@ -483,7 +483,7 @@ new Vue({
       command = JSON.stringify(command)
       let hash = await sha256(command + await this.getOrbKey(orbID))
       let message = encodeURIComponent(command)
-      let pathPrefix = isServerCommand ? "" : orbID + "/"
+      let pathPrefix = isServerCommand ? "" : encodeURIComponent(orbID) + "/"
       let url = `${this.serverUrl}/${pathPrefix}admin?message=${message}&hash=${hash}`
       try {
         const controller = new AbortController()

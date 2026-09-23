@@ -223,9 +223,21 @@ if (!config.DEV_MODE && config.TIMEZONE) {
   setSystemTimezone(config.TIMEZONE)
 }
 
+// Orb IDs arrive as URL path segments, so an ID containing a space (or any other
+// reserved character) shows up percent-encoded. Decode it back to the orb's real
+// ORB_ID: that is what ORB_KEY is derived from, so leaving it encoded makes every
+// admin command fail its hash check and get silently dropped.
+function decodeOrbID(orbID) {
+  try {
+    return decodeURIComponent(orbID)
+  } catch(_) {
+    return orbID // Malformed encoding (e.g. a literal % in the ID); use it as-is.
+  }
+}
+
 module.exports = {
   execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand, noCorsHeader,
-  ianaToPosix, posixToIana,
+  ianaToPosix, posixToIana, decodeOrbID,
 }
 
 
