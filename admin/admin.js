@@ -239,7 +239,7 @@ new Vue({
       this.commandResponses += "% " + command + "\n" + (response.trim() || "(success)") + "\n"
       this.commandResponses += "Removing ORB_KEY from config.js\n"
       this.config = removeLineInConfig(this.config, "ORB_KEY")
-      await this.saveConfig(true)
+      if (!await this.saveConfig(true)) return
       this.commandResponses += "Successfully removed ORB_KEY\n"
       await this.sendCommand({ type: "clearwifi" })
       this.commandResponses += "WiFi credentials cleared\n"
@@ -258,13 +258,19 @@ new Vue({
       }
       if (orbID && existingOrbKey) {
         let expectedOrbKey = await this.getOrbKey(orbID)
-        if (existingOrbKey !== expectedOrbKey) {
-          console.log("ORB_KEY not compatible with master key. Not saving.")
-          return
+        if (existingOrbKey.toLowerCase() !== expectedOrbKey.toLowerCase()) {
+          let message = "Config NOT saved: ORB_KEY doesn't match ORB_ID \"" + orbID + "\".\n"
+              + "Expected " + expectedOrbKey.slice(0, 8) + "..., found " + existingOrbKey.slice(0, 8) + "...\n"
+              + "Either ORB_KEY is still the one for a previous ORB_ID (use \"Set ORB_KEY\" to "
+              + "regenerate it for this ID), or the loaded master key isn't the right one."
+          this.commandResponses += message + "\n"
+          alert(message)
+          return false
         }
       }
       await this.sendCommand({ type: "setconfig", data: this.config, dontRestart })
       this.idToConfig[this.orbID] = this.config
+      return true
     },
 
     async savePrefs(dontRestart) {
