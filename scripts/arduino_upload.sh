@@ -60,8 +60,13 @@ NEW_PORT=$(arduino-cli board list 2>/dev/null | awk '/\/dev\// {print $1}' | gre
 if [ -n "$NEW_PORT" ]; then PORT="$NEW_PORT"; fi
 
 echo "Done. Monitoring $PORT (Ctrl+C to exit)..."
-if python3 -c "import serial" 2>/dev/null; then
-  python3 -m serial.tools.miniterm --raw "$PORT" 115200
+# Keep DTR/RTS de-asserted. On the ESP32-S3's native USB-Serial-JTAG port those
+# CDC lines are wired to the chip's internal reset and boot-mode controls, so
+# asserting them (the default for both miniterm and `arduino-cli monitor`)
+# silences the port completely -- the board looks dead when it is fine.
+# Prefer the repo venv: the system python3 generally has no pyserial.
+if [ -x .venv/bin/python3 ] && .venv/bin/python3 -c "import serial" 2>/dev/null; then
+  .venv/bin/python3 -m serial.tools.miniterm --raw --rts 0 --dtr 0 "$PORT" 115200
 else
-  cat "$PORT"
+  arduino-cli monitor -p "$PORT" -c baudrate=115200,dtr=off,rts=off
 fi
