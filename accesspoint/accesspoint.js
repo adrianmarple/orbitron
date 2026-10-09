@@ -5,8 +5,9 @@ const qs = require('querystring')
 const fs = require('fs')
 const { execFile } = require('child_process')
 const path = require('path')
-const { checkConnection, execute, delay, config } = require('../lib')
+const { checkConnection, isDefinitelyOffline, execute, delay, config } = require('../lib')
 const { displayText, sendToPython, registerAccessPointHandler } = require('../orb')
+const { timeUntilHour } = require('../gitupdate')
 
 const RECENT_BOOT_THRESHOLD_S = 5 * 60
 
@@ -27,7 +28,12 @@ let numTimesAccessPointStarted = 0
 
 async function checkConnectionAndCleanup() {
   const connected = await checkConnection()
-  if (connected) await stopAccessPoint()
+  if (connected) {
+    markOnline()
+    await stopAccessPoint()
+  } else {
+    markOffline()
+  }
   return connected
 }
 
@@ -96,7 +102,7 @@ async function stopAccessPoint(ssid, password) {
   if (ssid) {
     displayText(`ADDING SSID ${ssid}`)
     await removeWifiProfile(ssid)
-    const args = ['connection', 'add', 'con-name', ssid, 'type', 'wifi', 'ssid', ssid, 'autoconnect', 'yes', 'save', 'yes']
+    const args = ['connection', 'add', 'con-name', ssid, 'type', 'wifi', 'ssid', ssid, 'autoconnect', 'yes', 'connection.autoconnect-retries', '0', 'save', 'yes']
     if (password) {
       args.push('802-11-wireless-security.key-mgmt', 'WPA-PSK', '802-11-wireless-security.psk', password)
     }
@@ -191,12 +197,131 @@ let wifiSetupServer = http.createServer(async function (req, res) {
   }
 })
 
-async function hasSavedWifiCredentials() {
+// Names of saved client wifi profiles (every wireless profile except our own hotspot)
+async function savedWifiProfiles() {
   const out = await execute("nmcli -t -f NAME,TYPE connection show")
-  return out.split('\n').some(line => {
-    const [name, type] = line.split(':')
-    return /wireless|wifi/i.test(type) && name !== 'OrbHotspot'
-  })
+  return out.split('\n')
+    // nmcli -t escapes colons as \: — swap them out before splitting
+    .map(line => line.replace(/\\:/g, '\x00').split(':').map(p => p.replace(/\x00/g, ':').trim()))
+    .filter(([name, type]) => name && /wireless|wifi/i.test(type) && name !== 'OrbHotspot')
+    .map(([name]) => name)
+}
+
+async function hasSavedWifiCredentials() {
+  return (await savedWifiProfiles()).length > 0
+}
+
+// NetworkManager stops autoconnecting after a few failures by default (-1 = 4 tries).
+// A piece with no one around to help should keep trying forever.
+async function makeWifiProfilesRetryForever() {
+  for (const name of await savedWifiProfiles()) {
+    try {
+      const retries = (await nmcli('-g', 'connection.autoconnect-retries', 'connection', 'show', name)).trim()
+      if (retries === '0') continue
+      await nmcli('connection', 'modify', name, 'connection.autoconnect-retries', '0')
+      console.log(`Set wifi profile "${name}" to retry forever (was ${retries})`)
+    } catch (e) {
+      console.error(`Could not update retries for wifi profile "${name}":`, e.message)
+    }
+  }
+}
+
+// ---Offline recovery---
+// NetworkManager's autoconnect can give up permanently (e.g. "no secrets" after a router
+// reboot), and the wifi driver can wedge. Nothing else nudges it, so while offline we
+// escalate through these stages, then reboot at 2am as a last resort.
+const RECOVERY_STAGES = [
+  { afterMs: 2 * 60e3, name: "reconnect saved wifi profiles", run: reconnectSavedProfiles },
+  { afterMs: 10 * 60e3, name: "toggle wifi radio", run: toggleWifiRadio },
+  { afterMs: 20 * 60e3, name: "restart NetworkManager", run: restartNetworkManager },
+]
+// Once every stage has run, the last one repeats at most this often
+const RECOVERY_REPEAT_MS = 60 * 60e3
+const MIN_OFFLINE_FOR_REBOOT_MS = 60 * 60e3
+const MIN_UPTIME_FOR_REBOOT_S = 60 * 60
+
+let offlineSince = 0
+let recoveryStage = 0
+let lastRecoveryTime = 0
+
+function markOnline() {
+  if (offlineSince) {
+    console.log(`Internet restored after ${Math.round((Date.now() - offlineSince) / 60e3)} min offline`)
+  }
+  offlineSince = 0
+  recoveryStage = 0
+}
+
+function markOffline() {
+  if (!offlineSince) {
+    console.log("Internet lost")
+    offlineSince = Date.now()
+  }
+}
+
+async function reconnectSavedProfiles() {
+  await execute("nmcli device wifi rescan")
+  await delay(5e3)
+  for (const name of await savedWifiProfiles()) {
+    try {
+      // Activating by hand also clears any autoconnect block NetworkManager has set
+      await nmcli('--wait', '30', 'connection', 'up', name)
+    } catch (e) {
+      console.log(`Could not bring up wifi profile "${name}":`, e.message.trim())
+      continue
+    }
+    if (await checkConnection()) return
+  }
+}
+
+async function toggleWifiRadio() {
+  await execute("nmcli radio wifi off")
+  await delay(3e3)
+  await execute("nmcli radio wifi on")
+}
+
+async function restartNetworkManager() {
+  await execute("systemctl restart NetworkManager")
+}
+
+async function attemptRecovery() {
+  if (!offlineSince || accessPointStartTime || config.DONT_RECONNECT) return
+  const offlineMs = Date.now() - offlineSince
+  const isRepeat = recoveryStage >= RECOVERY_STAGES.length
+  const stage = RECOVERY_STAGES[isRepeat ? RECOVERY_STAGES.length - 1 : recoveryStage]
+  if (isRepeat ? Date.now() - lastRecoveryTime < RECOVERY_REPEAT_MS : offlineMs < stage.afterMs) return
+
+  recoveryStage += 1
+  lastRecoveryTime = Date.now()
+  console.log(`Offline for ${Math.round(offlineMs / 60e3)} min, recovery: ${stage.name}`)
+  try {
+    await stage.run()
+  } catch (e) {
+    console.error(`Recovery "${stage.name}" failed:`, e)
+  }
+}
+
+// Reboot only when we're confident the piece itself is stuck: offline for a long stretch
+// with every check failing, all soft recovery already tried, and google, the relay and a
+// raw ping all still unreachable a minute apart. At most once a night, so a network
+// that's genuinely down can't cause a reboot loop.
+async function nightlyRebootCheck() {
+  try {
+    const offlineMs = offlineSince ? Date.now() - offlineSince : 0
+    if (offlineMs < MIN_OFFLINE_FOR_REBOOT_MS) return
+    if (recoveryStage < RECOVERY_STAGES.length) return
+    if (accessPointStartTime || config.DONT_RECONNECT) return
+    if (os.uptime() < MIN_UPTIME_FOR_REBOOT_S) return
+    if (!(await isDefinitelyOffline())) return
+    await delay(60e3)
+    if (!offlineSince || !(await isDefinitelyOffline())) return
+    console.log(`Rebooting: offline for ${Math.round(offlineMs / 60e3)} min and recovery attempts failed`)
+    await execute("reboot")
+  } catch (e) {
+    console.error("nightlyRebootCheck error:", e)
+  } finally {
+    setTimeout(nightlyRebootCheck, timeUntilHour(2))
+  }
 }
 
 let isFirstNetworkCheck = true
@@ -228,6 +353,7 @@ async function networkCheck() {
       await waitForAccessPointDisconnection()
       setTimeout(networkCheck, 1e3)
     } else {
+      await attemptRecovery()
       setTimeout(networkCheck, 20e3)
     }
   } catch(e) {
@@ -241,5 +367,7 @@ if (!config.NO_ACCESS_POINT) {
     console.log("wifi setup listening on port 80")
   })
   setTimeout(networkCheck, 5e3)
+  setTimeout(nightlyRebootCheck, timeUntilHour(2))
+  makeWifiProfilesRetryForever()
   registerAccessPointHandler(startAccessPoint)
 }

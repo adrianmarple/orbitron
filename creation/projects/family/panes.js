@@ -1,5 +1,8 @@
 // v1.0.1
 module.exports = () => {
+  portPartID = "2L"
+  PORT_POSITION = "end"
+
   let v0 = addVertex(ZERO)
   let v1 = v0.addLine([0,-6,0])
     .addLine([-4,0,0])

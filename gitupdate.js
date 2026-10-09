@@ -38,7 +38,7 @@ function execute(command){
 }
 
 async function checkForUpdates(){
-  let output = await execute('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
+  let output = await execute('curl -Is --max-time 10 -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
   let connected = output.indexOf("200") >= 0
   if(!runDirectly){
     let nextUpdateTime = connected ? timeUntilHour(2) : 1e4

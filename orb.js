@@ -138,11 +138,13 @@ function connectOrbToRelay(){
     let relayDomain = config.RELAY_HOST || (config.DEV_MODE ? "0.0.0.0" : "my.lumatron.art")
     let relayProtocol = config.DEV_MODE && !config.RELAY_HOST ? "ws" : "wss"
     let relayURL = `${relayProtocol}://${relayDomain}:7777/relay/${config.ORB_ID}`
-    orbToRelaySocket = new WebSocket.WebSocket(relayURL)
+    orbToRelaySocket = new WebSocket.WebSocket(relayURL, { handshakeTimeout: 15e3 })
+    orbToRelaySocket.createdAt = Date.now()
     orbToRelaySocket.lastPingReceived = Date.now()
     const socket = orbToRelaySocket
 
     socket.on("open", () => {
+      console.log("Connected to relay")
       // Send over config w/o secret on socket connection
       let configCopy = { ...config }
       delete configCopy.ORB_KEY
@@ -340,7 +342,8 @@ function connectOrbToRelay(){
         }
       }
     })
-    socket.on('close', () => {
+    socket.on('close', (code) => {
+      console.log("Relay socket closed with code", code)
       if (orbToRelaySocket === socket) orbToRelaySocket = null
     })
     socket.on('error', (e) => {
@@ -412,12 +415,25 @@ if(!config.IS_RELAY || config.HAS_EMULATION){
   setInterval(relayUpkeep, 5e3)
 }
 
+// terminate() rather than close(): close() waits up to 30s for a closing handshake
+// that can't arrive over a dead link, and relayUpkeep won't reconnect until this is null.
+function dropRelaySocket(socket, reason) {
+  console.log("Dropping relay socket:", reason)
+  if (orbToRelaySocket === socket) orbToRelaySocket = null
+  socket.terminate()
+}
+
 function orbPingHandler() {
-  if(orbToRelaySocket && orbToRelaySocket.readyState === WebSocket.OPEN){
-    orbToRelaySocket.send("PING")
-    if(Date.now() - orbToRelaySocket.lastPingReceived > 30 * 1000){
-      orbToRelaySocket.close()
+  const socket = orbToRelaySocket
+  if (!socket) return
+  if (socket.readyState === WebSocket.OPEN) {
+    socket.send("PING")
+    if (Date.now() - socket.lastPingReceived > 30 * 1000) {
+      dropRelaySocket(socket, "no PING from relay in 30s")
     }
+  } else if (Date.now() - socket.createdAt > 30 * 1000) {
+    // Never reached OPEN (or stuck closing); without this relayUpkeep would never retry
+    dropRelaySocket(socket, `stuck in readyState ${socket.readyState}`)
   }
 }
 setInterval(orbPingHandler, 3000)

@@ -57,9 +57,22 @@ function execute(command){
 }
 
 async function checkConnection() {
-  let output = await execute('curl -Is -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
+  let output = await execute('curl -Is --max-time 10 -H "Cache-Control: no-cache, no-store;Pragma: no-cache"  "http://www.google.com/?$(date +%s)" | head -n 1')
   let connected = output.indexOf("200") >= 0
   return connected
+}
+
+// Stricter than !checkConnection(): only true if google, the relay and a raw ping all fail,
+// so a single blocked or flaky endpoint can't trigger drastic recovery (e.g. a reboot).
+async function isDefinitelyOffline() {
+  if (await checkConnection()) return false
+  let relayHost = config.RELAY_HOST || "my.lumatron.art"
+  let relayOutput = await execute(`curl -Is --max-time 10 "https://${relayHost}/" | head -n 1`)
+  if (relayOutput.includes("HTTP")) return false
+  let pingOutput = await execute("ping -c2 -W3 1.1.1.1")
+  let received = pingOutput.match(/(\d+) (packets )?received/)
+  if (received && parseInt(received[1]) > 0) return false
+  return true
 }
 
 function delay(ms) {
@@ -236,7 +249,7 @@ function decodeOrbID(orbID) {
 }
 
 module.exports = {
-  execute, checkConnection, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand, noCorsHeader,
+  execute, checkConnection, isDefinitelyOffline, delay, config, PYTHON_EXECUTABLE, restartOrbitron, processAdminCommand, noCorsHeader,
   ianaToPosix, posixToIana, decodeOrbID,
 }
 

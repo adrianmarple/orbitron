@@ -721,7 +721,7 @@ function wallPrint(wall, isLeft, printInfo) {
         }
       }
 
-      let top_thickness = 12.2 - WALL_THICKNESS
+      let top_thickness = USBC_INTREGRATED_LENGTH - WALL_THICKNESS
       let top_border = 3
       let top_width = port_width + 2*top_border+1
       let top_radius = port_radius + top_border
