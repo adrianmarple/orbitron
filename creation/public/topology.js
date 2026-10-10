@@ -229,8 +229,8 @@ class Edge {
     return end.sub(start)
   }
 
-  split(distance) {
-    return splitEdge(this, distance)
+  split(distance, roundToInteger) {
+    return splitEdge(this, distance, roundToInteger)
   }
 }
 
@@ -729,12 +729,19 @@ function addSquareulation(v1, v2, a, b) {
   return [v3,v4]
 }
 
-function splitEdge(edge, distance) {
+function splitEdge(edge, distance, roundToInteger) {
   edge = resolveEdge(edge)
 
   let delta = edge.delta()
   if (distance < 0) {
     distance = delta.length() + distance
+  }
+  if (roundToInteger) {
+    let offset = edgeOffset(edge.verticies[0], edge.verticies[1])
+    if (ledAtVertex) {
+      offset += 0.5
+    }
+    distance = Math.round(distance - offset) + offset
   }
   delta = delta.normalize()
   delta = delta.multiplyScalar(distance)
@@ -762,7 +769,7 @@ function edgeCleanup(dontDoubleEdges) {
   // First check if there are any edges with two fold verticies so they can be split
   for (let edge of [...edges]) {
     if (edge.verticies[0].plains.length >= 2 && edge.verticies[1].plains.length >= 2) {
-      edge.split(edge.length()/2)
+      edge.split(edge.length()/2, GAP_ALIGNED_SEAMS)
     }
   }
 
@@ -789,12 +796,15 @@ function edgeCleanup(dontDoubleEdges) {
       denom -= 0.5
     }
     let newLength = edge.length() / denom
+    let totalOffset = edge.length()
     for (let i = 0; i < splitCount; i++) {
       if (isDeadend1 && i == 0) {
-        edge.split(-newLength/2)
+        totalOffset -= newLength/2
       } else {
-        edge.split(-newLength)
+        totalOffset -= newLength
       }
+      // Use total offset like this so rounding error doesn't accumulate
+      edge.split(totalOffset, GAP_ALIGNED_SEAMS)
     }
   }
 
@@ -1278,13 +1288,20 @@ function zeroFold(edge, offset) {
     console.log(edge)
     return
   }
+  let newVertex
+  if (offset) {
+    newVertex = edge.split(offset)
+  } else {
+    newVertex = edge.split(edge.length()/2, GAP_ALIGNED_SEAMS)
+  }
+
   let foldNormal = edge.verticies[0].ogCoords.sub(edge.verticies[1].ogCoords)
-  let newVertex = splitEdge(edge, offset ?? edge.length()/2)
   newVertex.deadendPlain = new Plain(newVertex.ogCoords, foldNormal)
   newVertex.plains = []
   newVertex.addPlain(plain0)
   newVertex.addPlain(plain1)
 }
+
 
 // Seams a cover apart *at* an existing vertex rather than partway along an edge
 function vertexZeroFold(vertex, groupA) {

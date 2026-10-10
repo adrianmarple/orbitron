@@ -126,14 +126,13 @@ function reset() {
   COVER_TYPES = ["top", "bottom"] // Needed for semi-hack for simple mode
   STRONG_SLOPE = 1.6
 
+  GAP_ALIGNED_SEAMS = false
+
   coverPrint3D = false
   exteriorOnly = false
-  cat5PortAtEnd = false
   strongCovers = []
   portPartID = ""
   powerHolePartID = ""
-
-  powerHoleWallIndex = -1
 
   dataPostProcessingFunction = pixelInfo => {}
   printPostProcessingFunction = printInfo => {}
@@ -158,6 +157,9 @@ function reset() {
   LED_SUPPORT_TYPE = "all"
   LED_SUPPORT_GAP = 2.8
   CHANNEL_DEPTH = 15
+
+  if (versionLessThan("1.0.2", VERSION)) return
+  GAP_ALIGNED_SEAMS = true
 }
 reset()
 
