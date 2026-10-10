@@ -62,7 +62,6 @@ struct PulseState { float x, y, z; unsigned long start_ms, duration_ms; bool act
 PulseState pulses[MAX_PULSES];
 float pulses_base_duration_s = 5.0f;  // tracks 70/idleFrameRate; rescales in-flight pulses on change
 
-float lf_global_time = 0.0f;
 unsigned long lf_last_ms = 0;
 float wave_phase = 0.0f;
 unsigned long wave_last_ms = 0;
@@ -451,14 +450,36 @@ void runPulses() {
   applyTargetValues(1.0f);
 }
 
+// murmur3 finalizer: decorrelates a sequential input into well-mixed bits.
+inline uint32_t fmix32(uint32_t h) {
+  h ^= h >> 16;
+  h *= 0x85ebca6bu;
+  h ^= h >> 13;
+  h *= 0xc2b2ae35u;
+  h ^= h >> 16;
+  return h;
+}
+
+// Each pixel advances its own phase in pattern_target, wrapped to [0, 2π) every frame.
+// A single ever-growing float clock multiplied by each pixel's speed loses precision
+// with uptime: the per-frame step rounds coarser, so speed jumps at each power of two
+// and, after ~19 days at 15fps, rounds to zero and freezes the pattern.
+//
+// Per-pixel speed/brightness/phase must be well mixed. Bare multiplicative hashes
+// ((i+1)*K) are linear in i mod 2^32, so speeds and phases form a lattice that
+// periodically falls into step: after a few hours of uptime the whole piece would
+// swing between nearly dark and ~80% in episodes roughly every 40 minutes.
 void runLightField() {
+  if (!pattern_target) return;
   unsigned long now_ms = millis();
   float dt = (now_ms-lf_last_ms)/1000.0f; lf_last_ms = now_ms;
-  lf_global_time += dt*2.0f*PI*(idleFrameRate/300.0f);
+  float step = dt*2.0f*PI*(idleFrameRate/300.0f);
   for (int i = 0; i < RAW_SIZE; i++) {
-    uint32_t hf=(uint32_t)(i+1)*2654435761u, hb=(uint32_t)(i+1)*2246822519u, hp=(uint32_t)(i+1)*3266489917u;
+    uint32_t seq = (uint32_t)(i+1)*0x9E3779B9u;
+    uint32_t hf=fmix32(seq+1), hb=fmix32(seq+2), hp=fmix32(seq+3);
     float factor=(hf>>16)*(10.0f/65536.0f)+0.5f, rb=(hb>>16)*(0.9f/65536.0f)+0.1f, phase=(hp>>16)*(2.0f*PI/65536.0f);
-    float v=fmaxf(sinf(fmodf(lf_global_time*factor+phase,2.0f*PI)),0.0f)*(rb*rb);
+    pattern_target[i] = fmodf(pattern_target[i] + step*factor, 2.0f*PI);
+    float v=fmaxf(sinf(pattern_target[i]+phase),0.0f)*(rb*rb);
     render_values[i]=v;
     colorPixel(pixels[i], v, v*brightness_factor);
   }
