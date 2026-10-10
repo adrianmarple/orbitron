@@ -1,4 +1,7 @@
 
+// How long a connected socket may go without any orb state before the orb is shown as offline
+const STATE_TIMEOUT_MS = 5000
+
 // To prevent zoom on iOS
 document.addEventListener("click", event => {
   if (!event.target) return
@@ -287,6 +290,12 @@ var app = new Vue({
     },
     socketStatus() {
       return this.orbInfo.socketStatus
+    },
+    orbOffline() {
+      return this.orbInfo.isCurrentlyConnected === false
+    },
+    awaitingState() {
+      return this.socketStatus == "CONNECTED" && Object.keys(this.state).length == 0
     },
     connectionStatus() {
       if(this.blurred){
@@ -1137,6 +1146,13 @@ var app = new Vue({
       let self = this
       ws.onopen= _ => {
         self.$set(self.idToOrb[orbID], 'socketStatus', 'CONNECTED')
+        // The relay can briefly believe a dead orb is still connected. If no state
+        // arrives, show the orb as offline rather than an empty controller.
+        setTimeout(() => {
+          if (orb.ws === ws && Object.keys(orb.state).length == 0) {
+            self.$set(orb, 'isCurrentlyConnected', false)
+          }
+        }, STATE_TIMEOUT_MS)
       }
       ws.onmessage = event => {
         self.$set(self.idToOrb[orbID], 'socketStatus', 'CONNECTED')
@@ -1152,18 +1168,30 @@ var app = new Vue({
       orb.ws = ws
     },
 
+    markOrbAlive(orbID) {
+      this.$set(this.idToOrb[orbID], 'isCurrentlyConnected', true)
+    },
     async handleMessage(data, orbID) {
       if (data == "ECHO") {
+        this.markOrbAlive(orbID)
         this.idToOrb[orbID].resolveEcho()
         return
       }
       if (typeof data === "string" && data.startsWith("STATE_HASH:")) {
+        this.markOrbAlive(orbID)
         const hash = data.slice("STATE_HASH:".length)
         const lastHash = this.idToOrb[orbID]?.state?.stateHash
         if (lastHash && lastHash !== hash) this.send("RESYNC", orbID)
         return
       }
       let message = JSON.parse(data)
+      if (message.orbStatus !== undefined) { // From the relay, not the orb
+        this.$set(this.idToOrb[orbID], 'isCurrentlyConnected', message.orbStatus == "online")
+        return
+      }
+      if (message.backupList === undefined && message.backupRestoreResult === undefined) {
+        this.markOrbAlive(orbID) // Everything else here came from the orb itself
+      }
       if (message.invalidLogin) {
         this.speedbumpMessage = "Invalid login code"
         return

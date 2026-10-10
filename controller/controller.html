@@ -215,7 +215,12 @@
   </div>
   </div>
 
-  <div v-else-if="connectionStatus == 'CONNECTING'" id="loading">
+  <div v-else-if="orbOffline" id="offline">
+    <p><b>{{ orbInfo.name ?? orbID }}</b> isn't responding.</p>
+    <p>It may be unplugged or off Wi-Fi. This page will reconnect automatically once it's back.</p>
+    <div class="button" @click="openRegistration">See all pieces</div>
+  </div>
+  <div v-else-if="connectionStatus == 'CONNECTING' || awaitingState" id="loading">
     <canvas id="loading-ball" width="256" height="256"></canvas>
   </div>
   <div v-else-if="mustLogin" id="login">

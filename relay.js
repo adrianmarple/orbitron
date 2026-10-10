@@ -190,8 +190,15 @@ wsServer.on('connection', (socket, request) => {
 
 let serverPingHandler = () => {
   for (const orbID in connectedOrbs) {
-    connectedOrbs[orbID].send("PING")
-    connectedOrbs[orbID].lastActivityTime = Date.now()
+    let socket = connectedOrbs[orbID]
+    try {
+      socket.send("PING")
+      // Protocol-level ping: both ws (orb.js) and the ESP32's WebSocketsClient auto-pong,
+      // so the pong proves liveness even for orbs that never send anything when idle.
+      socket.ping()
+    } catch(e) {
+      console.log("Error pinging orb", orbID, e)
+    }
   }
 }
 setInterval(serverPingHandler, 3000)  
@@ -205,13 +212,17 @@ async function loadOrbInfoCache() {
 function bindOrb(socket, orbID) {
   if(connectedOrbs[orbID]){
     try {
-      connectedOrbs[orbID].close()
+      connectedOrbs[orbID].terminate()
     } catch(e) {
       console.log("Error closing existing orb socket",orbID, e)
     }
   }
   connectedOrbs[orbID] = socket
   socket.lastActivityTime = Date.now()
+  socket.on('pong', () => {
+    socket.lastActivityTime = Date.now()
+  })
+  sendOrbStatusToClients(orbID, "online")
 
   for (const clientID in connectedClients[orbID] ?? {}) {
     try {
@@ -319,18 +330,45 @@ function bindOrb(socket, orbID) {
 
   })
   socket.on('close', () => {
-    delete connectedOrbs[orbID]
+    forgetOrbSocket(orbID, socket)
   })
   socket.on('error', (e) => {
     console.log("Error in orb socket", orbID, e)
-    socket.close()
+    dropOrbSocket(orbID, socket, "socket error")
   })
 }
 
+function sendOrbStatusToClients(orbID, orbStatus) {
+  let message = JSON.stringify({ orbStatus })
+  for (const client of Object.values(connectedClients[orbID] ?? {})) {
+    try {
+      client.send(message)
+    } catch(e) {
+      console.log("Error sending orb status to client", orbID, client.clientID, e)
+    }
+  }
+}
+
+// Only acts if socket is still the current one; a late close from a replaced
+// socket must not evict the orb's newer connection.
+function forgetOrbSocket(orbID, socket) {
+  if (connectedOrbs[orbID] !== socket) return
+  delete connectedOrbs[orbID]
+  sendOrbStatusToClients(orbID, "offline")
+}
+
+// terminate() rather than close(): close() waits up to 30s for a closing handshake
+// that can't arrive over a dead link, and the orb would look connected until then.
+function dropOrbSocket(orbID, socket, reason) {
+  console.log("Dropping orb socket:", orbID, reason)
+  forgetOrbSocket(orbID, socket)
+  socket.terminate()
+}
+
 function orbUpkeep() {
-  for (let socket of Object.values(connectedOrbs)) {
-    if (Date.now() - socket.lastActivityTime > 10*1000) {
-      socket.close()
+  for (let [orbID, socket] of Object.entries(connectedOrbs)) {
+    if (Date.now() - socket.lastActivityTime > 15*1000) {
+      dropOrbSocket(orbID, socket, "no activity in 15s")
     }
   }
 }
@@ -387,6 +425,8 @@ function bindClient(socket, orbID, clientID) {
     }
   })
   socket.on('close', () => {
+    // A replaced socket's late close must not evict the client's newer connection
+    if (connectedClients[orbID]?.[clientID] !== socket) return
     let orb = connectedOrbs[orbID]
     if(orb){
       orb.send(JSON.stringify({
@@ -412,6 +452,8 @@ function bindClient(socket, orbID, clientID) {
         closed: false,
       }  
       orb.send(JSON.stringify(initial_message))
+    } else {
+      socket.send(JSON.stringify({ orbStatus: "offline" }))
     }
   } catch(e) {
     console.log("Error sending initial client message", e)

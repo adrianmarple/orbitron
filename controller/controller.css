@@ -384,6 +384,21 @@ a > .fancy-box:hover, a.fancy-box:hover {
   margin-bottom: 6rem;
 }
 
+#offline {
+  font-size: 3rem;
+  background-color: black;
+  padding: 5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+#offline .button {
+  padding: 1rem 3rem;
+  margin-top: 4rem;
+}
+
 #home, #login {
   display: flex;
   flex-direction: column;
@@ -391,7 +406,7 @@ a > .fancy-box:hover, a.fancy-box:hover {
   align-items: center;
 }
 
-#loading, #login, #home, #speedbump, #consignment {
+#loading, #login, #home, #speedbump, #consignment, #offline {
   width: 100%;
   height: 100%;
   max-height: 100vh;
