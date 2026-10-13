@@ -601,8 +601,14 @@ function wallPrint(wall, isLeft, printInfo) {
       }
     }
 
+    // A wall starting at a dead end places its supports off; leave them to the wall across the channel
+    let defersToOppositeWall = wall.endCapSupportOffset &&
+        Object.values(edgeToWalls).some(walls => walls.includes(wall) &&
+            walls.some(w => w != wall && !w.isFoldWall && !w.endCapSupportOffset))
+
     if (!(isPortRelated && PORT_TYPE == "USBC_INTEGRATED") &&
-        !(isLeft && wall.isFoldWall && wall.yRotationAngle < 0) ) {
+        !(isLeft && wall.isFoldWall && wall.yRotationAngle < 0) &&
+        !defersToOppositeWall) {
       while (supportOffset < maxOffset) {
         if (supportOffset < minOffset) {
           supportOffset += PIXEL_DISTANCE
