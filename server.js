@@ -67,15 +67,38 @@ function getContentType(filePath){
   return contentType
 }
 
+// Only these top-level folders are public. Everything else in the repo (masterkey.txt,
+// config.js, prefs, .git, ...) must never be served.
+const PUBLIC_DIRS = ["admin", "controller", "emulator", "flasher", "games", "pixels", "stls", "thirdparty"]
+
+async function respondNotFound(response) {
+  response.writeHead(404, { 'Content-Type': 'text/html' })
+  response.end(await fs.promises.readFile("controller/404.html"), 'utf-8')
+}
+
 function respondWithFile(response, filePath, replacements){
-  filePath = decodeURI(filePath)
-  filePath = `${__dirname}${filePath}`
+  try {
+    filePath = decodeURI(filePath)
+  } catch(_) {
+    respondNotFound(response)
+    return
+  }
+  // Null bytes make fs throw instead of returning an error
+  if (filePath.includes("\0")) {
+    respondNotFound(response)
+    return
+  }
+  filePath = path.resolve(__dirname, "." + filePath)
+  let segments = path.relative(__dirname, filePath).split(path.sep)
+  if (!PUBLIC_DIRS.includes(segments[0]) || segments.some(segment => segment.startsWith("."))) {
+    respondNotFound(response)
+    return
+  }
   let contentType = getContentType(filePath)
   fs.readFile(filePath, async function(error, content) {
     if (error) {
       if(error.code == 'ENOENT'){
-        response.writeHead(404, { 'Content-Type': 'text/html' })
-        response.end(await fs.promises.readFile("controller/404.html"), 'utf-8')
+        respondNotFound(response)
       }
       else {
         response.writeHead(500)

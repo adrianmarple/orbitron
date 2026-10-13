@@ -154,17 +154,6 @@ if (!MANUFACTURING_FOLDER.endsWith("/")) {
   MANUFACTURING_FOLDER += "/"
 }
 
-addGETListener((response, request) => {
-  if (request.url.endsWith("masterkey")) {
-    noCorsHeader(response, 'text/plain')
-    let masterKey = ""
-    try { masterKey = fs.readFileSync(path.join(__dirname, "../masterkey.txt"), "utf8").trim() } catch(_) {}
-    response.end(masterKey, 'utf-8')
-    return true
-  } else {
-    return false
-  }
-})
 addGETListener(async (response, request) => {
   if (request.url.endsWith("commits")) {
     noCorsHeader(response, 'text/plain')

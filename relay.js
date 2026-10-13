@@ -491,7 +491,9 @@ addListener('GET', async ({response, filePath}) => {
     try { firmwareUploadTimes[chip] = (await fs.promises.readFile(firmwareUploadTimeFile(chip), 'utf8')).trim() } catch(_) {}
   }
   noCorsHeader(response, 'text/json')
-  response.end(JSON.stringify({ gitCount, arduinoVersions: compiledFirmwareVersions, firmwareUploadTimes, latestCommitTime }))
+  // The relay's own orb, whose ORB_KEY the relay checks server commands against
+  let serverOrbID = (config.ORB_ID || "demo").toLowerCase()
+  response.end(JSON.stringify({ gitCount, arduinoVersions: compiledFirmwareVersions, firmwareUploadTimes, latestCommitTime, serverOrbID }))
   return true
 })
 

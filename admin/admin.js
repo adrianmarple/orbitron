@@ -9,6 +9,15 @@ new Vue({
       masterKey: "",
       showMasterKeyModal: false,
       masterKeyInput: "",
+      // Most recent first. Kept so orbs still on an old master key can be migrated.
+      previousMasterKeys: loadPreviousMasterKeys(),
+      // Master key each orb is known to accept, when it isn't the current one
+      orbMasterKeys: {},
+      showSettings: false,
+      newMasterKeyInput: "",
+      masterKeyMessage: "",
+      settingAllOrbKeys: false,
+      orbKeyResults: "",
       versions: {},
       orbID: localStorage.getItem("orbID") || "demo",
       alias: null,
@@ -122,21 +131,20 @@ new Vue({
       }
     })
 
-    if (location.protocol === 'http:') {
-      try {
-        this.masterKey = await (await fetch("http://localhost:8000/admin/masterkey")).text()
-      } catch(_) {}
-    }
-    if (!this.masterKey) {
-      this.masterKey = localStorage.getItem("masterKey") || ""
-    }
+    this.masterKey = localStorage.getItem("masterKey") || ""
     if (!this.masterKey) {
       this.masterKey = await this.promptMasterKey()
     }
     this.versions = await (await fetch("/admin/versions")).json()
+    // Older relays don't report it; theirs is "demo"
+    this.serverOrbID = this.versions.serverOrbID || this.serverOrbID
 
-    await this.getOrbInfo()
-    for (let orb of this.orbInfo) this.fetchOrbVersionAndIP(orb)
+    // The relay checks server commands like the orb list against its own ORB_KEY, so if the
+    // current master key is rejected, find the one it's still on
+    if (!await this.getOrbInfo()) {
+      await this.learnOrbMasterKey(this.serverOrbID)
+      await this.getOrbInfo()
+    }
     let pollCount = 0
     this.infoInterval = setInterval(async function() {
       if (document.hasFocus()) {
@@ -176,8 +184,8 @@ new Vue({
       await this.setOrbKey()
     },
 
-    async getOrbKey(orbID) {
-      return await sha256(orbID.toLowerCase() + this.masterKey)
+    async getOrbKey(orbID, masterKey) {
+      return await sha256(orbID.toLowerCase() + (masterKey || this.masterKey))
     },
 
     focusCommandPrompt() {
@@ -219,17 +227,21 @@ new Vue({
     },
 
     async setOrbKey() {
-      if (this.config.trim().startsWith('{')) {
+      this.config = await this.configWithOrbKey(this.config)
+    },
+
+    // config with ORB_KEY set for the current master key
+    async configWithOrbKey(config) {
+      if (config.trim().startsWith('{')) {
         // Arduino: JSON config
-        let cfg = JSON.parse(this.config)
+        let cfg = JSON.parse(config)
         cfg.ORB_KEY = await this.getOrbKey(cfg.ORB_ID)
-        this.config = JSON.stringify(cfg, null, 2)
-      } else {
-        // Pi: JS module config
-        let orbID = readFromConfig(this.config, 'ORB_ID')
-        let orbKey = await this.getOrbKey(orbID)
-        this.config = upsertKeyValueInConfig(this.config, 'ORB_KEY', orbKey, 'ORB_ID')
+        return JSON.stringify(cfg, null, 2)
       }
+      // Pi: JS module config
+      let orbID = readFromConfig(config, 'ORB_ID')
+      let orbKey = await this.getOrbKey(orbID)
+      return upsertKeyValueInConfig(config, 'ORB_KEY', orbKey, 'ORB_ID')
     },
 
     async unlockOrb() {
@@ -245,21 +257,13 @@ new Vue({
       this.commandResponses += "WiFi credentials cleared\n"
     },
 
-    async saveConfig(dontRestart) {
-      let isArduino = this.config.trim().startsWith('{')
-      let orbID, existingOrbKey
-      if (isArduino) {
-        let cfg = JSON.parse(this.config)
-        orbID = cfg.ORB_ID
-        existingOrbKey = cfg.ORB_KEY
-      } else {
-        try { orbID = readFromConfig(this.config, 'ORB_ID') } catch(_) {}
-        try { existingOrbKey = readFromConfig(this.config, 'ORB_KEY') } catch(_) {}
-      }
-      if (orbID && existingOrbKey) {
-        let expectedOrbKey = await this.getOrbKey(orbID)
+    // Defaults to the selected orb's config. masterKey signs the save, for an orb not yet on the current one.
+    async saveConfig(dontRestart, { orbID = this.orbID, config = this.config, masterKey } = {}) {
+      let { orbID: configOrbID, orbKey: existingOrbKey } = readOrbKeyFromConfig(config)
+      if (configOrbID && existingOrbKey) {
+        let expectedOrbKey = await this.getOrbKey(configOrbID)
         if (existingOrbKey.toLowerCase() !== expectedOrbKey.toLowerCase()) {
-          let message = "Config NOT saved: ORB_KEY doesn't match ORB_ID \"" + orbID + "\".\n"
+          let message = "Config NOT saved: ORB_KEY doesn't match ORB_ID \"" + configOrbID + "\".\n"
               + "Expected " + expectedOrbKey.slice(0, 8) + "..., found " + existingOrbKey.slice(0, 8) + "...\n"
               + "Either ORB_KEY is still the one for a previous ORB_ID (use \"Set ORB_KEY\" to "
               + "regenerate it for this ID), or the loaded master key isn't the right one."
@@ -268,8 +272,8 @@ new Vue({
           return false
         }
       }
-      await this.sendCommand({ type: "setconfig", data: this.config, dontRestart })
-      this.idToConfig[this.orbID] = this.config
+      await this.sendCommand({ type: "setconfig", data: config, dontRestart }, orbID, false, masterKey)
+      this.idToConfig[orbID] = config
       return true
     },
 
@@ -295,19 +299,25 @@ new Vue({
       await this.sendCommand({ type: "clearwifi" })
     },
 
-    fetchOrbVersionAndIP(orb) {
+    async fetchOrbVersionAndIP(orb) {
+      let orbVersion = await this.sendCommand({ type: "version" }, orb.id)
+      // No answer may just mean the orb isn't migrated yet and dropped the current key's signature
+      if (!orbVersion && !this.orbMasterKeys[orb.id]) {
+        await this.learnOrbMasterKey(orb.id)
+        if (this.orbMasterKeys[orb.id]) {
+          orbVersion = await this.sendCommand({ type: "version" }, orb.id)
+        }
+      }
       this.sendCommand({ type: "ip" }, orb.id).then(ip => {
         Vue.set(this.idToIP, orb.id, ip)
       }).catch(() => {})
-      this.sendCommand({ type: "version" }, orb.id).then(orbVersion => {
-        orbVersion = parseInt(orbVersion)
-        if (!orbVersion) {
-          Vue.set(this.idToCommit, orb.id, null)
-          return
-        }
-        let serverVersion = orb.isArduino ? (this.versions.arduinoVersions?.esp32c3 ?? 0) : this.versions.gitCount
-        Vue.set(this.idToCommit, orb.id, serverVersion - orbVersion)
-      }).catch(() => {})
+      orbVersion = parseInt(orbVersion)
+      if (!orbVersion) {
+        Vue.set(this.idToCommit, orb.id, null)
+        return
+      }
+      let serverVersion = orb.isArduino ? (this.versions.arduinoVersions?.esp32c3 ?? 0) : this.versions.gitCount
+      Vue.set(this.idToCommit, orb.id, serverVersion - orbVersion)
     },
 
     async getOrbInfo() {
@@ -324,7 +334,10 @@ new Vue({
             this.fetchOrbVersionAndIP(orb)
           }
         }
-      } catch(e) {}
+        return true
+      } catch(e) {
+        return false
+      }
     },
 
     async updateViewing() {
@@ -473,22 +486,107 @@ new Vue({
       this._masterKeyResolve(key)
     },
 
+    updateMasterKey() {
+      let key = this.newMasterKeyInput.trim()
+      if (!key) return
+      if (key == this.masterKey) {
+        this.newMasterKeyInput = ""
+        this.masterKeyMessage = "That's already the current master key."
+        return
+      }
+      if (!confirm("Replace the master key? The current one is kept as a previous key so orbs "
+          + "still using it can be migrated with \"Set All Orb Keys\".")) return
+      this.replaceMasterKey(key)
+      this.newMasterKeyInput = ""
+      this.masterKeyMessage = "New master key saved. The old one was stashed as a previous key."
+    },
+
+    replaceMasterKey(key) {
+      // Orbs keep accepting the old key until they're migrated, so keep using it for them
+      for (let orbID of [this.serverOrbID, ...this.orbInfo.map(orb => orb.id)]) {
+        if (!this.orbMasterKeys[orbID]) Vue.set(this.orbMasterKeys, orbID, this.masterKey)
+      }
+      this.previousMasterKeys = [this.masterKey,
+          ...this.previousMasterKeys.filter(k => k != key && k != this.masterKey)]
+      localStorage.setItem("previousMasterKeys", JSON.stringify(this.previousMasterKeys))
+      localStorage.setItem("masterKey", key)
+      this.masterKey = key
+    },
+
+    // Remembers which known master key the orb accepts, so orbs not yet migrated can still be reached
+    async learnOrbMasterKey(orbID) {
+      let found = await this.findOrbMasterKey(orbID)
+      if (found) Vue.set(this.orbMasterKeys, orbID, found.masterKey)
+    },
+
+    // Probes with getconfig, since an orb silently drops a command signed with the wrong key
+    async findOrbMasterKey(orbID) {
+      for (let masterKey of [this.masterKey, ...this.previousMasterKeys]) {
+        let config = await this.sendCommand({ type: "getconfig" }, orbID, false, masterKey)
+        if (config) return { masterKey, config }
+      }
+      return null
+    },
+
+    // Gives an orb an ORB_KEY for the current master key, signing with whichever key it accepts now
+    async overrideOrbKey(orbID) {
+      try {
+        let found = await this.findOrbMasterKey(orbID)
+        if (!found) return `${orbID}: no response with any known master key`
+        let { orbID: configOrbID, orbKey } = readOrbKeyFromConfig(found.config)
+        let expectedOrbKey = await this.getOrbKey(configOrbID || orbID)
+        if (orbKey && orbKey.toLowerCase() == expectedOrbKey) {
+          Vue.delete(this.orbMasterKeys, orbID)
+          return `${orbID}: already set`
+        }
+        let config = await this.configWithOrbKey(found.config)
+        if (!await this.saveConfig(false, { orbID, config, masterKey: found.masterKey })) {
+          return `${orbID}: not saved, ORB_KEY doesn't match ORB_ID`
+        }
+        Vue.delete(this.orbMasterKeys, orbID)
+        if (orbID == this.orbID) this.config = config
+        return `${orbID}: ${orbKey ? "migrated from a previous master key" : "ORB_KEY set"}, restarting`
+      } catch(e) {
+        return `${orbID}: failed (${e.message})`
+      }
+    },
+
+    async setAllOrbKeys() {
+      this.settingAllOrbKeys = true
+      this.orbKeyResults = "Finding the server's master key...\n"
+      await this.learnOrbMasterKey(this.serverOrbID)
+      await this.getOrbInfo()
+      let orbIDs = this.orbInfo.map(orb => orb.id).filter(id => id != this.serverOrbID)
+      this.orbKeyResults += `Setting keys on ${orbIDs.length} orb(s)...\n`
+      await Promise.all(orbIDs.map(async orbID => {
+        this.orbKeyResults += await this.overrideOrbKey(orbID) + "\n"
+      }))
+      // Last, because saving the server's config restarts the relay and drops every orb's connection
+      this.orbKeyResults += await this.overrideOrbKey(this.serverOrbID) + "\n"
+      this.orbKeyResults += "Done. Run again later for orbs that were offline.\n"
+      this.settingAllOrbKeys = false
+    },
+
     sendServerCommand(command) {
       return this.sendCommand(command, this.serverOrbID, true)
     },
 
-    async sendCommand(command, orbID, isServerCommand) {
+    async sendCommand(command, orbID, isServerCommand, masterKey) {
       if (!orbID) orbID = this.orbID
+      if (!masterKey) masterKey = this.orbMasterKeys[orbID] || this.masterKey
       command.timestamp = Date.now()
       command = JSON.stringify(command)
-      let hash = await sha256(command + await this.getOrbKey(orbID))
+      let hash = await sha256(command + await this.getOrbKey(orbID, masterKey))
       let message = encodeURIComponent(command)
       let pathPrefix = isServerCommand ? "" : encodeURIComponent(orbID) + "/"
       let url = `${this.serverUrl}/${pathPrefix}admin?message=${message}&hash=${hash}`
       try {
         const controller = new AbortController()
         setTimeout(() => controller.abort(), 6000)
-        return await (await fetch(url, { signal: controller.signal })).text()
+        let response = await fetch(url, { signal: controller.signal })
+        // e.g. 404 "ORB DISCONNECTED", which must not pass for an answer when probing keys
+        if (!response.ok) return ""
+        return await response.text()
       } catch(_) {
         return ""
       }
@@ -592,6 +690,30 @@ function base64(n) {
 
 function createRandomID() {
   return base64(Math.floor(Math.random() * 0xffffffffffff)).slice(-7)
+}
+
+function loadPreviousMasterKeys() {
+  try {
+    return JSON.parse(localStorage.getItem("previousMasterKeys")) || []
+  } catch(_) {
+    return []
+  }
+}
+
+// ORB_ID and ORB_KEY from either an Arduino (JSON) or Pi (JS module) config; missing ones are undefined
+function readOrbKeyFromConfig(config) {
+  if (config.trim().startsWith('{')) {
+    let cfg = JSON.parse(config)
+    return { orbID: cfg.ORB_ID, orbKey: cfg.ORB_KEY }
+  }
+  let orbID, orbKey
+  try {
+    orbID = readFromConfig(config, 'ORB_ID')
+  } catch(_) {}
+  try {
+    orbKey = readFromConfig(config, 'ORB_KEY')
+  } catch(_) {}
+  return { orbID, orbKey }
 }
 
 function readFromConfig(config, key) {

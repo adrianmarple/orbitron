@@ -24,6 +24,33 @@
     </div>
   </div>
 
+  <!-- Settings modal: actions that aren't specific to one orb -->
+  <img id="settings-button" src="/controller/images/settings_white.svg" @click="showSettings = true"/>
+  <div v-if="showSettings" id="settings-modal" @click.self="showSettings = false">
+    <div id="settings-box">
+      <img id="close-settings" src="/controller/images/close_white.svg" @click="showSettings = false"/>
+      <div class="title">Settings</div>
+
+      <div class="setting">
+        <div v-if="masterKeyMessage" class="message">{{ masterKeyMessage }}</div>
+        <input v-model="newMasterKeyInput" placeholder="New master key"
+            @keydown.enter="updateMasterKey"/>
+        <div class="button" :class="{ disabled: !newMasterKeyInput.trim() }"
+            @click="updateMasterKey">Update Master Key</div>
+        <div v-if="previousMasterKeys.length">
+          {{ previousMasterKeys.length }} previous master key(s) kept for migrating orbs.
+        </div>
+      </div>
+
+      <div class="setting">
+        <div class="button" :class="{ disabled: settingAllOrbKeys }" @click="setAllOrbKeys">
+          Set All Orb Keys
+        </div>
+        <textarea v-if="orbKeyResults" v-model="orbKeyResults" readonly></textarea>
+      </div>
+    </div>
+  </div>
+
   <!-- Overlay to close drawers on narrow screens -->
   <div v-if="drawerOverlay" id="drawer-overlay"
       @click="leftOpen = false; rightOpen = false"></div>
