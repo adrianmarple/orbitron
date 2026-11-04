@@ -1409,7 +1409,13 @@ void handleAdminCommand(JsonDocument& msg) {
 void handleOrbMessage(JsonDocument& msg) {
   String type = msg["type"].as<String>();
 
-  if (type == "setpref") {
+  if (type == "liveClients") {
+    clientCount = 0;
+    for (JsonVariant id : msg["clientIDs"].as<JsonArray>()) {
+      if (clientCount >= MAX_CLIENTS) break;
+      connectedClients[clientCount++] = id.as<String>();
+    }
+  } else if (type == "setpref") {
     // Single pref update: { type: "setpref", name: "...", value: ... }
     Prefs p = loadPrefs();
     JsonDocument wrapper;

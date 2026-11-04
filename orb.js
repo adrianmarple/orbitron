@@ -179,6 +179,15 @@ function connectOrbToRelay(){
 
       data = JSON.parse(data)
 
+      if (data.type == "liveClients") {
+        for (let clientConnection of Object.values(clientConnections)) {
+          if (!data.clientIDs.includes(clientConnection.id)) {
+            clientConnection.close()
+          }
+        }
+        return
+      }
+
       if (data.type == "restoreFromBackup") {
         let promises = []
         let backup = data.backup
@@ -322,6 +331,7 @@ function connectOrbToRelay(){
         clientConnection = createClientConnection(clientID, socket, data.observer)
       }
       if(clientConnection) {
+        clientConnection.setSocket(socket)
         if(data.closed){
           clientConnection.close()
         } else {

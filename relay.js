@@ -224,6 +224,14 @@ function bindOrb(socket, orbID) {
   })
   sendOrbStatusToClients(orbID, "online")
 
+  try {
+    socket.send(JSON.stringify({
+      type: "liveClients",
+      clientIDs: Object.keys(connectedClients[orbID] ?? {}),
+    }))
+  } catch(e) {
+    console.log("Error sending live clients to orb", orbID, e)
+  }
   for (const clientID in connectedClients[orbID] ?? {}) {
     try {
       socket.send(JSON.stringify({
