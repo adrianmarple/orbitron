@@ -12,6 +12,7 @@ hook_length = 128;
 
 outer_x = channel_width/2 + 1.2;
 
+rotate([90,0,0])
 difference() {    
 union() {
   rotate([90,0,0])

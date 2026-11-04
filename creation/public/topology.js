@@ -198,6 +198,18 @@ class Edge {
     }
     return null
   }
+  commonVertex(edge) {
+    edge = resolveEdge(edge)
+    if (this.verticies[0] == edge.verticies[0] ||
+        this.verticies[0] == edge.verticies[1]) {
+      return this.verticies[0]
+    }
+    if (this.verticies[1] == edge.verticies[0] ||
+        this.verticies[1] == edge.verticies[1]) {
+      return this.verticies[1]
+    }
+    return null
+  }
   toLine() {
     return new Line(
       this.verticies[0].ogCoords,
