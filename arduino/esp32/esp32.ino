@@ -244,6 +244,7 @@ float nextFadeOut = 30.0f;    // minutes
 volatile bool timeSyncPending = false;
 unsigned long nextReanchorMs = 0;
 const unsigned long REANCHOR_INTERVAL_MS = 60000;
+unsigned long nextWifiRetryMs = 0;
 
 // --- Backup state ---
 unsigned long nextBackupMs = ULONG_MAX;
@@ -2355,6 +2356,10 @@ void networkTask(void*) {
       refreshTimezone();  // before sendBackup, which reschedules off the wall clock
       sendBackup("");  // sendBackup calls computeNextBackupMs() to reschedule
       performOTA();
+    }
+    if (!dontReconnect && WiFi.status() != WL_CONNECTED && now >= nextWifiRetryMs) {
+      wifiMulti.run(8000);
+      nextWifiRetryMs = millis() + 30000;
     }
     if (now >= nextStateHashMs) {
       broadcastStateHash();
