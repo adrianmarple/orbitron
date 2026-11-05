@@ -1,3 +1,4 @@
+
 module.exports = async () => {
   exteriorOnly = true
   portPartID = "5"
@@ -8,12 +9,14 @@ module.exports = async () => {
   WALL_THICKNESS = 2
   CHANNEL_WIDTH = 0
   INNER_CHANNEL_THICKNESS = null
-
+  
+  NOTCH_DEPTH = 5
   MAX_WALL_LENGTH = 200
+  MAX_SLOT_SEGMENT_LENGTH = 200
   THICKNESS = 2.6
   LATCH_TYPE = "hook"
-  POWER_TYPE = "USBC"
-  PORT_TYPE = "USBC"
+  POWER_TYPE = "BARREL"
+  PORT_TYPE = "USBC_INTEGRATED"
   PORT_POSITION = "center"
 
   addPolygon(4, [0,0,0], [34 - 2*KERF, 100])
@@ -100,7 +103,7 @@ module.exports = async () => {
 
     holder_thickness = 2
     dims = [33, 44, 8]
-    printInfo.prints[2] = {
+    printInfo.prints.push({
       type: "union",
       suffix: printInfo.prints[2].suffix + "+cardholder",
       operations: [{type: "rotate", axis: [0,1,0], angle: Math.PI}],
@@ -126,7 +129,7 @@ module.exports = async () => {
           ]
         },
       ]
-    }
+    })
   }
 
   EulerianPath(1)
