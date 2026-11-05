@@ -1,6 +1,7 @@
 // v1.0.2
 module.exports = () => {
-  // portPartID = "3L"
+  portPartID = "1"
+  PORT_POSITION = "end"
 
   let W = (1524 - 4)/PIXEL_DISTANCE;
   let L = (913 - 4)/PIXEL_DISTANCE;

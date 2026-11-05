@@ -305,9 +305,10 @@ function wallPrint(wall, isLeft, printInfo) {
   let isPortRelated = print.suffix.match(/\d+/)[0] == portPartNumber
 
   let portOffset = lengthOffset + wall.extraLEDSupportOffset
-  if (PORT_POSITION == "start") portOffset += USBC_WIDTH/2 + 1
+  let capOffset = PORT_TYPE == "COMBINED" ? 11 : USBC_WIDTH/2 + 1
+  if (PORT_POSITION == "start") portOffset += capOffset
   else if (PORT_POSITION == "center") portOffset += topLength/2
-  else if (PORT_POSITION == "end") portOffset += Math.min(topLength, bottomLength) - USBC_WIDTH/2 - 1
+  else if (PORT_POSITION == "end") portOffset += Math.min(topLength, bottomLength) - capOffset
   else if (PORT_POSITION == "fold") portOffset += (topLength + bottomLength)/2
 
   let path = ""
@@ -589,9 +590,12 @@ function wallPrint(wall, isLeft, printInfo) {
       maxOffset = Math.min(maxOffset, v0.sub(v1).length()*PIXEL_DISTANCE - 0.1)
     }
 
-    if (hasPort && PORT_TYPE.startsWith("USBC")) {
+    if (hasPort && (PORT_TYPE.startsWith("USBC") || PORT_TYPE == "COMBINED")) {
       let portBlockMin = portOffset - USBC_WIDTH/2 - LED_SUPPORT_WIDTH/2
       let portBlockMax = portOffset + USBC_WIDTH/2 + LED_SUPPORT_WIDTH/2
+      if (PORT_TYPE == "COMBINED") {
+        portBlockMax = portOffset + 45
+      }
       let testOffset = supportOffset
       while (testOffset < maxOffset) {
         if (testOffset >= portBlockMin && testOffset <= portBlockMax) {
@@ -781,6 +785,73 @@ module pillinder(width, radius, height) {
 
       if (!wall.isFoldWall && RENDER_MODE == "standard") {
         print.operations = [{type: "rotation", vector: [Math.PI, 0, 0]}]
+      }
+    }
+
+
+    if (PORT_TYPE == "COMBINED") {
+      portCenter.y = -portCenter.y
+
+      let port_w = 9.5
+      let port_r = 1.63
+
+      let chip_w = 18.2
+      let z_offset = 2
+      let usb_center_to_bottom = 4.5
+      let outset = 7
+      let wall = 1.2
+
+
+      let portRotation = wall.dihedralAngle/2 * (isLeft ? -1:1)
+
+      print = {
+        type: "difference",
+        suffix: print.suffix,
+        components: [
+          {
+            type: "union",
+            components: [
+              print,
+              {
+                position: portCenter.toArray(),
+                rotationAngle: portRotation,
+                code: `
+translate([0,0,${-(outset + wall)/2 + WALL_THICKNESS}])
+cube([${chip_w + 2*wall}, ${CHANNEL_DEPTH}, ${outset + wall}], center=true);`
+              }
+            ]
+          },
+          {
+            position: portCenter.toArray(),
+            rotationAngle: portRotation,
+            code: `
+{
+  translate([0, ${z_offset}, ${WALL_THICKNESS}])
+  union() {
+    translate([0, 0, ${-outset-wall-1}])
+    pillinder(${port_w}, ${port_r}, ${outset + wall + 2});
+
+    translate([0, ${(port_r - usb_center_to_bottom)/2}, ${-outset/2}])
+    cube([${chip_w}, ${port_r + usb_center_to_bottom}, ${outset}], center=true);
+
+    translate([${(chip_w - 4)/2}, ${-usb_center_to_bottom}, ${-outset/2}])
+    cube([${4}, ${3}, ${outset}], center=true);
+  }
+}`
+          },
+          {
+            type: "prefix",
+            code: `
+module pillinder(width, radius, height) {
+  hull() {
+    translate([width/2 - radius, 0, 0])
+    cylinder(h=height, r=radius, $fn=64);
+    translate([-width/2 + radius, 0, 0])
+    cylinder(h=height, r=radius, $fn=64);
+  }
+}`
+          }
+        ]
       }
     }
   }
