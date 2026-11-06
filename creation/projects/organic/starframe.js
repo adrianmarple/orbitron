@@ -28,14 +28,14 @@ module.exports = () => {
   star(S0, 8)
   addLine(0, L1, -90)
 
-  let W0 = 12
+  let W0 = 11
   let W1 = 62
   let W2 = 3
 
-  let S1 = 5
+  let S1 = 6
 
   addLine(3, W0, 180)
-  star(S1, 4, new Vector(-W0 - S0 - S1, 0, 0))
+  star(S1, 4.5, new Vector(-W0 - S0 - S1, 0, 0))
   addLine(12, W1 - W0 - 2*S1, 180)
 
   let S2 = (W - W1 - S0 - W2)/2

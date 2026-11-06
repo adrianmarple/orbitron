@@ -241,6 +241,17 @@ class Edge {
     return end.sub(start)
   }
 
+  sharpestAngle(vertex) {
+    let angle = Math.PI
+    let e = this.toVector(vertex)
+    for (let edge of vertex.edges) {
+      if (edge == this) continue
+      if (edge.isDupe) continue
+      angle = Math.min(angle, edge.toVector(vertex).angleTo(e))
+    }
+    return angle
+  }
+
   split(distance, roundToInteger) {
     return splitEdge(this, distance, roundToInteger)
   }
@@ -753,7 +764,16 @@ function splitEdge(edge, distance, roundToInteger) {
     if (ledAtVertex) {
       offset += 0.5
     }
-    distance = Math.round(distance - offset) + offset
+    distance -= offset
+    if (epsilonEquals(distance % 1, 0.5)) {
+      if (edge.sharpestAngle(edge.verticies[0]) < edge.sharpestAngle(edge.verticies[1])) {
+        distance = Math.ceil(distance)
+      } else {
+        distance = Math.floor(distance)
+      }
+    }
+    distance = Math.round(distance)
+    distance += offset
   }
   delta = delta.normalize()
   delta = delta.multiplyScalar(distance)
