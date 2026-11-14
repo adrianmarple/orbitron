@@ -355,18 +355,20 @@ function wallPrint(wall, isLeft, printInfo) {
   let topSegmentLength = topLength / topSegmentCount
 
   let insetAngle = (wall.dihedralAngle ?? 0) / 2
-  for (let vertex of vertexPath) {
-    if (vertex == endVertex) {
-      insetAngle = 0 // Don't inset inner foldwall of from initial direction
-      break
+  if (!INSET_ALL_WALL_NOTCHES) {
+    for (let vertex of vertexPath) {
+      if (vertex == endVertex) {
+        insetAngle = 0 // Don't inset inner foldwall from initial direction
+        break
+      }
+      if (vertex == vertex1) {
+        break // Reached middle vertex of foldwall first; keep inset
+      }
     }
-    if (vertex == vertex1) {
-      break // Reached middle vertex of foldwall first; keep inset
+    // Exception for if first wall is foldWall
+    if (vertex1 == vertexPath[0] && endVertex == vertexPath[1]) {
+      insetAngle = 0
     }
-  }
-  // Exception for if first wall is foldWall
-  if (vertex1 == vertexPath[0] && endVertex == vertexPath[1]) {
-    insetAngle = 0
   }
 
   let wallSegments = [UP.scale(CHANNEL_DEPTH/2 * dihedralRatio)]
@@ -578,14 +580,15 @@ function wallPrint(wall, isLeft, printInfo) {
       minOffset += Math.tan(miterAngle) * WALL_THICKNESS
     }
     let maxOffset = edgeLength - LED_SUPPORT_WIDTH
-    // Reaching a pixel past a flat seam assumes the fold wall runs straight through it, which a
-    // zero fold does -- its two halves are the two halves of one edge. A seam on a vertex is
-    // flat too but bends there, so reaching past it puts a support out in the bend.
+    // Fold wall is completely straight (like with a zero fold wall)
+    console.log(wall)
     let runsStraightThrough = !wall.left || !wall.right ||
         wall.left.endVertex.ogCoords.sub(wall.vertex.ogCoords).normalize().dot(
         wall.right.endVertex.ogCoords.sub(wall.vertex.ogCoords).normalize()) < -0.99
     if (wall.isFoldWall && epsilonEquals(wall.dihedralAngle, 0) && runsStraightThrough) {
       maxOffset += PIXEL_DISTANCE
+    } else if (wall.isFoldWall && epsilonEquals(wall.aoiComplement, 0)) { // most fold walls
+      maxOffset = edgeLength
     } else {
       maxOffset = Math.min(maxOffset, v0.sub(v1).length()*PIXEL_DISTANCE - 0.1)
     }

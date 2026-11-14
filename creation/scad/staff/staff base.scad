@@ -49,8 +49,8 @@ box_wall = 2;
 seeed_h = 30;
 
 //power();
-//controller();
-seeed_sled();
+controller();
+//seeed_sled();
 
 module seeed_sled() {
     rotate([90,0,0])
@@ -190,6 +190,7 @@ difference() {
     rotate([-90,0,0])
     cylinder(h=100, r=battery_power_r, $fn=64);
     
+    // Pipe
     translate([0,0,power_connection_h + power_top_total + box_h])
     cylinder(h = 51, r=big_r1, $fn=64);
     
