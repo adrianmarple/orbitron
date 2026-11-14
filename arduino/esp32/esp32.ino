@@ -1089,7 +1089,7 @@ void mergeTimingPrefs(JsonObjectConst timingObj) {
   for (JsonPairConst kv : timingObj) timingPrefsDoc[kv.key()] = kv.value();
 
   // If timer is being disabled, persist dimmer=1 before writing
-  if (!timingPrefsDoc["useTimer"].as<bool>()) timingPrefsDoc["dimmer"] = 1.0f;
+  if (prevUseTimer && !timingPrefsDoc["useTimer"].as<bool>()) timingPrefsDoc["dimmer"] = 1.0f;
 
   // Update globals and write file
   if (!timingPrefsDoc["useTimer"].isNull()) useTimer = timingPrefsDoc["useTimer"].as<bool>();
@@ -1865,6 +1865,7 @@ void checkSchedule() {
   String evtKey = activeEvt["time"].as<String>();
   if (evtKey != lastTriggeredEventKey) {
     lastTriggeredEventKey = evtKey;
+    writeFile("/lasteventkey.txt", evtKey);
     triggerScheduleEvent(activeEvt, prevEvt);
     broadcastState();
   }
@@ -2245,6 +2246,8 @@ void setup() {
 
   // Load and apply prefs (write defaults on first boot so getprefs returns something)
   currentPrefName = readFile("/currentprefname.txt");
+  // Only a real power-on may replay the active schedule event (and possibly turn the orb on)
+  if (esp_reset_reason() != ESP_RST_POWERON) lastTriggeredEventKey = readFile("/lasteventkey.txt");
   Prefs p = loadPrefs();
   savePrefsAndApply(p);  // re-save to normalize format, then apply (no mutex contention at boot)
   loadTimingPrefs();
