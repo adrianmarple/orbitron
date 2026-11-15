@@ -166,113 +166,6 @@ function foldWallCreation(foldWall, printInfo) {
 }
 
 
-// function createOuterSleevePrint(dihedralAngle) {
-//   let coverWidth = CHANNEL_WIDTH + 2*(WALL_THICKNESS + BORDER)
-//   let coverThickness = THICKNESS + EXTRA_COVER_THICKNESS
-//   let outerY = coverWidth + 2*SLEEVE_THICKNESS
-//   let outerZ = coverThickness + 2*SLEEVE_THICKNESS
-//   let transX = SLEEVE_LENGTH/2
-
-//   let arm = {
-//     type: "difference",
-//     position: [0, 0, -Math.sign(dihedralAngle) * outerZ/2], // Adjust so arms rotate about wedge tip
-//     components: [
-//       {
-//         type: "union",
-//         components: [
-//           { // Outer shell
-//             type: "cube",
-//             dimensions: [SLEEVE_LENGTH, outerY, outerZ],
-//             operations: [{ type: "translate", position: [transX, 0, 0] }],
-//           },
-//           { // Wedge at seam end (X=0)
-//             type: "wedge",
-//             angle: dihedralAngle / 2,
-//             rotationAngle: Math.PI,
-//             width: outerY,
-//             thickness: outerZ,
-//             position: [0, 0, -outerZ/2],
-//           },
-//         ]
-//       },
-//       { // Inner hollow where the cover plate sits.
-//         type: "cube",
-//         dimensions: [SLEEVE_LENGTH + 10, coverWidth, coverThickness],
-//         operations: [{ type: "translate", position: [transX, 0, 0] }],
-//       },
-//       { // Gap for where walls and channel sit.
-//         type: "cube",
-//         dimensions: [SLEEVE_LENGTH + 10, CHANNEL_WIDTH + 2*WALL_THICKNESS, SLEEVE_THICKNESS+0.1],
-//         operations: [{ type: "translate", position: [transX, 0, coverThickness/2 + SLEEVE_THICKNESS/2] }],
-//       },
-//     ]
-//   }
-
-//   return {
-//     type: "union",
-//     suffix: `outersleeve_dihedral${(dihedralAngle * 180 / Math.PI).toFixed(1)}`,
-//     operations: [
-//       { type: "rotate", axis: [0, 1, 0], angle: Math.PI/2 },
-//     ],
-//     components: [
-//       arm,
-//       { ...arm,
-//         operations: [
-//           { type: "mirror", normal: [1, 0, 0] },
-//           { type: "rotate", axis: [0, 1, 0], angle: dihedralAngle },
-//         ]
-//       },
-//     ],
-//   }
-// }
-// function createInnerSleevePrint(dihedralAngle) {
-//   let skew = Math.tan(dihedralAngle/2)
-//   let depth = CHANNEL_DEPTH / Math.cos(dihedralAngle/2)
-//   let innerY = CHANNEL_WIDTH - 2*SLEEVE_THICKNESS
-//   let innerZ = depth- 2*SLEEVE_THICKNESS
-//   let transX = SLEEVE_LENGTH/2
-
-//   let arm =  {
-//     type: "difference",
-//     operations: [
-//       { type: "matrix3", M: [1,0,skew, 0,1,0, 0,0,1] },
-//       { type: "translate", position: [transX, 0, 0] },
-//     ],
-//     components: [
-//       {
-//         type: "cube",
-//         dimensions: [SLEEVE_LENGTH, CHANNEL_WIDTH, depth],
-//       },
-
-//       {
-//         type: "cube",
-//         dimensions: [SLEEVE_LENGTH+1, innerY, innerZ],
-//       },
-//       {
-//         type: "cube",
-//         dimensions: [SLEEVE_LENGTH+1, SLEEVE_THICKNESS+1, depth/2],
-//         position: [0, CHANNEL_WIDTH/2, 0]
-//       },
-//     ]
-//   }
-
-//   return {
-//     type: "union",
-//     suffix: `innersleeve_dihedral${(dihedralAngle * 180 / Math.PI).toFixed(1)}`,
-//     operations: [
-//       { type: "rotate", axis: [0, 1, 0], angle: Math.PI/2 },
-//     ],
-//     components: [
-//       arm,
-//       {
-//         type: "union",
-//         operations: [{ type: "mirror", normal: [1, 0, 0] }],
-//         components: [arm]
-//       },
-//     ]
-//   }
-// }
-
 function wallPrint(wall, isLeft, printInfo) {
   let side = wall
   if (wall.left) {
@@ -581,7 +474,6 @@ function wallPrint(wall, isLeft, printInfo) {
     }
     let maxOffset = edgeLength - LED_SUPPORT_WIDTH
     // Fold wall is completely straight (like with a zero fold wall)
-    console.log(wall)
     let runsStraightThrough = !wall.left || !wall.right ||
         wall.left.endVertex.ogCoords.sub(wall.vertex.ogCoords).normalize().dot(
         wall.right.endVertex.ogCoords.sub(wall.vertex.ogCoords).normalize()) < -0.99

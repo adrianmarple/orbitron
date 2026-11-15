@@ -5,7 +5,6 @@ module.exports = () => {
   NOTCH_DEPTH = 3
   MAX_SLOT_SEGMENT_LENGTH = 20
   INSET_ALL_WALL_NOTCHES = true
-  WALL_KERF = 0.2
 
   wallPostProcessingFunction = printInfo => {
     printInfo.prints = [printInfo.prints[1], printInfo.prints[5], printInfo.prints[4]]
@@ -88,7 +87,6 @@ module.exports = () => {
           print.suffix = mapping[suffix]
           if (mapping[suffix] == "connector_bottom") {
             connectorIndex = newPrints.length
-            console.log(connectorIndex)
           }
           newPrints.push(print)
         }
