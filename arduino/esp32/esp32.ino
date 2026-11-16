@@ -2194,7 +2194,6 @@ void setup() {
     deserializeJson(doc, configJson);
     orbID = doc["ORB_ID"].as<String>();
     orbID.trim();
-    orbID.replace(" ", "");
     relayHost = doc["RELAY_HOST"] | "my.lumatron.art";
     pixelsName = doc["PIXELS"].as<String>();
     orbKey = doc["ORB_KEY"] | "";
