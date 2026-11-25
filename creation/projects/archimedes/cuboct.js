@@ -1,6 +1,10 @@
+// v1.0.1
+
 module.exports = () => {
   NO_EMBOSSING = true
-  NOTCH_DEPTH = 5
+  NOTCH_DEPTH = 3
+  MAX_SLOT_SEGMENT_LENGTH = 20
+  INSET_ALL_WALL_NOTCHES = true
 
   wallPostProcessingFunction = printInfo => {
     printInfo.prints = [printInfo.prints[1], printInfo.prints[5], printInfo.prints[4]]
@@ -58,10 +62,6 @@ module.exports = () => {
     newVertex.addPlain(plain1)
   }
 
-  strongCovers.push({plain: plains[0], isBottom: true})
-  strongCovers.push({plain: plains[4], isBottom: true})
-  strongCovers.push({plain: plains[8], isBottom: true})
-
   isWall = true
 
   doubleEdges()
@@ -73,17 +73,11 @@ module.exports = () => {
 
   printPostProcessingFunction = printInfo => {
     let mapping = {
-      "1L": "strong_tri_L",
-      "2L": "strong_square_R",
+      "1L": "tri_wall",
+      "2L": "square_wall",
       "3b": "connector_bottom",
       "4b": "bottom",
       "4t": "top",
-      "5L": "square_wall",
-      "6L": "tri_wall",
-      "17L": "strong_square_both",
-      "18L": "strong_tri_both",
-      "19L": "strong_square_L",
-      "20L": "strong_tri_R",
     }
     let connectorIndex = 2
     let newPrints = []
@@ -93,7 +87,6 @@ module.exports = () => {
           print.suffix = mapping[suffix]
           if (mapping[suffix] == "connector_bottom") {
             connectorIndex = newPrints.length
-            console.log(connectorIndex)
           }
           newPrints.push(print)
         }
