@@ -33,14 +33,23 @@ struct Prefs;
 #ifdef CONFIG_IDF_TARGET_ESP32C6
   #define PIN 18               // GPIO 18 = D10 on XIAO ESP32-C6
   #define DEFAULT_BUTTON_PIN 20 // GPIO 20 = D9  on XIAO ESP32-C6
+  #define MOTION_INT 21        // D3
+  #define MOTION_SDA 22        // D4
+  #define MOTION_SCL 23        // D5
   #define CHIP_TYPE "esp32c6"
 #elif defined(CONFIG_IDF_TARGET_ESP32S3)
   #define PIN 9                // GPIO 9  = D10 on XIAO ESP32-S3
   #define DEFAULT_BUTTON_PIN 8  // GPIO 8  = D9  on XIAO ESP32-S3
+  #define MOTION_INT 4         // D3
+  #define MOTION_SDA 5         // D4
+  #define MOTION_SCL 6         // D5
   #define CHIP_TYPE "esp32s3"
 #else
   #define PIN 10               // GPIO 10 = D10 on XIAO ESP32-C3
   #define DEFAULT_BUTTON_PIN 9  // GPIO 9  = D9  on XIAO ESP32-C3
+  #define MOTION_INT 5         // D3
+  #define MOTION_SDA 6         // D4
+  #define MOTION_SCL 7         // D5
   #define CHIP_TYPE "esp32c3"
 #endif
 #ifndef FIRMWARE_VERSION_NUM
@@ -112,6 +121,7 @@ void stripShow() {
   ws2812_show(leds, RAW_SIZE * 3);
 }
 
+#include "motion.h"
 #include "patterns.h"
 
 Prefs defaultPrefs = {
@@ -166,6 +176,9 @@ int buttonPin = 0;  // 0 = disabled (GPIO 0 isn't used as a button on any suppor
 String shortPressAction = "DIM";
 String longPressAction = "CYCLE";
 String extraLongPressAction = "ACCESS_POINT";
+bool motionDetection = false;
+String bumpAction = "CYCLE";
+String motionAxes = "x,y,z";
 bool fadePinLastState = false;  // true = pressed
 unsigned long fadePinPressStart = 0;
 bool fadePinLongFired = false;
@@ -1402,6 +1415,18 @@ void handleAdminCommand(JsonDocument& msg) {
     sendResponse(messageID, "No log on Arduino");
   } else if (type == "geterror") {
     sendResponse(messageID, "No error log on Arduino");
+  } else if (type == "run" && cmd["command"] == "motion") {
+    JsonDocument doc;
+    doc["available"] = motionAvailable;
+    doc["axes"] = motionAxes;
+    for (int i = 0; i < 3; i++) {
+      doc["raw"][i] = motionRawAccel[i];
+      doc["accel"][i] = motionAccel[i];
+      doc["up"][i] = motionUp[i];
+    }
+    String out;
+    serializeJson(doc, out);
+    sendResponse(messageID, out);
   } else {
     sendResponse(messageID, "Not supported on Arduino");
   }
@@ -2205,6 +2230,9 @@ void setup() {
     shortPressAction = doc["SHORT_PRESS_ACTION"] | "DIM";
     longPressAction = doc["LONG_PRESS_ACTION"] | "CYCLE";
     extraLongPressAction = doc["EXTRA_LONG_PRESS_ACTION"] | "ACCESS_POINT";
+    motionDetection = doc["MOTION_DETECTION"] | false;
+    bumpAction = doc["BUMP_ACTION"] | "CYCLE";
+    motionAxes = doc["MOTION_AXES"] | "x,y,z";
     fullBrightnessOnPowerOn = doc["FULL_BRIGHTNESS_ON_POWER_ON"] | true;
     // Default to "skip" if the piece has a hardware button (user can launch
     // AP via long-press); otherwise default to "don't skip" so the AP comes
@@ -2261,6 +2289,10 @@ void setup() {
     pinMode(buttonPin, INPUT_PULLUP);
     fadePinLastState = !digitalRead(buttonPin);  // INPUT_PULLUP: LOW=pressed, so invert
     Serial.println("Button pin: GPIO " + String(buttonPin));
+  }
+
+  if (motionDetection) {
+    motionBegin(MOTION_SDA, MOTION_SCL, MOTION_INT, motionAxes.c_str());
   }
 
   // Load geometry from cache so render loop can start immediately.
@@ -2460,6 +2492,7 @@ void loop() {
 
   unsigned long loop_start = millis();
 
+  motionUpdate();
   renderFrame();
 
   if (apActive) renderAPRings();
@@ -2502,6 +2535,7 @@ void loop() {
   // captive portal blocks until WiFi connects, which would freeze rendering
   // (including the AP rings) if it ran on the loop task.
   checkFadePin();
+  if (motionTakeBump()) performPinAction(bumpAction);
 
   delay(max(delay_time, 1));  // always yield at least 1ms so idle task feeds WDT
 }

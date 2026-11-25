@@ -366,6 +366,7 @@ void runStatic() {
   float dx, dy, dz;
   if (staticRotation) { float theta = (millis()/1000.0f)*2.0f*PI/staticRotationTime; dx=sinf(theta); dy=cosf(theta); dz=0.0f; }
   else { dx=staticDirX; dy=staticDirY; dz=staticDirZ; }
+  if (motionAvailable) motionTiltToUp(dx, dy, dz);
   float ab = brightness_factor * 0.2f;
   for (int i = 0; i < RAW_SIZE; i++) {
     int u = raw_to_unique[i];

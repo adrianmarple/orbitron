@@ -2,7 +2,7 @@ module.exports={
   ORB_ID: "default",
 
   // =================== Core ===================
-  // PIXELS: "diamond",
+  // PIXELS: "archimedes/cuboct2",
   // RELAY_HOST: "my.lumatron.art",  // Defaults to official relay (or 0.0.0.0 in DEV_MODE); can be a domain or IP
   // CONTINUOUS_INTEGRATION: false,
   // FULL_BRIGHTNESS_ON_POWER_ON: true,  // Set dimmer=1 on power-on boot (not software restarts). Arduino default: true; Pi default: false
@@ -20,7 +20,7 @@ module.exports={
     // weeklyTimer: true,
     // beatMode: true,
     // hourglass: true,
-    // linesine: true, // Linear-topology sine wave pattern
+    // linesine: true, // Linear or circle topology sine wave pattern
   },
   EXCLUDE: {
     // colors: true,

@@ -5,7 +5,7 @@ r2 = 9;
 r2_p = r2 * sqrt(3) / 2;
 
 big_r1 = 22.4/2;
-big_r2 = 14;
+big_r2 = 15;
 big_r2_p = big_r2 * sqrt(3) / 2;
 
 l1 = 20;

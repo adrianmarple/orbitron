@@ -3,8 +3,8 @@ include <../utils.scad>
 
 $fn=64;
 width = 20;
-channel_width = 22.3;
-latch_height = 2;
+channel_width = 14 + 9.3;
+latch_height = 2.5;
 overhang = 0.66;
 wall_thickness = 2.8;
 box_thickness = 9;
@@ -16,7 +16,7 @@ lip = 2;
 inner_d = bottom_hole_d + 2*lip;
 inner_h = 2;
 
-outer_x = channel_width/2 + 1.2;
+outer_x = channel_width/2 + 2;
 
 nail_angle = 30;
 nail_d = 2.1;

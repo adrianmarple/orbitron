@@ -111,6 +111,7 @@ Color conventions: Red (`#f00`) = bad/danger, Magenta (`#f0f`) = good/pickups, e
 
 ### Hardware
 - **LED data pin**: GPIO 10 on C3, GPIO 18 on C6, GPIO 9 on S3 (all correspond to the D10 pad on the XIAO; set via `#define PIN` conditioned on `CONFIG_IDF_TARGET_ESP32C6` / `CONFIG_IDF_TARGET_ESP32S3`)
+- **Motion sensor** (staff PCB): LSM6DSV16X at I2C `0x6A`, SDA on D4, SCL on D5, INT1 on D3; driver is in-tree at `arduino/esp32/motion.h`
 - **Button pin**: defaults to D9 (GPIO 9 on C3, GPIO 20 on C6, GPIO 8 on S3). Override via `BUTTON_PIN` in config.json; set to `0` to disable. Button must be wired to GND; pin uses `INPUT_PULLUP`.
 - **Recommended board**: Seeed XIAO ESP32-C3, ESP32-C6, or ESP32-S3 (S3 has 8MB OPI PSRAM, required for large pixel counts)
 - **arduino-cli boards**: `esp32:esp32:esp32c3`, `esp32:esp32:esp32c6`, and `esp32:esp32:esp32s3` (all built by the build script)
@@ -134,6 +135,9 @@ JSON file written directly to the device. Key fields:
 - `BUTTON_PIN` — GPIO number for hardware button; defaults to D9 (GPIO 9/C3, 20/C6, 8/S3); set to `0` to disable
 - `SHORT_PRESS_ACTION` — `"DIM"` (default) or `"CYCLE"`
 - `LONG_PRESS_ACTION` — `"CYCLE"` (default) or `"DIM"`
+- `MOTION_DETECTION` — true enables the LSM6DSV16X motion sensor (staff PCB); patterns read it through `motion.h`, and the static pattern keeps north (+y) pointed along gravity
+- `BUMP_ACTION` — `"CYCLE"` (default), `"DIM"`, or `"ACCESS_POINT"`; fires when the motion sensor detects a tap
+- `MOTION_AXES` — maps chip axes onto geometry axes, e.g. `"x,-z,y"` (default `"x,y,z"`). Check it with `motion` in the admin command prompt, which returns raw and mapped accel plus the up vector
 
 ### WiFi / Captive Portal
 - Multiple networks are supported via `WiFiMulti`. Credentials are stored in `/wifi.json` on LittleFS as an array of `{ssid, pass}` and loaded into `wifiMulti` on boot; it connects to the strongest reachable saved network. This file is deliberately **not** exposed by `GET_CONFIG` or the backup, so passwords are never readable from the admin console.

@@ -3,11 +3,12 @@ $fn=6;
 use <../utils.scad>
 
 // Params than need calibrating
-power_top = 1.6;
-pcb_y_offset = -2;
-pcb_cavity_y = 5;
-pcb_cavity_y_offset = 1;
-
+power_top = 2.5;
+pcb_cavity_y = 7.5;
+pcb_cavity_y_offset = 0.3;
+usb_f_thick = 2.8;
+usb_f_w = 12.2;
+pcb_usb_y_offset = 0.2 + usb_f_thick/2;
 
 r1 = 5.98;
 r2 = 9;
@@ -17,20 +18,11 @@ big_r1 = 22.5/2;
 big_r2 = 15;
 big_r2_p = big_r2 * sqrt(3) / 2;
 
-l1 = 30;
-l2 = 45;
-l3 = 50;
-
-a1 = 35.264389682754654;
-a2 = -60;
-a3 = -45;
 
 pcb_length = 21.5;
 pcb_width = 21;
 
-
-
-battery_r = 27.35/2;
+battery_r = 27.4/2;
 battery_power_z_offset = 16.1;
 battery_power_r = 12/2;
 
@@ -44,12 +36,13 @@ battery_sleeve_r = battery_r + 1.6;
 
 box_w = power_connection_r * 2 + 1;
 box_thick = 36;
-box_h = pcb_length;
+box_h = pcb_length + 0.3;
 box_wall = 2;
 chamf = 2;
 
 power_r = (box_thick/2 - chamf) * 2 / sqrt(3);
 pipe_z = power_connection_h + power_top + pcb_length;
+pipe_l = 44;
 
 //power();
 controller();
@@ -66,7 +59,7 @@ difference() {
         cylinder(h=battery_sleeve_h, r=battery_sleeve_r, $fn=64);
         
         // Pipe
-        cylinder(h = 56+pipe_z, r=big_r2);
+        cylinder(h = pipe_l+pipe_z, r=big_r2);
         
         
         
@@ -123,12 +116,20 @@ difference() {
     cylinder(h=battery_sleeve_h+1, r=battery_r, $fn=64);
         
     // PCB cavity
-    translate([0, pcb_y_offset + pcb_cavity_y_offset, power_connection_h + power_top + box_h/2])
-    cube([pcb_width + 0.2, pcb_cavity_y, pcb_length], center=true);
+    translate([0, pcb_cavity_y_offset, power_connection_h + power_top + box_h/2+1])
+    cube([pcb_width + 0.3, pcb_cavity_y, pcb_length+2], center=true);
+    
+    intersection() {
+        translate([0,0,pipe_z-6])
+        cylinder(h = 6.01, r1=big_r1 - 0.7, r2=big_r1, $fn=64);
+        
+        translate([0, pcb_cavity_y_offset, pipe_z-3])
+        cube([pcb_width + 10, pcb_cavity_y, 7], center=true);
+    }
     
     // USB hole
-    translate([0, pcb_y_offset, power_connection_h])
-    cube([12, 1.8, 10], center=true);
+    translate([0, pcb_usb_y_offset, power_connection_h-1])
+    cube([usb_f_w, usb_f_thick, 10], center=true);
     
     
     // Pipe
@@ -160,6 +161,6 @@ difference() {
     cylinder(h=power_connection_h, r=battery_r+0.6, $fn=64);
     
     translate([0,0,-1])
-    cylinder(h=power_connection_h+1, r=battery_r, $fn=64);
+    cylinder(h=power_connection_h+2, r=battery_r, $fn=64);
 }
 }

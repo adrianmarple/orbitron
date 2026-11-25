@@ -449,6 +449,7 @@ var app = new Vue({
         this.getOrbConfig(undefined, 'LONG_PRESS_ACTION', 'CYCLE'),
         this.getOrbConfig(undefined, 'DOUBLE_CLICK_ACTION', ''),
         this.getOrbConfig(undefined, 'TRIPLE_CLICK_ACTION', 'ACCESS_POINT'),
+        this.getOrbConfig(undefined, 'MOTION_DETECTION', false) ? this.getOrbConfig(undefined, 'BUMP_ACTION', 'CYCLE') : '',
       ].includes('CYCLE')
     },
     isArduino() {
